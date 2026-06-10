@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Sponsor — Product Roadmap & Impact Map</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #F0F2F5;
+    padding: 32px;
+    color: #1A1A2E;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .header .tag {
+    display: inline-block;
+    background: #0066B3;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+    letter-spacing: .04em;
+  }
+  .header h1 { font-size: 28px; font-weight: 700; letter-spacing: -.5px; }
+  .header p { font-size: 13px; color: #6B7280; margin-top: 4px; }
+
+  .section-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 40px 0 16px;
+    color: #1A1A2E;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #E5E7EB;
+  }
+
+  /* ── ROADMAP ── */
+  .roadmap {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .phase {
+    background: #fff;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,.07);
+  }
+
+  .phase-header {
+    padding: 16px 18px 14px;
+    color: #fff;
+  }
+  .phase-header .phase-num {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    opacity: .75;
+    margin-bottom: 4px;
+  }
+  .phase-header h3 {
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .phase-header .phase-goal {
+    font-size: 11px;
+    opacity: .85;
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  .ph0 .phase-header { background: linear-gradient(135deg, #6B7280, #4B5563); }
+  .ph1 .phase-header { background: linear-gradient(135deg, #0066B3, #0284C7); }
+  .ph2 .phase-header { background: linear-gradient(135deg, #7C3AED, #6D28D9); }
+  .ph3 .phase-header { background: linear-gradient(135deg, #059669, #047857); }
+
+  .phase-body { padding: 16px 18px; }
+
+  .track { margin-bottom: 16px; }
+  .track:last-child { margin-bottom: 0; }
+
+  .track-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: #9CA3AF;
+    margin-bottom: 7px;
+  }
+
+  .item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid #F9FAFB;
+    font-size: 11.5px;
+    color: #374151;
+    line-height: 1.5;
+  }
+  .item:last-child { border-bottom: none; }
+
+  .dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    color: #fff;
+    font-weight: 700;
+  }
+  .dot-done  { background: #10B981; }
+  .dot-todo  { background: #E5E7EB; }
+  .dot-block { background: #EF4444; }
+
+  .milestone-box {
+    background: #F0FDF4;
+    border: 1.5px solid #86EFAC;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 14px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #065F46;
+    line-height: 1.5;
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #6B7280;
+  }
+
+  /* ── IMPACT MAP ── */
+  .impact-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .actor-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.07);
+    border-left: 5px solid #ccc;
+  }
+  .actor-users    { border-left-color: #0066B3; }
+  .actor-matt     { border-left-color: #F59E0B; }
+  .actor-community{ border-left-color: #10B981; }
+  .actor-mariam   { border-left-color: #8B5CF6; }
+
+  .actor-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .actor-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .actor-users .actor-icon    { background: #DBEAFE; }
+  .actor-matt .actor-icon     { background: #FEF3C7; }
+  .actor-community .actor-icon{ background: #D1FAE5; }
+  .actor-mariam .actor-icon   { background: #EDE9FE; }
+
+  .actor-name { font-size: 14px; font-weight: 700; }
+  .actor-role { font-size: 11px; color: #6B7280; margin-top: 1px; }
+
+  .impact-col {
+    margin-bottom: 12px;
+  }
+  .impact-col-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: #9CA3AF;
+    margin-bottom: 6px;
+  }
+  .impact-col ul { list-style: none; }
+  .impact-col ul li {
+    font-size: 11.5px;
+    color: #374151;
+    padding: 4px 0;
+    line-height: 1.5;
+    border-bottom: 1px solid #F9FAFB;
+    display: flex;
+    gap: 6px;
+  }
+  .impact-col ul li:last-child { border-bottom: none; }
+  .impact-col ul li::before { content: '→'; opacity: .35; flex-shrink: 0; }
+
+  /* RISKS */
+  .risks {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .risk-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 14px;
+    box-shadow: 0 1px 6px rgba(0,0,0,.06);
+    border-top: 3px solid #EF4444;
+  }
+  .risk-label { font-size: 10px; font-weight: 700; color: #EF4444; margin-bottom: 5px; text-transform: uppercase; letter-spacing: .06em; }
+  .risk-title { font-size: 12px; font-weight: 600; color: #1A1A2E; margin-bottom: 5px; }
+  .risk-fix   { font-size: 11px; color: #374151; line-height: 1.5; }
+  .risk-fix strong { color: #059669; }
+
+  @media print {
+    body { padding: 16px; background: #fff; }
+    .phase, .actor-card, .risk-card { box-shadow: none; border: 1px solid #E5E7EB; }
+    .ph0 .phase-header, .ph1 .phase-header, .ph2 .phase-header, .ph3 .phase-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="tag">AI Sponsor</div>
+  <h1>Product Roadmap &amp; Impact Map</h1>
+  <p>May 2026 · Review: Monday call with Matt</p>
+</div>
+
+<!-- ═══════════════════════════ ROADMAP ═══════════════════════════ -->
+<div class="section-title">Product Roadmap</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="dot dot-done">✓</div> Done / live</div>
+  <div class="legend-item"><div class="dot dot-todo"></div> To do</div>
+  <div class="legend-item"><div class="dot dot-block">!</div> Blocked</div>
+</div>
+
+<div class="roadmap">
+
+  <!-- PHASE 0 -->
+  <div class="phase ph0">
+    <div class="phase-header">
+      <div class="phase-num">Phase 0</div>
+      <h3>Unblock</h3>
+      <div class="phase-goal">Get the product technically ready for the first 11 beta users</div>
+    </div>
+    <div class="phase-body">
+      <div class="track">
+        <div class="track-label">Platform — Irfan</div>
+        <div class="item"><div class="dot dot-block">!</div>Audos platform bugs fixed (Stripe webhook, data isolation) — VIP support submitted</div>
+        <div class="item"><div class="dot dot-todo"></div>Connect existing Stripe to Audos</div>
+        <div class="item"><div class="dot dot-todo"></div>Wapisimo WhatsApp API integration — V1 delivery channel (partnership confirmed · pending API key + contact from Matt)</div>
+        <div class="item"><div class="dot dot-todo"></div>Create 30-day beta discount code</div>
+        <div class="item"><div class="dot dot-todo"></div>Set up sponsor@youraisponsor.com</div>
+      </div>
+      <div class="track">
+        <div class="track-label">Product — Mariam</div>
+        <div class="item"><div class="dot dot-done">✓</div>Registration form — 11-screen onboarding (live)</div>
+        <div class="item"><div class="dot dot-done">✓</div>Landing page — B1G1, Amends, pricing (live)</div>
+        <div class="item"><div class="dot dot-done">✓</div>Programs aligned: DA BDA UA AA Al-Anon NA OA GA ACA SLAA</div>
+        <div class="item"><div class="dot dot-done">✓</div>AI Sponsor Master Prompt — ready to deploy</div>
+        <div class="item"><div class="dot dot-done">✓</div>Lean Canvas + Roadmap</div>
+        <div class="item"><div class="dot dot-todo"></div>Paste master prompt into Audos App Studio</div>
+        <div class="item"><div class="dot dot-todo"></div>Test full user journey end-to-end</div>
+        <div class="item"><div class="dot dot-todo"></div>Google Sheet — beta user tracking</div>
+      </div>
+      <div class="track">
+        <div class="track-label">Beta Launch</div>
+        <div class="item"><div class="dot dot-block">!</div>Matt's Google Meet — onboard 11 beta users (blocked on Audos)</div>
+        <div class="item"><div class="dot dot-todo"></div>Beta codes distributed to 11 direct users</div>
+        <div class="item"><div class="dot dot-todo"></div>Email campaign → 78-person waitlist</div>
+      </div>
+      <div class="milestone-box">🎯 Signal: 3–5 paying users → unlocks Audos/Prehype investment</div>
+    </div>
+  </div>
+
+  <!-- PHASE 1 -->
+  <div class="phase ph1">
+    <div class="phase-header">
+      <div class="phase-num">Phase 1</div>
+      <h3>Launch</h3>
+      <div class="phase-goal">First paying users. Product working end-to-end.</div>
+    </div>
+    <div class="phase-body">
+      <div class="track">
+        <div class="track-label">Product</div>
+        <div class="item"><div class="dot dot-todo"></div>AI Sponsor Chat mini app live in Audos</div>
+        <div class="item"><div class="dot dot-todo"></div>WhatsApp via Wapisimo live — V1 delivery (all beta users already on WhatsApp)</div>
+        <div class="item"><div class="dot dot-todo"></div>Web chat delivery live</div>
+        <div class="item"><div class="dot dot-todo"></div>Sponsor personalised from onboarding data (program, stage, goals, style)</div>
+        <div class="item"><div class="dot dot-todo"></div>Crisis protocol active: 988 + SAMHSA + program hotline</div>
+        <div class="item"><div class="dot dot-todo"></div>HIPAA-aligned, encrypted, no data selling</div>
+      </div>
+      <div class="track">
+        <div class="track-label">Growth</div>
+        <div class="item"><div class="dot dot-todo"></div>Email campaign → 78-person waitlist</div>
+        <div class="item"><div class="dot dot-todo"></div>Instagram account live, first posts published</div>
+        <div class="item"><div class="dot dot-todo"></div>Blog launched, first AI SEO articles</div>
+        <div class="item"><div class="dot dot-todo"></div>Analytics dashboards set up in Audos</div>
+        <div class="item"><div class="dot dot-todo"></div>Meta ads — first campaign live (US only)</div>
+      </div>
+      <div class="milestone-box">🎯 Target: MRR milestone — TBD with Matt on Monday</div>
+    </div>
+  </div>
+
+  <!-- PHASE 2 -->
+  <div class="phase ph2">
+    <div class="phase-header">
+      <div class="phase-num">Phase 2</div>
+      <h3>Grow</h3>
+      <div class="phase-goal">Build the habit. Build the viral loop. Deepen the product.</div>
+    </div>
+    <div class="phase-body">
+      <div class="track">
+        <div class="track-label">Product</div>
+        <div class="item"><div class="dot dot-todo"></div>Twilio SMS/MMS integration — V2 delivery channel</div>
+        <div class="item"><div class="dot dot-todo"></div>Referral system: 1 referral = 1 free month</div>
+        <div class="item"><div class="dot dot-todo"></div>Sobriety milestone recognition per program</div>
+        <div class="item"><div class="dot dot-todo"></div>Online meeting locator — scrape program websites</div>
+        <div class="item"><div class="dot dot-todo"></div>Voice selection via ElevenLabs (firm / warm / calm)</div>
+        <div class="item"><div class="dot dot-todo"></div>Session memory — AI remembers previous conversations</div>
+      </div>
+      <div class="track">
+        <div class="track-label">Growth</div>
+        <div class="item"><div class="dot dot-todo"></div>Referral loop driving organic signups</div>
+        <div class="item"><div class="dot dot-todo"></div>Instagram community growing</div>
+        <div class="item"><div class="dot dot-todo"></div>Blog SEO traffic building</div>
+        <div class="item"><div class="dot dot-todo"></div>Ads scaling on cost-per-trial data</div>
+        <div class="item"><div class="dot dot-todo"></div>Featured on Audos.com examples page</div>
+      </div>
+      <div class="milestone-box">🎯 Target: MRR milestone — TBD with Matt on Monday</div>
+    </div>
+  </div>
+
+  <!-- PHASE 3 -->
+  <div class="phase ph3">
+    <div class="phase-header">
+      <div class="phase-num">Phase 3 → Vision</div>
+      <h3>Scale</h3>
+      <div class="phase-goal">International reach. Multiple revenue streams. Brand presence.</div>
+    </div>
+    <div class="phase-body">
+      <div class="track">
+        <div class="track-label">Product</div>
+        <div class="item"><div class="dot dot-todo"></div>iOS Mobile App — native via Audos (collecting demand now)</div>
+        <div class="item"><div class="dot dot-todo"></div>Video Sponsor + avatar — design face, voice, personality (collecting demand now)</div>
+        <div class="item"><div class="dot dot-todo"></div>Deeper AI personalisation + longer memory</div>
+        <div class="item"><div class="dot dot-todo"></div>SDK — license to other recovery platforms</div>
+      </div>
+      <div class="track">
+        <div class="track-label">Growth</div>
+        <div class="item"><div class="dot dot-todo"></div>International ads (UK, Canada, Australia, Ireland)</div>
+        <div class="item"><div class="dot dot-todo"></div>Amends TV series — LA production team, brand building</div>
+        <div class="item"><div class="dot dot-todo"></div>Recovery + mental health press coverage</div>
+        <div class="item"><div class="dot dot-todo"></div>B-Corp / social enterprise certification</div>
+      </div>
+      <div class="milestone-box">🎯 $10,000/month MRR — Matt's stated target</div>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ═══════════════════════════ IMPACT MAP ═══════════════════════════ -->
+<div class="section-title" style="margin-top:48px">Impact Map</div>
+
+<div style="background:#fff;border-radius:14px;padding:18px 20px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,.07);">
+  <div style="display:flex;gap:32px;flex-wrap:wrap">
+    <div>
+      <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9CA3AF;margin-bottom:4px">Business Goal</div>
+      <div style="font-size:14px;font-weight:700;color:#1A1A2E">$10,000/month MRR</div>
+    </div>
+    <div>
+      <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9CA3AF;margin-bottom:4px">Mission Goal</div>
+      <div style="font-size:14px;font-weight:700;color:#1A1A2E">Free access for everyone who can't afford it (1-for-1)</div>
+    </div>
+    <div>
+      <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9CA3AF;margin-bottom:4px">Signal Goal</div>
+      <div style="font-size:14px;font-weight:700;color:#1A1A2E">Enough traction for Audos/Prehype to invest further</div>
+    </div>
+  </div>
+</div>
+
+<div class="impact-grid">
+
+  <!-- USERS -->
+  <div class="actor-card actor-users">
+    <div class="actor-header">
+      <div class="actor-icon">🙋</div>
+      <div><div class="actor-name">People in Recovery</div><div class="actor-role">Primary users — DA, BDA, UA, AA, Al-Anon, NA, OA, GA, ACA, SLAA</div></div>
+    </div>
+    <div class="impact-col">
+      <div class="impact-col-label">What we need them to do</div>
+      <ul>
+        <li>Complete onboarding and connect delivery method</li>
+        <li>Talk to their AI Sponsor regularly</li>
+        <li>Stay subscribed past 30-day trial</li>
+        <li>Refer at least one other person in recovery</li>
+      </ul>
+    </div>
+    <div class="impact-col">
+      <div class="impact-col-label">What has to be true</div>
+      <ul>
+        <li>Feels safe, private, non-judgmental</li>
+        <li>Feels like a real sponsor, not a chatbot</li>
+        <li>Available when they need it (3am, during a craving)</li>
+        <li>Speaks their program's language from day one</li>
+      </ul>
+    </div>
+    <div class="impact-col">
+      <div class="impact-col-label">Key Deliverables</div>
+      <ul>
+        <li>Master prompt with deep program knowledge ✓</li>
+        <li>Onboarding: program, stage, goals, sponsor style ✓</li>
+        <li>WhatsApp via Wapisimo (V1) · SMS/MMS via Twilio (V2)</li>
+        <li>End-to-end encryption + HIPAA-aligned ✓</li>
+        <li>Crisis protocol ✓</li>
+        <li>Referral system (Phase 2)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- MATT / AUDOS -->
+  <div class="actor-card actor-matt">
+    <div class="actor-header">
+      <div class="actor-icon">🏗️</div>
+      <div><div class="actor-name">Matt / Audos / Prehype</div><div class="actor-role">Platform, funding, infrastructure</div></div>
+    </div>
+    <div class="impact-col">
+      <div class="impact-col-label">What we need them to do</div>
+      <ul>
+        <li>Fix Audos platform bugs so product can launch</li>
+        <li>Provide Wapisimo API key + integration contact</li>
+        <li>Continue infrastructure + investment support</li>
+        <li>Feature AI Sponsor as a showcase product</li>
+      </ul>
+    </div>
+    <div class="impact-col">
+      <div class="impact-col-label">What has to be true</div>
+      <ul>
+        <li>See early traction — even 3–5 paying users</li>
+        <li>See product actively built (Audos leaderboard)</li>
+        <li>See credible roadmap + business case</li>
+      </ul>
+    </div>
+    <div class="impact-col">
+      <div class="impact-col-label">Key Deliverables</div>
+      <ul>
+        <li>11 beta users onboarded (pending Audos fix)</li>
+        <li>78-person waitlist → email → paying users</li>
+        <li>This roadmap ✓</li>
+        <li>Lean Canvas ✓</li>
+        <li>Active daily use of Audos platform</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- RECOVERY COMMUNITY -->
+  <div class="actor-card actor-community">
+    <div class="actor-header">
+      <div class="actor-icon">🤝</div>
+      <div><div class="actor-name">Recovery Community</div><div class="actor-role">Word of mouth engine</div></div>
+    </div>
+    <div class="impact-col">
+      <div class="impact-col-label">What we need them to do</div>
+      <ul>
+        <li>Talk about AI Sponsor in meetings + WhatsApp groups</li>
+        <li>Share the referral link</li>
+        <li>Normalise AI as a supplement to human sponsorship</li>
+      </ul>
+    </div>
+    <div class="impact-col">
+      <div class="impact-col-label">What has to be true</div>
+      <ul>
+        <li>Product feels aligned with 12-step values</li>
+        <li>One-for-one gives people a reason to share proudly</li>
+        <li>Never feels like it's replacing human sponsors</li>
+        <li>Anonymity is airtight</li>
+      </ul>
+    </div>
+    <div class="impact-col">
+      <div class="impact-col-label">Key Deliverables</div>
+      <ul>
+        <li>One-for-one model front + centre on landing page ✓</li>
+        <li>Disclaimer: not affiliated, private project ✓</li>
+        <li>Framing: augments, doesn't replace ✓</li>
+        <li>Referral system (Phase 2)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- MARIAM -->
+  <div class="actor-card actor-mariam">
+    <div class="actor-header">
+      <div class="actor-icon">🎯</div>
+      <div><div class="actor-name">Mariam</div><div class="actor-role">Product Lead — AI Sponsor</div></div>
+    </div>
+    <div class="impact-col">
+      <div class="impact-col-label">What she needs to do</div>
+      <ul>
+        <li>Own product direction, quality, and daily progress</li>
+        <li>Manage Irfan's technical deliverables</li>
+        <li>Drive growth: content, community, data</li>
+        <li>Weekly product call with Matt</li>
+      </ul>
+    </div>
+    <div class="impact-col">
+      <div class="impact-col-label">What has to be true</div>
+      <ul>
+        <li>Clear priorities and roadmap she owns ✓</li>
+        <li>Audos bugs resolved (in progress)</li>
+        <li>Access to Audos, ClickUp, Miro, Slack</li>
+      </ul>
+    </div>
+    <div class="impact-col">
+      <div class="impact-col-label">Key Deliverables</div>
+      <ul>
+        <li>Roadmap + Lean Canvas ✓</li>
+        <li>Master Prompt ready to deploy ✓</li>
+        <li>Registration form + landing page live ✓</li>
+        <li>Email campaign copy — 78 waitlist (pending)</li>
+        <li>Google Sheet — beta tracking (started)</li>
+        <li>Instagram + blog (Phase 1)</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<!-- RISKS -->
+<div class="section-title" style="margin-top:36px">Key Risks &amp; Mitigations</div>
+<div class="risks">
+  <div class="risk-card">
+    <div class="risk-label">Risk</div>
+    <div class="risk-title">Audos bugs delay launch past beta weekend</div>
+    <div class="risk-fix"><strong>Mitigation:</strong> VIP bug report submitted to support@audos.com. Irfan on standby. Landing page + form already live.</div>
+  </div>
+  <div class="risk-card">
+    <div class="risk-label">Risk</div>
+    <div class="risk-title">Beta users have a bad first experience</div>
+    <div class="risk-fix"><strong>Mitigation:</strong> Test full user journey end-to-end before Matt's weekend call.</div>
+  </div>
+  <div class="risk-card">
+    <div class="risk-label">Risk</div>
+    <div class="risk-title">AI says something harmful in a crisis</div>
+    <div class="risk-fix"><strong>Mitigation:</strong> Crisis protocol hard-coded in master prompt. 988 + SAMHSA + program hotline triggered automatically.</div>
+  </div>
+  <div class="risk-card">
+    <div class="risk-label">Risk</div>
+    <div class="risk-title">Recovery community rejects the product</div>
+    <div class="risk-fix"><strong>Mitigation:</strong> Honest framing, program disclaimer, 1-for-1 model, no claims of replacing human sponsors.</div>
+  </div>
+  <div class="risk-card">
+    <div class="risk-label">Risk</div>
+    <div class="risk-title">Low trial-to-paid conversion</div>
+    <div class="risk-fix"><strong>Mitigation:</strong> 30-day trial builds habit before card is charged. Card saved day 1, charged day 31.</div>
+  </div>
+  <div class="risk-card">
+    <div class="risk-label">Risk</div>
+    <div class="risk-title">Product feels like a chatbot, not a sponsor</div>
+    <div class="risk-fix"><strong>Mitigation:</strong> Deep program knowledge + sponsor persona in master prompt. Personalised from minute one via onboarding.</div>
+  </div>
+</div>
+
+<div style="text-align:center;margin-top:32px;font-size:11px;color:#9CA3AF">
+  AI Sponsor · Product Roadmap &amp; Impact Map · May 2026 · Built on Audos · youraisponsor.com
+</div>
+
+</body>
+</html>

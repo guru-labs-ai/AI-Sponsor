@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Sponsor — Product Brief</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F0F2F5; padding: 36px; color: #1A1A2E; -webkit-font-smoothing: antialiased; }
+
+  /* HEADER */
+  .header { text-align: center; margin-bottom: 40px; }
+  .header .tag { display: inline-block; background: #052e16; color: #6ee7b7; font-size: 11px; font-weight: 700; padding: 5px 16px; border-radius: 20px; margin-bottom: 12px; letter-spacing: .08em; text-transform: uppercase; }
+  .header h1 { font-size: 32px; font-weight: 900; letter-spacing: -.5px; color: #0a0d14; }
+  .header .subtitle { font-size: 15px; color: #6B7280; margin-top: 8px; line-height: 1.5; max-width: 600px; margin-left: auto; margin-right: auto; }
+
+  /* SECTION LABEL */
+  .section-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: #9CA3AF; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: #D1D5DB; }
+
+  /* HERO STAT BAR */
+  .stat-bar { background: #052e16; border-radius: 16px; padding: 24px 28px; margin-bottom: 36px; display: flex; flex-wrap: wrap; gap: 0; }
+  .stat-item { flex: 1; min-width: 120px; text-align: center; padding: 8px 12px; }
+  .stat-val { font-size: 26px; font-weight: 900; color: #fff; }
+  .stat-lbl { font-size: 10px; color: #6ee7b7; text-transform: uppercase; letter-spacing: .07em; margin-top: 3px; font-weight: 700; }
+  .stat-divider { width: 1px; background: rgba(255,255,255,.12); margin: 8px 0; align-self: stretch; }
+
+  /* WHAT IT IS */
+  .what-box { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,.07); margin-bottom: 36px; border-left: 5px solid #059669; }
+  .what-box p { font-size: 13.5px; color: #374151; line-height: 1.8; }
+  .what-box p + p { margin-top: 10px; }
+  .what-box strong { color: #0a0d14; }
+
+  /* CARDS GRID */
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-bottom: 36px; }
+
+  .card { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 1px 8px rgba(0,0,0,.07); }
+  .card-icon { font-size: 24px; margin-bottom: 10px; }
+  .card-title { font-size: 13px; font-weight: 800; color: #0a0d14; margin-bottom: 8px; }
+  .card-body { font-size: 12px; color: #4B5563; line-height: 1.7; }
+  .card-tag { display: inline-block; font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 8px; margin-top: 10px; text-transform: uppercase; letter-spacing: .05em; }
+
+  /* PROGRAM GRID */
+  .programs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 36px; }
+  .prog { background: #fff; border-radius: 10px; padding: 10px 14px; font-size: 12px; font-weight: 700; color: #374151; box-shadow: 0 1px 6px rgba(0,0,0,.06); border-left: 3px solid #059669; }
+
+  /* BUILD STATUS */
+  .status-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 36px; }
+  .status-item { background: #fff; border-radius: 12px; padding: 16px 18px; box-shadow: 0 1px 6px rgba(0,0,0,.06); display: flex; gap: 14px; align-items: flex-start; }
+  .s-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .s-content { flex: 1; }
+  .s-title { font-size: 13px; font-weight: 700; color: #0a0d14; margin-bottom: 3px; }
+  .s-desc { font-size: 12px; color: #4B5563; line-height: 1.6; }
+  .s-owner { font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 8px; margin-left: auto; flex-shrink: 0; text-transform: uppercase; letter-spacing: .05em; align-self: center; }
+
+  .ow-built   { background: #D1FAE5; color: #065F46; }
+  .ow-abdul   { background: #EDE9FE; color: #5b21b6; }
+  .ow-mariam  { background: #D1FAE5; color: #065F46; }
+  .ow-matt    { background: #DBEAFE; color: #1d4ed8; }
+  .ow-bilal   { background: #FEF3C7; color: #92400e; }
+  .ow-later   { background: #F3F4F6; color: #6B7280; }
+
+  /* TECH STACK */
+  .stack-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 36px; }
+  .stack-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 6px rgba(0,0,0,.06); text-align: center; }
+  .stack-icon { font-size: 26px; margin-bottom: 8px; }
+  .stack-name { font-size: 13px; font-weight: 800; color: #0a0d14; margin-bottom: 4px; }
+  .stack-role { font-size: 11px; color: #6B7280; line-height: 1.5; }
+
+  /* ROLE BOXES */
+  .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 36px; }
+  .role-box { border-radius: 14px; padding: 22px; }
+  .role-box.rb-abdul { background: #faf5ff; border: 2px solid #8b5cf6; }
+  .role-box.rb-bilal { background: #fffbeb; border: 2px solid #f59e0b; }
+  .rb-name { font-size: 15px; font-weight: 800; color: #0a0d14; margin-bottom: 2px; }
+  .rb-role { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 14px; }
+  .rb-abdul .rb-role { color: #8b5cf6; }
+  .rb-bilal .rb-role { color: #d97706; }
+  .rb-tasks { display: flex; flex-direction: column; gap: 7px; }
+  .rb-task { font-size: 12px; color: #374151; display: flex; gap: 8px; align-items: flex-start; line-height: 1.5; }
+  .rb-task::before { content: '→'; flex-shrink: 0; font-weight: 700; margin-top: 1px; }
+  .rb-abdul .rb-task::before { color: #8b5cf6; }
+  .rb-bilal .rb-task::before { color: #d97706; }
+
+  /* ONE FOR ONE */
+  .one-box { background: #052e16; border-radius: 16px; padding: 24px; margin-bottom: 36px; color: #fff; }
+  .one-box h3 { font-size: 16px; font-weight: 800; color: #6ee7b7; margin-bottom: 10px; }
+  .one-box p { font-size: 13px; line-height: 1.7; color: #d1fae5; }
+  .one-box p + p { margin-top: 8px; }
+
+  @media print {
+    body { background: #fff; padding: 20px; }
+    .card, .what-box, .status-item, .stack-card { box-shadow: none; }
+    .role-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="tag">Product Brief · May 2026</div>
+  <h1>AI Sponsor</h1>
+  <div class="subtitle">An AI-powered recovery companion available 24/7 via WhatsApp — built for the tens of millions of people in 12-step programs worldwide.</div>
+</div>
+
+<!-- STAT BAR -->
+<div class="stat-bar">
+  <div class="stat-item">
+    <div class="stat-val">$5</div>
+    <div class="stat-lbl">Per Month</div>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <div class="stat-val">24/7</div>
+    <div class="stat-lbl">Available</div>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <div class="stat-val">12+</div>
+    <div class="stat-lbl">Programs</div>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <div class="stat-val">10M+</div>
+    <div class="stat-lbl">Global TAM</div>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <div class="stat-val">89</div>
+    <div class="stat-lbl">Beta Users Ready</div>
+  </div>
+</div>
+
+<!-- WHAT IT IS -->
+<div class="section-label">What It Is</div>
+<div class="what-box">
+  <p>AI Sponsor is a <strong>24/7 AI-powered recovery companion</strong> designed to support people in 12-step programs whenever they need guidance, accountability, encouragement, or someone to talk to. It acts as an always-available digital sponsor — accessible through <strong>WhatsApp</strong> — providing immediate emotional support, recovery reminders, relapse interruption, step guidance, check-ins, and structured accountability rooted in 12-step methodologies.</p>
+  <p>The core value proposition is <strong>accessibility</strong>: many people in recovery struggle during moments when their human sponsor is unavailable, asleep, busy, or emotionally exhausted. AI Sponsor fills that gap — offering immediate, stigma-free support at 2am during a craving, an emotional spiral, or a moment of uncertainty.</p>
+  <p><strong>It is not designed to replace human sponsors or recovery communities</strong> — it reinforces and extends them. The site includes a clear disclaimer: not affiliated with any 12-step programs. This is a private project.</p>
+</div>
+
+<!-- THE PROGRAMS -->
+<div class="section-label">Programs Supported</div>
+<div class="programs">
+  <div class="prog">AA — Alcoholics Anonymous</div>
+  <div class="prog">NA — Narcotics Anonymous</div>
+  <div class="prog">Al-Anon</div>
+  <div class="prog">OA — Overeaters Anonymous</div>
+  <div class="prog">DA — Debtors Anonymous</div>
+  <div class="prog">BDA — Business Debtors Anonymous</div>
+  <div class="prog">UA — Underearners Anonymous</div>
+  <div class="prog">GA — Gamblers Anonymous</div>
+  <div class="prog">ACA — Adult Children of Alcoholics</div>
+  <div class="prog">SLAA — Sex & Love Addicts Anonymous</div>
+  <div class="prog">Workaholics Anonymous</div>
+  <div class="prog">New / Not Sure</div>
+</div>
+
+<!-- KEY FEATURES -->
+<div class="section-label">Key Features</div>
+<div class="grid-2">
+
+  <div class="card">
+    <div class="card-icon">💬</div>
+    <div class="card-title">WhatsApp Delivery (V1)</div>
+    <div class="card-body">Users text their AI Sponsor naturally on WhatsApp — just like messaging a real sponsor. Powered by Wapisimo. SMS/MMS is V2. No app download required.</div>
+    <span class="card-tag" style="background:#EDE9FE;color:#5b21b6;">Wapisimo · In Build</span>
+  </div>
+
+  <div class="card">
+    <div class="card-icon">🤖</div>
+    <div class="card-title">Claude-Powered AI</div>
+    <div class="card-body">Responses generated by Claude (Anthropic). Trained on recovery language, 12-step principles, sponsor communication styles, emotional regulation, and crisis de-escalation. Program-specific tone and language for each user.</div>
+    <span class="card-tag" style="background:#D1FAE5;color:#065F46;">Claude API</span>
+  </div>
+
+  <div class="card">
+    <div class="card-icon">🛡️</div>
+    <div class="card-title">Safety Guardrails</div>
+    <div class="card-body">Crisis trigger detection → immediately routes to program-specific hotline. Recovery-only scope — never oversteps into therapy. Hotline shown during onboarding and triggered dynamically in chat when needed.</div>
+    <span class="card-tag" style="background:#FEE2E2;color:#991B1B;">Built Into Prompt</span>
+  </div>
+
+  <div class="card">
+    <div class="card-icon">📋</div>
+    <div class="card-title">9-Screen Onboarding</div>
+    <div class="card-body">User selects their program, preferred delivery channel, and phone number. Screen 10 handles payment: 30-day free trial (card required) or beta code (no card). All built and live.</div>
+    <span class="card-tag" style="background:#D1FAE5;color:#065F46;">Built ✓</span>
+  </div>
+
+  <div class="card">
+    <div class="card-icon">🎖️</div>
+    <div class="card-title">Sobriety Gamification</div>
+    <div class="card-body">Sobriety chips per program, branded as AI Sponsor. Tracks milestones and reinforces commitment. Turns a private struggle into a measurable journey with recognition built in.</div>
+    <span class="card-tag" style="background:#FEF3C7;color:#92400e;">Roadmap — Phase 2</span>
+  </div>
+
+  <div class="card">
+    <div class="card-icon">🎙️</div>
+    <div class="card-title">Voice + Avatar (Coming Soon)</div>
+    <div class="card-body">Choose your sponsor's voice via ElevenLabs. Design your own AI sponsor avatar. Video chat and voice calls in development. Listed on registration as "coming soon" to collect demand.</div>
+    <span class="card-tag" style="background:#FEF3C7;color:#92400e;">Roadmap — Phase 3</span>
+  </div>
+
+</div>
+
+<!-- 1 FOR 1 MODEL -->
+<div class="one-box">
+  <h3>The 1-for-1 Model — Front and Center</h3>
+  <p>Every paying subscriber ($5/month) automatically gives <strong>one free access</strong> to someone who can't afford it. This is Matt's core idea — inspired by Tom's Shoes — and it's prominently featured on the landing page and onboarding flow.</p>
+  <p>On top of that: <strong>1 referral = 1 free month</strong>. The product is designed to grow through the recovery community itself, not just paid ads.</p>
+</div>
+
+<!-- TECH STACK -->
+<div class="section-label">Tech Stack</div>
+<div class="stack-grid">
+
+  <div class="stack-card">
+    <div class="stack-icon">📱</div>
+    <div class="stack-name">Wapisimo</div>
+    <div class="stack-role">WhatsApp API delivery layer. Matt's confirmed partnership. wapisimo.dev</div>
+  </div>
+
+  <div class="stack-card">
+    <div class="stack-icon">🤖</div>
+    <div class="stack-name">Claude API</div>
+    <div class="stack-role">Powers all AI Sponsor responses. Anthropic. Prompt engineered by Mariam.</div>
+  </div>
+
+  <div class="stack-card">
+    <div class="stack-icon">📊</div>
+    <div class="stack-name">GHL (GoHighLevel)</div>
+    <div class="stack-role">CRM. Stores every user's program, phone number, and delivery preference on registration.</div>
+  </div>
+
+  <div class="stack-card">
+    <div class="stack-icon">📈</div>
+    <div class="stack-name">Clarity Analytics</div>
+    <div class="stack-role">Session recording + analytics. Already used on other funnels — same setup here.</div>
+  </div>
+
+  <div class="stack-card">
+    <div class="stack-icon">💳</div>
+    <div class="stack-name">Stripe</div>
+    <div class="stack-role">Handles $5/month subscriptions and 30-day trial. Pending connection by Matt.</div>
+  </div>
+
+  <div class="stack-card">
+    <div class="stack-icon">🌐</div>
+    <div class="stack-name">Standalone Domain</div>
+    <div class="stack-role">youraisponsor.com — self-hosted. Not on Audos or Polsia. Matt's deliberate experiment.</div>
+  </div>
+
+</div>
+
+<!-- BUILD STATUS -->
+<div class="section-label">Current Build Status</div>
+<div class="status-list">
+
+  <div class="status-item">
+    <div class="s-icon">✅</div>
+    <div class="s-content">
+      <div class="s-title">Landing Page</div>
+      <div class="s-desc">Live at mariamgvv.github.io/Clickup-live/ai-sponsor-landing.html — blue/green design, 12 programs, 1-for-1 model, Amends TV series section, disclaimer. Shared with Matt May 22.</div>
+    </div>
+    <span class="s-owner ow-built">Built ✓</span>
+  </div>
+
+  <div class="status-item">
+    <div class="s-icon">✅</div>
+    <div class="s-content">
+      <div class="s-title">Registration & Onboarding Flow</div>
+      <div class="s-desc">9-screen flow live — program selection, WhatsApp delivery, phone number, crisis hotline per program, payment screen (trial or beta code). Fully built.</div>
+    </div>
+    <span class="s-owner ow-built">Built ✓</span>
+  </div>
+
+  <div class="status-item">
+    <div class="s-icon">⚙️</div>
+    <div class="s-content">
+      <div class="s-title">Wapisimo WhatsApp Integration</div>
+      <div class="s-desc">Wire Wapisimo as the delivery layer. When a user registers, their WhatsApp number gets connected and AI Sponsor starts messaging them. This is the core integration that makes the product functional.</div>
+    </div>
+    <span class="s-owner ow-abdul">Abdul</span>
+  </div>
+
+  <div class="status-item">
+    <div class="s-icon">⚙️</div>
+    <div class="s-content">
+      <div class="s-title">GHL CRM Wiring</div>
+      <div class="s-desc">Registration submit → contact created in GHL with program tag, phone number, and delivery preference automatically. Enables automations, follow-ups, and future segmentation.</div>
+    </div>
+    <span class="s-owner ow-abdul">Abdul</span>
+  </div>
+
+  <div class="status-item">
+    <div class="s-icon">🔄</div>
+    <div class="s-content">
+      <div class="s-title">AI Master Prompt</div>
+      <div class="s-desc">Defining the AI Sponsor's tone, guardrails, program-specific language, and crisis triggers. In progress — this shapes how the AI responds to every user message.</div>
+    </div>
+    <span class="s-owner ow-mariam">Mariam</span>
+  </div>
+
+  <div class="status-item">
+    <div class="s-icon">🔴</div>
+    <div class="s-content">
+      <div class="s-title">Stripe + Beta Codes</div>
+      <div class="s-desc">Stripe needs to be connected before any paid signups. Beta codes (30-day free, no card) need to be created for the 11 Group 1 users. Both blocked until Matt action.</div>
+    </div>
+    <span class="s-owner ow-matt">Matt</span>
+  </div>
+
+  <div class="status-item">
+    <div class="s-icon">⏳</div>
+    <div class="s-content">
+      <div class="s-title">End-to-End QA</div>
+      <div class="s-desc">Once Wapisimo + GHL + Claude are wired: full test of the flow — register → WhatsApp message received → AI responds correctly → crisis trigger works → GHL contact created.</div>
+    </div>
+    <span class="s-owner ow-bilal">Bilal</span>
+  </div>
+
+  <div class="status-item">
+    <div class="s-icon">⏳</div>
+    <div class="s-content">
+      <div class="s-title">Beta Onboarding</div>
+      <div class="s-desc">Group 1: 11 users from Matt's 85-person WhatsApp group. Matt leads a Google Meet to onboard them with beta codes. Group 2: 78 waitlist get a warm email from sponsor@youraisponsor.com after Group 1 is live.</div>
+    </div>
+    <span class="s-owner ow-matt">Matt + Mariam</span>
+  </div>
+
+  <div class="status-item">
+    <div class="s-icon">⏳</div>
+    <div class="s-content">
+      <div class="s-title">Marketing — Ads, Instagram, SEO</div>
+      <div class="s-desc">Ads run through Mariam's account. Instagram account + content person being hired. AI search optimization + SEO engine. All of this starts only after the product is live and tested — 3–4 weeks out per Matt.</div>
+    </div>
+    <span class="s-owner ow-later">Next Phase</span>
+  </div>
+
+</div>
+
+<!-- ROLES -->
+<div class="section-label">Your Role on This Product</div>
+<div class="role-grid">
+
+  <div class="role-box rb-abdul">
+    <div class="rb-name">Abdul</div>
+    <div class="rb-role">Integrations & GHL</div>
+    <div class="rb-tasks">
+      <div class="rb-task">Integrate Wapisimo WhatsApp API — this is the delivery channel for V1</div>
+      <div class="rb-task">Wire GHL as the CRM — auto-create contacts on registration submit</div>
+      <div class="rb-task">Connect Claude API to power AI responses through WhatsApp</div>
+      <div class="rb-task">Run end-to-end test with Mariam: register → message → AI responds</div>
+      <div class="rb-task">Matt's words: "he can do any of the ninja things you need help with on AI Sponsor or Claude"</div>
+    </div>
+  </div>
+
+  <div class="role-box rb-bilal">
+    <div class="rb-name">Bilal</div>
+    <div class="rb-role">QA</div>
+    <div class="rb-tasks">
+      <div class="rb-task">QA the full registration flow — all 9 screens, all programs, phone validation</div>
+      <div class="rb-task">Test WhatsApp delivery — message actually arrives after registration</div>
+      <div class="rb-task">Test AI responses — correct tone, correct program language, no out-of-scope replies</div>
+      <div class="rb-task">Test crisis trigger — verify hotline routing works correctly</div>
+      <div class="rb-task">Test beta code flow — 30-day free access, no card charged</div>
+      <div class="rb-task">Report bugs in ClickUp with Loom walkthroughs as usual</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- LAUNCH BLOCKERS -->
+<div class="section-label">What We Need to Launch — Open Questions for Abdul</div>
+<div class="status-list">
+
+  <div class="status-item" style="border-left: 4px solid #ef4444;">
+    <div class="s-icon">🔑</div>
+    <div class="s-content">
+      <div class="s-title">Wapisimo API Key — Waiting on Matt</div>
+      <div class="s-desc">Matt confirmed May 16: <em>"I have a new partnership with a WhatsApp API integration... I'll give you the key and contact to integrate it."</em> That key has never been shared. Abdul cannot start the WhatsApp integration without it. We need to chase Matt for this first.</div>
+    </div>
+    <span class="s-owner" style="background:#FEE2E2;color:#991B1B;">Blocked</span>
+  </div>
+
+  <div class="status-item" style="border-left: 4px solid #f97316;">
+    <div class="s-icon">🤖</div>
+    <div class="s-content">
+      <div class="s-title">Claude API Key + Subscription</div>
+      <div class="s-desc">The AI responses are powered by Claude (Anthropic). Mariam tried to add a live AI chat to the landing page but couldn't — Claude API needs a paid subscription and API key. Someone needs to set up the Anthropic account. <strong>Abdul — is this something you can handle, or does Matt need to set it up?</strong></div>
+    </div>
+    <span class="s-owner ow-abdul">Abdul?</span>
+  </div>
+
+  <div class="status-item" style="border-left: 4px solid #8b5cf6;">
+    <div class="s-icon">⚙️</div>
+    <div class="s-content">
+      <div class="s-title">The Connector — Wapisimo ↔ Claude API</div>
+      <div class="s-desc">The core of the product: user texts WhatsApp → Wapisimo receives it → webhook calls Claude API with master prompt + message → Claude responds → Wapisimo sends reply back. Abdul builds this. Matt also raised <strong>Temporal.io</strong> as a reliability layer (handles retries + state so the product doesn't break if something fails). <strong>Abdul — does this architecture make sense to you? Any better approach?</strong></div>
+    </div>
+    <span class="s-owner ow-abdul">Abdul</span>
+  </div>
+
+  <div class="status-item" style="border-left: 4px solid #3b82f6;">
+    <div class="s-icon">📊</div>
+    <div class="s-content">
+      <div class="s-title">GHL CRM Wiring</div>
+      <div class="s-desc">When a user completes registration, their contact should be auto-created in GHL with program tag, phone number, and WhatsApp delivery preference. This connects the registration form to the CRM so we can manage users, automations, and follow-ups.</div>
+    </div>
+    <span class="s-owner ow-abdul">Abdul</span>
+  </div>
+
+</div>
+
+<div style="text-align:center;margin-top:32px;font-size:11px;color:#9CA3AF;">
+  AI Sponsor · Product Brief · May 2026 · PM: Mariam · Guru Labs
+</div>
+
+</body>
+</html>

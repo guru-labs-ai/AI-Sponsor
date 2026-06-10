@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Sponsor — Product Flow</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F0F2F5; padding: 32px; color: #1A1A2E; -webkit-font-smoothing: antialiased; }
+
+  /* HEADER */
+  .header { text-align: center; margin-bottom: 40px; }
+  .header .tag { display: inline-block; background: #052e16; color: #6ee7b7; font-size: 11px; font-weight: 700; padding: 5px 14px; border-radius: 20px; margin-bottom: 12px; letter-spacing: .08em; text-transform: uppercase; }
+  .header h1 { font-size: 28px; font-weight: 800; letter-spacing: -.5px; color: #0a0d14; }
+  .header p { font-size: 13px; color: #6B7280; margin-top: 6px; }
+
+  /* SECTION LABELS */
+  .section-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: #9CA3AF; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: #D1D5DB; }
+
+  /* ── JOURNEY FLOW ── */
+  .journey { display: flex; align-items: flex-start; gap: 0; margin-bottom: 44px; overflow-x: auto; padding-bottom: 12px; }
+
+  .jstep { flex-shrink: 0; width: 190px; display: flex; flex-direction: column; align-items: center; }
+
+  .jconn { flex-shrink: 0; display: flex; align-items: flex-start; padding-top: 36px; width: 32px; justify-content: center; }
+  .jconn svg { color: #CBD5E1; }
+
+  .jcard { width: 100%; border-radius: 16px; padding: 18px 16px 14px; box-shadow: 0 2px 14px rgba(0,0,0,.09); position: relative; }
+
+  .jnum { font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; opacity: .6; margin-bottom: 8px; }
+  .jicon { font-size: 26px; margin-bottom: 10px; display: block; }
+  .jtitle { font-size: 13px; font-weight: 800; line-height: 1.3; margin-bottom: 8px; }
+  .jdesc { font-size: 11px; line-height: 1.6; opacity: .85; }
+
+  .jbadge { display: inline-block; font-size: 9px; font-weight: 700; padding: 2px 9px; border-radius: 10px; margin-top: 10px; text-transform: uppercase; letter-spacing: .06em; }
+
+  /* STEP COLORS */
+  .j1 { background: #052e16; color: #d1fae5; }
+  .j1 .jnum { color: #6ee7b7; }
+  .j1 .jbadge { background: #064e3b; color: #6ee7b7; }
+
+  .j2 { background: #fff; color: #1A1A2E; border: 2px solid #059669; }
+  .j2 .jnum { color: #059669; }
+  .j2 .jbadge { background: #D1FAE5; color: #065F46; }
+
+  .j3 { background: #eff6ff; color: #1A1A2E; border: 2px solid #3b82f6; }
+  .j3 .jnum { color: #3b82f6; }
+  .j3 .jbadge { background: #DBEAFE; color: #1d4ed8; }
+
+  .j4 { background: #faf5ff; color: #1A1A2E; border: 2px solid #8b5cf6; }
+  .j4 .jnum { color: #8b5cf6; }
+  .j4 .jbadge { background: #EDE9FE; color: #5b21b6; }
+
+  .j5 { background: #fff; color: #1A1A2E; border: 2px solid #f59e0b; }
+  .j5 .jnum { color: #d97706; }
+  .j5 .jbadge { background: #FEF3C7; color: #92400e; }
+
+  .j6 { background: #052e16; color: #d1fae5; }
+  .j6 .jnum { color: #6ee7b7; }
+  .j6 .jbadge { background: #064e3b; color: #6ee7b7; }
+
+  /* ── INSIDE THE PRODUCT ── */
+  .inside-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin-bottom: 44px; }
+
+  .inside-card { background: #fff; border-radius: 14px; padding: 18px; box-shadow: 0 1px 8px rgba(0,0,0,.07); }
+  .ic-icon { font-size: 22px; margin-bottom: 10px; }
+  .ic-title { font-size: 13px; font-weight: 800; color: #1A1A2E; margin-bottom: 6px; }
+  .ic-body { font-size: 11.5px; color: #4B5563; line-height: 1.6; }
+  .ic-tag { display: inline-block; font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 8px; margin-top: 10px; text-transform: uppercase; letter-spacing: .05em; }
+
+  /* ── GROWTH MODEL ── */
+  .growth-wrap { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,.07); margin-bottom: 44px; }
+  .growth-inner { display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: wrap; }
+  .gnode { text-align: center; padding: 16px 20px; flex-shrink: 0; }
+  .gnode-circle { width: 72px; height: 72px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 10px; }
+  .gnode-label { font-size: 12px; font-weight: 700; color: #1A1A2E; line-height: 1.3; }
+  .gnode-sub { font-size: 10px; color: #6B7280; margin-top: 3px; }
+  .garrow { font-size: 22px; color: #D1D5DB; padding: 0 4px; align-self: center; flex-shrink: 0; padding-bottom: 24px; }
+
+  .gc-green  { background: #D1FAE5; }
+  .gc-purple { background: #EDE9FE; }
+  .gc-blue   { background: #DBEAFE; }
+  .gc-amber  { background: #FEF3C7; }
+  .gc-dark   { background: #1A1A2E; }
+
+  /* ── BUILD STATUS ── */
+  .status-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .status-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 6px rgba(0,0,0,.06); }
+  .sc-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .sc-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .sc-title { font-size: 13px; font-weight: 700; color: #1A1A2E; }
+  .sc-owner { margin-left: auto; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 8px; }
+  .sc-items { display: flex; flex-direction: column; gap: 6px; }
+  .sc-item { font-size: 11.5px; color: #374151; display: flex; gap: 8px; align-items: flex-start; line-height: 1.5; }
+  .sc-tick { flex-shrink: 0; font-size: 11px; margin-top: 1px; }
+
+  .dot-green  { background: #10b981; }
+  .dot-amber  { background: #f59e0b; }
+  .dot-red    { background: #ef4444; }
+  .dot-gray   { background: #D1D5DB; }
+
+  .ow-mariam { background: #D1FAE5; color: #065F46; }
+  .ow-abdul  { background: #EDE9FE; color: #5b21b6; }
+  .ow-matt   { background: #DBEAFE; color: #1d4ed8; }
+  .ow-mktg   { background: #FEF3C7; color: #92400e; }
+
+  @media print { body { background: #fff; padding: 16px; } }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="tag">AI Sponsor · Product Flow · Sprint 43</div>
+  <h1>AI Sponsor</h1>
+  <p>An AI sponsor available 24/7 via WhatsApp & SMS · youraisponsor.com · $5/month · Standalone build</p>
+</div>
+
+<!-- SECTION 1: BUILD SEQUENCE / PRODUCT FLOW -->
+<div class="section-label">What We're Building — In Order</div>
+<div class="journey">
+
+  <!-- Step 1 -->
+  <div class="jstep">
+    <div class="jcard j2">
+      <div class="jnum">Step 01</div>
+      <span class="jicon">🌿</span>
+      <div class="jtitle">Landing Page</div>
+      <div class="jdesc">youraisponsor.com — blue/green palette. "99% of people in these programs have a sponsor." 12 programs. 1-for-1 model front and center. Not affiliated disclaimer. Amends TV series section.</div>
+      <span class="jbadge">Built ✓</span>
+    </div>
+  </div>
+
+  <div class="jconn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+
+  <!-- Step 2 -->
+  <div class="jstep">
+    <div class="jcard j3">
+      <div class="jnum">Step 02</div>
+      <span class="jicon">📋</span>
+      <div class="jtitle">Registration & Onboarding</div>
+      <div class="jdesc">9 screens. Which 12-step program. WhatsApp delivery (V1 only — SMS is V2). Phone number required. Crisis hotline shown per program. Screen 10: 30-day free trial or beta code, no card needed.</div>
+      <span class="jbadge">Built ✓</span>
+    </div>
+  </div>
+
+  <div class="jconn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+
+  <!-- Step 3 -->
+  <div class="jstep">
+    <div class="jcard j4">
+      <div class="jnum">Step 03</div>
+      <span class="jicon">⚙️</span>
+      <div class="jtitle">Wapisimo + GHL Integration</div>
+      <div class="jdesc">Wire wapisimo.dev as the WhatsApp delivery layer. GHL stores every contact — program, phone, delivery preference. Registration submit → contact created in GHL automatically. No Audos dependency.</div>
+      <span class="jbadge">In Build — Abdul</span>
+    </div>
+  </div>
+
+  <div class="jconn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+
+  <!-- Step 4 -->
+  <div class="jstep">
+    <div class="jcard j4">
+      <div class="jnum">Step 04</div>
+      <span class="jicon">🤖</span>
+      <div class="jtitle">AI Sponsor Goes Live</div>
+      <div class="jdesc">Master prompt finalized — program-specific language, crisis guardrails (→ hotline), recovery-only scope. Claude powers the responses. End-to-end test: register → WhatsApp received → AI responds.</div>
+      <span class="jbadge">In Build — Mariam + Abdul</span>
+    </div>
+  </div>
+
+  <div class="jconn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+
+  <!-- Step 5 -->
+  <div class="jstep">
+    <div class="jcard j5">
+      <div class="jnum">Step 05</div>
+      <span class="jicon">👥</span>
+      <div class="jtitle">Beta Onboarding</div>
+      <div class="jdesc">Group 1: 11 users from Matt's 85-person WhatsApp group. Matt leads a Google Meet to onboard them. Beta code = 30 days free, no card. Group 2: 78 waitlist get a warm email after Group 1 is in. Blocked until Stripe + codes are ready.</div>
+      <span class="jbadge">Blocked — Needs Matt</span>
+    </div>
+  </div>
+
+  <div class="jconn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+
+  <!-- Step 6 -->
+  <div class="jstep">
+    <div class="jcard j6">
+      <div class="jnum">Step 06</div>
+      <span class="jicon">💚</span>
+      <div class="jtitle">$5/month + Growth Loop</div>
+      <div class="jdesc">Trial converts to $5/month. 1-for-1: every subscriber gives someone free access. 1 referral = 1 free month. Ads, Instagram + SEO engine only start once the product is live and tested — 3–4 weeks out.</div>
+      <span class="jbadge">Next Phase</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- SECTION 2: INSIDE THE PRODUCT -->
+<div class="section-label">Inside the Product</div>
+<div class="inside-grid">
+
+  <div class="inside-card">
+    <div class="ic-icon">🤖</div>
+    <div class="ic-title">The AI Sponsor</div>
+    <div class="ic-body">Powered by Claude. Knows the 12-step framework, speaks the language of the program the user chose, never oversteps into therapy, and always routes crisis moments to a real hotline. Available every second of every day.</div>
+    <span class="ic-tag" style="background:#EDE9FE;color:#5b21b6;">Claude API · Mariam's Prompt</span>
+  </div>
+
+  <div class="inside-card">
+    <div class="ic-icon">📱</div>
+    <div class="ic-title">Delivery: WhatsApp (V1)</div>
+    <div class="ic-body">Wapisimo (wapisimo.dev) powers WhatsApp — Matt's confirmed partnership. SMS/MMS is V2, not in scope yet. GHL acts as the CRM — every user's program, phone, and delivery preference stored and tagged. No Audos dependency.</div>
+    <span class="ic-tag" style="background:#EDE9FE;color:#5b21b6;">Wapisimo · GHL · Abdul</span>
+  </div>
+
+  <div class="inside-card">
+    <div class="ic-icon">🛡️</div>
+    <div class="ic-title">Safety + Trust</div>
+    <div class="ic-body">Program-specific crisis hotlines shown during onboarding and triggered dynamically in chat. Disclaimer on site: not affiliated with programs. Private project. HIPAA-aligned messaging where applicable.</div>
+    <span class="ic-tag" style="background:#D1FAE5;color:#065F46;">Built into Prompt + UI</span>
+  </div>
+
+  <div class="inside-card">
+    <div class="ic-icon">🎖️</div>
+    <div class="ic-title">Sobriety Gamification</div>
+    <div class="ic-body">Sobriety chips per program — branded as AI Sponsor. Tracks milestones. Reinforces commitment. Turns a private struggle into a measurable journey with recognition built in.</div>
+    <span class="ic-tag" style="background:#FEF3C7;color:#92400e;">Roadmap · Phase 2</span>
+  </div>
+
+  <div class="inside-card">
+    <div class="ic-icon">📍</div>
+    <div class="ic-title">Meeting Locator</div>
+    <div class="ic-body">Scrapes online meetings from each program's website. Online only — not physical. Lets the AI Sponsor point users to a real meeting when they need one, right in the same chat.</div>
+    <span class="ic-tag" style="background:#FEF3C7;color:#92400e;">Roadmap · Phase 2</span>
+  </div>
+
+  <div class="inside-card">
+    <div class="ic-icon">🎙️</div>
+    <div class="ic-title">Voice + Avatar (Coming Soon)</div>
+    <div class="ic-body">Choose your sponsor's voice via ElevenLabs. Design your own AI sponsor avatar. Video chat and voice calls in development. Collect demand now — listed on registration as "coming soon."</div>
+    <span class="ic-tag" style="background:#FEF3C7;color:#92400e;">Roadmap · Phase 3</span>
+  </div>
+
+</div>
+
+<!-- SECTION 3: GROWTH MODEL -->
+<div class="section-label">How It Grows</div>
+<div class="growth-wrap">
+  <div class="growth-inner">
+
+    <div class="gnode">
+      <div class="gnode-circle gc-green">📣</div>
+      <div class="gnode-label">User Signs Up</div>
+      <div class="gnode-sub">Ads · SEO · Instagram</div>
+    </div>
+    <div class="garrow">→</div>
+
+    <div class="gnode">
+      <div class="gnode-circle gc-purple">💬</div>
+      <div class="gnode-label">Uses AI Sponsor</div>
+      <div class="gnode-sub">Daily · 24/7</div>
+    </div>
+    <div class="garrow">→</div>
+
+    <div class="gnode">
+      <div class="gnode-circle gc-blue">💚</div>
+      <div class="gnode-label">Pays $5/mo</div>
+      <div class="gnode-sub">After 30-day trial</div>
+    </div>
+    <div class="garrow">→</div>
+
+    <div class="gnode">
+      <div class="gnode-circle gc-amber">🎁</div>
+      <div class="gnode-label">1-for-1</div>
+      <div class="gnode-sub">Gives free access<br>to someone in need</div>
+    </div>
+    <div class="garrow">→</div>
+
+    <div class="gnode">
+      <div class="gnode-circle gc-green">🔗</div>
+      <div class="gnode-label">Refers a Friend</div>
+      <div class="gnode-sub">1 referral = 1 free month</div>
+    </div>
+    <div class="garrow">→</div>
+
+    <div class="gnode">
+      <div class="gnode-circle" style="background:#1A1A2E;">🌍</div>
+      <div class="gnode-label" style="color:#1A1A2E;">10M+ TAM</div>
+      <div class="gnode-sub">12-step members<br>worldwide</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- SECTION 4: BUILD STATUS -->
+<div class="section-label">Build Status — Sprint 43</div>
+<div class="status-grid">
+
+  <div class="status-card">
+    <div class="sc-header">
+      <div class="sc-dot dot-green"></div>
+      <div class="sc-title">Built & Live</div>
+      <span class="sc-owner ow-mariam">Mariam</span>
+    </div>
+    <div class="sc-items">
+      <div class="sc-item"><span class="sc-tick">✅</span>Landing page — youraisponsor.com (GitHub Pages)</div>
+      <div class="sc-item"><span class="sc-tick">✅</span>9-screen onboarding + payment flow</div>
+      <div class="sc-item"><span class="sc-tick">✅</span>12 programs, delivery channel selection, crisis hotlines</div>
+      <div class="sc-item"><span class="sc-tick">✅</span>Security + privacy page copy</div>
+      <div class="sc-item"><span class="sc-tick">✅</span>Lean Canvas + Roadmap docs</div>
+    </div>
+  </div>
+
+  <div class="status-card">
+    <div class="sc-header">
+      <div class="sc-dot dot-amber"></div>
+      <div class="sc-title">In Progress</div>
+      <span class="sc-owner ow-mariam">Mariam</span>
+    </div>
+    <div class="sc-items">
+      <div class="sc-item"><span class="sc-tick">🔄</span>Master prompt — guardrails, tone, program language</div>
+      <div class="sc-item"><span class="sc-tick">🔄</span>Email campaign draft for 78-person waitlist</div>
+      <div class="sc-item"><span class="sc-tick">🔄</span>Clarity analytics setup on landing + registration</div>
+    </div>
+  </div>
+
+  <div class="status-card">
+    <div class="sc-header">
+      <div class="sc-dot dot-amber"></div>
+      <div class="sc-title">Integrations to Build</div>
+      <span class="sc-owner ow-abdul">Abdul</span>
+    </div>
+    <div class="sc-items">
+      <div class="sc-item"><span class="sc-tick">⚙️</span>Wapisimo WhatsApp API integration</div>
+      <div class="sc-item"><span class="sc-tick">⚙️</span>GHL CRM wiring — contact creation on registration</div>
+      <div class="sc-item"><span class="sc-tick">⚙️</span>Claude API connection for AI responses</div>
+      <div class="sc-item"><span class="sc-tick">⚙️</span>End-to-end test: register → WhatsApp → AI responds</div>
+    </div>
+  </div>
+
+  <div class="status-card">
+    <div class="sc-header">
+      <div class="sc-dot dot-red"></div>
+      <div class="sc-title">Blocked — Needs Matt</div>
+      <span class="sc-owner ow-matt">Matt</span>
+    </div>
+    <div class="sc-items">
+      <div class="sc-item"><span class="sc-tick">🔴</span>Stripe connection — needed before any paid signups</div>
+      <div class="sc-item"><span class="sc-tick">🔴</span>Beta codes — 30-day free, needed for 11 Group 1 users</div>
+      <div class="sc-item"><span class="sc-tick">🔴</span>78-person waitlist — not shared with Mariam yet</div>
+      <div class="sc-item"><span class="sc-tick">🔴</span>Domain confirmation — youraisponsor.com?</div>
+    </div>
+  </div>
+
+  <div class="status-card">
+    <div class="sc-header">
+      <div class="sc-dot dot-gray"></div>
+      <div class="sc-title">Marketing — In 2–3 Weeks</div>
+      <span class="sc-owner ow-mktg">Marketing</span>
+    </div>
+    <div class="sc-items">
+      <div class="sc-item"><span class="sc-tick">⏳</span>AI Sponsor Instagram account</div>
+      <div class="sc-item"><span class="sc-tick">⏳</span>Short-form content — new content person (being hired)</div>
+      <div class="sc-item"><span class="sc-tick">⏳</span>AI search optimization + SEO engine</div>
+      <div class="sc-item"><span class="sc-tick">⏳</span>Paid ads once product is live and tested</div>
+    </div>
+  </div>
+
+</div>
+
+<div style="text-align:center;margin-top:28px;font-size:11px;color:#9CA3AF;">
+  AI Sponsor · Product Flow · Sprint 43 · May 25–31, 2026 · Standalone build confirmed May 20, 2026
+</div>
+
+</body>
+</html>

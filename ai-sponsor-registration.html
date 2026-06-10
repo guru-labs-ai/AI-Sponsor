@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<!-- v5 -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Sponsor — Get Started</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --blue:#0066B3;--blue-light:#0080D4;--blue-dark:#004D87;
+  --teal:#0080D4;--bg:#F4F6F9;--card:#FFFFFF;
+  --text:#212529;--sub:#6C757D;--border:#CED4DA;
+  --error:#C0392B;--success:#1A7A4A;
+  --shadow:0 2px 16px rgba(0,0,0,0.10)
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);min-height:100vh;
+  display:flex;align-items:center;justify-content:center;padding:20px;color:var(--text)}
+.container{width:100%;max-width:520px}
+
+/* Brand */
+.brand{text-align:center;margin-bottom:24px}
+.brand-logo{font-size:20px;font-weight:700;color:var(--blue);letter-spacing:.04em}
+.brand-logo span{color:var(--teal)}
+
+/* Progress */
+.prog-wrap{margin-bottom:24px}
+.req-star{color:var(--error);font-size:12px;margin-left:1px}
+.back-home{display:flex;align-items:center;gap:6px;margin-bottom:20px;
+  color:var(--sub);font-size:13px;font-weight:500;text-decoration:none;
+  transition:color .2s;width:fit-content}
+.back-home:hover{color:var(--blue)}
+.back-home svg{flex-shrink:0}
+.prog-track{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:var(--blue);
+  border-radius:2px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.prog-label{font-size:12px;color:var(--sub);text-align:right;margin-top:6px;font-weight:500}
+
+/* Card */
+.card{background:var(--card);border-radius:4px;padding:40px;
+  box-shadow:var(--shadow);border:1px solid #D0D5DD;
+  border-top:4px solid var(--blue)}
+
+/* Screen */
+.screen{display:none}
+.screen.active{display:block}
+@keyframes slideInR{from{opacity:0;transform:translateX(36px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideInL{from{opacity:0;transform:translateX(-36px)}to{opacity:1;transform:translateX(0)}}
+.screen.slide-r{animation:slideInR .32s cubic-bezier(.4,0,.2,1)}
+.screen.slide-l{animation:slideInL .32s cubic-bezier(.4,0,.2,1)}
+
+/* Step bubbles */
+.steps-wrap{margin-bottom:24px}
+.steps-row{display:flex;align-items:center;margin-bottom:10px}
+.step-item{flex-shrink:0}
+.step-line{flex:1;height:2px;background:var(--border);transition:background .4s}
+.step-line.done{background:var(--blue)}
+.sb{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;
+  color:var(--sub);background:#fff;transition:all .35s}
+.step-item.done .sb{background:var(--blue);border-color:var(--blue);color:#fff;font-size:10px;cursor:pointer}
+.step-item.done .sb:hover{background:var(--blue-light);transform:scale(1.15)}
+.step-item.active .sb{background:var(--blue);border-color:var(--blue);color:#fff;
+  box-shadow:0 0 0 4px rgba(27,59,125,0.18)}
+
+/* Field checkmarks */
+.input-wrap{position:relative;display:block}
+.fok{position:absolute;right:13px;top:50%;transform:translateY(-50%);
+  color:var(--success);font-size:13px;font-weight:800;opacity:0;
+  transition:opacity .25s,transform .25s;pointer-events:none}
+.fok.show{opacity:1;transform:translateY(-50%) scale(1.1)}
+
+h1.heading{font-family:'Source Serif 4',Georgia,serif;font-size:26px;font-weight:700;line-height:1.25;margin-bottom:8px;color:var(--blue)}
+p.sub{font-size:15px;color:var(--sub);line-height:1.65;margin-bottom:28px}
+
+/* Back btn */
+.back{background:none;border:none;color:var(--sub);font-size:14px;
+  font-family:inherit;cursor:pointer;margin-bottom:20px;display:flex;
+  align-items:center;gap:5px;transition:color .2s;padding:0}
+.back:hover{color:var(--blue)}
+
+/* Fields */
+.fg{margin-bottom:18px}
+.fg label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.fg label .opt{font-weight:400;color:var(--sub);font-size:12px}
+input[type=text],input[type=email],input[type=password],input[type=tel],select,textarea{
+  width:100%;padding:12px 16px;border:1.5px solid var(--border);border-radius:10px;
+  font-size:15px;font-family:inherit;color:var(--text);background:#FAFCFF;
+  transition:border-color .2s,box-shadow .2s;outline:none;-webkit-appearance:none;appearance:none}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--blue);box-shadow:0 0 0 3px rgba(27,94,138,0.12)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235A6B7E' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;cursor:pointer}
+textarea{resize:vertical;min-height:120px;line-height:1.6}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.err-msg{font-size:12px;color:var(--error);margin-top:5px;display:none}
+.err-msg.show{display:block}
+.fg.bad input,.fg.bad select{border-color:var(--error)}
+
+/* Primary button */
+.btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--blue),var(--blue-light));
+  color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;
+  font-family:inherit;cursor:pointer;transition:all .2s;margin-top:8px;letter-spacing:.01em}
+.btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(27,94,138,0.3)}
+.btn:active{transform:translateY(0)}
+.btn:disabled{background:#B0C4D8;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* Program cards */
+.prog-grid{display:grid;gap:10px;margin-bottom:24px}
+.prog-card{border:1.5px solid var(--border);border-radius:12px;padding:14px 40px 14px 16px;cursor:pointer;
+  cursor:pointer;transition:all .2s;background:#FAFCFF;position:relative}
+.prog-card:hover{border-color:var(--blue-light);background:#EFF6FF}
+.prog-card.sel{border-color:var(--blue);background:rgba(27,94,138,0.06)}
+.prog-card input{position:absolute;opacity:0;width:0;height:0}
+.prog-card .pname{font-size:14px;font-weight:600;margin-bottom:3px}
+.prog-card.sel .pname{color:var(--blue)}
+.prog-card .pdesc{font-size:12px;color:var(--sub);line-height:1.5}
+.pcheck{position:absolute;top:14px;right:14px;width:18px;height:18px;border-radius:4px;
+  border:2px solid var(--border);display:flex;align-items:center;justify-content:center}
+.prog-card.sel .pcheck{background:var(--blue);border-color:var(--blue)}
+.pcheck::after{content:'✓';color:#fff;font-size:11px;font-weight:700;display:none;line-height:18px;text-align:center;width:100%;}
+.prog-card.sel .pcheck::after{display:block}
+
+/* Stage / wellbeing options */
+.opts{display:grid;gap:8px;margin-bottom:24px}
+.opt-row{border:1.5px solid var(--border);border-radius:10px;padding:14px 18px;
+  cursor:pointer;font-size:15px;font-weight:500;transition:all .2s;background:#FAFCFF;
+  display:flex;align-items:center;gap:12px}
+.opt-row:hover{border-color:var(--blue-light);background:#EFF6FF}
+.opt-row.sel{border-color:var(--blue);background:rgba(27,94,138,0.06);color:var(--blue);font-weight:600}
+.opt-row input{display:none}
+.dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;transition:all .2s}
+.opt-row.sel .dot{background:var(--blue);border-color:var(--blue);box-shadow:0 0 0 3px rgba(27,94,138,0.15)}
+
+/* Goals */
+.goal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px}
+.gchip{border:1.5px solid var(--border);border-radius:10px;padding:14px 12px;
+  cursor:pointer;text-align:center;font-size:14px;font-weight:500;
+  transition:all .2s;background:#FAFCFF;user-select:none}
+.gchip:hover{border-color:var(--blue-light);background:#EFF6FF}
+.gchip.sel{border-color:var(--blue);background:var(--blue);color:#fff;font-weight:600}
+.gchip.dim{opacity:.4;cursor:not-allowed}
+.gchip.dim:hover{border-color:var(--border);background:#FAFCFF}
+.goal-count{font-size:13px;color:var(--sub);margin-bottom:16px}
+
+/* Delivery */
+.del-opts{display:grid;gap:10px;margin-bottom:16px}
+.del-opt{border:1.5px solid var(--border);border-radius:12px;padding:16px 18px;
+  cursor:pointer;transition:all .2s;background:#FAFCFF;display:flex;align-items:center;gap:14px}
+.del-opt:hover{border-color:var(--blue-light);background:#EFF6FF}
+.del-opt.sel{border-color:var(--blue);background:rgba(27,94,138,0.06)}
+.del-opt input{display:none}
+.del-icon{font-size:20px;width:36px;text-align:center}
+.del-txt{flex:1}
+.del-name{font-size:15px;font-weight:600}
+.del-opt.sel .del-name{color:var(--blue)}
+.del-desc{font-size:12px;color:var(--sub)}
+.del-radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.del-opt.sel .del-radio{background:var(--blue);border-color:var(--blue)}
+.del-radio::after{content:'';width:6px;height:6px;border-radius:50%;background:#fff;display:none}
+.del-opt.sel .del-radio::after{display:block}
+.del-opt.del-recommended{border-color:var(--blue);background:rgba(27,94,138,0.04)}
+.del-opt.del-disabled{opacity:.45;cursor:not-allowed;pointer-events:none;background:#F3F4F6;border-color:#D1D5DB}
+.del-coming{font-size:11px;font-weight:600;color:#9CA3AF;letter-spacing:.04em;margin-left:4px}
+.del-badge{font-size:10px;font-weight:700;background:var(--blue);color:#fff;padding:2px 8px;border-radius:10px;letter-spacing:.04em;flex-shrink:0;white-space:nowrap}
+.phone-wrap{display:none;margin-bottom:18px}
+.phone-wrap.show{display:block;animation:rise .25s ease}
+
+/* Phone code selector */
+.phone-input-wrap{display:flex;border:1.5px solid var(--border);border-radius:10px;overflow:visible;background:#FAFCFF;transition:border-color .2s,box-shadow .2s}
+.phone-input-wrap:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px rgba(27,94,138,0.12)}
+.code-selector{position:relative;flex-shrink:0}
+.code-trigger{display:flex;align-items:center;gap:5px;padding:12px 10px 12px 14px;
+  background:none;border:none;border-right:1.5px solid var(--border);cursor:pointer;
+  font-size:15px;white-space:nowrap;font-family:inherit;color:var(--text);
+  height:100%;border-radius:0;transition:background .15s}
+.code-trigger:hover{background:rgba(27,94,138,0.05)}
+.code-flag{font-size:18px;line-height:1}
+.code-num{font-weight:600;font-size:14px;color:var(--text)}
+.code-chevron{font-size:9px;color:var(--sub);margin-left:2px}
+.phone-input-wrap input[type=tel]{border:none!important;border-radius:0 10px 10px 0!important;
+  box-shadow:none!important;background:transparent!important;flex:1;min-width:0}
+.code-dropdown{position:absolute;top:calc(100% + 6px);left:0;width:240px;
+  background:#fff;border:1.5px solid var(--border);border-radius:14px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.13);z-index:200;
+  max-height:260px;overflow-y:auto;display:none;
+  scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.code-dropdown::-webkit-scrollbar{width:4px}
+.code-dropdown::-webkit-scrollbar-track{background:transparent}
+.code-dropdown::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.code-dropdown.open{display:block;animation:rise .2s ease}
+.code-opt{display:flex;align-items:center;gap:10px;padding:10px 14px;
+  cursor:pointer;font-size:14px;transition:background .15s;border-radius:0}
+.code-opt:first-child{border-radius:12px 12px 0 0}
+.code-opt:last-child{border-radius:0 0 12px 12px}
+.code-opt:hover{background:#EFF6FF}
+.code-opt .cf{font-size:20px;width:26px;text-align:center;flex-shrink:0}
+.code-opt .cn{flex:1;color:var(--text);font-weight:500}
+.code-opt .cd{color:var(--sub);font-size:13px;flex-shrink:0}
+
+/* Safety */
+.promise{background:linear-gradient(135deg,rgba(27,94,138,0.06),rgba(13,148,136,0.05));
+  border:1px solid rgba(27,94,138,0.14);border-radius:14px;padding:20px;
+  margin-bottom:24px;font-size:15px;line-height:1.65}
+.crisis{background:#FFF7ED;border:1.5px solid #FED7AA;border-radius:14px;
+  padding:20px;margin-bottom:16px;display:none;animation:rise .3s ease}
+.crisis.show{display:block}
+.crisis h4{font-size:15px;font-weight:700;color:#92400E;margin-bottom:10px}
+.crisis p{font-size:14px;color:#78350F;margin-bottom:6px}
+.crisis p strong{color:#92400E}
+.sec-label{font-size:12px;font-weight:600;color:var(--sub);
+  text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px}
+.divider{height:1px;background:var(--border);margin:24px 0}
+
+/* Coming soon */
+.cs-opts{display:grid;gap:12px;margin-bottom:12px}
+.cs-item{border:1.5px solid var(--border);border-radius:12px;padding:18px;
+  display:flex;align-items:flex-start;gap:14px;background:#FAFCFF;
+  cursor:pointer;transition:all .2s}
+.cs-item:hover{border-color:var(--blue-light)}
+.cs-item.chk{border-color:var(--blue);background:rgba(27,94,138,0.04)}
+.cbox{width:20px;height:20px;border-radius:5px;border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  margin-top:2px;transition:all .2s}
+.cs-item.chk .cbox{background:var(--blue);border-color:var(--blue)}
+.cbox::after{content:'✓';font-size:12px;font-weight:700;color:#fff;display:none}
+.cs-item.chk .cbox::after{display:block}
+.cs-title{font-size:15px;font-weight:600;margin-bottom:3px}
+.cs-item.chk .cs-title{color:var(--blue)}
+.cs-desc{font-size:13px;color:var(--sub)}
+.uncheck-hint{font-size:12px;color:var(--sub);margin-bottom:24px}
+
+/* Screen 9 */
+.badge{display:inline-flex;align-items:center;gap:6px;background:var(--blue);
+  color:#fff;font-size:12px;font-weight:600;padding:5px 14px;border-radius:2px;
+  margin-bottom:20px;letter-spacing:.05em;text-transform:uppercase}
+.badge::before{content:'●';font-size:7px;color:rgba(255,255,255,0.7)}
+
+/* Screen 10 */
+.b1g1-box{display:flex;gap:14px;align-items:flex-start;
+  background:linear-gradient(135deg,rgba(13,148,136,0.07),rgba(27,94,138,0.05));
+  border:1px solid rgba(13,148,136,0.2);border-radius:14px;
+  padding:18px;margin-bottom:20px}
+.b1g1-icon{font-size:26px;flex-shrink:0;margin-top:2px}
+.b1g1-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:5px}
+.b1g1-desc{font-size:13px;color:var(--sub);line-height:1.6}
+.trial-box{padding:18px 20px;margin-bottom:20px;
+  background:rgba(27,94,138,0.05);
+  border:1px solid rgba(27,94,138,0.14);border-radius:14px}
+.trial-top{display:flex;align-items:center;gap:16px;margin-bottom:10px}
+.trial-days{font-size:52px;font-weight:800;color:var(--blue);line-height:1;flex-shrink:0}
+.trial-label{font-size:18px;font-weight:700;color:var(--blue)}
+.trial-then{font-size:13px;color:var(--sub);margin-top:3px}
+.trial-note{font-size:13px;color:var(--sub);line-height:1.5}
+.code-section{margin-bottom:4px}
+.code-row{display:flex;gap:10px;margin-bottom:6px}
+.code-row input{flex:1;text-transform:uppercase;letter-spacing:.08em}
+.code-btn{padding:12px 20px;background:var(--blue);color:#fff;border:none;
+  border-radius:10px;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;
+  transition:background .2s;white-space:nowrap}
+.code-btn:hover{background:var(--blue-dark)}
+.or-code{font-size:16px;color:var(--sub);text-align:center;margin-top:14px}
+.link-btn{background:none;border:none;font-family:inherit;font-size:16px;
+  color:var(--blue);cursor:pointer;padding:0;text-decoration:underline;font-weight:600}
+.code-success{display:none;text-align:center;padding:16px 0;animation:rise .4s ease}
+.code-success.show{display:block}
+.s-icon{width:64px;height:64px;border-radius:50%;background:var(--success);
+  display:flex;align-items:center;justify-content:center;font-size:26px;
+  color:#fff;margin:0 auto 18px;font-weight:700}
+.code-success h2{font-size:24px;font-weight:700;margin-bottom:8px}
+.code-success p{font-size:15px;color:var(--sub);line-height:1.7}
+.s9-continue{text-align:center;margin-top:18px}
+.btn-ghost{background:none;border:none;font-family:inherit;font-size:14px;
+  color:var(--sub);cursor:pointer;padding:8px;transition:color .2s}
+.btn-ghost:hover{color:var(--blue)}
+.avatar{width:64px;height:64px;border-radius:50%;
+  background:linear-gradient(135deg,var(--blue),var(--teal));
+  display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:20px}
+.sponsor-msg{background:linear-gradient(135deg,rgba(27,94,138,0.06),rgba(13,148,136,0.04));
+  border:1px solid rgba(27,94,138,0.12);border-radius:16px;border-top-left-radius:4px;
+  padding:22px;margin-bottom:24px;font-size:15px;line-height:1.8;
+  white-space:pre-line;position:relative}
+.sponsor-msg::before{content:'"';font-size:60px;color:rgba(27,94,138,0.1);
+  position:absolute;top:-10px;left:14px;line-height:1}
+.reply-wrap{display:flex;gap:10px;align-items:flex-end}
+.reply-input{flex:1;padding:14px 16px;border:1.5px solid var(--border);
+  border-radius:12px;font-size:15px;font-family:inherit;resize:none;outline:none;
+  color:var(--text);background:#FAFCFF;transition:border-color .2s;min-height:52px}
+.reply-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(27,94,138,0.1)}
+.send-btn{width:52px;height:52px;border-radius:12px;background:var(--blue);
+  border:none;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;transition:background .2s;flex-shrink:0}
+.send-btn:hover{background:var(--blue-dark)}
+.send-btn svg{width:20px;height:20px;fill:#fff}
+
+@media(max-width:560px){
+  .card{padding:28px 20px}
+  h1.heading{font-size:22px}
+  .goal-grid{grid-template-columns:1fr 1fr}
+  .row{grid-template-columns:1fr}
+}
+@media(max-width:380px){.goal-grid{grid-template-columns:1fr}}
+
+/* ── Meetings note (Screen 7) ── */
+.meetings-note{display:flex;align-items:flex-start;gap:10px;background:#F0F7FF;border:1.5px solid #BFDBFE;border-radius:10px;padding:12px 14px;margin-top:16px;font-size:13px;color:#1E40AF;line-height:1.5}
+.meetings-note span:first-child{font-size:16px;flex-shrink:0;margin-top:1px}
+
+/* ── Chat Overlay ── */
+.chat-overlay{position:fixed;inset:0;background:#F0F4F8;display:none;flex-direction:column;z-index:9999}
+.chat-overlay.open{display:flex}
+.chat-beta-banner{background:#FEF3C7;padding:7px 16px;text-align:center;font-size:11px;color:#92400E;font-weight:600;flex-shrink:0}
+.chat-header{background:var(--blue);padding:14px 18px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.chat-avatar{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.chat-hname{font-size:15px;font-weight:700;color:#fff}
+.chat-hstatus{font-size:11px;color:rgba(255,255,255,0.75);margin-top:1px}
+.chat-messages{flex:1;overflow-y:auto;padding:18px 14px;display:flex;flex-direction:column;gap:10px}
+.cmsg{max-width:82%}
+.cmsg.ai{align-self:flex-start}
+.cmsg.user{align-self:flex-end}
+.cbubble{padding:11px 15px;border-radius:18px;font-size:14px;line-height:1.65;white-space:pre-wrap;word-break:break-word}
+.cmsg.ai .cbubble{background:#fff;color:#212529;border-bottom-left-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.cmsg.user .cbubble{background:var(--blue);color:#fff;border-bottom-right-radius:4px}
+.ctyping{display:flex;gap:4px;padding:12px 16px;background:#fff;border-radius:18px;border-bottom-left-radius:4px;align-self:flex-start;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ctyping span{width:7px;height:7px;border-radius:50%;background:#9CA3AF;animation:tdot 1.2s infinite}
+.ctyping span:nth-child(2){animation-delay:.2s}
+.ctyping span:nth-child(3){animation-delay:.4s}
+@keyframes tdot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+.chat-bar{background:#fff;padding:10px 12px;display:flex;gap:8px;align-items:flex-end;border-top:1px solid #E5E7EB;flex-shrink:0}
+.chat-input{flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:22px;font-size:14px;font-family:inherit;outline:none;resize:none;max-height:100px;overflow-y:auto;line-height:1.5}
+.chat-input:focus{border-color:var(--blue)}
+.cicn-btn{width:40px;height:40px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+.chat-voice-btn{background:#F3F4F6}
+.chat-voice-btn:hover{background:#E5E7EB}
+.chat-voice-btn.listening{background:#FEE2E2;animation:pred 1s infinite}
+@keyframes pred{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}
+.chat-send-btn{background:var(--blue)}
+.chat-send-btn:hover{background:var(--blue-dark)}
+
+/* ── Coming Soon (Screen 6) ── */
+.coming-soon-wrap{margin-top:20px}
+.coming-soon-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);margin-bottom:10px}
+.coming-soon-item{display:flex;flex-direction:column;padding:12px 14px;border:1.5px dashed var(--border);border-radius:10px;margin-bottom:8px;opacity:.7}
+.coming-soon-item .del-icon{font-size:20px}
+.coming-soon-item .del-name{font-size:14px;font-weight:600;color:var(--sub)}
+.coming-soon-item .del-desc{font-size:12px;color:var(--sub)}
+.cs-item-row{display:flex;align-items:center;gap:12px}
+.cs-waitlist{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--sub);cursor:pointer;margin-top:9px;padding-top:9px;border-top:1px solid #F1F5F9;user-select:none}
+.cs-waitlist input{width:14px;height:14px;cursor:pointer;accent-color:var(--blue);flex-shrink:0}
+.cs-badge{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:#F1F5F9;color:var(--sub);padding:3px 8px;border-radius:20px;white-space:nowrap}
+
+/* ── Scholarship section ── */
+.scholarship-box{margin-top:24px;padding:18px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px}
+.scholarship-box h3{font-size:15px;font-weight:700;color:#166534;margin-bottom:6px}
+.scholarship-box p{font-size:13px;color:#15803D;line-height:1.5;margin-bottom:14px}
+.scholarship-code-wrap{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.scholarship-code{flex:1;background:#fff;border:1.5px solid #BBF7D0;border-radius:8px;padding:10px 12px;font-size:15px;font-weight:700;letter-spacing:.1em;color:#166534;text-align:center}
+.copy-btn{background:#166534;color:#fff;border:none;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s}
+.copy-btn:hover{background:#14532D}
+.copy-btn.copied{background:#15803D}
+.scholarship-or{font-size:12px;color:#15803D;text-align:center;margin-bottom:10px}
+.scholarship-input{width:100%;padding:10px 12px;border:1.5px solid #BBF7D0;border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:#fff;color:var(--text);box-sizing:border-box;margin-bottom:8px}
+.scholarship-input:focus{border-color:#166534}
+.scholarship-send{width:100%;padding:11px;background:#fff;color:#166534;border:1.5px solid #166534;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s,color .15s}
+.scholarship-send:hover{background:#166534;color:#fff}
+.afford-link{text-align:center;margin-top:14px;font-size:13px;color:var(--sub)}
+.afford-link a{color:var(--blue);font-size:13px;text-decoration:underline}
+.afford-apply{background:#F8FAFF;border:1.5px solid var(--border);border-radius:12px;padding:18px;margin-top:12px;display:none}
+.afford-apply h4{font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px}
+.afford-apply p{font-size:13px;color:var(--sub);line-height:1.5;margin-bottom:14px}
+.afford-apply textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;resize:vertical;min-height:70px;box-sizing:border-box;margin-bottom:12px}
+.afford-apply textarea:focus{border-color:var(--blue)}
+.afford-submit{width:100%;padding:11px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
+.afford-submitted{text-align:center;font-size:14px;color:#166534;font-weight:600;padding:10px 0;display:none}
+
+/* ── Screen 9 — Create Sponsor ── */
+.style-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.style-card{border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s;user-select:none}
+.style-card:hover{border-color:var(--blue);background:rgba(0,102,179,0.03)}
+.style-card.sel{border-color:var(--blue);background:rgba(0,102,179,0.06)}
+.style-card .s-emoji{font-size:20px;margin-bottom:5px}
+.style-card .s-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px}
+.style-card .s-desc{font-size:11px;color:var(--sub);line-height:1.4}
+.style-other-input{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;color:var(--text);outline:none;margin-bottom:16px;transition:border-color .15s;box-sizing:border-box}
+.style-other-input:focus{border-color:var(--blue)}
+@media(max-width:420px){.style-grid{grid-template-columns:1fr}}
+
+/* ── Amends Screen ── */
+.amends-tag{display:inline-block;background:rgba(245,158,11,.12);color:#d97706;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 12px;border-radius:100px;margin-bottom:16px}
+.amends-film{font-size:36px;margin-bottom:12px}
+.amends-body{font-size:15px;line-height:1.75;color:var(--sub);margin-bottom:20px;text-align:left}
+.amends-ask{font-size:16px;font-weight:600;color:var(--text);margin-bottom:20px}
+.amends-btns{display:flex;flex-direction:column;gap:12px;margin-bottom:8px}
+.amends-skip{background:none;border:none;color:var(--sub);font-size:14px;cursor:pointer;padding:8px;transition:color .15s}
+.amends-skip:hover{color:var(--text)}
+.amends-textarea{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;color:var(--text);outline:none;resize:vertical;min-height:90px;transition:border-color .15s;box-sizing:border-box}
+.amends-textarea:focus{border-color:var(--blue)}
+.amends-paid{font-size:12px;color:var(--sub);background:var(--bg);border-radius:8px;padding:10px 14px;margin-bottom:20px;line-height:1.6}
+
+/* ── Other/Multiple Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:16px;padding:28px 24px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;position:relative}
+.modal-box h2{font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px}
+.modal-box .modal-sub{font-size:14px;color:var(--sub);margin-bottom:20px}
+.modal-close{position:absolute;top:16px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--sub);line-height:1}
+.modal-checks{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.modal-check-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;transition:border-color .15s,background .15s}
+.modal-check-row:hover{border-color:var(--blue);background:rgba(0,102,179,0.03)}
+.modal-check-row input[type=checkbox]{width:17px;height:17px;accent-color:var(--blue);cursor:pointer;flex-shrink:0}
+.modal-check-row span{font-size:14px;font-weight:500;color:var(--text)}
+.modal-divider{display:flex;align-items:center;gap:10px;margin-bottom:16px;color:var(--sub);font-size:13px}
+.modal-divider::before,.modal-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.modal-other-input{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;color:var(--text);outline:none;margin-bottom:20px;transition:border-color .15s}
+.modal-other-input:focus{border-color:var(--blue)}
+.modal-confirm{width:100%;padding:13px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:background .15s}
+.modal-confirm:hover{background:var(--blue-dark)}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <a href="ai-sponsor-landing.html" class="back-home">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 13L5 8L10 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Back to Home
+  </a>
+
+  <div class="brand">
+    <div class="brand-logo">AI Sponsor</div>
+  </div>
+
+  <div class="steps-wrap">
+    <div class="steps-row" id="stepsRow">
+      <div class="step-item active" id="sb1"><div class="sb">1</div></div>
+      <div class="step-line" id="sl1"></div>
+      <div class="step-item" id="sb2"><div class="sb">2</div></div>
+      <div class="step-line" id="sl2"></div>
+      <div class="step-item" id="sb3"><div class="sb">3</div></div>
+      <div class="step-line" id="sl3"></div>
+      <div class="step-item" id="sb4"><div class="sb">4</div></div>
+      <div class="step-line" id="sl4"></div>
+      <div class="step-item" id="sb5"><div class="sb">5</div></div>
+      <div class="step-line" id="sl5"></div>
+      <div class="step-item" id="sb6"><div class="sb">6</div></div>
+      <div class="step-line" id="sl6"></div>
+      <div class="step-item" id="sb7"><div class="sb">7</div></div>
+      <div class="step-line" id="sl7"></div>
+      <div class="step-item" id="sb8"><div class="sb">8</div></div>
+    </div>
+    <div class="prog-label" id="pLabel">Step 1 of 8</div>
+  </div>
+
+  <div class="card">
+
+    <!-- SCREEN 1 -->
+    <div class="screen active" id="s1">
+      <h1 class="heading">Glad you found this.</h1>
+      <p class="sub">An AI Sponsor in your corner, any time of day or night. Private, anonymous, and built around where you are.</p>
+
+      <div class="fg" id="fg-name">
+        <label>How would you like to be named? <span class="req-star">*</span></label>
+        <div class="input-wrap"><input type="text" id="f-name" placeholder="e.g. Sarah or Sarah M." autocomplete="given-name"><span class="fok" id="ok-name">✓</span></div>
+        <span class="err-msg" id="e-name">Please enter your name or nickname</span>
+      </div>
+
+      <div class="fg" id="fg-email">
+        <label>Email <span class="req-star">*</span></label>
+        <div class="input-wrap"><input type="email" id="f-email" placeholder="you@example.com" autocomplete="email"><span class="fok" id="ok-email">✓</span></div>
+        <span class="err-msg" id="e-email">Please enter a valid email address</span>
+      </div>
+
+      <div class="fg" id="fg-pw">
+        <label>Password <span class="req-star">*</span></label>
+        <div class="input-wrap"><input type="password" id="f-pw" placeholder="At least 8 characters" autocomplete="new-password"><span class="fok" id="ok-pw">✓</span></div>
+        <span class="err-msg" id="e-pw">Password must be at least 8 characters</span>
+      </div>
+
+
+      <div class="fg">
+        <label>Gender</label>
+        <select id="f-gender">
+          <option value="" disabled selected>Select...</option>
+          <option>Male</option><option>Female</option>
+          <option>Non-binary</option><option>Prefer not to say</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <div class="fg" id="fg-country">
+          <label>Country <span class="req-star">*</span></label>
+          <select id="f-country" onchange="onCountry()">
+            <option value="" disabled selected>Select...</option>
+            <option value="US">United States</option>
+            <option value="GB">United Kingdom</option>
+            <option value="CA">Canada</option>
+            <option value="AU">Australia</option>
+            <option value="IE">Ireland</option>
+            <option value="NZ">New Zealand</option>
+            <option value="ZA">South Africa</option>
+            <option value="IN">India</option>
+            <option value="DE">Germany</option>
+            <option value="FR">France</option>
+            <option value="ES">Spain</option>
+            <option value="IT">Italy</option>
+            <option value="NL">Netherlands</option>
+            <option value="SE">Sweden</option>
+            <option value="NO">Norway</option>
+            <option value="BR">Brazil</option>
+            <option value="MX">Mexico</option>
+            <option value="AR">Argentina</option>
+            <option value="CO">Colombia</option>
+            <option value="JP">Japan</option>
+            <option value="GE">Georgia</option>
+            <option value="TR">Turkey</option>
+            <option value="Other">Other</option>
+          </select>
+          <span class="err-msg" id="e-country">Please select your country</span>
+        </div>
+        <div class="fg" id="fg-state" style="display:none">
+          <label>State <span class="req-star">*</span></label>
+          <select id="f-state">
+            <option value="" disabled selected>Select...</option>
+            <option>Alabama</option><option>Alaska</option><option>Arizona</option>
+            <option>Arkansas</option><option>California</option><option>Colorado</option>
+            <option>Connecticut</option><option>Delaware</option><option>Florida</option>
+            <option>Georgia</option><option>Hawaii</option><option>Idaho</option>
+            <option>Illinois</option><option>Indiana</option><option>Iowa</option>
+            <option>Kansas</option><option>Kentucky</option><option>Louisiana</option>
+            <option>Maine</option><option>Maryland</option><option>Massachusetts</option>
+            <option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
+            <option>Missouri</option><option>Montana</option><option>Nebraska</option>
+            <option>Nevada</option><option>New Hampshire</option><option>New Jersey</option>
+            <option>New Mexico</option><option>New York</option><option>North Carolina</option>
+            <option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
+            <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option>
+            <option>South Carolina</option><option>South Dakota</option><option>Tennessee</option>
+            <option>Texas</option><option>Utah</option><option>Vermont</option>
+            <option>Virginia</option><option>Washington</option><option>West Virginia</option>
+            <option>Wisconsin</option><option>Wyoming</option>
+          </select>
+          <span class="err-msg" id="e-state">Please select your state</span>
+        </div>
+      </div>
+
+      <button class="btn" onclick="go(2)">Continue</button>
+    </div>
+
+    <!-- SCREEN 2 -->
+    <div class="screen" id="s2">
+      <button class="back" onclick="go(1)">← Back</button>
+      <h1 class="heading">Which programs are you in?</h1>
+      <p class="sub">Select all that apply.</p>
+      <div class="prog-grid">
+        <div class="prog-card" onclick="selProg(this)">
+          <input type="checkbox" name="prog" value="DA">
+          <div class="pcheck"></div>
+          <div class="pname">Debtors Anonymous (DA)</div>
+          <div class="pdesc">A 12-step program for people struggling with compulsive debting and financial difficulties.</div>
+        </div>
+        <div class="prog-card" onclick="selProg(this)">
+          <input type="checkbox" name="prog" value="BDA">
+          <div class="pcheck"></div>
+          <div class="pname">Business Debtors Anonymous (BDA)</div>
+          <div class="pdesc">A 12-step program for business owners and entrepreneurs dealing with compulsive debting and financial mismanagement.</div>
+        </div>
+        <div class="prog-card" onclick="selProg(this)">
+          <input type="checkbox" name="prog" value="UA">
+          <div class="pcheck"></div>
+          <div class="pname">Underearners Anonymous (UA)</div>
+          <div class="pdesc">A 12-step fellowship for people who earn less than they need or desire, and wish to overcome underearning in all its forms.</div>
+        </div>
+        <div class="prog-card" onclick="selProg(this)">
+          <input type="checkbox" name="prog" value="AA">
+          <div class="pcheck"></div>
+          <div class="pname">Alcoholics Anonymous (AA)</div>
+          <div class="pdesc">A fellowship for people recovering from alcohol addiction, following the 12-step program founded in 1935.</div>
+        </div>
+        <div class="prog-card" onclick="selProg(this)">
+          <input type="checkbox" name="prog" value="Al-Anon">
+          <div class="pcheck"></div>
+          <div class="pname">Al-Anon / Alateen</div>
+          <div class="pdesc">For family members and friends of people struggling with alcohol. Alateen is for younger members.</div>
+        </div>
+        <div class="prog-card" onclick="selProg(this)">
+          <input type="checkbox" name="prog" value="NA">
+          <div class="pcheck"></div>
+          <div class="pname">Narcotics Anonymous (NA)</div>
+          <div class="pdesc">A global community for people recovering from drug addiction using the 12-step framework.</div>
+        </div>
+        <div class="prog-card" onclick="selProg(this)">
+          <input type="checkbox" name="prog" value="OA">
+          <div class="pcheck"></div>
+          <div class="pname">Overeaters Anonymous (OA)</div>
+          <div class="pdesc">A 12-step program for people dealing with compulsive eating and food-related issues.</div>
+        </div>
+        <div class="prog-card" onclick="selProg(this)">
+          <input type="checkbox" name="prog" value="GA">
+          <div class="pcheck"></div>
+          <div class="pname">Gamblers Anonymous (GA)</div>
+          <div class="pdesc">A fellowship for people recovering from gambling addiction.</div>
+        </div>
+        <div class="prog-card" onclick="selProg(this)">
+          <input type="checkbox" name="prog" value="ACA">
+          <div class="pcheck"></div>
+          <div class="pname">Adult Children of Alcoholics (ACA)</div>
+          <div class="pdesc">A 12-step fellowship for adults who grew up in alcoholic or otherwise dysfunctional homes.</div>
+        </div>
+        <div class="prog-card" onclick="selProg(this)">
+          <input type="checkbox" name="prog" value="SLAA">
+          <div class="pcheck"></div>
+          <div class="pname">Sex and Love Addicts Anonymous (SLAA)</div>
+          <div class="pdesc">A 12-step fellowship for people recovering from sex addiction, love addiction, and unhealthy relationship patterns.</div>
+        </div>
+        <div class="prog-card" onclick="selProg(this)">
+          <input type="checkbox" name="prog" value="WA">
+          <div class="pcheck"></div>
+          <div class="pname">Workaholics Anonymous (WA)</div>
+          <div class="pdesc">A 12-step fellowship for people whose relationship with work has become compulsive and unmanageable.</div>
+        </div>
+        <div class="prog-card" onclick="selProg(this)">
+          <input type="checkbox" name="prog" value="Unsure">
+          <div class="pcheck"></div>
+          <div class="pname">New / Not Sure</div>
+          <div class="pdesc">Still exploring. That's okay.</div>
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:16px">
+        <label class="lbl" for="f-other-prog">In a program not listed? Write it in</label>
+        <input type="text" id="f-other-prog" placeholder="e.g. Cocaine Anonymous, Emotions Anonymous…" oninput="onOtherProg(this.value)">
+      </div>
+      <button class="btn" id="btn-prog" onclick="go(3)" disabled>These are my programs →</button>
+    </div>
+
+    <!-- SCREEN 3 -->
+    <div class="screen" id="s3">
+      <button class="back" onclick="go(2)">← Back</button>
+      <h1 class="heading">Where are you in your recovery?</h1>
+      <p class="sub">There's no right or wrong answer.</p>
+      <div class="opts">
+        <label class="opt-row" onclick="selStage(this)"><input type="radio" name="stage" value="Just starting out"><div class="dot"></div>Just starting out</label>
+        <label class="opt-row" onclick="selStage(this)"><input type="radio" name="stage" value="Under 3 months"><div class="dot"></div>Under 3 months</label>
+        <label class="opt-row" onclick="selStage(this)"><input type="radio" name="stage" value="3-12 months"><div class="dot"></div>3–12 months</label>
+        <label class="opt-row" onclick="selStage(this)"><input type="radio" name="stage" value="1-5 years"><div class="dot"></div>1–5 years</label>
+        <label class="opt-row" onclick="selStage(this)"><input type="radio" name="stage" value="5+ years"><div class="dot"></div>5+ years</label>
+        <label class="opt-row" onclick="selStage(this)"><input type="radio" name="stage" value="Starting over"><div class="dot"></div>Starting over after a setback</label>
+      </div>
+      <button class="btn" id="btn-stage" onclick="go(4)" disabled>Continue</button>
+    </div>
+
+    <!-- SCREEN 4 -->
+    <div class="screen" id="s4">
+      <button class="back" onclick="go(3)">← Back</button>
+      <h1 class="heading">What brought you here today?</h1>
+      <p class="sub">Write as much or as little as you like. This helps me show up for you in the right way.</p>
+      <div class="fg">
+        <textarea id="f-why" placeholder="Whatever's on your mind..."></textarea>
+      </div>
+      <button class="btn" onclick="go(5)">Continue</button>
+    </div>
+
+    <!-- SCREEN 5 -->
+    <div class="screen" id="s5">
+      <button class="back" onclick="go(4)">← Back</button>
+      <h1 class="heading">What do you most want recovery to give you?</h1>
+      <p class="sub">Select all that apply.</p>
+      <p class="goal-count" id="gcount">0 selected</p>
+      <div class="goal-grid">
+        <div class="gchip" onclick="togGoal(this)" data-g="Freedom">Freedom</div>
+        <div class="gchip" onclick="togGoal(this)" data-g="Peace of mind">Peace of mind</div>
+        <div class="gchip" onclick="togGoal(this)" data-g="My family back">My family back</div>
+        <div class="gchip" onclick="togGoal(this)" data-g="Health & wellbeing">Health & wellbeing</div>
+        <div class="gchip" onclick="togGoal(this)" data-g="Purpose">Purpose</div>
+        <div class="gchip" onclick="togGoal(this)" data-g="Financial stability">Financial stability</div>
+        <div class="gchip" onclick="togGoal(this)" data-g="Self-respect">Self-respect</div>
+        <div class="gchip" onclick="togGoal(this)" data-g="A fresh start">A fresh start</div>
+        <div class="gchip" onclick="togGoal(this)" data-g="Other">Other</div>
+      </div>
+      <div id="otherGoalWrap" style="display:none;margin-top:12px">
+        <input type="text" id="otherGoalInput" placeholder="What else are you hoping for?"
+          style="width:100%;padding:12px 14px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:15px;font-family:inherit;outline:none;box-sizing:border-box"
+          oninput="D.otherGoal=this.value">
+      </div>
+      <button class="btn" id="btn-goals" onclick="go(6)" disabled>These are my goals →</button>
+    </div>
+
+    <!-- SCREEN 6 -->
+    <div class="screen" id="s6">
+      <button class="back" onclick="go(5)">← Back</button>
+      <h1 class="heading">How would you like your AI Sponsor to reach you?</h1>
+      <p class="sub">Most members use WhatsApp. It's the easiest way to stay connected. You can always change this later.</p>
+      <div class="del-opts">
+        <label class="del-opt del-recommended" onclick="selDel(this,true)">
+          <input type="radio" name="del" value="whatsapp">
+          <div class="del-icon">💬</div>
+          <div class="del-txt"><div class="del-name">WhatsApp</div><div class="del-desc">Text and audio messages via WhatsApp</div></div>
+          <div class="del-badge">Recommended</div>
+          <div class="del-radio"></div>
+        </label>
+      </div>
+      <div class="phone-wrap" id="phoneWrap">
+        <div class="fg">
+          <label>Your phone number <span class="req-star">*</span></label>
+          <div class="phone-input-wrap">
+            <div class="code-selector" id="codeSelector">
+              <button class="code-trigger" type="button" onclick="toggleCodeDD(event)">
+                <span class="code-flag" id="selFlag">🇺🇸</span>
+                <span class="code-num" id="selCode">+1</span>
+                <span class="code-chevron">▾</span>
+              </button>
+              <div class="code-dropdown" id="codeDD"></div>
+            </div>
+            <input type="tel" id="f-phone" placeholder="000 000 0000" oninput="this.value=this.value.replace(/[^0-9+\-\s()]/g,'')">
+          </div>
+          <span class="err-msg" id="e-phone">Please enter a valid phone number</span>
+        </div>
+      </div>
+      <div class="coming-soon-wrap">
+        <div class="coming-soon-label">Coming soon</div>
+        <div class="coming-soon-item">
+          <div class="cs-item-row">
+            <div class="del-icon">✉️</div>
+            <div class="del-txt"><div class="del-name">Text / SMS</div><div class="del-desc">Text and audio messages by SMS</div></div>
+            <div class="cs-badge">Coming soon</div>
+          </div>
+          <label class="cs-waitlist"><input type="checkbox" checked> Add me to the waitlist</label>
+        </div>
+        <div class="coming-soon-item">
+          <div class="cs-item-row">
+            <div class="del-icon">🎥</div>
+            <div class="del-txt"><div class="del-name">AI Video Sponsor</div><div class="del-desc">Design your own AI Sponsor: choose their face, voice, and personality. Talk to them live, face to face.</div></div>
+            <div class="cs-badge">Coming soon</div>
+          </div>
+          <label class="cs-waitlist"><input type="checkbox" checked> Add me to the waitlist</label>
+        </div>
+        <div class="coming-soon-item">
+          <div class="cs-item-row">
+            <div class="del-icon">📱</div>
+            <div class="del-txt"><div class="del-name">iOS Mobile App</div><div class="del-desc">Your AI Sponsor in your pocket, available on iPhone any time, anywhere.</div></div>
+            <div class="cs-badge">Coming soon</div>
+          </div>
+          <label class="cs-waitlist"><input type="checkbox" checked> Add me to the waitlist</label>
+        </div>
+      </div>
+      <button class="btn" id="btn-del" onclick="go(7)" disabled>Continue</button>
+    </div>
+
+    <!-- SCREEN 7 -->
+    <div class="screen" id="s7">
+      <button class="back" onclick="go(6)">← Back</button>
+      <h1 class="heading">One more thing before we begin</h1>
+
+      <p class="sec-label">Are you okay right now?</p>
+      <div class="opts" style="margin-bottom:16px">
+        <label class="opt-row" onclick="selWell(this,false)"><input type="radio" name="well" value="ok"><div class="dot"></div>I'm okay</label>
+        <label class="opt-row" onclick="selWell(this,true)"><input type="radio" name="well" value="support"><div class="dot"></div>I could use some support right now</label>
+      </div>
+
+      <div class="crisis" id="crisisBox">
+        <h4>You're not alone.</h4>
+        <p><strong>Crisis Text Line:</strong> text HOME to 741741 (free, 24/7)</p>
+        <p><strong>988 Suicide &amp; Crisis Lifeline:</strong> call or text 988</p>
+        <p><strong>SAMHSA Helpline:</strong> 1-800-662-4357 (free, confidential, 24/7)</p>
+        <div id="programHotline" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,0,0,0.1)">
+          <p id="programHotlineText"></p>
+        </div>
+        <div class="meetings-note" style="margin-top:12px">
+          <span>📍</span>
+          <span>Once you're registered, you'll be able to find local meetings and in-person support through the platform.</span>
+        </div>
+      </div>
+
+      <button class="btn" id="btn-safe" onclick="go(9)" disabled>I'm ready</button>
+    </div>
+
+    <!-- SCREEN 9 -->
+    <div class="screen" id="s9">
+      <button class="back" id="s9-back" onclick="go(7)">← Back</button>
+
+      <!-- Phase 1: Create your sponsor -->
+      <div id="s9-create">
+        <h1 class="heading">Let's create your AI Sponsor</h1>
+        <p class="sub">Make them feel like someone you'd actually want to talk to.</p>
+
+        <div class="fg" style="margin-bottom:20px">
+          <label>Give them a name</label>
+          <input type="text" id="f-sname" placeholder="e.g. Alex, Jordan, Sam…" maxlength="30"
+            oninput="onSponsorInput()">
+        </div>
+
+        <p class="sec-label" style="margin-bottom:10px">How should they be with you?</p>
+        <div class="style-grid">
+          <div class="style-card" onclick="selStyle(this,'Warm & Gentle')">
+            <div class="s-emoji">🌿</div>
+            <div class="s-title">Warm & Gentle</div>
+            <div class="s-desc">Kind, patient, never judgmental. Meets you where you are.</div>
+          </div>
+          <div class="style-card" onclick="selStyle(this,'Firm & Direct')">
+            <div class="s-emoji">💪</div>
+            <div class="s-title">Firm & Direct</div>
+            <div class="s-desc">Holds you accountable. Calls you out with love.</div>
+          </div>
+          <div class="style-card" onclick="selStyle(this,'Spiritual & Grounded')">
+            <div class="s-emoji">🙏</div>
+            <div class="s-title">Spiritual & Grounded</div>
+            <div class="s-desc">Rooted in faith, higher power, and the principles of the program.</div>
+          </div>
+          <div class="style-card" onclick="selStyle(this,'Motivating & Practical')">
+            <div class="s-emoji">⚡</div>
+            <div class="s-title">Motivating & Practical</div>
+            <div class="s-desc">Action-focused. Helps you move forward one step at a time.</div>
+          </div>
+          <div class="style-card" onclick="selStyle(this,'Light & Humorous')">
+            <div class="s-emoji">😄</div>
+            <div class="s-title">Light & Humorous</div>
+            <div class="s-desc">Keeps it real but never too heavy. Humor is healing.</div>
+          </div>
+          <div class="style-card" onclick="selStyle(this,'Wise & Reflective')">
+            <div class="s-emoji">🧠</div>
+            <div class="s-title">Wise & Reflective</div>
+            <div class="s-desc">Asks deep questions. Makes you think. Philosophical.</div>
+          </div>
+          <div class="style-card" id="styleOtherCard" onclick="selStyle(this,'other')" style="grid-column:1/-1">
+            <div class="s-emoji">✏️</div>
+            <div class="s-title">Something else</div>
+            <div class="s-desc">Describe exactly how you want your sponsor to be with you.</div>
+          </div>
+        </div>
+        <div id="styleOtherWrap" style="display:none">
+          <input class="style-other-input" id="f-styleother" type="text"
+            placeholder="e.g. Like a wise older sister who's been through it herself…"
+            oninput="onSponsorInput()">
+        </div>
+
+        <button class="btn" id="btn-create" onclick="createSponsor()" disabled>Meet my AI Sponsor →</button>
+      </div>
+
+      <!-- Phase 2: First message -->
+      <div id="s9-meet" style="display:none">
+        <div class="badge">You're here</div>
+        <div class="avatar">🤝</div>
+        <h1 class="heading" id="s9-greeting">Hi there.</h1>
+        <div class="sponsor-msg" id="s9-msg">Preparing your first message...</div>
+        <button class="btn" style="margin-top:8px" onclick="go(10)">Continue to your free month →</button>
+      </div>
+    </div>
+
+    <!-- SCREEN 10 — Amends -->
+    <div class="screen" id="s10">
+      <button class="back" onclick="go(9)">← Back</button>
+
+      <!-- Phase 1: intro -->
+      <div id="amends-intro">
+        <div class="amends-film">🎬</div>
+        <div class="amends-tag">A TV Series</div>
+        <h1 class="heading">Amends</h1>
+        <p class="amends-body">We're developing a TV series that follows real people reconnecting with someone from their past to make things right: a parent, a friend, a former partner, or a wound that's been sitting with you for years.<br><br>Each episode documents the journey of reaching out, facing the truth, and attempting to heal what was broken. Vulnerability, redemption, forgiveness. And the ripple effect that one sincere amends can have on everyone involved.</p>
+        <p class="amends-ask">Would you be open to being considered?</p>
+        <div class="amends-btns">
+          <button class="btn" onclick="showAmendsMore()">I'm open to this →</button>
+          <button class="amends-skip" onclick="go(11)">Not right now, continue →</button>
+        </div>
+      </div>
+
+      <!-- Phase 2: tell me more -->
+      <div id="amends-more" style="display:none">
+        <div class="amends-film">🎬</div>
+        <h1 class="heading">Tell us a little more</h1>
+        <p class="amends-body">Is there someone from your past you've been thinking about reaching out to? Someone you'd want to make things right with?<br><br>You don't have to have it all figured out. Just share what's on your mind. This stays between us until you're ready.</p>
+        <div class="amends-paid">📍 Production team in Los Angeles and Mexico City.</div>
+        <div class="fg" style="margin-bottom:20px">
+          <label>Who would you want to make amends with? <span style="font-weight:400;color:var(--sub)">(optional)</span></label>
+          <textarea class="amends-textarea" id="f-amends-who" placeholder="e.g. My father. We haven't spoken in 8 years…"></textarea>
+        </div>
+        <button class="btn" onclick="confirmAmends()">Add me to the list →</button>
+        <div style="text-align:center;margin-top:12px">
+          <button class="amends-skip" onclick="go(11)">Actually, skip this →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN 11 — Payment -->
+    <div class="screen" id="s11">
+      <button class="back" onclick="go(10)">← Back</button>
+      <h1 class="heading">You've already done the hardest part.</h1>
+      <p class="sub">Showing up. Everything from here is one day at a time, and I'll be right here for every one of them.</p>
+
+      <!-- Buy One Give One -->
+      <div class="b1g1-box">
+        <div class="b1g1-icon">🤲</div>
+        <div class="b1g1-text">
+          <div class="b1g1-title">One for one.</div>
+          <div class="b1g1-desc">For every paid subscription, we gift someone who can't afford it full free access. Because everyone in recovery deserves a sponsor, no matter what's in their wallet.</div>
+          <div class="afford-link" style="text-align:left;margin-top:10px">Can't afford $5/month? <a href="mailto:sponsor@youraisponsor.com?subject=Scholarship Application">Apply for a scholarship →</a></div>
+        </div>
+      </div>
+
+      <!-- Scholarship -->
+      <div class="scholarship-box">
+        <h3>🎁 Know someone who needs this?</h3>
+        <p>You've been given one scholarship code to gift to someone you know who's struggling and can't afford it. Pass it on.</p>
+        <div class="scholarship-code-wrap">
+          <div class="scholarship-code" id="scholarshipCode">—</div>
+          <button class="copy-btn" id="copyBtn" onclick="copyScholarship()">Copy</button>
+        </div>
+      </div>
+
+      <!-- Trial pricing -->
+      <div class="trial-box">
+        <div class="trial-top">
+          <span class="trial-days" id="trialNum">0</span>
+          <div class="trial-right">
+            <div class="trial-label">days free</div>
+            <div class="trial-then">then $5 / month, cancel anytime</div>
+          </div>
+        </div>
+        <p class="trial-note" id="stripeNote">Your card is saved now but won't be charged until day 31.</p>
+      </div>
+
+      <!-- Card form (placeholder until Stripe connected) -->
+      <div id="cardSection">
+        <div class="fg" style="margin-bottom:14px">
+          <label>Card number</label>
+          <input type="text" id="f-card" placeholder="1234 5678 9012 3456" maxlength="19"
+            oninput="fmtCard(this)">
+        </div>
+        <div class="row" style="margin-bottom:18px">
+          <div class="fg">
+            <label>Expiry</label>
+            <input type="text" id="f-exp" placeholder="MM / YY" maxlength="7"
+              oninput="fmtExp(this)">
+          </div>
+          <div class="fg">
+            <label>CVC</label>
+            <input type="text" id="f-cvc" placeholder="123" maxlength="3">
+          </div>
+        </div>
+        <button class="btn" onclick="startTrial()">Start my free 30 days →</button>
+        <p class="or-code">Have a beta access code instead? <button class="link-btn" onclick="showCodeSection()">Enter it here</button></p>
+      </div>
+
+      <!-- Beta code (hidden by default) -->
+      <div class="code-section" id="codeSection" style="display:none">
+        <div class="code-row">
+          <input type="text" id="f-code" placeholder="ENTER CODE"
+            onkeydown="if(event.key==='Enter')redeemCode()">
+          <button class="code-btn" onclick="redeemCode()">Unlock</button>
+        </div>
+        <span class="err-msg" id="e-code">That code doesn't look right. Try again.</span>
+        <p class="or-code" style="margin-top:12px"><button class="link-btn" onclick="showCardSection()">← Back to free trial</button></p>
+      </div>
+
+      <!-- Success state -->
+      <div class="code-success" id="codeSuccess">
+        <div class="s-icon">✓</div>
+        <h2>You're in.</h2>
+        <p>Your 30 days start now.<br>I'll be here whenever you need me, day or night.</p>
+        <button class="btn" style="margin-top:24px" onclick="openChat()">Start talking →</button>
+      </div>
+
+    </div>
+
+  </div><!-- /card -->
+</div><!-- /container -->
+
+<!-- ── Chat Overlay ── -->
+<div class="chat-overlay" id="chatOverlay">
+  <div class="chat-beta-banner">✦ Beta — AI Sponsor powered by Claude</div>
+  <div class="chat-header">
+    <div class="chat-avatar">🤝</div>
+    <div>
+      <div class="chat-hname" id="chatSponsorName">Your AI Sponsor</div>
+      <div class="chat-hstatus">● Online — here for you 24/7</div>
+    </div>
+  </div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-bar">
+    <textarea class="chat-input" id="chatInput" placeholder="Type or tap the mic to speak..." rows="1"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"
+      oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+    <button class="cicn-btn chat-voice-btn" id="voiceBtn" onclick="toggleVoice()" title="Speak">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    </button>
+    <button class="cicn-btn chat-send-btn" onclick="sendChat()" title="Send">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+const D = {
+  name:'',email:'',pw:'',gender:'',country:'',state:'',
+  program:[],otherProgram:'',stage:'',why:'',goals:[],
+  delivery:'',phone:'',
+  wellbeing:'',
+  wantsVideo:true,wantsIOS:true,
+  sponsorName:'',sponsorStyle:'',
+  amendsInterest:false,amendsWho:''
+};
+let cur = 1;
+
+function saveState(){
+  try{ localStorage.setItem('ais_d', JSON.stringify(D)); localStorage.setItem('ais_cur', cur); }catch(e){}
+}
+
+function restoreState(){
+  const saved=localStorage.getItem('ais_d');
+  const savedCur=parseInt(localStorage.getItem('ais_cur')||'1');
+  if(!saved||savedCur<=1)return;
+
+  try{
+    const parsed=JSON.parse(saved);
+    Object.assign(D,parsed);
+    if(!Array.isArray(D.program)) D.program=[];
+
+    // Restore visible field values
+    const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
+    set('f-name',D.name);set('f-email',D.email);set('f-pw',D.pw);
+    set('f-gender',D.gender);set('f-country',D.country);
+    const fgState=document.getElementById('fg-state');
+    if(D.country==='US'&&fgState){fgState.style.display='block';set('f-state',D.state);}
+    set('f-why',D.why);
+
+    // Restore program cards (multi-select)
+    document.querySelectorAll('.prog-card').forEach(c=>{
+      const inp=c.querySelector('input');
+      if(inp&&D.program.includes(inp.value))c.classList.add('sel');
+    });
+    const fop=document.getElementById('f-other-prog');
+    if(fop&&D.otherProgram)fop.value=D.otherProgram;
+    const btnProg=document.getElementById('btn-prog');
+    if((D.program.length>0||D.otherProgram)&&btnProg)btnProg.disabled=false;
+
+    // Restore stage
+    document.querySelectorAll('#s3 .opt-row').forEach(o=>{
+      const inp=o.querySelector('input');
+      if(inp&&inp.value===D.stage)o.classList.add('sel');
+    });
+    const btnStage=document.getElementById('btn-stage');
+    if(D.stage&&btnStage)btnStage.disabled=false;
+
+    // Restore goals
+    document.querySelectorAll('.gchip').forEach(g=>{
+      if(D.goals&&D.goals.includes(g.dataset.g))g.classList.add('sel');
+    });
+    const btnGoals=document.getElementById('btn-goals');
+    if(D.goals&&D.goals.length&&btnGoals)btnGoals.disabled=false;
+
+    // Restore delivery method (screen 6)
+    if(D.delivery){
+      document.querySelectorAll('.del-opt').forEach(opt=>{
+        const inp=opt.querySelector('input');
+        if(inp&&inp.value===D.delivery){
+          opt.classList.add('sel');
+          document.getElementById('btn-del').disabled=false;
+          const needPhone=D.delivery==='whatsapp';
+          document.getElementById('phoneWrap').classList.toggle('show',needPhone);
+        }
+      });
+    }
+    if(D.phone){ const ph=document.getElementById('f-phone'); if(ph)ph.value=D.phone; }
+
+    // Restore wellbeing selection (screen 7)
+    if(D.wellbeing){
+      document.querySelectorAll('#s7 .opt-row').forEach(o=>{
+        const inp=o.querySelector('input');
+        if(inp&&inp.value===D.wellbeing){
+          o.classList.add('sel');
+          document.getElementById('btn-safe').disabled=false;
+          const needSupport=D.wellbeing==='support';
+          document.getElementById('crisisBox').classList.toggle('show',needSupport);
+        }
+      });
+    }
+  }catch(e){ console.warn('restoreState field error:',e); }
+
+  // Always navigate to saved screen — outside try so a field error can't block it
+  goTo(savedCur);
+}
+
+function goTo(n){
+  document.getElementById('s'+cur).classList.remove('active','slide-r','slide-l');
+  cur=n;
+  document.getElementById('s'+cur).classList.add('active');
+  document.getElementById('pLabel').textContent=stepLabel(cur);
+  updateSteps(cur);
+}
+
+function clearState(){ try{ localStorage.removeItem('ais_d'); localStorage.removeItem('ais_cur'); }catch(e){} }
+
+function go(n){
+  if(n===cur)return;
+  if(n>cur&&!validate(cur))return;
+  collect(cur);
+  const dir = n > cur ? 'slide-r' : 'slide-l';
+  document.getElementById('s'+cur).classList.remove('active','slide-r','slide-l');
+  cur=n;
+  const next = document.getElementById('s'+n);
+  next.classList.remove('slide-r','slide-l');
+  next.classList.add('active');
+  // trigger reflow so animation fires
+  void next.offsetWidth;
+  next.classList.add(dir);
+  document.getElementById('pLabel').textContent = stepLabel(cur);
+  updateSteps(cur);
+  // restore s9 back button if returning to screen 9
+  if(n===9){ const b=document.getElementById('s9-back'); if(b)b.style.display=''; }
+  // screen 9 message built after sponsor creation
+  if(n===11) showScholarshipCode();
+  if(n===11) countUp('trialNum', 30, 800);
+  window.scrollTo({top:0,behavior:'smooth'});
+  saveState();
+}
+
+function stepLabel(screenNum){
+  if(screenNum>=10) return 'Almost done';
+  const visual = screenNum<=7 ? screenNum : 8; // s9 is visual step 8
+  return 'Step '+visual+' of 8';
+}
+
+function updateSteps(n){
+  const visualStep = n<=7 ? n : (n===9 ? 8 : 9); // s9=step 8 active, s10/s11=all done
+  for(let i=1;i<=8;i++){
+    const sb=document.getElementById('sb'+i);
+    const sl=document.getElementById('sl'+i);
+    if(!sb)continue;
+    const screenNum = i<=7 ? i : 9; // visual step 8 navigates to screen s9
+    sb.classList.remove('active','done');
+    const bubble=sb.querySelector('.sb');
+    if(i < visualStep){
+      sb.classList.add('done');
+      bubble.textContent='✓';
+      bubble.onclick=()=>go(screenNum);
+    } else if(i===visualStep){
+      sb.classList.add('active');
+      bubble.textContent=i;
+      bubble.onclick=null;
+    } else {
+      bubble.textContent=i;
+      bubble.onclick=null;
+    }
+    if(sl) sl.classList.toggle('done', i < visualStep);
+  }
+}
+
+function validate(n){
+  if(n===6){
+    const needsPhone=document.getElementById('phoneWrap').classList.contains('show');
+    if(needsPhone){
+      const phone=document.getElementById('f-phone').value.replace(/\D/g,'');
+      const phoneWrap=document.getElementById('phoneWrap');
+      const ePhone=document.getElementById('e-phone');
+      const invalid=phone.length<7;
+      phoneWrap.classList.toggle('bad',invalid);
+      ePhone.classList.toggle('show',invalid);
+      if(invalid)return false;
+    }
+    return true;
+  }
+  if(n!==1)return true;
+  let ok=true;
+  const name=document.getElementById('f-name').value.trim();
+  const email=document.getElementById('f-email').value.trim();
+  const pw=document.getElementById('f-pw').value;
+  const country=document.getElementById('f-country').value;
+  const setE=(fg,e,v)=>{
+    document.getElementById(fg).classList.toggle('bad',v);
+    document.getElementById(e).classList.toggle('show',v);
+    if(v)ok=false;
+  };
+  const state=document.getElementById('f-state').value;
+  setE('fg-name','e-name',!name);
+  setE('fg-email','e-email',!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+  setE('fg-pw','e-pw',!pw||pw.length<8);
+  setE('fg-country','e-country',!country);
+  if(country==='US') setE('fg-state','e-state',!state);
+  return ok;
+}
+
+function collect(n){
+  if(n===1){
+    D.name=document.getElementById('f-name').value.trim();
+    D.email=document.getElementById('f-email').value.trim();
+    D.gender=document.getElementById('f-gender').value;
+    D.country=document.getElementById('f-country').value;
+    D.state=document.getElementById('f-state').value;
+  }
+  if(n===4)D.why=document.getElementById('f-why').value.trim();
+  if(n===7){
+    // trusted contact fields removed
+  }
+  if(n===10){
+    const el=document.getElementById('f-amends-who');
+    if(el)D.amendsWho=el.value.trim();
+  }
+}
+
+function onCountry(){
+  const v=document.getElementById('f-country').value;
+  document.getElementById('fg-state').style.display=v==='US'?'block':'none';
+}
+
+function selProg(el){
+  if(!Array.isArray(D.program)) D.program=[];
+  const val=el.querySelector('input').value;
+  el.classList.toggle('sel');
+  if(el.classList.contains('sel')){
+    if(!D.program.includes(val)) D.program.push(val);
+  } else {
+    D.program=D.program.filter(v=>v!==val);
+  }
+  document.getElementById('btn-prog').disabled=(D.program.length===0 && !D.otherProgram);
+}
+function onOtherProg(val){
+  D.otherProgram=val.trim();
+  document.getElementById('btn-prog').disabled=(D.program.length===0 && !D.otherProgram);
+}
+
+function closeOtherModal(){
+  const el=document.getElementById('otherModal');
+  if(el) el.classList.remove('open');
+}
+
+function toggleAffordApply(){
+  const el=document.getElementById('affordApply');
+  el.style.display=el.style.display==='block'?'none':'block';
+}
+function submitAfford(){
+  const txt=document.getElementById('f-afford').value.trim();
+  if(!txt)return;
+  document.querySelector('.afford-submit').style.display='none';
+  document.getElementById('affordSubmitted').style.display='block';
+}
+function showAmendsMore(){
+  D.amendsInterest=true;
+  document.getElementById('amends-intro').style.display='none';
+  document.getElementById('amends-more').style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function confirmAmends(){
+  D.amendsWho=document.getElementById('f-amends-who').value.trim();
+  go(11);
+}
+
+function confirmOtherModal(){
+  const checked=[...document.querySelectorAll('#otherModal .modal-checks input:checked')].map(i=>i.value);
+  const custom=document.getElementById('otherProgramInput').value.trim();
+  if(!checked.length&&!custom){ alert('Please select or enter at least one program.'); return; }
+  const parts=[...checked];
+  if(custom)parts.push(custom);
+  D.program=parts.join(', ');
+  document.querySelectorAll('.prog-card').forEach(c=>c.classList.remove('sel'));
+  document.querySelector('.prog-card input[value="Other"]').closest('.prog-card').classList.add('sel');
+  document.getElementById('btn-prog').disabled=false;
+  closeOtherModal();
+}
+
+// Close modal on overlay click
+document.addEventListener('click', e=>{
+  if(e.target.id==='otherModal') closeOtherModal();
+});
+
+function selStage(el){
+  document.querySelectorAll('#s3 .opt-row').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');
+  D.stage=el.querySelector('input').value;
+  document.getElementById('btn-stage').disabled=false;
+}
+
+function togGoal(el){
+  if(el.classList.contains('sel')){
+    el.classList.remove('sel');
+    D.goals=D.goals.filter(g=>g!==el.dataset.g);
+  } else {
+    el.classList.add('sel');
+    D.goals.push(el.dataset.g);
+  }
+  const c=D.goals.length;
+  document.getElementById('gcount').textContent=c+' selected';
+  document.getElementById('btn-goals').disabled=c===0;
+  const hasOther=D.goals.includes('Other');
+  document.getElementById('otherGoalWrap').style.display=hasOther?'block':'none';
+  if(!hasOther){document.getElementById('otherGoalInput').value='';D.otherGoal='';}
+}
+
+function selDel(el,needPhone){
+  document.querySelectorAll('.del-opt').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');
+  D.delivery=el.querySelector('input').value;
+  document.getElementById('btn-del').disabled=false;
+  document.getElementById('phoneWrap').classList.toggle('show',needPhone);
+}
+
+const PROGRAM_HOTLINES = {
+  'AA':    { name: 'Alcoholics Anonymous', phone: '212-870-3400', url: 'https://www.aa.org/find-aa', urlLabel: 'aa.org — Find local help &amp; meetings' },
+  'NA':    { name: 'Narcotics Anonymous',  phone: '818-773-9999', url: 'https://www.na.org/meetingsearch/', urlLabel: 'na.org — Find local meetings' },
+  'Al-Anon': { name: 'Al-Anon Family Groups', phone: '1-888-425-2666', url: 'https://al-anon.org/al-anon-meetings/', urlLabel: 'al-anon.org — Find local meetings' },
+  'OA':    { name: 'Overeaters Anonymous', phone: '505-891-2664', url: 'https://oa.org/find-a-meeting/', urlLabel: 'oa.org — Find local meetings' },
+  'DA':    { name: 'Debtors Anonymous',    phone: '781-453-2743', url: 'https://www.debtorsanonymous.org/find-a-meeting/', urlLabel: 'debtorsanonymous.org — Find local meetings' },
+  'BDA':   { name: 'Business Debtors Anonymous', phone: '781-453-2743', url: 'https://www.debtorsanonymous.org/find-a-meeting/', urlLabel: 'debtorsanonymous.org — Find local meetings' },
+  'UA':    { name: 'Underearners Anonymous', phone: '520-314-0840', url: 'https://www.underearnersanonymous.org/meetings/', urlLabel: 'underearnersanonymous.org — Find local meetings' },
+  'GA':    { name: 'Gamblers Anonymous',   phone: '626-960-3500', url: 'https://www.gamblersanonymous.org/ga/meeting/', urlLabel: 'gamblersanonymous.org — Find local meetings' },
+  'ACA':   { name: 'Adult Children of Alcoholics', phone: '310-534-1815', url: 'https://adultchildren.org/meeting-search/', urlLabel: 'adultchildren.org — Find local meetings' },
+  'SLAA':  { name: 'Sex and Love Addicts Anonymous', phone: '210-828-7900', url: 'https://slaafws.org/findameeting/', urlLabel: 'slaafws.org — Find local meetings' },
+};
+
+function selWell(el,needSupport){
+  document.querySelectorAll('#s7 .opt-row').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');
+  D.wellbeing=el.querySelector('input').value;
+  document.getElementById('btn-safe').disabled=false;
+  document.getElementById('crisisBox').classList.toggle('show',needSupport);
+  if(needSupport){
+    const h=PROGRAM_HOTLINES[Array.isArray(D.program)?D.program[0]:D.program];
+    const wrap=document.getElementById('programHotline');
+    const txt=document.getElementById('programHotlineText');
+    if(h){
+      txt.innerHTML='<strong>'+h.name+' Helpline:</strong> '+h.phone+'<br><a href="'+h.url+'" target="_blank" style="color:inherit;text-decoration:underline">'+h.urlLabel+'</a>';
+      wrap.style.display='block';
+    } else {
+      wrap.style.display='none';
+    }
+  }
+}
+
+function togCS(id,key){
+  const el=document.getElementById(id);
+  const chk=el.classList.toggle('chk');
+  D[key]=chk;
+}
+
+function typeWriter(text, el, speed=14){
+  el.textContent='';
+  el.style.whiteSpace='pre-line';
+  let i=0;
+  const t=setInterval(()=>{
+    el.textContent+=text[i];
+    i++;
+    if(i>=text.length) clearInterval(t);
+  }, speed);
+}
+
+function countUp(id, target, ms=800){
+  const el=document.getElementById(id);
+  if(!el) return;
+  let n=0;
+  const step=target/(ms/16);
+  const t=setInterval(()=>{
+    n=Math.min(n+step, target);
+    el.textContent=Math.round(n);
+    if(n>=target) clearInterval(t);
+  }, 16);
+}
+
+function setupValidation(){
+  const rules=[
+    {id:'f-name', ok:'ok-name', fn: v=>v.length>0},
+    {id:'f-email', ok:'ok-email', fn: v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)},
+    {id:'f-pw', ok:'ok-pw', fn: v=>v.length>=8},
+  ];
+  rules.forEach(({id,ok,fn})=>{
+    const inp=document.getElementById(id);
+    const mark=document.getElementById(ok);
+    if(!inp||!mark) return;
+    inp.addEventListener('input',()=>mark.classList.toggle('show', fn(inp.value.trim())));
+  });
+}
+
+let selectedStyle = '';
+
+function selStyle(el, val){
+  document.querySelectorAll('.style-card').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  selectedStyle = val;
+  const isOther = val==='other';
+  document.getElementById('styleOtherWrap').style.display = isOther ? 'block' : 'none';
+  if(!isOther) onSponsorInput();
+}
+
+function onSponsorInput(){
+  const name = document.getElementById('f-sname').value.trim();
+  const styleReady = selectedStyle && (selectedStyle!=='other' || document.getElementById('f-styleother').value.trim());
+  document.getElementById('btn-create').disabled = !(name && styleReady);
+}
+
+/* ── GHL Registration ──────────────────────────────────────────────────────
+   Fires once when the user meets their sponsor (all onboarding data collected).
+   POSTs to Abdul's server /register endpoint — server handles GHL contact
+   creation and whitelisting. Silent fail so UX is never blocked.
+   Replace REGISTER_ENDPOINT with Abdul's live server URL when ready.
+──────────────────────────────────────────────────────────────────────────── */
+const REGISTER_ENDPOINT = 'https://YOUR_SERVER_URL/register'; // swap in when Abdul deploys
+
+async function registerUser() {
+  const payload = {
+    name:        D.name         || '',
+    email:       D.email        || '',
+    phone:       D.phone        || '',
+    country:     D.country      || '',
+    state:       D.state        || '',
+    program:     Array.isArray(D.program) ? D.program.join(', ') : (D.program || ''),
+    otherProgram: D.otherProgram || '',
+    stage:       D.stage        || '',
+    why:         D.why          || '',
+    goals:       Array.isArray(D.goals) ? D.goals : [],
+    delivery:    D.delivery     || '',
+    sponsorName: D.sponsorName  || '',
+    sponsorStyle: D.sponsorStyle || '',
+    source:      'ai-sponsor-registration'
+  };
+  try {
+    await fetch(REGISTER_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch(e) {
+    console.warn('[AI Sponsor] Registration sync failed:', e);
+  }
+}
+
+function createSponsor(){
+  const sname = document.getElementById('f-sname').value.trim();
+  const style = selectedStyle==='other'
+    ? document.getElementById('f-styleother').value.trim()
+    : selectedStyle;
+  D.sponsorName = sname;
+  D.sponsorStyle = style;
+  registerUser(); // fire-and-forget — syncs user to GHL
+  document.getElementById('s9-create').style.display='none';
+  document.getElementById('s9-back').style.display='none';
+  document.getElementById('s9-meet').style.display='block';
+  buildMsg();
+}
+
+function buildMsg(){
+  const name=D.name||'friend';
+  const sname=D.sponsorName||'your sponsor';
+  const style=D.sponsorStyle||'';
+  const goal=D.goals.length>0?D.goals[0].toLowerCase():'your recovery';
+  const stageMap={
+    'Just starting out':'just beginning this journey',
+    'Under 3 months':'in those early days',
+    '3-12 months':'in your first year',
+    '1-5 years':'building real momentum',
+    '5+ years':'carrying so much wisdom already',
+    'Starting over':'starting over — which takes courage'
+  };
+  const stagePhrase=stageMap[D.stage]||'on this path';
+  const styleNote = style ? `\n\nYou asked me to be ${style.toLowerCase()} with you. That's exactly how I'll show up.` : '';
+  let msg;
+  if(D.why&&D.why.length>10){
+    msg=`I'm really glad you're here, ${name}.\n\nYou shared: "${D.why}"\n\nThat took something to write. I heard it.\n\nYou're ${stagePhrase}, and you said you want ${goal}. We're going to work toward that — together, one day at a time.${styleNote}\n\nI'm here whenever you need me. Day or night. No judgement, ever.\n\nWhere are you at today?`;
+  } else {
+    msg=`I'm really glad you're here, ${name}.\n\nYou're ${stagePhrase}. And wherever you're coming from — you showed up today. That matters.\n\nYou said you want ${goal}. We're going to work toward that. One day at a time.${styleNote}\n\nI'm here whenever you need me — no judgement, ever.\n\nWhere are you at today?`;
+  }
+  document.getElementById('s9-greeting').textContent='Hi '+name+', I\'m '+sname+'.';
+  typeWriter(msg, document.getElementById('s9-msg'));
+}
+
+
+// ─── Scholarship code ────────────────────────────────────────────────────────
+function genScholarshipCode(){
+  const base=(D.name||'FRIEND').toUpperCase().replace(/[^A-Z]/g,'').slice(0,4).padEnd(4,'X');
+  const rand=Math.random().toString(36).toUpperCase().slice(2,6);
+  return base+'-'+rand;
+}
+
+function showScholarshipCode(){
+  const code=genScholarshipCode();
+  D.scholarshipCode=code;
+  document.getElementById('scholarshipCode').textContent=code;
+}
+
+function copyScholarship(){
+  const code=document.getElementById('scholarshipCode').textContent;
+  navigator.clipboard.writeText(code).then(()=>{
+    const btn=document.getElementById('copyBtn');
+    btn.textContent='Copied!';
+    btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent='Copy'; btn.classList.remove('copied'); },2000);
+  });
+}
+
+function sendScholarship(){
+  const contact=document.getElementById('f-scholar-contact').value.trim();
+  if(!contact){ alert('Please enter a name, phone number, or email.'); return; }
+  const btn=event.target;
+  btn.textContent='Sent ✓';
+  btn.style.background='#166534';
+  btn.style.color='#fff';
+  btn.disabled=true;
+}
+
+// ─── Phone country codes ─────────────────────────────────────────────────────
+const DIAL = [
+  {f:'🇺🇸',n:'United States',c:'+1'},
+  {f:'🇬🇧',n:'United Kingdom',c:'+44'},
+  {f:'🇨🇦',n:'Canada',c:'+1'},
+  {f:'🇦🇺',n:'Australia',c:'+61'},
+  {f:'🇮🇪',n:'Ireland',c:'+353'},
+  {f:'🇳🇿',n:'New Zealand',c:'+64'},
+  {f:'🇿🇦',n:'South Africa',c:'+27'},
+  {f:'🇮🇳',n:'India',c:'+91'},
+  {f:'🇩🇪',n:'Germany',c:'+49'},
+  {f:'🇫🇷',n:'France',c:'+33'},
+  {f:'🇪🇸',n:'Spain',c:'+34'},
+  {f:'🇮🇹',n:'Italy',c:'+39'},
+  {f:'🇳🇱',n:'Netherlands',c:'+31'},
+  {f:'🇸🇪',n:'Sweden',c:'+46'},
+  {f:'🇳🇴',n:'Norway',c:'+47'},
+  {f:'🇩🇰',n:'Denmark',c:'+45'},
+  {f:'🇫🇮',n:'Finland',c:'+358'},
+  {f:'🇵🇹',n:'Portugal',c:'+351'},
+  {f:'🇨🇭',n:'Switzerland',c:'+41'},
+  {f:'🇦🇹',n:'Austria',c:'+43'},
+  {f:'🇧🇪',n:'Belgium',c:'+32'},
+  {f:'🇵🇱',n:'Poland',c:'+48'},
+  {f:'🇬🇷',n:'Greece',c:'+30'},
+  {f:'🇧🇷',n:'Brazil',c:'+55'},
+  {f:'🇲🇽',n:'Mexico',c:'+52'},
+  {f:'🇦🇷',n:'Argentina',c:'+54'},
+  {f:'🇨🇴',n:'Colombia',c:'+57'},
+  {f:'🇨🇱',n:'Chile',c:'+56'},
+  {f:'🇯🇵',n:'Japan',c:'+81'},
+  {f:'🇰🇷',n:'South Korea',c:'+82'},
+  {f:'🇸🇬',n:'Singapore',c:'+65'},
+  {f:'🇦🇪',n:'UAE',c:'+971'},
+  {f:'🇹🇷',n:'Turkey',c:'+90'},
+  {f:'🇬🇪',n:'Georgia',c:'+995'},
+  {f:'🇮🇱',n:'Israel',c:'+972'},
+  {f:'🇵🇭',n:'Philippines',c:'+63'},
+  {f:'🇳🇬',n:'Nigeria',c:'+234'},
+  {f:'🇰🇪',n:'Kenya',c:'+254'},
+];
+
+document.addEventListener('DOMContentLoaded', ()=>{ setupValidation(); restoreState(); });
+
+(function buildDialDD(){
+  const dd=document.getElementById('codeDD');
+  DIAL.forEach(d=>{
+    const el=document.createElement('div');
+    el.className='code-opt';
+    el.innerHTML=`<span class="cf">${d.f}</span><span class="cn">${d.n}</span><span class="cd">${d.c}</span>`;
+    el.onclick=()=>selectDialCode(d.f,d.c);
+    dd.appendChild(el);
+  });
+})();
+
+function toggleCodeDD(e){
+  e.stopPropagation();
+  document.getElementById('codeDD').classList.toggle('open');
+}
+
+function selectDialCode(flag,code){
+  document.getElementById('selFlag').textContent=flag;
+  document.getElementById('selCode').textContent=code;
+  document.getElementById('codeDD').classList.remove('open');
+}
+
+document.addEventListener('click',function(){
+  const dd=document.getElementById('codeDD');
+  if(dd)dd.classList.remove('open');
+});
+
+function fmtCard(el){
+  let v=el.value.replace(/\D/g,'').substring(0,16);
+  el.value=v.replace(/(.{4})/g,'$1 ').trim();
+}
+function fmtExp(el){
+  let v=el.value.replace(/\D/g,'').substring(0,4);
+  if(v.length>=2)v=v.substring(0,2)+' / '+v.substring(2);
+  el.value=v;
+}
+function startTrial(){
+  document.getElementById('cardSection').style.display='none';
+  document.getElementById('codeSuccess').classList.add('show');
+  clearState();
+}
+function showCodeSection(){
+  document.getElementById('cardSection').style.display='none';
+  document.getElementById('codeSection').style.display='block';
+}
+function showCardSection(){
+  document.getElementById('codeSection').style.display='none';
+  document.getElementById('cardSection').style.display='block';
+}
+
+function redeemCode(){
+  const code=document.getElementById('f-code').value.trim();
+  if(code.length>=4){
+    document.getElementById('e-code').classList.remove('show');
+    document.getElementById('codeSection').style.display='none';
+    document.getElementById('stripeNote').style.display='none';
+    document.getElementById('codeSuccess').classList.add('show');
+  } else {
+    document.getElementById('e-code').classList.add('show');
+  }
+}
+
+/* ── Chat Beta ── */
+const ANTHROPIC_KEY = 'YOUR_ANTHROPIC_API_KEY';
+let chatHistory = [];
+let recognition = null;
+let isListening = false;
+
+function buildSystemPrompt() {
+  const program = D.program || 'a 12-step recovery program';
+  const stage   = D.stage   || 'in recovery';
+  const why     = D.why     || '';
+  const goals   = D.goals && D.goals.length ? D.goals.join(', ') : 'recovery support';
+  const style   = D.sponsorStyle || '';
+  const name    = D.name    || 'friend';
+
+  return `You are an AI Sponsor in a 12-step recovery context. The member's name is ${name}, they are in ${program}, ${stage}. Their reason for seeking a sponsor: "${why}". Their goals: ${goals}. ${style ? 'Their preferred sponsor style: ' + style + '.' : ''}
+
+YOUR ROLE: Be a caring, experienced sponsor — not a therapist. You offer accountability, lived experience, step guidance, and consistent support. You are warm, direct, and non-judgmental.
+
+COMMUNICATION RULES:
+- Use the member's first name occasionally but naturally.
+- Never diagnose, prescribe medication, or give medical advice.
+- Keep responses concise: 2–4 sentences max unless the member needs more.
+- Mirror the member's tone — if they're casual, be casual; if they're serious, match that.
+- Always validate feelings before problem-solving.
+- If the member expresses thoughts of self-harm or immediate crisis, respond with warmth and direct them to call 988 (Suicide & Crisis Lifeline) or text HOME to 741741.
+
+CRISIS PROTOCOL: Any mention of suicide, self-harm, relapse crisis, or overdose — express genuine care, stay calm, provide the hotline number, and encourage them to reach out to a human immediately.
+
+WHAT YOU DON'T DO: You don't judge slips. You don't shame. You don't lecture. You don't give legal advice. You don't share other members' stories.
+
+You are available 24/7. Start where they are. Keep it real.`;
+}
+
+function buildChatOpening() {
+  const name  = D.name ? D.name.split(' ')[0] : 'friend';
+  const prog  = D.program || 'your program';
+  const stage = D.stage;
+  const goals = D.goals && D.goals.length ? D.goals[0].toLowerCase() : null;
+
+  let opener = `Hey ${name} — I'm really glad you're here. Welcome to ${prog}.`;
+
+  if (stage === 'just-starting') {
+    opener += ` Starting is one of the hardest parts — and you just did it.`;
+  } else if (stage === 'returning') {
+    opener += ` Coming back takes real courage. Whatever brought you here today, I'm here.`;
+  } else if (stage === 'active') {
+    opener += ` It's great to connect with you.`;
+  }
+
+  if (goals) {
+    opener += `\n\nYou mentioned wanting to work on ${goals}. That's a solid place to start.`;
+  }
+
+  opener += `\n\nWhat's on your mind right now?`;
+  return opener;
+}
+
+function openChat() {
+  const overlay = document.getElementById('chatOverlay');
+  const sname = D.sponsorName || 'Your AI Sponsor';
+  document.getElementById('chatSponsorName').textContent = sname;
+  overlay.classList.add('open');
+
+  // Only send opening if first time
+  if (chatHistory.length === 0) {
+    const opening = buildChatOpening();
+    addMessage('ai', opening);
+    chatHistory.push({ role: 'assistant', content: opening });
+  }
+}
+
+function addMessage(role, text) {
+  const msgs = document.getElementById('chatMessages');
+  const wrap = document.createElement('div');
+  wrap.className = `cmsg ${role}`;
+  const bubble = document.createElement('div');
+  bubble.className = 'cbubble';
+  bubble.textContent = text;
+  wrap.appendChild(bubble);
+  msgs.appendChild(wrap);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showTyping() {
+  const msgs = document.getElementById('chatMessages');
+  const el = document.createElement('div');
+  el.className = 'ctyping';
+  el.id = 'typingIndicator';
+  el.innerHTML = '<span></span><span></span><span></span>';
+  msgs.appendChild(el);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function removeTyping() {
+  const el = document.getElementById('typingIndicator');
+  if (el) el.remove();
+}
+
+async function sendChat() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  addMessage('user', text);
+  chatHistory.push({ role: 'user', content: text });
+
+  showTyping();
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 300,
+        system: buildSystemPrompt(),
+        messages: chatHistory.filter(m => m.role === 'user' || m.role === 'assistant')
+      })
+    });
+
+    const data = await res.json();
+    removeTyping();
+
+    if (data.content && data.content[0] && data.content[0].text) {
+      const reply = data.content[0].text;
+      addMessage('ai', reply);
+      chatHistory.push({ role: 'assistant', content: reply });
+    } else {
+      addMessage('ai', "I'm here with you. Give me just a moment and try again.");
+    }
+  } catch (err) {
+    removeTyping();
+    addMessage('ai', "I'm having trouble connecting right now. I'm still here — try again in a moment.");
+  }
+}
+
+function toggleVoice() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    alert('Voice input is not supported in this browser. Try Chrome.');
+    return;
+  }
+
+  if (isListening) {
+    recognition.stop();
+    return;
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.lang = 'en-US';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  const btn = document.getElementById('voiceBtn');
+
+  recognition.onstart = () => {
+    isListening = true;
+    btn.classList.add('listening');
+    btn.querySelector('svg').querySelector('path').setAttribute('stroke', '#EF4444');
+  };
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    const input = document.getElementById('chatInput');
+    input.value = (input.value ? input.value + ' ' : '') + transcript;
+    input.style.height = 'auto';
+    input.style.height = input.scrollHeight + 'px';
+  };
+
+  recognition.onend = () => {
+    isListening = false;
+    btn.classList.remove('listening');
+    btn.querySelector('svg').querySelector('path').setAttribute('stroke', '#6B7280');
+  };
+
+  recognition.onerror = () => {
+    isListening = false;
+    btn.classList.remove('listening');
+  };
+
+  recognition.start();
+}
+</script>
+</body>
+</html>

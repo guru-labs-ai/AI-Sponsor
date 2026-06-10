@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Sponsor — Chat Test</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f0f0f;
+    color: #f0f0f0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  #app {
+    width: 420px;
+    height: 90vh;
+    max-height: 800px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 20px;
+    overflow: hidden;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+  }
+
+  /* SETUP SCREEN */
+  #setup-screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    gap: 16px;
+  }
+  #setup-screen h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #fff;
+  }
+  #setup-screen p {
+    font-size: 13px;
+    color: #888;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .field { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+  .field input, .field select, .field textarea {
+    background: #252525;
+    border: 1px solid #333;
+    border-radius: 10px;
+    color: #f0f0f0;
+    font-size: 14px;
+    padding: 10px 14px;
+    outline: none;
+    width: 100%;
+    font-family: inherit;
+  }
+  .field textarea { resize: none; height: 72px; }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: #555; }
+  .field select option { background: #252525; }
+  #start-btn {
+    width: 100%;
+    padding: 13px;
+    background: #fff;
+    color: #000;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: opacity 0.15s;
+  }
+  #start-btn:hover { opacity: 0.85; }
+  #start-btn:disabled { opacity: 0.4; cursor: default; }
+
+  /* CHAT SCREEN */
+  #chat-screen { flex: 1; display: none; flex-direction: column; }
+
+  #chat-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #222;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .avatar {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  #chat-header .info h3 { font-size: 15px; font-weight: 600; }
+  #chat-header .info p { font-size: 12px; color: #666; }
+  #status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #22c55e;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  #messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scroll-behavior: smooth;
+  }
+  #messages::-webkit-scrollbar { width: 4px; }
+  #messages::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
+  .msg {
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .msg.sponsor {
+    background: #252525;
+    border-bottom-left-radius: 4px;
+    align-self: flex-start;
+    color: #f0f0f0;
+  }
+  .msg.user {
+    background: #fff;
+    color: #000;
+    border-bottom-right-radius: 4px;
+    align-self: flex-end;
+  }
+  .msg.typing {
+    background: #252525;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+    color: #666;
+    font-style: italic;
+    font-size: 13px;
+  }
+
+  #input-area {
+    padding: 12px 16px;
+    border-top: 1px solid #222;
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+  #msg-input {
+    flex: 1;
+    background: #252525;
+    border: 1px solid #333;
+    border-radius: 12px;
+    color: #f0f0f0;
+    font-size: 14px;
+    padding: 10px 14px;
+    outline: none;
+    resize: none;
+    font-family: inherit;
+    max-height: 120px;
+    line-height: 1.4;
+  }
+  #msg-input:focus { border-color: #444; }
+  #send-btn {
+    width: 40px; height: 40px;
+    background: #fff;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: opacity 0.15s;
+  }
+  #send-btn:hover { opacity: 0.85; }
+  #send-btn:disabled { opacity: 0.3; cursor: default; }
+  #send-btn svg { width: 16px; height: 16px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- SETUP SCREEN -->
+  <div id="setup-screen">
+    <div class="avatar" style="width:52px;height:52px;font-size:22px;">🤝</div>
+    <h2>AI Sponsor Test</h2>
+    <p>Fill in a test profile to start a conversation</p>
+
+    <div class="field">
+      <label>Name</label>
+      <input id="f-name" type="text" value="Sam" placeholder="e.g. Sam" />
+    </div>
+    <div class="field">
+      <label>Program</label>
+      <select id="f-program">
+        <option>AA</option>
+        <option>NA</option>
+        <option>CA</option>
+        <option>OA</option>
+        <option>GA</option>
+        <option>Al-Anon</option>
+        <option>SMART Recovery</option>
+        <option>Non-12-step</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Stage</label>
+      <select id="f-stage">
+        <option>0–90 days</option>
+        <option selected>3–12 months</option>
+        <option>1–3 years</option>
+        <option>3+ years</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>What brought you here</label>
+      <textarea id="f-why" placeholder="e.g. I relapsed last week and need accountability">I relapsed last week and I need help staying on track</textarea>
+    </div>
+
+    <button id="start-btn" onclick="startSession()">Start Conversation</button>
+  </div>
+
+  <!-- CHAT SCREEN -->
+  <div id="chat-screen">
+    <div id="chat-header">
+      <div class="avatar">🤝</div>
+      <div class="info">
+        <h3>Your AI Sponsor</h3>
+        <p id="header-sub">Connecting...</p>
+      </div>
+      <div id="status-dot"></div>
+    </div>
+    <div id="messages"></div>
+    <div id="input-area">
+      <textarea id="msg-input" rows="1" placeholder="Type a message..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button id="send-btn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API = 'http://localhost:3001';
+let userId = 'test-' + Date.now();
+let isBusy = false;
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function addMessage(text, role, id) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  if (id) div.id = id;
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+async function startSession() {
+  const btn = document.getElementById('start-btn');
+  btn.disabled = true;
+  btn.textContent = 'Starting...';
+
+  const profile = {
+    name: document.getElementById('f-name').value || 'Friend',
+    program: document.getElementById('f-program').value,
+    stage: document.getElementById('f-stage').value,
+    whatBroughtYouHere: document.getElementById('f-why').value,
+    goals: ['Peace of mind', 'Accountability'],
+    deliveryMethod: 'Web'
+  };
+
+  try {
+    // Save session
+    await fetch(`${API}/api/session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, profile })
+    });
+
+    // Switch screens
+    document.getElementById('setup-screen').style.display = 'none';
+    const chatScreen = document.getElementById('chat-screen');
+    chatScreen.style.display = 'flex';
+    document.getElementById('header-sub').textContent = `${profile.program} · ${profile.stage}`;
+
+    // Get welcome message
+    const typingDiv = addMessage('Typing...', 'typing', 'typing-indicator');
+    isBusy = true;
+    document.getElementById('send-btn').disabled = true;
+
+    const res = await fetch(`${API}/api/first-message`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId })
+    });
+
+    typingDiv.remove();
+    await streamResponse(res);
+
+  } catch (err) {
+    alert('Could not connect to backend. Make sure the server is running on port 3001.\n\nError: ' + err.message);
+    btn.disabled = false;
+    btn.textContent = 'Start Conversation';
+  }
+}
+
+async function sendMessage() {
+  if (isBusy) return;
+  const input = document.getElementById('msg-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  addMessage(text, 'user');
+
+  isBusy = true;
+  document.getElementById('send-btn').disabled = true;
+
+  const typingDiv = addMessage('Typing...', 'typing', 'typing-indicator');
+
+  try {
+    const res = await fetch(`${API}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, message: text })
+    });
+
+    typingDiv.remove();
+    await streamResponse(res);
+  } catch (err) {
+    typingDiv.textContent = 'Error — is the server running?';
+  }
+}
+
+async function streamResponse(res) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg sponsor';
+  msgs.appendChild(div);
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const data = line.slice(6).trim();
+      if (data === '[DONE]') continue;
+      try {
+        const parsed = JSON.parse(data);
+        if (parsed.text) {
+          div.textContent += parsed.text;
+          msgs.scrollTop = msgs.scrollHeight;
+        }
+        if (parsed.error) {
+          div.textContent = 'Error: ' + parsed.error;
+        }
+      } catch {}
+    }
+  }
+
+  isBusy = false;
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('msg-input').focus();
+}
+</script>
+</body>
+</html>

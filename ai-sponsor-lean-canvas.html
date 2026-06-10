@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Sponsor — Lean Canvas</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #F0F2F5;
+    padding: 32px;
+    color: #1A1A2E;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1A1A2E;
+    letter-spacing: -.5px;
+  }
+  .header p {
+    font-size: 13px;
+    color: #6B7280;
+    margin-top: 4px;
+  }
+  .header .tag {
+    display: inline-block;
+    background: #0066B3;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+    letter-spacing: .04em;
+  }
+
+  /* ── CANVAS GRID ── */
+  .canvas {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.4fr 1fr 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 10px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .box {
+    background: #fff;
+    border-radius: 12px;
+    padding: 18px 16px;
+    border-top: 5px solid #ccc;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    position: relative;
+  }
+
+  .box-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    opacity: .5;
+    margin-bottom: 10px;
+  }
+
+  .box h2 {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #1A1A2E;
+  }
+
+  .box ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .box ul li {
+    font-size: 11.5px;
+    line-height: 1.6;
+    color: #374151;
+    padding: 5px 0;
+    border-bottom: 1px solid #F3F4F6;
+    display: flex;
+    gap: 7px;
+  }
+  .box ul li:last-child { border-bottom: none; }
+
+  .box ul li::before {
+    content: '→';
+    opacity: .4;
+    flex-shrink: 0;
+    font-size: 10px;
+    margin-top: 1px;
+  }
+
+  .sub-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #9CA3AF;
+    margin-top: 14px;
+    margin-bottom: 6px;
+  }
+
+  .note {
+    font-size: 11px;
+    color: #6B7280;
+    font-style: italic;
+    line-height: 1.5;
+    margin-top: 8px;
+  }
+
+  /* COLOURS per section */
+  .c-problem    { border-top-color: #EF4444; }
+  .c-solution   { border-top-color: #3B82F6; }
+  .c-uvp        { border-top-color: #8B5CF6; background: #FAFAFF; }
+  .c-advantage  { border-top-color: #F59E0B; }
+  .c-segments   { border-top-color: #10B981; }
+  .c-metrics    { border-top-color: #3B82F6; }
+  .c-channels   { border-top-color: #F59E0B; }
+  .c-cost       { border-top-color: #6B7280; }
+  .c-revenue    { border-top-color: #10B981; }
+
+  /* GRID PLACEMENT */
+  .g-problem    { grid-column: 1; grid-row: 1 / 3; }
+  .g-solution   { grid-column: 2; grid-row: 1; }
+  .g-uvp        { grid-column: 3; grid-row: 1 / 3; }
+  .g-advantage  { grid-column: 4; grid-row: 1; }
+  .g-segments   { grid-column: 5; grid-row: 1 / 3; }
+  .g-metrics    { grid-column: 2; grid-row: 2; }
+  .g-channels   { grid-column: 4; grid-row: 2; }
+  .g-cost       { grid-column: 1 / 4; grid-row: 3; }
+  .g-revenue    { grid-column: 4 / 6; grid-row: 3; }
+
+  .stat-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .stat-chip {
+    background: #F3F4F6;
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #374151;
+    white-space: nowrap;
+  }
+
+  .badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin: 2px 2px 2px 0;
+    letter-spacing: .04em;
+  }
+  .badge-blue   { background: #DBEAFE; color: #1D4ED8; }
+  .badge-green  { background: #D1FAE5; color: #065F46; }
+  .badge-purple { background: #EDE9FE; color: #5B21B6; }
+  .badge-yellow { background: #FEF3C7; color: #92400E; }
+
+  .highlight {
+    background: #F0F7FF;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #1D4ED8;
+    line-height: 1.5;
+  }
+
+  @media print {
+    body { padding: 16px; background: #fff; }
+    .box { box-shadow: none; border: 1px solid #E5E7EB; border-top-width: 5px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="tag">AI Sponsor</div>
+  <h1>Lean Canvas</h1>
+  <p>May 2026 · Review: Monday call with Matt</p>
+</div>
+
+<div class="canvas">
+
+  <!-- PROBLEM -->
+  <div class="box c-problem g-problem">
+    <div class="box-label">01</div>
+    <h2>Problem</h2>
+    <ul>
+      <li>Human sponsors aren't always available — people need support at 3am, during cravings, in crisis</li>
+      <li>Finding and keeping a human sponsor is hard — unpredictable, burnout is real, millions have none</li>
+      <li>Shame makes people hold back even with a human sponsor — anonymity removes the barrier</li>
+    </ul>
+    <div class="sub-label">Existing Alternatives</div>
+    <ul>
+      <li>Human sponsors — limited, unpredictable, unpaid</li>
+      <li>Recovery meetings — community, not 1-on-1 or 24/7</li>
+      <li>Therapy — expensive, not recovery-specific</li>
+      <li>ChatGPT — not trained in 12-step culture or steps</li>
+    </ul>
+  </div>
+
+  <!-- SOLUTION -->
+  <div class="box c-solution g-solution">
+    <div class="box-label">02</div>
+    <h2>Solution</h2>
+    <ul>
+      <li>AI sponsor trained on 12 steps, traditions, and all 10 programs</li>
+      <li>Available via WhatsApp, SMS, or web chat — where sponsors already live</li>
+      <li>Personalised from onboarding: program, stage, goals, sponsor name + style</li>
+      <li>Crisis protocol built in — 988, SAMHSA, program hotline</li>
+      <li>Anonymity-first: first name + last initial only</li>
+    </ul>
+    <div class="sub-label">Coming Soon</div>
+    <ul>
+      <li>Video Sponsor — choose face, voice, personality</li>
+      <li>iOS Mobile App</li>
+    </ul>
+  </div>
+
+  <!-- UVP -->
+  <div class="box c-uvp g-uvp">
+    <div class="box-label">03 · Core</div>
+    <h2>Unique Value Proposition</h2>
+    <div class="highlight">
+      "Always here. 24/7. For whatever program you're in."
+    </div>
+    <ul style="margin-top:14px">
+      <li>Every person in recovery gets a knowledgeable, non-judgmental sponsor — 24/7, no waiting</li>
+      <li>For every paying subscriber, one person who can't afford it gets free access</li>
+      <li>Knows your program's language, steps, and culture from day one</li>
+    </ul>
+    <div class="sub-label">Proof Points (live)</div>
+    <div class="stat-row">
+      <div class="stat-chip">99% of people in recovery have a sponsor</div>
+      <div class="stat-chip">24/7 availability</div>
+      <div class="stat-chip">10+ programs</div>
+      <div class="stat-chip">$5/month</div>
+      <div class="stat-chip">Buy one, give one</div>
+    </div>
+    <div class="sub-label">Programs Supported</div>
+    <div style="margin-top:4px">
+      <span class="badge badge-blue">DA</span>
+      <span class="badge badge-blue">BDA</span>
+      <span class="badge badge-blue">UA</span>
+      <span class="badge badge-blue">AA</span>
+      <span class="badge badge-blue">Al-Anon</span>
+      <span class="badge badge-blue">NA</span>
+      <span class="badge badge-blue">OA</span>
+      <span class="badge badge-blue">GA</span>
+      <span class="badge badge-blue">ACA</span>
+      <span class="badge badge-blue">SLAA</span>
+    </div>
+  </div>
+
+  <!-- UNFAIR ADVANTAGE -->
+  <div class="box c-advantage g-advantage">
+    <div class="box-label">04</div>
+    <h2>Unfair Advantage</h2>
+    <ul>
+      <li>Built on Audos — Stripe, Twilio, ads, analytics all native. Ship faster than any competitor.</li>
+      <li>Matt's 2 years / 100+ AI products — deep knowledge of what makes AI sticky</li>
+      <li>89 people (11 direct + 78 waitlist) already waiting before launch</li>
+      <li>Recovery expertise in master prompt — not a generic chatbot</li>
+      <li>One-for-one model — social mission drives trust + word of mouth</li>
+      <li>HIPAA-aligned, end-to-end encrypted — built for sensitive conversations</li>
+      <li>Personalised from minute one — sponsor knows the user before first message</li>
+    </ul>
+  </div>
+
+  <!-- CUSTOMER SEGMENTS -->
+  <div class="box c-segments g-segments">
+    <div class="box-label">05</div>
+    <h2>Customer Segments</h2>
+    <ul>
+      <li>People in DA, BDA, UA, AA, Al-Anon, NA, OA, GA, ACA, SLAA — tens of millions worldwide</li>
+      <li>People in recovery who don't have a human sponsor right now</li>
+      <li>People who want to supplement their existing sponsor</li>
+      <li>Non-US members (global via WhatsApp)</li>
+    </ul>
+    <div class="sub-label">Early Adopters</div>
+    <ul>
+      <li>Tech-comfortable members already using AI informally for support</li>
+      <li>Matt's 85-person WhatsApp group — 11 confirmed, 78 waitlist</li>
+      <li>People who've relapsed and feel too ashamed to call their old sponsor</li>
+    </ul>
+  </div>
+
+  <!-- KEY METRICS -->
+  <div class="box c-metrics g-metrics">
+    <div class="box-label">06</div>
+    <h2>Key Metrics</h2>
+    <ul>
+      <li>Trial starts</li>
+      <li>Trial-to-paid conversion %</li>
+      <li>Monthly churn rate</li>
+      <li>Messages sent per user/month</li>
+      <li>Referrals generated</li>
+      <li>Scholarships given (1-for-1)</li>
+      <li>MRR</li>
+    </ul>
+  </div>
+
+  <!-- CHANNELS -->
+  <div class="box c-channels g-channels">
+    <div class="box-label">07</div>
+    <h2>Channels</h2>
+    <ul>
+      <li>Meta ads (US first)</li>
+      <li>Instagram content</li>
+      <li>Blog + AI SEO</li>
+      <li>Referral: 1 referral = 1 free month</li>
+      <li>WhatsApp organic sharing</li>
+      <li>Email campaign → 78-person waitlist</li>
+      <li>Audos ecosystem</li>
+    </ul>
+  </div>
+
+  <!-- COST STRUCTURE -->
+  <div class="box c-cost g-cost">
+    <div class="box-label">08</div>
+    <h2>Cost Structure</h2>
+    <div style="display:flex;gap:24px;flex-wrap:wrap">
+      <div style="flex:1;min-width:160px">
+        <div class="sub-label">Variable</div>
+        <ul>
+          <li>AI token usage (Audos covers initially)</li>
+          <li>Twilio SMS/WhatsApp per message</li>
+          <li>Meta ads spend</li>
+        </ul>
+      </div>
+      <div style="flex:1;min-width:160px">
+        <div class="sub-label">Fixed</div>
+        <ul>
+          <li>Audos platform</li>
+          <li>youraisponsor.com domain (purchased)</li>
+          <li>Instagram + blog content</li>
+        </ul>
+      </div>
+      <div style="flex:1;min-width:180px">
+        <div class="sub-label">Advantage</div>
+        <ul>
+          <li>No human support staff at scale</li>
+          <li>Cost per user decreases as MRR grows</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- REVENUE STREAMS -->
+  <div class="box c-revenue g-revenue">
+    <div class="box-label">09</div>
+    <h2>Revenue Streams</h2>
+    <ul>
+      <li>$5/month after 30-day free trial (card saved day 1, charged day 31)</li>
+      <li>30-day free beta code for early users (no card)</li>
+      <li>One-for-one: every paying user funds one free scholarship</li>
+    </ul>
+    <div class="sub-label">Milestones</div>
+    <ul>
+      <li>3–5 paying users → Audos/Prehype signals more investment</li>
+      <li>$10,000/month MRR = stated target</li>
+    </ul>
+    <div class="sub-label">Future</div>
+    <ul>
+      <li>Voice / avatar customisation tier</li>
+      <li>iOS App features</li>
+      <li>SDK licensed to other platforms</li>
+    </ul>
+  </div>
+
+</div>
+
+<div style="text-align:center;margin-top:24px;font-size:11px;color:#9CA3AF">
+  AI Sponsor · Lean Canvas · May 2026 · Built on Audos · youraisponsor.com
+</div>
+
+</body>
+</html>
