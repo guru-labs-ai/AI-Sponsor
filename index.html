@@ -95,6 +95,7 @@
       position: absolute; inset: 0;
       background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(0,102,179,.35) 0%, transparent 70%);
       animation: pulse 6s ease-in-out infinite;
+      pointer-events: none;
     }
     @keyframes pulse {
       0%, 100% { opacity: .7; transform: scale(1); }
@@ -348,6 +349,21 @@
     .amends-err { display:none; font-size:11px; color:#f87171; margin-top:5px; font-weight:500; }
     .amends-field.bad .amends-err { display:block; }
     .amends-req { color:#d97706; margin-left:2px; }
+    .amends-phone-wrap { display:flex; border-radius:7px; overflow:visible; border:1.5px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); transition:border-color .2s; }
+    .amends-phone-wrap:focus-within { border-color:rgba(217,119,6,.6); }
+    .amends-field.bad .amends-phone-wrap { border-color:#ef4444; }
+    .amends-phone-wrap input[type=tel] { border:none!important; background:transparent!important; box-shadow:none!important; flex:1; min-width:0; border-radius:0 7px 7px 0!important; color:#fff; padding:13px 14px; font-size:14px; font-family:inherit; outline:none; }
+    .amends-phone-wrap input[type=tel]::placeholder { color:rgba(255,255,255,.25); }
+    .amends-code-selector { position:relative; flex-shrink:0; }
+    .amends-code-trigger { display:flex; align-items:center; gap:5px; padding:10px 10px 10px 12px; background:none; border:none; border-right:1.5px solid rgba(255,255,255,.12); cursor:pointer; font-size:14px; white-space:nowrap; font-family:inherit; color:#fff; height:100%; border-radius:7px 0 0 7px; transition:background .15s; }
+    .amends-code-trigger:hover { background:rgba(255,255,255,.08); }
+    .amends-code-dropdown { position:absolute; top:calc(100% + 6px); left:0; width:230px; background:#1c1c1c; border:1.5px solid rgba(255,255,255,.12); border-radius:10px; box-shadow:0 8px 32px rgba(0,0,0,.5); z-index:9999; max-height:240px; overflow-y:auto; display:none; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.15) transparent; }
+    .amends-code-dropdown.open { display:block; }
+    .amends-code-opt { display:flex; align-items:center; gap:10px; padding:10px 14px; cursor:pointer; font-size:13px; color:rgba(255,255,255,.8); transition:background .15s; }
+    .amends-code-opt:hover { background:rgba(255,255,255,.08); }
+    .amends-code-opt .cf { font-size:18px; width:24px; text-align:center; flex-shrink:0; }
+    .amends-code-opt .cn { flex:1; }
+    .amends-code-opt .cd { color:rgba(255,255,255,.4); font-size:12px; }
 
     /* ── PRICING ── */
     .pricing { background: var(--bg); }
@@ -486,6 +502,7 @@
       content: '';
       position: absolute; inset: 0;
       background: radial-gradient(ellipse 60% 60% at 50% 50%, rgba(0,102,179,.3) 0%, transparent 70%);
+      pointer-events: none;
     }
     .final-cta h2 {
       position: relative;
@@ -565,6 +582,7 @@
       .nav-left { display: none; }
       .nav-right { flex: 0 0 auto; }
       .nav-logo { font-size: 22px; white-space: nowrap; }
+      .amends-field-row { grid-template-columns: 1fr; }
     }
     @media (max-width: 480px) {
       .hero { padding: 90px 20px 64px; }
@@ -807,9 +825,22 @@
           <input type="email" id="af-email" placeholder="your@email.com">
           <div class="amends-err" id="af-email-err">Please enter a valid email.</div>
         </div>
-        <div class="amends-field">
+        <div class="amends-field" id="aff-phone">
           <label>Phone / WhatsApp <span style="color:rgba(255,255,255,.3);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
-          <input type="tel" id="af-phone" placeholder="+1 555 000 0000">
+          <div class="amends-phone-wrap">
+            <div class="amends-code-selector" id="amendsCodeSelector">
+              <button class="amends-code-trigger" type="button" onclick="toggleAmendsCodeDD(event)">
+                <span id="amendsSelFlag">🇺🇸</span>
+                <span id="amendsSelCode">+1</span>
+                <span style="font-size:9px;color:rgba(255,255,255,.4);margin-left:2px">▾</span>
+              </button>
+              <div class="amends-code-dropdown" id="amendsCodeDD"></div>
+            </div>
+            <input type="tel" id="af-phone" placeholder="555 000 0000"
+              oninput="this.value=this.value.replace(/[^0-9\s]/g,'')"
+              onblur="validateAmendPhone()">
+          </div>
+          <div class="amends-err" id="af-phone-err">Please select a country code and enter a valid phone number.</div>
         </div>
       </div>
       <button class="amends-modal-submit" onclick="submitAmendsModal()">Submit →</button>
@@ -971,6 +1002,59 @@
     document.getElementById('amendsModal').classList.remove('open');
     document.body.style.overflow='';
   };
+  const AMENDS_DIAL = [
+    {f:'🇺🇸',n:'United States',c:'+1'},{f:'🇬🇧',n:'United Kingdom',c:'+44'},
+    {f:'🇨🇦',n:'Canada',c:'+1'},{f:'🇦🇺',n:'Australia',c:'+61'},
+    {f:'🇮🇪',n:'Ireland',c:'+353'},{f:'🇳🇿',n:'New Zealand',c:'+64'},
+    {f:'🇿🇦',n:'South Africa',c:'+27'},{f:'🇮🇳',n:'India',c:'+91'},
+    {f:'🇩🇪',n:'Germany',c:'+49'},{f:'🇫🇷',n:'France',c:'+33'},
+    {f:'🇪🇸',n:'Spain',c:'+34'},{f:'🇮🇹',n:'Italy',c:'+39'},
+    {f:'🇳🇱',n:'Netherlands',c:'+31'},{f:'🇸🇪',n:'Sweden',c:'+46'},
+    {f:'🇳🇴',n:'Norway',c:'+47'},{f:'🇩🇰',n:'Denmark',c:'+45'},
+    {f:'🇵🇹',n:'Portugal',c:'+351'},{f:'🇨🇭',n:'Switzerland',c:'+41'},
+    {f:'🇧🇷',n:'Brazil',c:'+55'},{f:'🇲🇽',n:'Mexico',c:'+52'},
+    {f:'🇦🇷',n:'Argentina',c:'+54'},{f:'🇨🇴',n:'Colombia',c:'+57'},
+    {f:'🇯🇵',n:'Japan',c:'+81'},{f:'🇰🇷',n:'South Korea',c:'+82'},
+    {f:'🇸🇬',n:'Singapore',c:'+65'},{f:'🇦🇪',n:'UAE',c:'+971'},
+    {f:'🇹🇷',n:'Turkey',c:'+90'},{f:'🇬🇪',n:'Georgia',c:'+995'},
+    {f:'🇮🇱',n:'Israel',c:'+972'},{f:'🇵🇭',n:'Philippines',c:'+63'},
+    {f:'🇳🇬',n:'Nigeria',c:'+234'},{f:'🇰🇪',n:'Kenya',c:'+254'},
+  ];
+
+  (function buildAmendsDialDD(){
+    const dd = document.getElementById('amendsCodeDD');
+    AMENDS_DIAL.forEach(d => {
+      const el = document.createElement('div');
+      el.className = 'amends-code-opt';
+      el.innerHTML = `<span class="cf">${d.f}</span><span class="cn">${d.n}</span><span class="cd">${d.c}</span>`;
+      el.onclick = () => {
+        document.getElementById('amendsSelFlag').textContent = d.f;
+        document.getElementById('amendsSelCode').textContent = d.c;
+        dd.classList.remove('open');
+      };
+      dd.appendChild(el);
+    });
+  })();
+
+  window.toggleAmendsCodeDD = function(e){
+    e.stopPropagation();
+    document.getElementById('amendsCodeDD').classList.toggle('open');
+  };
+
+  document.addEventListener('click', function(){
+    const dd = document.getElementById('amendsCodeDD');
+    if (dd) dd.classList.remove('open');
+  });
+
+  window.validateAmendPhone = function(){
+    const val = document.getElementById('af-phone').value.trim();
+    const wrapper = document.getElementById('aff-phone');
+    if (!val) { wrapper.classList.remove('bad'); return true; } // optional — empty is fine
+    const digitsOnly = val.replace(/\D/g, '');
+    const valid = digitsOnly.length >= 4 && digitsOnly.length <= 15;
+    wrapper.classList.toggle('bad', !valid);
+    return valid;
+  };
   window.submitAmendsModal = function(){
     let valid = true;
     function check(wrapperId, inputId, testFn) {
@@ -983,6 +1067,7 @@
     check('aff-program', 'af-program', v => v.length >= 1);
     check('aff-about',   'af-about',   v => v.length >= 10);
     check('aff-email',   'af-email',   v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v));
+    if (!validateAmendPhone()) valid = false;
     if (!valid) {
       document.querySelector('#amendsModalForm .amends-field.bad input, #amendsModalForm .amends-field.bad textarea').focus();
       return;
