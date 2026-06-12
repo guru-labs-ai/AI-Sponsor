@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Sponsor — Your 24/7 Recovery Companion</title>
+  <title>AI Sponsor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -517,29 +517,6 @@
     }
     .final-cta .btn-primary { position: relative; margin: 0 auto; }
 
-    /* ── DISCLAIMER BAR ── */
-    .disclaimer-bar {
-      position: fixed; bottom: 0; left: 0; right: 0; z-index: 150;
-      background: rgba(6, 14, 26, 0.97);
-      border-top: 1px solid rgba(255,255,255,.1);
-      padding: 12px 48px;
-      display: flex; align-items: center; justify-content: space-between; gap: 16px;
-      backdrop-filter: blur(8px);
-    }
-    .disclaimer-bar p {
-      font-size: 12px; color: rgba(255,255,255,.65);
-      line-height: 1.6; max-width: 860px;
-    }
-    .disclaimer-bar-close {
-      background: none; border: 1px solid rgba(255,255,255,.2);
-      color: rgba(255,255,255,.5); font-size: 11px; font-weight: 600;
-      padding: 5px 12px; border-radius: 4px; cursor: pointer;
-      white-space: nowrap; transition: all .2s; flex-shrink: 0;
-    }
-    .disclaimer-bar-close:hover { border-color: rgba(255,255,255,.5); color: rgba(255,255,255,.8); }
-    @media (max-width: 768px) {
-      .disclaimer-bar { padding: 12px 20px; flex-direction: column; align-items: flex-start; }
-    }
 
     /* ── FOOTER ── */
     footer {
@@ -608,7 +585,6 @@
       .trial-days { font-size: 64px; }
       .security-banner { padding: 20px; margin-top: 32px; }
       footer { padding: 32px 20px; }
-      .disclaimer-bar { padding: 12px 16px; }
     }
   </style>
 </head>
@@ -628,8 +604,8 @@
 
 <!-- HERO -->
 <section class="hero" id="hero">
-  <p class="hero-eyebrow">Your 24/7 Recovery Companion</p>
-  <h1>Always Here. <em>24/7.</em></h1>
+  <p class="hero-eyebrow">AI Sponsor</p>
+  <h1>Always Here.</h1>
   <p class="hero-sub">No waiting. No judgment. Available day or night for whatever program you're in.</p>
   <div class="hero-actions">
     <a href="ai-sponsor-registration.html" class="btn-primary">Start free for 30 days →</a>
@@ -930,11 +906,6 @@
   <p style="font-size:12px;color:rgba(255,255,255,.25);">© 2026 AI Sponsor. All rights reserved.</p>
 </div>
 
-<!-- Disclaimer Bar -->
-<div class="disclaimer-bar" id="disclaimerBar">
-  <p>AI Sponsor is not affiliated with, endorsed by, or connected to Alcoholics Anonymous, Narcotics Anonymous, or any 12-step program or organisation. This is a private product. If you are in crisis, call or text 988, or text HOME to 741741.</p>
-  <button class="disclaimer-bar-close" onclick="document.getElementById('disclaimerBar').style.display='none'">Dismiss</button>
-</div>
 
 
 <script>
