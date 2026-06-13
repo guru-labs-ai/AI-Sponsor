@@ -298,10 +298,6 @@
 
     /* ── B1G1 ── */
     .b1g1 { background: var(--navy); text-align: center; padding-top: 48px; }
-    .b1g1-icon {
-      font-size: 48px; margin-bottom: 24px;
-      display: block;
-    }
     .b1g1 .section-label { color: #93C5FD; }
     .b1g1 .section-title { color: var(--white); max-width: 600px; margin: 0 auto 20px; }
     .b1g1-body {
@@ -310,6 +306,61 @@
       max-width: 520px; margin: 0 auto 48px;
     }
     .b1g1 .btn-primary { margin: 0 auto; }
+
+    /* B1G1 visual */
+    .b1g1-visual {
+      display: flex; align-items: center; justify-content: center; gap: 0;
+      max-width: 640px; margin: 0 auto 40px; position: relative;
+    }
+    .b1g1-card {
+      flex: 1; max-width: 220px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 16px; padding: 28px 20px;
+      opacity: 0; transform: scale(.85);
+      transition: opacity .6s ease, transform .6s ease;
+    }
+    .b1g1-card.active { opacity: 1; transform: scale(1); }
+    .b1g1-card-icon { font-size: 36px; margin-bottom: 12px; display: block; }
+    .b1g1-card-title {
+      font-size: 15px; font-weight: 600; color: var(--white);
+      margin-bottom: 6px;
+    }
+    .b1g1-card-sub {
+      font-size: 13px; color: rgba(255,255,255,.5); line-height: 1.4;
+    }
+    .b1g1-card-price {
+      margin-top: 10px; font-size: 20px; font-weight: 700;
+      font-family: 'Source Serif 4', serif;
+    }
+    .b1g1-card:first-child .b1g1-card-price { color: var(--blue-light); }
+    .b1g1-card:last-child .b1g1-card-price { color: #34d399; }
+    .b1g1-card:last-child { border-color: rgba(52,211,153,.25); background: rgba(52,211,153,.06); }
+
+    .b1g1-arrow {
+      display: flex; align-items: center; justify-content: center;
+      width: 60px; flex-shrink: 0; position: relative;
+    }
+    .b1g1-arrow svg {
+      width: 48px; height: 48px;
+      opacity: 0; transform: scaleX(0);
+      transition: opacity .5s ease .4s, transform .5s ease .4s;
+    }
+    .b1g1-arrow.active svg { opacity: 1; transform: scaleX(1); }
+    .b1g1-arrow-pulse {
+      position: absolute; width: 10px; height: 10px;
+      background: var(--blue-light); border-radius: 50%;
+      opacity: 0; left: 6px;
+    }
+    .b1g1-arrow.active .b1g1-arrow-pulse {
+      animation: arrowPulse 1.8s ease-in-out .9s infinite;
+    }
+    @keyframes arrowPulse {
+      0% { opacity: 0; left: 6px; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { opacity: 0; left: 38px; }
+    }
 
     /* ── AMENDS ── */
     .amends-lp { background: #0a0f1a; text-align: center; padding: 100px 24px; }
@@ -557,9 +608,18 @@
       .hero-amends-pill { margin-top: 10px; }
       .scroll-hint { display: none; }
       .b1g1 { padding: 32px 20px 48px; }
-      .b1g1-icon { font-size: 36px; margin-bottom: 16px; }
       .b1g1 .section-title { font-size: 22px; }
       .b1g1-body { font-size: 15px; margin-bottom: 32px; }
+      .b1g1-visual { flex-direction: column; gap: 0; }
+      .b1g1-card { max-width: 280px; width: 100%; padding: 22px 18px; }
+      .b1g1-arrow { width: auto; height: 48px; transform: rotate(90deg); }
+      .b1g1-arrow-pulse { animation-name: arrowPulseV; }
+      @keyframes arrowPulseV {
+        0% { opacity: 0; top: 6px; left: 50%; }
+        20% { opacity: 1; }
+        80% { opacity: 1; }
+        100% { opacity: 0; top: 38px; left: 50%; }
+      }
       .steps { grid-template-columns: 1fr; }
       .privacy-grid { grid-template-columns: 1fr; }
       .hero-stats { gap: 32px; }
@@ -648,10 +708,31 @@
 <!-- B1G1 -->
 <section class="b1g1" id="b1g1">
   <div class="container">
-    <span class="b1g1-icon reveal">🤲</span>
     <p class="section-label reveal">One for one</p>
     <h2 class="section-title reveal reveal-delay-1">For every subscription, someone else gets access for free.</h2>
-    <p class="b1g1-body reveal reveal-delay-2">Everyone deserves a sponsor. For every person who subscribes, we give one full access to someone who needs it. Because recovery shouldn't depend on what you can afford.</p>
+
+    <div class="b1g1-visual" id="b1g1Visual">
+      <div class="b1g1-card" id="b1g1You">
+        <span class="b1g1-card-icon">👤</span>
+        <div class="b1g1-card-title">You subscribe</div>
+        <div class="b1g1-card-sub">Full access to your AI Sponsor</div>
+        <div class="b1g1-card-price">$5/mo</div>
+      </div>
+      <div class="b1g1-arrow" id="b1g1Arrow">
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 24h36M32 14l10 10-10 10" stroke="#93C5FD" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="b1g1-arrow-pulse"></div>
+      </div>
+      <div class="b1g1-card" id="b1g1Give">
+        <span class="b1g1-card-icon">🤝</span>
+        <div class="b1g1-card-title">Someone gets it free</div>
+        <div class="b1g1-card-sub">Full access for someone who can't afford it</div>
+        <div class="b1g1-card-price">Free</div>
+      </div>
+    </div>
+
+    <p class="b1g1-body reveal reveal-delay-2">Recovery shouldn't depend on what you can afford.</p>
     <a href="ai-sponsor-registration.html" class="btn-primary reveal reveal-delay-3">Start free for 30 days →</a>
   </div>
 </section>
@@ -939,6 +1020,23 @@
     });
   }, { threshold: 0.12 });
   revealEls.forEach(el => observer.observe(el));
+
+  // B1G1 visual animation
+  const b1g1Observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const you = document.getElementById('b1g1You');
+        const arrow = document.getElementById('b1g1Arrow');
+        const give = document.getElementById('b1g1Give');
+        you.classList.add('active');
+        setTimeout(() => arrow.classList.add('active'), 400);
+        setTimeout(() => give.classList.add('active'), 800);
+        b1g1Observer.disconnect();
+      }
+    });
+  }, { threshold: 0.3 });
+  const b1g1El = document.getElementById('b1g1Visual');
+  if (b1g1El) b1g1Observer.observe(b1g1El);
 
   // Counter animation
   function animateCounter(el, target, duration = 1800) {
