@@ -247,6 +247,14 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 .b1g1-icon{font-size:26px;flex-shrink:0;margin-top:2px}
 .b1g1-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:5px}
 .b1g1-desc{font-size:13px;color:var(--sub);line-height:1.6}
+.plan-toggle{display:flex;gap:10px;margin-bottom:16px}
+.plan-opt{flex:1;padding:14px 12px;border:2px solid var(--border);border-radius:12px;
+  cursor:pointer;text-align:center;transition:border-color .2s,background .2s}
+.plan-opt.active{border-color:var(--blue);background:rgba(27,94,138,0.06)}
+.plan-opt-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px}
+.plan-opt-price{font-size:20px;font-weight:800;color:var(--blue)}
+.plan-opt-per{font-size:12px;color:var(--sub)}
+.plan-opt-save{font-size:11px;font-weight:600;color:#16a34a;margin-top:4px}
 .trial-box{padding:18px 20px;margin-bottom:20px;
   background:rgba(27,94,138,0.05);
   border:1px solid rgba(27,94,138,0.14);border-radius:14px}
@@ -894,7 +902,7 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
         <div class="b1g1-text">
           <div class="b1g1-title">One for one.</div>
           <div class="b1g1-desc">For every paid subscription, we gift someone who can't afford it full free access. Because everyone in recovery deserves a sponsor, no matter what's in their wallet.</div>
-          <div class="afford-link" style="text-align:left;margin-top:10px">Can't afford $5/month? <a href="mailto:sponsor@youraisponsor.com?subject=Scholarship Application">Apply for a scholarship →</a></div>
+          <div class="afford-link" style="text-align:left;margin-top:10px">Can't afford $5/month? <a href="mailto:sponsor@getaisponsor.com?subject=Scholarship Application">Apply for a scholarship →</a></div>
         </div>
       </div>
 
@@ -908,13 +916,28 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
         </div>
       </div>
 
+      <!-- Plan toggle -->
+      <div class="plan-toggle" id="planToggle">
+        <div class="plan-opt active" id="planMonthly" onclick="selectPlan('monthly')">
+          <div class="plan-opt-name">Monthly</div>
+          <div class="plan-opt-price">$5</div>
+          <div class="plan-opt-per">/month</div>
+        </div>
+        <div class="plan-opt" id="planAnnual" onclick="selectPlan('annual')">
+          <div class="plan-opt-name">Annual</div>
+          <div class="plan-opt-price">$49</div>
+          <div class="plan-opt-per">/year</div>
+          <div class="plan-opt-save">Save $11</div>
+        </div>
+      </div>
+
       <!-- Trial pricing -->
       <div class="trial-box">
         <div class="trial-top">
           <span class="trial-days" id="trialNum">0</span>
           <div class="trial-right">
             <div class="trial-label">days free</div>
-            <div class="trial-then">then $5 / month, cancel anytime</div>
+            <div class="trial-then" id="trialThen">then $5 / month, cancel anytime</div>
           </div>
         </div>
         <p class="trial-note" id="stripeNote">Your card is saved now but won't be charged until day 31.</p>
@@ -1579,6 +1602,16 @@ function fmtExp(el){
   if(v.length>=2)v=v.substring(0,2)+' / '+v.substring(2);
   el.value=v;
 }
+let selectedPlan = 'monthly';
+function selectPlan(plan){
+  selectedPlan = plan;
+  document.getElementById('planMonthly').classList.toggle('active', plan==='monthly');
+  document.getElementById('planAnnual').classList.toggle('active', plan==='annual');
+  document.getElementById('trialThen').textContent = plan==='monthly'
+    ? 'then $5 / month, cancel anytime'
+    : 'then $49 / year, cancel anytime';
+}
+
 function startTrial(){
   const card=document.getElementById('f-card').value.replace(/\s/g,'');
   const exp=document.getElementById('f-exp').value.replace(/\s/g,'');
