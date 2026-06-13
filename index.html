@@ -176,17 +176,15 @@
     .hero-amends-pill {
       position: relative;
       display: inline-flex; align-items: center;
-      margin-top: 20px;
-      font-size: 16px; font-weight: 600; letter-spacing: .03em;
+      margin-top: 24px;
+      font-size: 13px; font-weight: 500; letter-spacing: .03em;
       line-height: 1;
-      color: rgba(255,255,255,.65);
+      color: rgba(255,255,255,.45);
       text-decoration: none;
-      background: rgba(217,119,6,.1);
-      border: 1px solid rgba(217,119,6,.45);
-      border-radius: 30px; padding: 13px 26px;
+      background: rgba(217,119,6,.06);
+      border: 1px solid rgba(217,119,6,.25);
+      border-radius: 30px; padding: 10px 20px;
       transition: background .2s, border-color .2s, color .2s;
-      opacity: 0; transform: translateY(20px);
-      animation: fadeUp .7s .95s forwards;
     }
     .hero-amends-pill:hover { background: rgba(217,119,6,.18); border-color: rgba(217,119,6,.7); color: #fff; }
     .hero-amends-pill strong { color: #fbbf24; font-weight: 700; vertical-align: baseline; }
@@ -289,6 +287,7 @@
       padding: 24px; transition: border-color .2s, box-shadow .2s;
     }
     .prog-card:hover { border-color: var(--blue); box-shadow: 0 4px 20px rgba(0,102,179,.1); }
+    .prog-icon { font-size: 24px; margin-bottom: 10px; display: block; }
     .prog-name {
       font-family: 'Source Serif 4', serif;
       font-size: 16px; font-weight: 600;
@@ -322,22 +321,10 @@
       position: relative; overflow: hidden;
     }
     .b1g1-card.active { opacity: 1; transform: scale(1); }
-    .b1g1-card.active::after {
-      content: ''; position: absolute; inset: -1px;
-      border-radius: 16px; padding: 1px;
-      background: linear-gradient(135deg, rgba(147,197,253,.4), transparent 60%);
-      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor; mask-composite: exclude;
-      animation: glowRotate 3s linear infinite;
+    .b1g1-card.active {
+      box-shadow: 0 0 20px rgba(147,197,253,.08);
+      border-color: rgba(147,197,253,.2);
     }
-    @keyframes glowRotate {
-      0% { background: linear-gradient(0deg, rgba(147,197,253,.4), transparent 60%); }
-      25% { background: linear-gradient(90deg, rgba(147,197,253,.4), transparent 60%); }
-      50% { background: linear-gradient(180deg, rgba(147,197,253,.4), transparent 60%); }
-      75% { background: linear-gradient(270deg, rgba(147,197,253,.4), transparent 60%); }
-      100% { background: linear-gradient(360deg, rgba(147,197,253,.4), transparent 60%); }
-    }
-    .b1g1-card:last-child.active { box-shadow: 0 0 24px rgba(147,197,253,.15); }
     .b1g1-card-icon { font-size: 36px; margin-bottom: 12px; display: block; }
     .b1g1-card-title {
       font-size: 15px; font-weight: 600; color: var(--white);
@@ -663,10 +650,10 @@
         max-width: calc(100vw - 48px);
         margin-top: 8px;
       }
-      .hero-stats { gap: 16px; flex-wrap: wrap; justify-content: space-around; }
-      .stat { min-width: 80px; }
-      .stat-num { font-size: 32px; }
-      .stat-label { font-size: 12px; max-width: 90px; }
+      .hero-stats { gap: 24px; flex-wrap: nowrap; justify-content: center; }
+      .stat { min-width: 90px; }
+      .stat-num { font-size: 28px; }
+      .stat-label { font-size: 11px; max-width: 100px; line-height: 1.3; }
       section { padding: 64px 20px; }
       .section-title { font-size: 26px; }
       .section-sub { font-size: 15px; }
@@ -714,8 +701,6 @@
       <div class="stat-label">step recovery method</div>
     </div>
   </div>
-  <a href="#amends" class="hero-amends-pill">🎬 Also:&nbsp;<strong>Amends</strong>&nbsp;- A TV Series in Development</a>
-
   <div class="scroll-hint">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 5v14M5 12l7 7 7-7"/>
@@ -752,6 +737,7 @@
 
     <p class="b1g1-body reveal reveal-delay-2">Recovery shouldn't depend on what you can afford.</p>
     <a href="ai-sponsor-registration.html" class="btn-primary reveal reveal-delay-3">Start free for 30 days →</a>
+    <a href="#amends" class="hero-amends-pill reveal reveal-delay-4">🎬 Also:&nbsp;<strong>Amends</strong>&nbsp;- A TV Series in Development</a>
   </div>
 </section>
 
@@ -797,46 +783,57 @@
     <p class="section-sub reveal reveal-delay-2">Whatever your program, your sponsor knows your world. The language, the steps, the traditions. It's all built in.</p>
     <div class="programs-grid">
       <div class="prog-card reveal reveal-delay-1">
+        <span class="prog-icon">💳</span>
         <div class="prog-name">Debtors Anonymous (DA)</div>
         <div class="prog-desc">Money stress can quietly take over your whole life. DA is for people whose relationship with debt has become something they can't manage on their own, and who are ready to change that.</div>
       </div>
       <div class="prog-card reveal reveal-delay-2">
+        <span class="prog-icon">📊</span>
         <div class="prog-name">Business Debtors Anonymous (BDA)</div>
         <div class="prog-desc">For business owners whose relationship with business debt (credit lines, payroll, loans) has become something they can't manage alone. The pressure is different when others depend on you. BDA understands that.</div>
       </div>
       <div class="prog-card reveal reveal-delay-3">
+        <span class="prog-icon">📉</span>
         <div class="prog-name">Underearners Anonymous (UA)</div>
         <div class="prog-desc">For people who keep earning less than they need or want, not because of lack of talent, but because of patterns that run deeper. UA is for anyone ready to understand why, and to change it.</div>
       </div>
       <div class="prog-card reveal reveal-delay-1">
+        <span class="prog-icon">🍷</span>
         <div class="prog-name">Alcoholics Anonymous (AA)</div>
         <div class="prog-desc">If alcohol has taken more from you than you ever meant to give, you're in the right place. Over 2 million people, in 180 countries, all walking the same road.</div>
       </div>
       <div class="prog-card reveal reveal-delay-2">
+        <span class="prog-icon">👨‍👩‍👧</span>
         <div class="prog-name">Al-Anon / Alateen</div>
         <div class="prog-desc">When someone you love is struggling, you need support too. Not just them. Al-Anon is for family and friends. Alateen is the same thing, built for younger members.</div>
       </div>
       <div class="prog-card reveal reveal-delay-3">
+        <span class="prog-icon">💊</span>
         <div class="prog-name">Narcotics Anonymous (NA)</div>
         <div class="prog-desc">For anyone whose relationship with drugs has become something they can't manage alone. No judgment, no lectures. Just people who genuinely understand what you're going through.</div>
       </div>
       <div class="prog-card reveal reveal-delay-1">
+        <span class="prog-icon">🍽️</span>
         <div class="prog-name">Overeaters Anonymous (OA)</div>
         <div class="prog-desc">When food has stopped being about hunger and started being about something else. Pain, comfort, escape. OA is for anyone who recognises that feeling and wants a way through it.</div>
       </div>
       <div class="prog-card reveal reveal-delay-2">
+        <span class="prog-icon">🎰</span>
         <div class="prog-name">Gamblers Anonymous (GA)</div>
         <div class="prog-desc">For anyone who knows that one more bet was always going to be the last one. GA is a community of people who understand the pull and have found a way out of it.</div>
       </div>
       <div class="prog-card reveal reveal-delay-3">
+        <span class="prog-icon">🧒</span>
         <div class="prog-name">Adult Children of Alcoholics (ACA)</div>
         <div class="prog-desc">Growing up around addiction or dysfunction leaves marks that don't just go away. ACA is for adults still carrying what they grew up with and who are ready to put some of it down.</div>
       </div>
       <div class="prog-card reveal reveal-delay-1">
+        <span class="prog-icon">💔</span>
         <div class="prog-name">Sex &amp; Love Addicts Anonymous (SLAA)</div>
         <div class="prog-desc">For people whose patterns around sex, love, or relationships have started to feel like something they can't control. A confidential, judgment-free space where those patterns can be looked at honestly.</div>
       </div>
       <div class="prog-card reveal reveal-delay-2">
+        <span class="prog-icon">💼</span>
         <div class="prog-name">Workaholics Anonymous (WA)</div>
         <div class="prog-desc">For people whose relationship with work has become something they can't stop, even when it's costing them their health, their relationships, or their peace. WA is for anyone who recognises that work has become a way to avoid everything else.</div>
       </div>
