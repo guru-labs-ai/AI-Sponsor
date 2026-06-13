@@ -191,17 +191,7 @@
     .hero-amends-pill:hover { background: rgba(217,119,6,.18); border-color: rgba(217,119,6,.7); color: #fff; }
     .hero-amends-pill strong { color: #fbbf24; font-weight: 700; vertical-align: baseline; }
 
-    .scroll-hint {
-      position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
-      display: flex; flex-direction: column; align-items: center; gap: 8px;
-      opacity: .4; animation: bounce 2s infinite;
-    }
-    .scroll-hint span { font-size: 11px; color: var(--white); letter-spacing: .08em; text-transform: uppercase; }
-    .scroll-hint svg { width: 20px; height: 20px; stroke: var(--white); }
-    @keyframes bounce {
-      0%, 100% { transform: translateX(-50%) translateY(0); }
-      50% { transform: translateX(-50%) translateY(6px); }
-    }
+    .scroll-hint { display: none; }
 
     /* ── TRUST BAR ── */
     .trust-bar {
