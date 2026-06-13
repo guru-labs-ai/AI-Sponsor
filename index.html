@@ -176,15 +176,17 @@
     .hero-amends-pill {
       position: relative;
       display: inline-flex; align-items: center;
-      margin-top: 24px;
-      font-size: 13px; font-weight: 500; letter-spacing: .03em;
+      margin-top: 16px;
+      font-size: 14px; font-weight: 600; letter-spacing: .03em;
       line-height: 1;
-      color: rgba(255,255,255,.45);
+      color: rgba(255,255,255,.65);
       text-decoration: none;
-      background: rgba(217,119,6,.06);
-      border: 1px solid rgba(217,119,6,.25);
-      border-radius: 30px; padding: 10px 20px;
+      background: rgba(217,119,6,.1);
+      border: 1px solid rgba(217,119,6,.45);
+      border-radius: 30px; padding: 11px 22px;
       transition: background .2s, border-color .2s, color .2s;
+      opacity: 0; transform: translateY(20px);
+      animation: fadeUp .7s .95s forwards;
     }
     .hero-amends-pill:hover { background: rgba(217,119,6,.18); border-color: rgba(217,119,6,.7); color: #fff; }
     .hero-amends-pill strong { color: #fbbf24; font-weight: 700; vertical-align: baseline; }
@@ -605,17 +607,17 @@
       #nav { padding: 16px 20px; }
       #nav.scrolled { padding: 12px 20px; }
       .nav-cta { font-size: 12px; padding: 8px 14px; }
-      .hero { min-height: auto; padding: 72px 20px 20px; justify-content: flex-start; }
-      .hero-eyebrow { margin-bottom: 10px; }
-      .hero h1 { font-size: 32px; margin-bottom: 12px; }
-      .hero-sub { margin-bottom: 20px; }
-      .hero-actions { margin-bottom: 10px; }
-      .hero-amends-pill { margin-top: 10px; font-size: 12px; padding: 8px 14px; }
-      .hero-stats { gap: 20px; }
+      .hero { min-height: auto; padding: 64px 20px 16px; justify-content: flex-start; }
+      .hero-eyebrow { margin-bottom: 8px; height: 36px; }
+      .hero h1 { font-size: 30px; margin-bottom: 8px; }
+      .hero-sub { margin-bottom: 14px; font-size: 15px; }
+      .hero-actions { margin-bottom: 8px; }
+      .hero-amends-pill { margin-top: 8px; font-size: 11px; padding: 7px 14px; }
+      .hero-stats { gap: 20px; margin-top: 4px; }
       .scroll-hint { display: none; }
-      .b1g1 { padding: 16px 16px 40px; }
-      .b1g1 .section-label { font-size: 10px; margin-bottom: 8px; }
-      .b1g1 .section-title { font-size: 18px; margin-bottom: 16px; }
+      .b1g1 { padding: 12px 16px 36px; }
+      .b1g1 .section-label { font-size: 10px; margin-bottom: 6px; }
+      .b1g1 .section-title { font-size: 17px; margin-bottom: 14px; }
       .b1g1-body { font-size: 14px; margin-bottom: 24px; }
       .b1g1-visual { margin-bottom: 24px; }
       .b1g1-card { max-width: 150px; padding: 16px 12px; border-radius: 12px; }
@@ -701,6 +703,7 @@
       <div class="stat-label">step recovery method</div>
     </div>
   </div>
+  <a href="#amends" class="hero-amends-pill">🎬 Also:&nbsp;<strong>Amends</strong>&nbsp;- A TV Series in Development</a>
   <div class="scroll-hint">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 5v14M5 12l7 7 7-7"/>
@@ -737,7 +740,6 @@
 
     <p class="b1g1-body reveal reveal-delay-2">Recovery shouldn't depend on what you can afford.</p>
     <a href="ai-sponsor-registration.html" class="btn-primary reveal reveal-delay-3">Start free for 30 days →</a>
-    <a href="#amends" class="hero-amends-pill reveal reveal-delay-4">🎬 Also:&nbsp;<strong>Amends</strong>&nbsp;- A TV Series in Development</a>
   </div>
 </section>
 
