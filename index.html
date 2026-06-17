@@ -583,6 +583,21 @@
     }
     .final-cta .btn-primary { position: relative; margin: 0 auto; }
 
+    /* ── FAQ ── */
+    .faq { background: var(--bg); padding: 88px 48px; }
+    .faq .container { max-width: 760px; }
+    .faq-list { margin-top: 36px; }
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-item summary {
+      list-style: none; cursor: pointer; padding: 22px 4px;
+      font-size: 18px; font-weight: 600; color: var(--text);
+      display: flex; justify-content: space-between; align-items: center; gap: 16px;
+    }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item summary::after { content: '+'; font-size: 26px; line-height: 1; color: var(--blue); font-weight: 300; flex-shrink: 0; }
+    .faq-item[open] summary::after { content: '\2212'; }
+    .faq-item .faq-a { padding: 0 4px 24px; color: var(--sub); line-height: 1.7; font-size: 15px; }
+
 
     /* ── FOOTER ── */
     footer {
@@ -635,6 +650,9 @@
       .b1g1-card-price { font-size: 16px; margin-top: 6px; }
       .b1g1-arrow { width: 36px; }
       .b1g1-arrow svg { width: 30px; height: 30px; }
+      .faq { padding: 56px 20px; }
+      .faq-item summary { font-size: 16px; padding: 18px 2px; }
+      .faq-item .faq-a { font-size: 14px; padding: 0 2px 20px; }
       .steps { grid-template-columns: 1fr; }
       .privacy-grid { grid-template-columns: 1fr; }
       .hero-stats { gap: 32px; }
@@ -1001,6 +1019,48 @@
   </div>
 </section>
 
+<!-- FAQ -->
+<section class="faq" id="faq">
+  <div class="container">
+    <p class="section-label reveal" style="text-align:center">Questions</p>
+    <h2 class="section-title reveal reveal-delay-1" style="text-align:center;max-width:600px;margin:0 auto 0">Common questions about AI Sponsor</h2>
+    <div class="faq-list">
+      <details class="faq-item reveal">
+        <summary>What is an AI sponsor?</summary>
+        <p class="faq-a">An AI sponsor is an AI you can talk to any time for support in a 12-step recovery program. AI Sponsor is modeled on how a real sponsor works — warm, direct, and present, asking more than it tells. It's available 24/7, with no waiting and no appointments. It is not a therapist, doctor, or life coach.</p>
+      </details>
+      <details class="faq-item reveal">
+        <summary>Is there a 24/7 AI sponsor for AA, NA, and other 12-step programs?</summary>
+        <p class="faq-a">Yes. AI Sponsor is a private, 24/7 AI sponsor built for 12-step recovery. You can reach it day or night for whatever program you're in, between meetings or whenever a human sponsor isn't available.</p>
+      </details>
+      <details class="faq-item reveal">
+        <summary>Which recovery programs does AI Sponsor support?</summary>
+        <p class="faq-a">AA, NA, Al-Anon/Alateen, Overeaters Anonymous (OA), Debtors Anonymous (DA), Gamblers Anonymous (GA), Underearners Anonymous (UA), Adult Children of Alcoholics (ACA), Sex and Love Addicts Anonymous (SLAA), Business Debtors Anonymous (BDA), plus "Other/Multiple" and "New / Not sure." It adapts its language to your program and your stage of recovery.</p>
+      </details>
+      <details class="faq-item reveal">
+        <summary>How much does AI Sponsor cost?</summary>
+        <p class="faq-a">$5/month, or $49/year, after a 30-day free trial. Through our one-for-one model, every paying subscriber gives one free access to someone in recovery who can't afford it.</p>
+      </details>
+      <details class="faq-item reveal">
+        <summary>Is AI Sponsor affiliated with Alcoholics Anonymous or Narcotics Anonymous?</summary>
+        <p class="faq-a">No. AI Sponsor is a private project. It is not affiliated with, endorsed by, or connected to Alcoholics Anonymous, Narcotics Anonymous, or any 12-step program or their governing bodies.</p>
+      </details>
+      <details class="faq-item reveal">
+        <summary>Can an AI sponsor replace a human sponsor?</summary>
+        <p class="faq-a">AI Sponsor is meant to support your recovery, not replace your human sponsor, your meetings, or professional care. It's there for the moments in between — at 3am, between meetings, or whenever you need someone in your corner right away.</p>
+      </details>
+      <details class="faq-item reveal">
+        <summary>Is my information private and confidential?</summary>
+        <p class="faq-a">Yes. Conversations are encrypted and confidential, our infrastructure meets HIPAA standards, and your data is never sold or used for advertising. You share only a first name and last initial — there's no pressure to share more.</p>
+      </details>
+      <details class="faq-item reveal">
+        <summary>How do I talk to my AI Sponsor?</summary>
+        <p class="faq-a">You can chat with it right after registering. WhatsApp text and audio messages are coming soon, so you'll be able to message your sponsor the same way you'd text a friend.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
 <!-- FINAL CTA -->
 <section class="final-cta">
   <div class="container">
@@ -1016,13 +1076,14 @@
   <nav class="footer-nav">
     <a href="#how" class="footer-nav-link">How It Works</a>
     <a href="#pricing" class="footer-nav-link">Pricing</a>
+    <a href="#faq" class="footer-nav-link">FAQ</a>
     <a href="#amends" class="footer-nav-link">Amends</a>
     <a href="ai-sponsor-registration.html" class="footer-nav-link">Get Started</a>
   </nav>
   <p class="footer-disclaimer">AI Sponsor is a private product and is not affiliated with, endorsed by, or connected to Alcoholics Anonymous, Narcotics Anonymous, or any 12-step program or organisation. If you are in crisis, please contact the Crisis Text Line (text HOME to 741741) or call 988.</p>
 </footer>
 <div style="background:#060E1A;text-align:center;padding:16px 24px;border-top:1px solid rgba(255,255,255,.06);">
-  <p style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:6px;">Questions? Contact <a href="mailto:support@youraisponsor.com" style="color:rgba(255,255,255,.4);text-decoration:underline;">support@youraisponsor.com</a></p>
+  <p style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:6px;">Questions? Contact <a href="mailto:support@getaisponsor.com" style="color:rgba(255,255,255,.4);text-decoration:underline;">support@getaisponsor.com</a></p>
   <p style="font-size:12px;color:rgba(255,255,255,.25);">© 2026 AI Sponsor. All rights reserved.</p>
 </div>
 
@@ -1269,6 +1330,56 @@
       alert('Something went wrong. Please try again or email us directly.');
     }
   };
+</script>
+
+<!-- Structured data (SEO + AEO/GEO: helps Google + AI engines understand & cite the site) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://getaisponsor.com/#org",
+      "name": "AI Sponsor",
+      "url": "https://getaisponsor.com/",
+      "logo": "https://getaisponsor.com/favicon.png",
+      "description": "A private, 24/7 AI sponsor for 12-step recovery programs. Not affiliated with, endorsed by, or connected to Alcoholics Anonymous, Narcotics Anonymous, or any 12-step program."
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://getaisponsor.com/#website",
+      "url": "https://getaisponsor.com/",
+      "name": "AI Sponsor",
+      "publisher": { "@id": "https://getaisponsor.com/#org" }
+    },
+    {
+      "@type": "Service",
+      "name": "AI Sponsor",
+      "serviceType": "AI sponsor for 12-step recovery",
+      "provider": { "@id": "https://getaisponsor.com/#org" },
+      "url": "https://getaisponsor.com/",
+      "description": "A private, judgment-free AI sponsor for 12-step recovery (AA, NA, OA and more). 24/7 support whenever you need it, no waiting.",
+      "areaServed": "Worldwide",
+      "offers": [
+        { "@type": "Offer", "name": "Monthly", "price": "5.00", "priceCurrency": "USD", "description": "$5/month after a 30-day free trial." },
+        { "@type": "Offer", "name": "Annual", "price": "49.00", "priceCurrency": "USD", "description": "$49/year after a 30-day free trial." }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "What is an AI sponsor?", "acceptedAnswer": { "@type": "Answer", "text": "An AI sponsor is an AI you can talk to any time for support in a 12-step recovery program. AI Sponsor is modeled on how a real sponsor works - warm, direct, and present, asking more than it tells. It is available 24/7, with no waiting and no appointments. It is not a therapist, doctor, or life coach." } },
+        { "@type": "Question", "name": "Is there a 24/7 AI sponsor for AA, NA, and other 12-step programs?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. AI Sponsor is a private, 24/7 AI sponsor built for 12-step recovery. You can reach it day or night for whatever program you are in, between meetings or whenever a human sponsor is not available." } },
+        { "@type": "Question", "name": "Which recovery programs does AI Sponsor support?", "acceptedAnswer": { "@type": "Answer", "text": "AA, NA, Al-Anon/Alateen, Overeaters Anonymous (OA), Debtors Anonymous (DA), Gamblers Anonymous (GA), Underearners Anonymous (UA), Adult Children of Alcoholics (ACA), Sex and Love Addicts Anonymous (SLAA), Business Debtors Anonymous (BDA), plus Other/Multiple and New/Not sure. It adapts its language to your program and your stage of recovery." } },
+        { "@type": "Question", "name": "How much does AI Sponsor cost?", "acceptedAnswer": { "@type": "Answer", "text": "$5/month, or $49/year, after a 30-day free trial. Through the one-for-one model, every paying subscriber gives one free access to someone in recovery who cannot afford it." } },
+        { "@type": "Question", "name": "Is AI Sponsor affiliated with Alcoholics Anonymous or Narcotics Anonymous?", "acceptedAnswer": { "@type": "Answer", "text": "No. AI Sponsor is a private project. It is not affiliated with, endorsed by, or connected to Alcoholics Anonymous, Narcotics Anonymous, or any 12-step program or their governing bodies." } },
+        { "@type": "Question", "name": "Can an AI sponsor replace a human sponsor?", "acceptedAnswer": { "@type": "Answer", "text": "AI Sponsor is meant to support your recovery, not replace your human sponsor, your meetings, or professional care. It is there for the moments in between - at 3am, between meetings, or whenever you need someone in your corner right away." } },
+        { "@type": "Question", "name": "Is my information private and confidential?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Conversations are encrypted and confidential, the infrastructure meets HIPAA standards, and your data is never sold or used for advertising. You share only a first name and last initial - there is no pressure to share more." } },
+        { "@type": "Question", "name": "How do I talk to my AI Sponsor?", "acceptedAnswer": { "@type": "Answer", "text": "You can chat with it right after registering. WhatsApp text and audio messages are coming soon, so you will be able to message your sponsor the same way you would text a friend." } }
+      ]
+    }
+  ]
+}
 </script>
 </body>
 </html>

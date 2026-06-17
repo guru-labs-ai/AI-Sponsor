@@ -1,0 +1,37 @@
+# AI Sponsor
+
+> AI Sponsor is a private, 24/7 AI sponsor for people in 12-step recovery programs. It offers warm, judgment-free, program-aware support whenever someone needs it — no waiting, no appointments. Available via chat and (soon) WhatsApp text and audio messages.
+
+AI Sponsor is a private project. It is **not affiliated with, endorsed by, or connected to** Alcoholics Anonymous, Narcotics Anonymous, or any 12-step program or their governing bodies.
+
+## What it is
+- A 24/7 AI sponsor for 12-step recovery, available whenever you need it.
+- Warm, direct, and present — modeled on how a real sponsor works, not a therapist, doctor, or life coach.
+- Program-aware: adapts its language and guidance to the specific program and the person's stage of recovery.
+- Private and judgment-free. First name + last initial only; no pressure to share more.
+
+## Who it's for
+- Anyone in or starting a 12-step recovery program who wants support between meetings or when a human sponsor isn't reachable.
+- People in early recovery, long-term recovery, or starting over.
+
+## Programs supported
+Alcoholics Anonymous (AA), Narcotics Anonymous (NA), Al-Anon/Alateen, Overeaters Anonymous (OA), Debtors Anonymous (DA), Gamblers Anonymous (GA), Underearners Anonymous (UA), Adult Children of Alcoholics (ACA), Sex and Love Addicts Anonymous (SLAA), Business Debtors Anonymous (BDA), plus "Other/Multiple" and "New / Not sure."
+
+## How it works
+1. Register and tell your AI sponsor your program, recovery stage, and goals.
+2. Talk to it any time via chat (WhatsApp text + audio coming soon).
+3. It remembers your context and walks alongside you — asking more than it tells.
+
+## Pricing
+- $5/month, or $49/year (after a 30-day free trial).
+- **One-for-one model:** every paying subscriber gives one free access to someone in recovery who can't afford it.
+
+## Safety
+If someone is in crisis, AI Sponsor surfaces crisis resources (e.g. 988 Suicide & Crisis Lifeline, Crisis Text Line 741741, SAMHSA 1-800-662-4357) and stays in the conversation. It is not a substitute for emergency services or professional medical care.
+
+## Links
+- Home: https://getaisponsor.com/
+- Get started / register: https://getaisponsor.com/ai-sponsor-registration.html
+
+## Contact
+This is a private project. Support is handled through the website.
