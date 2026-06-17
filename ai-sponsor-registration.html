@@ -368,6 +368,10 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 .copy-btn{background:#166534;color:#fff;border:none;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s}
 .copy-btn:hover{background:#14532D}
 .copy-btn.copied{background:#15803D}
+.scholarship-box.soon{position:relative;opacity:.65}
+.scholarship-box.soon .scholarship-code{font-style:italic;font-weight:600;letter-spacing:normal;color:#15803D}
+.scholarship-box.soon .copy-btn{opacity:.5;cursor:not-allowed;pointer-events:none}
+.soon-badge{position:absolute;top:12px;right:12px;font-size:11px;font-weight:700;color:#166534;background:#DCFCE7;border:1px solid #BBF7D0;padding:3px 10px;border-radius:999px}
 .scholarship-or{font-size:12px;color:#15803D;text-align:center;margin-bottom:10px}
 .scholarship-input{width:100%;padding:10px 12px;border:1.5px solid #BBF7D0;border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:#fff;color:var(--text);box-sizing:border-box;margin-bottom:8px}
 .scholarship-input:focus{border-color:#166534}
@@ -906,13 +910,14 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
         </div>
       </div>
 
-      <!-- Scholarship -->
-      <div class="scholarship-box">
+      <!-- Scholarship (gift code coming soon — needs backend coupon system) -->
+      <div class="scholarship-box soon">
+        <span class="soon-badge">Coming soon</span>
         <h3>🎁 Know someone who needs this?</h3>
-        <p>You've been given one scholarship code to gift to someone you know who's struggling and can't afford it. Pass it on.</p>
+        <p>Soon you'll be able to gift a free scholarship code to someone you know who's struggling and can't afford it. Pass it on.</p>
         <div class="scholarship-code-wrap">
-          <div class="scholarship-code" id="scholarshipCode">—</div>
-          <button class="copy-btn" id="copyBtn" onclick="copyScholarship()">Copy</button>
+          <div class="scholarship-code" id="scholarshipCode">Coming soon</div>
+          <button class="copy-btn" id="copyBtn" disabled>Copy</button>
         </div>
       </div>
 
@@ -1114,6 +1119,8 @@ function goTo(n){
   document.getElementById('s'+cur).classList.add('active');
   document.getElementById('pLabel').textContent=stepLabel(cur);
   updateSteps(cur);
+  // run screen-11 init on re-entry/restore too (fixes "0 days free" on return)
+  if(n===11) countUp('trialNum', 30, 800);
 }
 
 function clearState(){ try{ localStorage.removeItem('ais_d'); localStorage.removeItem('ais_cur'); }catch(e){} }
@@ -1136,7 +1143,6 @@ function go(n){
   // restore s9 back button if returning to screen 9
   if(n===9){ const b=document.getElementById('s9-back'); if(b)b.style.display=''; }
   // screen 9 message built after sponsor creation
-  if(n===11) showScholarshipCode();
   if(n===11) countUp('trialNum', 30, 800);
   window.scrollTo({top:0,behavior:'smooth'});
   saveState();
