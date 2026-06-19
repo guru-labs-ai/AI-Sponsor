@@ -346,6 +346,7 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 @keyframes pred{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}
 .chat-send-btn{background:var(--blue)}
 .chat-send-btn:hover{background:var(--blue-dark)}
+@media(max-width:480px){.chat-bar{gap:6px;padding:8px 8px}.chat-input{font-size:16px}}
 
 /* ── Coming Soon (Screen 6) ── */
 .coming-soon-wrap{margin-top:20px}
@@ -1883,10 +1884,12 @@ async function sendChat() {
       addMessage('ai', reply);
       chatHistory.push({ role: 'assistant', content: reply });
     } else {
+      console.error('AI Sponsor chat — API returned no message. HTTP', res.status, data);
       addMessage('ai', "I'm here with you. Give me just a moment and try again.");
     }
   } catch (err) {
     removeTyping();
+    console.error('AI Sponsor chat — request failed:', err);
     addMessage('ai', "I'm having trouble connecting right now. I'm still here — try again in a moment.");
   }
 }

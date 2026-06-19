@@ -54,6 +54,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);min-height:100vh;
 .chat-send-btn{background:var(--blue)}
 .chat-send-btn:hover{background:var(--blue-dark)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+@media (max-width:480px){
+  .chat-bar{gap:6px;padding:8px 8px}
+  .cicn-btn{width:40px;height:40px}
+  .chat-input{padding:10px 14px;font-size:16px}
+}
 </style>
 </head>
 <body>
@@ -227,10 +232,12 @@ async function sendChat() {
       addMessage('ai', reply);
       chatHistory.push({ role: 'assistant', content: reply });
     } else {
+      console.error('AI Sponsor chat — API returned no message. HTTP', res.status, data);
       addMessage('ai', "I'm here with you. Give me just a moment and try again.");
     }
   } catch (err) {
     removeTyping();
+    console.error('AI Sponsor chat — request failed:', err);
     addMessage('ai', "I'm having trouble connecting right now. I'm still here — try again in a moment.");
   }
 }
