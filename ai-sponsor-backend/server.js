@@ -1,10 +1,29 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const os = require('os');
+const fs = require('fs');
+const path = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
+const stripeModule = require('./stripe');
+
+// WhatsApp (Twilio) module is loaded ONLY when Twilio is configured. Its SDK
+// clients (Twilio + OpenAI) throw at construction when their keys are missing,
+// so requiring it without those env vars would crash the whole server at boot
+// and take the live web chat down with it. Guarding the require keeps chat safe
+// until WhatsApp is actually wired up (TWILIO_ACCOUNT_SID set on the host).
+let whatsapp = null;
+if (process.env.TWILIO_ACCOUNT_SID) {
+  whatsapp = require('./whatsapp');
+}
 
 const app = express();
 app.use(cors());
+
+// Stripe webhook needs the RAW request body for signature verification, so it
+// must be registered BEFORE the global express.json() parser below.
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
+
 app.use(express.json());
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -263,6 +282,40 @@ function buildUserContextBlock(profile) {
   return lines.join('\n');
 }
 
+/* Non-streaming sponsor reply — returns one complete text block.
+   Used by channels that can't consume a stream (e.g. WhatsApp). The /api/chat
+   route keeps streaming for the web UI; both share MASTER_SYSTEM_PROMPT +
+   conversation history, so the sponsor behaves identically across web + WhatsApp. */
+async function getSponsorReply(userId, message) {
+  const profile = userProfiles.get(userId) || {};
+  const history = conversations.get(userId) || [];
+
+  const userContext = buildUserContextBlock(profile);
+  const systemBlocks = [
+    { type: 'text', text: MASTER_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+  ];
+  if (userContext) systemBlocks.push({ type: 'text', text: userContext });
+
+  const updatedHistory = [...history, { role: 'user', content: message }];
+
+  const response = await client.messages.create({
+    model: 'claude-opus-4-6',
+    max_tokens: 1024,
+    system: systemBlocks,
+    messages: updatedHistory,
+  });
+
+  const replyText = response.content
+    .filter((block) => block.type === 'text')
+    .map((block) => block.text)
+    .join('');
+
+  updatedHistory.push({ role: 'assistant', content: replyText });
+  conversations.set(userId, updatedHistory);
+
+  return replyText;
+}
+
 // ─── Routes ──────────────────────────────────────────────────────────────────
 
 // Health check
@@ -410,6 +463,90 @@ app.post('/api/chat', async (req, res) => {
     res.end();
   }
 });
+
+// ─── Stripe Routes ───────────────────────────────────────────────────────────
+
+// Create a Checkout Session for either the monthly or annual plan.
+// Frontend calls this, then redirects the browser to the returned checkoutUrl.
+app.post('/api/stripe/create-checkout', async (req, res) => {
+  const { plan, email, userId } = req.body;
+  if (!plan || !email) {
+    return res.status(400).json({ error: 'plan and email are required' });
+  }
+
+  try {
+    const { checkoutUrl, sessionId } = await stripeModule.createCheckoutSession({
+      plan,
+      email,
+      userId,
+    });
+    res.json({ checkoutUrl, sessionId });
+  } catch (err) {
+    console.error('stripe/create-checkout error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Stripe webhook handler — registered earlier (before express.json()) so it can
+// access the raw request body needed for signature verification.
+async function handleStripeWebhook(req, res) {
+  const signature = req.headers['stripe-signature'];
+
+  let event;
+  try {
+    event = stripeModule.constructWebhookEvent(req.body, signature);
+  } catch (err) {
+    console.error('Stripe webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  try {
+    const result = await stripeModule.handleWebhookEvent(event);
+    console.log('Stripe webhook handled:', result);
+    // TODO (Abdul): sync subscription events to GHL here (tag paying / trial-ending).
+    res.json({ received: true });
+  } catch (err) {
+    console.error('Stripe webhook handling error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+// ─── WhatsApp (Twilio) Routes — mounted ONLY when Twilio is configured ─────────
+// Guarded so the live web chat is never affected by missing Twilio/OpenAI keys.
+if (whatsapp) {
+  // Twilio sends form-encoded bodies (not JSON) — needs urlencoded parser on this route.
+  app.post('/api/whatsapp/webhook',
+    express.urlencoded({ extended: false }),
+    async (req, res) => {
+      try {
+        const { twiml, rejected } = await whatsapp.handleIncomingMessage(req, getSponsorReply, app);
+        if (rejected) return res.status(403).send('Forbidden');
+        res.set('Content-Type', 'text/xml');
+        res.status(200).send(twiml);
+      } catch (err) {
+        console.error('[WhatsApp] Webhook handler error:', err.message);
+        // Always 200 + empty TwiML — a 5xx makes Twilio retry repeatedly.
+        res.set('Content-Type', 'text/xml');
+        res.status(200).send('<Response></Response>');
+      }
+    }
+  );
+
+  // Serve temporary audio files for WhatsApp voice-note replies.
+  // SECURITY: only files prefixed "wa-reply-" (+ basename) to block path traversal.
+  app.get('/media/:filename', (req, res) => {
+    const filename = path.basename(req.params.filename);
+    if (!filename.startsWith('wa-reply-') || !filename.endsWith('.mp3')) {
+      return res.status(404).send('Not found');
+    }
+    const filePath = path.join(os.tmpdir(), filename);
+    if (!fs.existsSync(filePath)) return res.status(404).send('Not found');
+    res.sendFile(filePath);
+  });
+  console.log('WhatsApp (Twilio) routes mounted.');
+} else {
+  console.log('WhatsApp routes NOT mounted (TWILIO_ACCOUNT_SID not set) — web chat unaffected.');
+}
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3001;
