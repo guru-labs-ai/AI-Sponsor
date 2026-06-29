@@ -99,7 +99,7 @@
 
 <!-- HEADER -->
 <div class="header">
-  <div class="tag">Product Brief · May 2026</div>
+  <div class="tag">Product Brief · Updated June 29, 2026</div>
   <h1>AI Sponsor</h1>
   <div class="subtitle">An AI-powered recovery companion available 24/7 via WhatsApp — built for the tens of millions of people in 12-step programs worldwide.</div>
 </div>
@@ -127,7 +127,7 @@
   </div>
   <div class="stat-divider"></div>
   <div class="stat-item">
-    <div class="stat-val">89</div>
+    <div class="stat-val">59</div>
     <div class="stat-lbl">Beta Users Ready</div>
   </div>
 </div>
@@ -135,9 +135,41 @@
 <!-- WHAT IT IS -->
 <div class="section-label">What It Is</div>
 <div class="what-box">
-  <p>AI Sponsor is a <strong>24/7 AI-powered recovery companion</strong> designed to support people in 12-step programs whenever they need guidance, accountability, encouragement, or someone to talk to. It acts as an always-available digital sponsor — accessible through <strong>WhatsApp</strong> — providing immediate emotional support, recovery reminders, relapse interruption, step guidance, check-ins, and structured accountability rooted in 12-step methodologies.</p>
-  <p>The core value proposition is <strong>accessibility</strong>: many people in recovery struggle during moments when their human sponsor is unavailable, asleep, busy, or emotionally exhausted. AI Sponsor fills that gap — offering immediate, stigma-free support at 2am during a craving, an emotional spiral, or a moment of uncertainty.</p>
-  <p><strong>It is not designed to replace human sponsors or recovery communities</strong> — it reinforces and extends them. The site includes a clear disclaimer: not affiliated with any 12-step programs. This is a private project.</p>
+  <p>AI Sponsor is a <strong>24/7 AI-powered recovery companion</strong> for people in 12-step programs. It's a <strong>conversational chatbot</strong>, powered by Claude, that a person reaches on <strong>WhatsApp</strong> (or web chat). <strong>The user always starts the conversation</strong> — they message whenever they need guidance, encouragement, step work, or someone to talk to at 2am during a craving — and the sponsor responds in context, remembering who they are.</p>
+  <p>The core value proposition is <strong>accessibility</strong>: many people in recovery struggle in moments when their human sponsor is unavailable, asleep, or busy. AI Sponsor fills that gap with immediate, stigma-free, always-on support — across <strong>every program</strong>, not just alcohol.</p>
+  <p><strong>It reinforces human sponsors and meetings — it does not replace them.</strong> The site carries a clear disclaimer: not affiliated with any 12-step program. This is a private project.</p>
+</div>
+
+<!-- USER JOURNEY -->
+<div class="section-label">User Journey — What Actually Happens</div>
+<div class="what-box">
+  <p><strong>Primary path — WhatsApp (open model):</strong></p>
+  <p>1. A person discovers AI Sponsor (beta group, referral, ad, or AI-search result).<br>
+  2. <strong>They message the WhatsApp number</strong> (our dedicated Twilio number).<br>
+  3. The sponsor (Claude) <strong>replies right away</strong> — warm, asks what's going on. No code, no gate.<br>
+  4. The conversation continues — <strong>text or voice notes</strong>; the sponsor remembers their name, program, and story.<br>
+  5. Behind the scenes, the contact is captured in GoHighLevel (CRM).<br>
+  6. They come back <strong>whenever they need support, 24/7 — they start it every time.</strong></p>
+  <p style="margin-top:12px;"><strong>Web path:</strong> land on getaisponsor.com → register (9-screen onboarding: program, recovery stage, what brought them, goals, sponsor name/style) → a sponsor personalized to their answers → chat, or directed to WhatsApp. Beta users = free (code/tag); public = 30-day trial → $5/mo.</p>
+</div>
+
+<!-- USER STORIES -->
+<div class="section-label">User Stories</div>
+<div class="grid-2">
+  <div class="card"><div class="card-body"><strong>As someone in recovery,</strong> I want to reach a sponsor at 3am, <strong>so</strong> I get support the moment I need it — not whenever a human is free.</div></div>
+  <div class="card"><div class="card-body"><strong>As a newcomer who can't find a human sponsor,</strong> I want immediate guidance, <strong>so</strong> I don't white-knuckle it alone.</div></div>
+  <div class="card"><div class="card-body"><strong>As someone in a non-alcohol program</strong> (GA, DA, OA, SLAA…), I want a sponsor who knows my program, <strong>so</strong> I feel understood — not redirected to drinking advice.</div></div>
+  <div class="card"><div class="card-body"><strong>As a returning user,</strong> I want it to remember my name and story, <strong>so</strong> I don't have to repeat myself each time.</div></div>
+  <div class="card"><div class="card-body"><strong>As a user mid-craving,</strong> I want to send a voice note and get a voice reply, <strong>so</strong> I can talk it out hands-free.</div></div>
+  <div class="card"><div class="card-body"><strong>As someone who can't afford it,</strong> I want free access funded by someone else's subscription (1-for-1), <strong>so</strong> cost is never the barrier.</div></div>
+</div>
+
+<!-- WHAT IT DOES NOT DO -->
+<div class="one-box" style="background:#3f1d1d;">
+  <h3 style="color:#fca5a5;">🚫 What AI Sponsor Does NOT Do</h3>
+  <p style="color:#fecaca;">• It does <strong>NOT</strong> send daily reminders, scheduled check-ins, or any outbound/marketing messages. <strong>It is user-initiated</strong> — the person always starts the conversation.</p>
+  <p style="color:#fecaca;">• It runs on <strong>WhatsApp via Twilio (WhatsApp Senders)</strong> — <strong>NOT SMS / A2P 10DLC.</strong> No "Reply STOP," no "msg &amp; data rates," no keyword opt-in flow.</p>
+  <p style="color:#fecaca;">• There is <strong>no code gate on WhatsApp</strong> (open model). Beta codes only relate to free access on the website.</p>
 </div>
 
 <!-- THE PROGRAMS -->
@@ -164,8 +196,8 @@
   <div class="card">
     <div class="card-icon">💬</div>
     <div class="card-title">WhatsApp Delivery (V1)</div>
-    <div class="card-body">Users text their AI Sponsor naturally on WhatsApp — just like messaging a real sponsor. Powered by Wapisimo. SMS/MMS is V2. No app download required.</div>
-    <span class="card-tag" style="background:#EDE9FE;color:#5b21b6;">Wapisimo · In Build</span>
+    <div class="card-body">Users text (or send voice notes to) their AI Sponsor on WhatsApp — just like messaging a real sponsor. Powered by <strong>Twilio</strong> (WhatsApp Senders). No app download required.</div>
+    <span class="card-tag" style="background:#EDE9FE;color:#5b21b6;">Twilio · Blocked on Meta access</span>
   </div>
 
   <div class="card">
@@ -218,8 +250,8 @@
 
   <div class="stack-card">
     <div class="stack-icon">📱</div>
-    <div class="stack-name">Wapisimo</div>
-    <div class="stack-role">WhatsApp API delivery layer. Matt's confirmed partnership. wapisimo.dev</div>
+    <div class="stack-name">Twilio</div>
+    <div class="stack-role">WhatsApp delivery layer (WhatsApp Senders) + voice. Dedicated Wyoming 307 number. Replaced the earlier Wapisimo plan.</div>
   </div>
 
   <div class="stack-card">
@@ -243,13 +275,13 @@
   <div class="stack-card">
     <div class="stack-icon">💳</div>
     <div class="stack-name">Stripe</div>
-    <div class="stack-role">Handles $5/month subscriptions and 30-day trial. Pending connection by Matt.</div>
+    <div class="stack-role">$5/mo + $49/yr subscriptions, 30-day trial. Code built &amp; deployed; on hold until paid-public (beta is free).</div>
   </div>
 
   <div class="stack-card">
     <div class="stack-icon">🌐</div>
-    <div class="stack-name">Standalone Domain</div>
-    <div class="stack-role">youraisponsor.com — self-hosted. Not on Audos or Polsia. Matt's deliberate experiment.</div>
+    <div class="stack-name">Backend + Domain</div>
+    <div class="stack-role">getaisponsor.com (GitHub Pages) + Node/Express backend on Render. Self-hosted standalone — Matt's deliberate experiment.</div>
   </div>
 
 </div>
@@ -279,44 +311,44 @@
   <div class="status-item">
     <div class="s-icon">⚙️</div>
     <div class="s-content">
-      <div class="s-title">Wapisimo WhatsApp Integration</div>
-      <div class="s-desc">Wire Wapisimo as the delivery layer. When a user registers, their WhatsApp number gets connected and AI Sponsor starts messaging them. This is the core integration that makes the product functional.</div>
+      <div class="s-title">Twilio WhatsApp Integration</div>
+      <div class="s-desc">Backend WhatsApp module (Twilio two-way text + voice) is built and deployed (dormant). <strong>Blocked on Meta Business access</strong> for Jan to register the 307 number with WhatsApp Business — the keystone for the whole WhatsApp launch.</div>
     </div>
-    <span class="s-owner ow-abdul">Abdul</span>
+    <span class="s-owner" style="background:#FEE2E2;color:#991B1B;">Blocked · Meta</span>
   </div>
 
   <div class="status-item">
     <div class="s-icon">⚙️</div>
     <div class="s-content">
-      <div class="s-title">GHL CRM Wiring</div>
-      <div class="s-desc">Registration submit → contact created in GHL with program tag, phone number, and delivery preference automatically. Enables automations, follow-ups, and future segmentation.</div>
+      <div class="s-title">GHL CRM</div>
+      <div class="s-desc">GHL side is <strong>done</strong> — Abdul built the custom fields (program, stage, delivery, payment status), tags, pipeline, and KPI dashboard. Remaining: the backend connector that pushes registration data into GHL (on Mariam/backend).</div>
     </div>
-    <span class="s-owner ow-abdul">Abdul</span>
+    <span class="s-owner ow-abdul">Abdul ✓ / backend pending</span>
   </div>
 
   <div class="status-item">
-    <div class="s-icon">🔄</div>
+    <div class="s-icon">✅</div>
     <div class="s-content">
-      <div class="s-title">AI Master Prompt</div>
-      <div class="s-desc">Defining the AI Sponsor's tone, guardrails, program-specific language, and crisis triggers. In progress — this shapes how the AI responds to every user message.</div>
+      <div class="s-title">Live Chat (Claude) — WORKING</div>
+      <div class="s-desc">Web chat is live and secure on getaisponsor.com, running through the backend with the master prompt (tone, guardrails, program-specific language, crisis protocol) + per-user personalization. The exposed API key was removed and moved server-side.</div>
     </div>
-    <span class="s-owner ow-mariam">Mariam</span>
+    <span class="s-owner ow-built">Live ✓</span>
   </div>
 
   <div class="status-item">
     <div class="s-icon">🔴</div>
     <div class="s-content">
-      <div class="s-title">Stripe + Beta Codes</div>
-      <div class="s-desc">Stripe needs to be connected before any paid signups. Beta codes (30-day free, no card) need to be created for the 11 Group 1 users. Both blocked until Matt action.</div>
+      <div class="s-title">Stripe — built, on hold</div>
+      <div class="s-desc">Stripe module ($5/mo + $49/yr + 30-day trial) is built &amp; deployed but dormant. Not needed for beta (beta = free codes/access), so it waits for paid-public. Open decision for Matt: what role the beta code plays now WhatsApp is open.</div>
     </div>
-    <span class="s-owner ow-matt">Matt</span>
+    <span class="s-owner ow-later">On Hold</span>
   </div>
 
   <div class="status-item">
     <div class="s-icon">⏳</div>
     <div class="s-content">
       <div class="s-title">End-to-End QA</div>
-      <div class="s-desc">Once Wapisimo + GHL + Claude are wired: full test of the flow — register → WhatsApp message received → AI responds correctly → crisis trigger works → GHL contact created.</div>
+      <div class="s-desc">Once Twilio WhatsApp + GHL sync are live: full test of the flow — message the WhatsApp number → AI responds correctly → crisis trigger works → contact captured in GHL. (Web chat already QA-passing.)</div>
     </div>
     <span class="s-owner ow-bilal">Bilal</span>
   </div>
@@ -325,7 +357,7 @@
     <div class="s-icon">⏳</div>
     <div class="s-content">
       <div class="s-title">Beta Onboarding</div>
-      <div class="s-desc">Group 1: 11 users from Matt's 85-person WhatsApp group. Matt leads a Google Meet to onboard them with beta codes. Group 2: 78 waitlist get a warm email from sponsor@youraisponsor.com after Group 1 is live.</div>
+      <div class="s-desc">Beta waitlist cleaned + deduped to <strong>59 unique contacts</strong>, ready to load into GHL (tagged for free/lifetime access per Matt's promise to the group). With the open WhatsApp model, beta users simply message the number — no code-to-activate step. Matt sharing access via his WhatsApp group (got 11 positive reactions).</div>
     </div>
     <span class="s-owner ow-matt">Matt + Mariam</span>
   </div>
@@ -349,11 +381,11 @@
     <div class="rb-name">Abdul</div>
     <div class="rb-role">Integrations & GHL</div>
     <div class="rb-tasks">
-      <div class="rb-task">Integrate Wapisimo WhatsApp API — this is the delivery channel for V1</div>
-      <div class="rb-task">Wire GHL as the CRM — auto-create contacts on registration submit</div>
-      <div class="rb-task">Connect Claude API to power AI responses through WhatsApp</div>
-      <div class="rb-task">Run end-to-end test with Mariam: register → message → AI responds</div>
-      <div class="rb-task">Matt's words: "he can do any of the ninja things you need help with on AI Sponsor or Claude"</div>
+      <div class="rb-task">Register the Twilio 307 number with WhatsApp Business (blocked on Meta access)</div>
+      <div class="rb-task">GHL CRM — done ✓ (fields, tags, pipeline, KPI dashboard built)</div>
+      <div class="rb-task">Create Stripe products/prices when we go paid-public (on hold for now)</div>
+      <div class="rb-task">Set up support-ticket handling in GHL (contact form already wired)</div>
+      <div class="rb-task">Add Hyros pixel + Google Analytics</div>
     </div>
   </div>
 
@@ -373,43 +405,43 @@
 </div>
 
 <!-- LAUNCH BLOCKERS -->
-<div class="section-label">What We Need to Launch — Open Questions for Abdul</div>
+<div class="section-label">What We Need to Launch</div>
 <div class="status-list">
 
   <div class="status-item" style="border-left: 4px solid #ef4444;">
     <div class="s-icon">🔑</div>
     <div class="s-content">
-      <div class="s-title">Wapisimo API Key — Waiting on Matt</div>
-      <div class="s-desc">Matt confirmed May 16: <em>"I have a new partnership with a WhatsApp API integration... I'll give you the key and contact to integrate it."</em> That key has never been shared. Abdul cannot start the WhatsApp integration without it. We need to chase Matt for this first.</div>
+      <div class="s-title">Meta Business access for Jan — Matt</div>
+      <div class="s-desc">The keystone. WhatsApp Business is owned by Meta, so the Twilio 307 number can only be registered once Jan has admin access to the company Meta Business account (the verification goes through Meta). This blocks the entire WhatsApp launch + GHL sync + analytics. <strong>Need Matt to add Jan as a Meta Business admin.</strong></div>
     </div>
-    <span class="s-owner" style="background:#FEE2E2;color:#991B1B;">Blocked</span>
+    <span class="s-owner" style="background:#FEE2E2;color:#991B1B;">Blocked · Matt</span>
   </div>
 
   <div class="status-item" style="border-left: 4px solid #f97316;">
-    <div class="s-icon">🤖</div>
+    <div class="s-icon">🎟️</div>
     <div class="s-content">
-      <div class="s-title">Claude API Key + Subscription</div>
-      <div class="s-desc">The AI responses are powered by Claude (Anthropic). Mariam tried to add a live AI chat to the landing page but couldn't — Claude API needs a paid subscription and API key. Someone needs to set up the Anthropic account. <strong>Abdul — is this something you can handle, or does Matt need to set it up?</strong></div>
+      <div class="s-title">Beta code decision — Matt</div>
+      <div class="s-desc">Now WhatsApp is open (anyone who messages gets the sponsor) and no paywall is live, beta users already get free access. The code only waives the $5 on the website. Decision needed: keep codes for web free-signups, or just tag beta users in GHL (lifetime / 6-month / paid) so the right people stay free once Stripe goes live?</div>
     </div>
-    <span class="s-owner ow-abdul">Abdul?</span>
+    <span class="s-owner ow-matt">Matt</span>
   </div>
 
   <div class="status-item" style="border-left: 4px solid #8b5cf6;">
     <div class="s-icon">⚙️</div>
     <div class="s-content">
-      <div class="s-title">The Connector — Wapisimo ↔ Claude API</div>
-      <div class="s-desc">The core of the product: user texts WhatsApp → Wapisimo receives it → webhook calls Claude API with master prompt + message → Claude responds → Wapisimo sends reply back. Abdul builds this. Matt also raised <strong>Temporal.io</strong> as a reliability layer (handles retries + state so the product doesn't break if something fails). <strong>Abdul — does this architecture make sense to you? Any better approach?</strong></div>
+      <div class="s-title">Registration → GHL connector — backend</div>
+      <div class="s-desc">Abdul's GHL side is ready to receive. The remaining piece is the backend endpoint that pushes registration data into GHL via the Contacts Upsert API (phone as primary identifier, dedupe on email/phone). Foundational, but not a beta blocker.</div>
     </div>
-    <span class="s-owner ow-abdul">Abdul</span>
+    <span class="s-owner ow-mariam">Mariam / backend</span>
   </div>
 
   <div class="status-item" style="border-left: 4px solid #3b82f6;">
-    <div class="s-icon">📊</div>
+    <div class="s-icon">🔒</div>
     <div class="s-content">
-      <div class="s-title">GHL CRM Wiring</div>
-      <div class="s-desc">When a user completes registration, their contact should be auto-created in GHL with program tag, phone number, and WhatsApp delivery preference. This connects the registration form to the CRM so we can manage users, automations, and follow-ups.</div>
+      <div class="s-title">Remove exposed GHL token from index.html</div>
+      <div class="s-desc">The GHL Private Integration token is still hardcoded in the public landing page (used by the support form). The Anthropic key was already moved server-side; this is the remaining exposed secret to clean up.</div>
     </div>
-    <span class="s-owner ow-abdul">Abdul</span>
+    <span class="s-owner ow-later">Cleanup</span>
   </div>
 
 </div>
