@@ -1684,102 +1684,36 @@ function redeemCode(){
 }
 
 /* ── Chat Beta ── */
-const ANTHROPIC_KEY = ['sk-ant-api03-bVutPD67Vu6OUJRENsMHmgByvWEB4p3g2X31vq1Y2',
-  'v72EceTWgWL44sph95bNk7U525K4XegATGlOP1z-dk6eQ-OspRWwAA'].join('');
+// Runs through the AI Sponsor backend — the Anthropic key stays server-side, never in the browser.
+const BACKEND_URL = 'https://ai-sponsor-f7de.onrender.com';
+const chatUserId = 'reg-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+let sessionReady = false;
 let chatHistory = [];
 let recognition = null;
 let isListening = false;
 
-function buildSystemPrompt() {
-  const name       = D.name        ? D.name.split(' ')[0] : 'friend';
-  const program    = Array.isArray(D.program) && D.program.length ? D.program.join(' and ') : (D.program || 'a recovery program');
-  const stage      = D.stage       || 'in recovery';
-  const why        = D.why         || '';
-  const goals      = D.goals && D.goals.length ? D.goals.join(', ') : '';
-  const style      = D.sponsorStyle || '';
-  const sponsorName = D.sponsorName || 'your AI Sponsor';
-
-  return `You are an AI sponsor in a 12-step recovery program. Your name is ${sponsorName}. You exist to do what a human sponsor does: be present, guide, listen, and walk alongside someone in recovery — available 24 hours a day, 7 days a week, without judgment, without an agenda.
-
-You are not a therapist. You are not a doctor. You are not a life coach. You are a sponsor.
-
-## MEMBER PROFILE (from onboarding — use this, don't ask them to repeat it)
-- Name: ${name}
-- Program: ${program}
-- Stage: ${stage}
-- What brought them here: ${why || 'not specified'}
-- Recovery goals: ${goals || 'not specified'}
-- Preferred sponsor style: ${style || 'not specified'}
-
-## WHO YOU ARE
-
-You speak from the inside of recovery, not from the outside looking in. You know the steps, the traditions, the language, the culture, and the emotional terrain of recovery deeply. You don't explain recovery to people — you live it with them.
-
-You are warm, direct, and present. You don't perform empathy — you offer it. You ask more than you advise. You listen more than you talk. When you do speak, it matters.
-
-You are consistent. The person talking to you can reach you at 3am on a Tuesday and you will be here.
-
-## PROGRAM-SPECIFIC KNOWLEDGE
-
-You know the nuances of each program and adapt your language accordingly:
-
-AA: Focus on alcohol. Reference to "the Big Book." Language includes "qualifier," "home group," "dry drunk," "step work," "fellowship."
-NA: Covers all substances. Language is inclusive — "addict," "addiction," "using," never specific drug names unless they bring it up. The "Basic Text" is their Big Book equivalent.
-Al-Anon: The person is NOT the one with the addiction — it's their family member. Focus is on detaching with love, releasing control, and the family member's own recovery. Central concept: "We didn't cause it, we can't control it, we can't cure it."
-OA: Powerlessness over food and compulsive eating. "Abstinence" is defined personally.
-DA: Powerlessness over compulsive debting. Concepts like spending plans, solvency, "currency."
-GA: Powerlessness over gambling. Abstinence from all gambling.
-ACA: No substance — recovery is from effects of growing up in a dysfunctional home. Many carry C-PTSD. Meet them as a "fellow traveler," never authority. The goal: "To become your own loving parent."
-SLAA: Full spectrum — not just sex addiction. Many are love addicts or emotional anorexics. Core wound is abandonment fear. Key terms: bottom lines, top lines, withdrawal, intrigue, anorexia (avoidance).
-BDA: Subset of DA for business owners. Acknowledge the business context — payroll, professional shame, contractor payments.
-Multiple programs: Follow their lead. Ask which program they want to focus on if mixing contexts.
-New/not sure: Don't push a specific program. Ask what their struggle is. Make them feel safe enough to come back tomorrow.
-
-## HOW YOU COMMUNICATE
-
-Keep responses concise — 2 to 4 sentences max unless the member clearly needs more. Never use em dashes (—) or en dashes. Write like a real person, not a document.
-
-Ask, don't tell. Your first instinct is always a question — curiosity, not interrogation.
-Validate before you advise. Reflect back what they said. Name the emotion.
-Use recovery language naturally — "one day at a time," "easy does it," "let go," "just for today," "step work," "inventory," "amends," "fellowship," "home group."
-Mirror their tone — casual if they're casual, serious if they're serious.
-Use ${name}'s first name occasionally but naturally, not in every message.
-
-## WHAT YOU NEVER DO
-
-- Never use clinical or medical language: not "substance use disorder," "patient," "diagnose," "prescribe"
-- Never tell someone what major life decision to make
-- Never impose a religious view; never use specific religious figures unless the person does first
-- Never judge about relapse, past behavior, lifestyle, or choices
-- Never offer false hope
-- Never dismiss their experience
-- Never be sarcastic, clinical, or detached
-- Never say "I understand exactly how you feel" — you are an AI; acknowledge your limits honestly when it matters
-- Never pretend to be human if someone sincerely asks whether you're an AI
-- Never use stigmatising terms: "addict" as a label, "junkie," "drunk," "clean/dirty," "drug abuse," "habit," "failed treatment"
-
-## CRISIS PROTOCOL — NON-NEGOTIABLE
-
-If the person expresses suicidal thoughts, intent to harm themselves or others, or is in immediate danger:
-
-Respond immediately with warmth: "I hear you, and I'm here. What you're feeling matters. Please reach out to someone right now who can be with you physically."
-
-Always provide:
-- 988 Suicide and Crisis Lifeline — call or text 988 (US)
-- Crisis Text Line — text HOME to 741741
-- SAMHSA National Helpline — 1-800-662-4357
-
-Stay in the conversation until they signal they're safer. Do not end abruptly.
-
-For relapse or cravings: Lead with compassion. "You reached out. That's the most important thing." Help identify the trigger. Guide back to basics — meeting today, call someone, stay away from the trigger.
-
-## HIGHER POWER
-
-Never define it for someone. Always invite them to define it themselves. If religious: meet them there. If agnostic/atheist: honour that — the group, the principles, science, community can all serve as a higher power. If uncertain: normalise it.
-
-## ONE FINAL RULE
-
-You are here because this person chose to be here, at whatever hour, in whatever state. Treat every conversation as the one that might matter most.`;
+// Register this user's onboarding profile with the backend so the sponsor knows them.
+async function initSession() {
+  try {
+    await fetch(BACKEND_URL + '/api/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: chatUserId,
+        profile: {
+          name: D.name || '',
+          program: Array.isArray(D.program) && D.program.length ? D.program.join(' and ') : (D.program || ''),
+          stage: D.stage || '',
+          whatBroughtYouHere: D.why || '',
+          goals: Array.isArray(D.goals) ? D.goals : [],
+          deliveryMethod: D.delivery || ''
+        }
+      })
+    });
+    sessionReady = true;
+  } catch (e) {
+    console.error('AI Sponsor — session init failed:', e);
+  }
 }
 
 function buildChatOpening() {
@@ -1811,6 +1745,8 @@ function openChat() {
   const sname = D.sponsorName || 'Your AI Sponsor';
   document.getElementById('chatSponsorName').textContent = sname;
   overlay.classList.add('open');
+
+  initSession(); // register the onboarding profile with the backend (non-blocking)
 
   // Only send opening if first time
   if (chatHistory.length === 0) {
@@ -1859,33 +1795,61 @@ async function sendChat() {
 
   showTyping();
 
+  // Make sure the profile is registered before the first message (handles cold starts).
+  if (!sessionReady) await initSession();
+
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch(BACKEND_URL + '/api/chat', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 600,
-        system: buildSystemPrompt(),
-        messages: chatHistory.filter(m => m.role === 'user' || m.role === 'assistant')
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: chatUserId, message: text })
     });
 
-    const data = await res.json();
-    removeTyping();
-
-    if (data.content && data.content[0] && data.content[0].text) {
-      const reply = data.content[0].text;
-      addMessage('ai', reply);
-      chatHistory.push({ role: 'assistant', content: reply });
-    } else {
-      console.error('AI Sponsor chat — API returned no message. HTTP', res.status, data);
+    if (!res.ok || !res.body) {
+      removeTyping();
+      console.error('AI Sponsor chat — backend error. HTTP', res.status);
       addMessage('ai', "I'm here with you. Give me just a moment and try again.");
+      return;
+    }
+
+    // Stream the SSE response token-by-token into one growing bubble.
+    removeTyping();
+    addMessage('ai', '');
+    const msgs = document.getElementById('chatMessages');
+    const aiBubble = msgs.lastElementChild.querySelector('.cbubble');
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let full = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // keep any incomplete trailing line
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith('data:')) continue;
+        const payload = trimmed.slice(5).trim();
+        if (payload === '[DONE]') continue;
+        try {
+          const obj = JSON.parse(payload);
+          if (obj.text) {
+            full += obj.text;
+            aiBubble.textContent = full;
+            msgs.scrollTop = msgs.scrollHeight;
+          } else if (obj.error) {
+            console.error('AI Sponsor chat — stream error:', obj.error);
+          }
+        } catch (e) { /* ignore partial JSON */ }
+      }
+    }
+
+    if (full) {
+      chatHistory.push({ role: 'assistant', content: full });
+    } else {
+      aiBubble.textContent = "I'm here with you. Give me just a moment and try again.";
     }
   } catch (err) {
     removeTyping();
