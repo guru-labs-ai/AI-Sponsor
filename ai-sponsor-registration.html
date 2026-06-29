@@ -1706,7 +1706,9 @@ async function initSession() {
           stage: D.stage || '',
           whatBroughtYouHere: D.why || '',
           goals: Array.isArray(D.goals) ? D.goals : [],
-          deliveryMethod: D.delivery || ''
+          deliveryMethod: D.delivery || '',
+          sponsorName: D.sponsorName || '',
+          sponsorStyle: D.sponsorStyle || ''
         }
       })
     });

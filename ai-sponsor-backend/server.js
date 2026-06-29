@@ -257,6 +257,8 @@ function buildUserContextBlock(profile) {
   if (profile.whatBroughtYouHere) lines.push(`- What brought them here: "${profile.whatBroughtYouHere}"`);
   if (profile.goals && profile.goals.length > 0) lines.push(`- Goals: ${profile.goals.join(', ')}`);
   if (profile.deliveryMethod) lines.push(`- Preferred delivery: ${profile.deliveryMethod}`);
+  if (profile.sponsorName) lines.push(`- They named you (their sponsor) "${profile.sponsorName}". Introduce yourself by that name and use it when signing off, naturally.`);
+  if (profile.sponsorStyle) lines.push(`- Preferred sponsor style: ${profile.sponsorStyle}. Lean your tone this way.`);
 
   return lines.join('\n');
 }
