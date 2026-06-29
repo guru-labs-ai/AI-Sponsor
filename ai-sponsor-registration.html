@@ -976,7 +976,7 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 
       <!-- Beta code (hidden by default) -->
       <div class="code-section" id="codeSection" style="display:none">
-        <p class="trial-note" style="margin-bottom:12px">Your beta code unlocks <strong>3 months free</strong> — no card required.</p>
+        <p class="trial-note" style="margin-bottom:12px">Your beta code unlocks <strong>free access</strong> — no card required.</p>
         <div class="code-row">
           <input type="text" id="f-code" placeholder="ENTER CODE"
             onkeydown="if(event.key==='Enter')redeemCode()">
@@ -990,7 +990,7 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
       <div class="code-success" id="codeSuccess">
         <div class="s-icon">✓</div>
         <h2>You're in.</h2>
-        <p>Your <span id="trialLen">30 days</span> start now.<br>I'll be here whenever you need me, day or night.</p>
+        <p>Your <span id="trialLen">access</span> starts now.<br>I'll be here whenever you need me, day or night.</p>
         <button class="btn" style="margin-top:24px" onclick="openChat()">Start talking →</button>
       </div>
 
@@ -1656,7 +1656,7 @@ function startTrial(){
   }
   if(!ok)return;
   document.getElementById('cardSection').style.display='none';
-  document.getElementById('trialLen').textContent='30 days';
+  document.getElementById('trialLen').textContent='30-day free trial';
   document.getElementById('codeSuccess').classList.add('show');
   clearState();
 }
@@ -1676,7 +1676,7 @@ function redeemCode(){
     document.getElementById('e-code').classList.remove('show');
     document.getElementById('codeSection').style.display='none';
     document.getElementById('stripeNote').style.display='none';
-    document.getElementById('trialLen').textContent='3 months';
+    document.getElementById('trialLen').textContent='free access';
     document.getElementById('codeSuccess').classList.add('show');
   } else {
     document.getElementById('e-code').classList.add('show');
