@@ -980,7 +980,7 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 
       <!-- Beta code (hidden by default) -->
       <div class="code-section" id="codeSection" style="display:none">
-        <p class="trial-note" style="margin-bottom:12px">Your beta code unlocks <strong>free access</strong> — no card required.</p>
+        <p class="trial-note" style="margin-bottom:12px">Your beta code unlocks <strong>6 months free</strong> — no card required.</p>
         <div class="code-row">
           <input type="text" id="f-code" placeholder="ENTER CODE"
             onkeydown="if(event.key==='Enter')redeemCode()">
@@ -1687,7 +1687,7 @@ function redeemCode(){
     document.getElementById('e-code').classList.remove('show');
     document.getElementById('codeSection').style.display='none';
     document.getElementById('stripeNote').style.display='none';
-    document.getElementById('trialLen').textContent='free access';
+    document.getElementById('trialLen').textContent='6 months of free access';
     document.getElementById('codeSuccess').classList.add('show');
     registerUser('Beta'); // fire-and-forget — save to GHL as a beta user
   } else {
