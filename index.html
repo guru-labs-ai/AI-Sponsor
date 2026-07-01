@@ -1255,6 +1255,37 @@
     wrapper.classList.toggle('bad', !valid);
     return valid;
   };
+  // Landing-page Amends (TV series) casting form -> GHL. Uses the SAME backend
+  // /register hook and the SAME `amends-tv` tag as the registration-flow Amends
+  // step, so both entry points feed one filterable casting list in GHL. The
+  // casting details (program / location / about) are folded into the amends note.
+  const AMENDS_REGISTER_ENDPOINT = 'https://ai-sponsor-f7de.onrender.com/register';
+  async function submitAmendsToGHL(){
+    const val = id => (document.getElementById(id)?.value || '').trim();
+    const code = (document.getElementById('amendsSelCode')?.textContent || '').trim();
+    const phoneDigits = val('af-phone').replace(/\D/g,'');
+    const phone = phoneDigits ? (code + phoneDigits) : '';
+    const amendsWho = [
+      val('af-program')  ? ('Program: '  + val('af-program'))  : '',
+      val('af-location') ? ('Location: ' + val('af-location')) : '',
+      val('af-about')    ? ('About: '    + val('af-about'))    : ''
+    ].filter(Boolean).join(' | ');
+    try{
+      await fetch(AMENDS_REGISTER_ENDPOINT, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          name: val('af-name'),
+          email: val('af-email'),
+          phone: phone,
+          amendsInterest: true,
+          amendsWho: amendsWho,
+          source: 'amends-landing-modal'
+        })
+      });
+    }catch(e){ console.warn('[AI Sponsor] Amends casting sync failed:', e); }
+  }
+
   window.submitAmendsModal = function(){
     let valid = true;
     function check(wrapperId, inputId, testFn) {
@@ -1272,6 +1303,7 @@
       document.querySelector('#amendsModalForm .amends-field.bad input, #amendsModalForm .amends-field.bad textarea').focus();
       return;
     }
+    submitAmendsToGHL(); // fire-and-forget — save casting applicant to GHL (amends-tv)
     document.getElementById('amendsModalForm').style.display='none';
     document.getElementById('amendsModalConfirm').classList.add('show');
   };
