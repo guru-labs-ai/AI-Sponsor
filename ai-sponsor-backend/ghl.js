@@ -161,6 +161,51 @@ async function registerContact(data) {
   return { contactId: contact.id, isNew: json.new, tags: contact.tags };
 }
 
+// Save a support-form submission: upsert the contact (tagged ai-sponsor-support,
+// DND like the rest) and attach a note with the subject + message.
+async function submitSupport(data) {
+  if (!data || !data.email) {
+    const err = new Error('email required');
+    err.statusCode = 400;
+    throw err;
+  }
+  const { firstName, lastName } = splitName(data.name);
+  const body = {
+    locationId: LOCATION_ID,
+    firstName,
+    lastName,
+    name: data.name || undefined,
+    email: data.email,
+    dnd: true,
+    tags: ['ai-sponsor', 'ai-sponsor-support'],
+    source: data.source || 'ai-sponsor-support-form',
+  };
+  Object.keys(body).forEach((k) => body[k] === undefined && delete body[k]);
+  const resp = await fetch(`${GHL_BASE}/contacts/upsert`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify(body),
+  });
+  const json = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    const err = new Error(json.message || `GHL upsert failed (${resp.status})`);
+    err.statusCode = resp.status;
+    err.detail = json;
+    throw err;
+  }
+  const contactId = (json.contact || json).id;
+  if (contactId && (data.subject || data.message)) {
+    await fetch(`${GHL_BASE}/contacts/${contactId}/notes`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({
+        body: `[AI Sponsor Support]\nSubject: ${data.subject || '(none)'}\n\n${data.message || ''}`,
+      }),
+    }).catch(() => {});
+  }
+  return { contactId };
+}
+
 // Delete a contact (used by the smoke test to clean up).
 async function deleteContact(contactId) {
   const resp = await fetch(`${GHL_BASE}/contacts/${contactId}`, {
@@ -186,6 +231,7 @@ async function ensureAmendsField() {
 
 module.exports = {
   registerContact,
+  submitSupport,
   deleteContact,
   ensureAmendsField,
   buildContactBody,

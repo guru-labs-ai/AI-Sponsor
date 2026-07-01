@@ -350,6 +350,47 @@ app.post('/register', async (req, res) => {
   }
 });
 
+// Notify the support pool in Slack about a new ticket. Uses an Incoming Webhook
+// URL (SLACK_SUPPORT_WEBHOOK). If it's not set, this quietly no-ops so the
+// ticket still saves to GHL — the webhook can be added later.
+const SUPPORT_SLACK_MENTIONS = '<@U0B8NJSJYQH> <@U08V21E9Q8Z> <@U0B8HA1330V>'; // Mariam, Mubashir, Abdul
+async function notifySupportSlack({ name, email, subject, message, contactId }) {
+  const url = process.env.SLACK_SUPPORT_WEBHOOK;
+  if (!url) return;
+  const loc = process.env.GHL_LOCATION_ID || 'Mgfec8mT0vXxyhp9SizK';
+  const link = contactId
+    ? `https://app.gohighlevel.com/v2/location/${loc}/contacts/detail/${contactId}`
+    : '';
+  const text = [
+    ':envelope_with_arrow: *New AI Sponsor support ticket*',
+    SUPPORT_SLACK_MENTIONS,
+    `*From:* ${name || '(no name)'} (${email || 'no email'})`,
+    `*Subject:* ${subject || '(none)'}`,
+    `*Message:* ${message || '(none)'}`,
+    link ? `*GHL contact:* ${link}` : '',
+  ].filter(Boolean).join('\n');
+  await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+}
+
+// Support-form submission: save to GHL (tagged ai-sponsor-support) + ping the
+// support pool in Slack. Keeps the GHL token server-side (out of the browser).
+app.post('/support', async (req, res) => {
+  const { name, email, subject, message } = req.body || {};
+  try {
+    const result = await ghl.submitSupport(req.body || {});
+    notifySupportSlack({ name, email, subject, message, contactId: result.contactId })
+      .catch((e) => console.warn('[support] Slack notify failed:', e.message));
+    res.json({ success: true, contactId: result.contactId });
+  } catch (err) {
+    console.error('[support] failed:', err.message, err.detail || '');
+    res.status(err.statusCode || 500).json({ success: false, error: err.message });
+  }
+});
+
 // Get conversation history for a user
 app.get('/api/history/:userId', (req, res) => {
   const { userId } = req.params;

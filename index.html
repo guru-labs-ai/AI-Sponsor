@@ -1333,61 +1333,30 @@
     btn.disabled = true;
     btn.textContent = 'Sending…';
 
-    const name    = document.getElementById('cf-name').value.trim();
-    const email   = document.getElementById('cf-email').value.trim();
-    const subject = document.getElementById('cf-subject').value;
-    const message = document.getElementById('cf-message').value.trim();
-
-    const nameParts = name.split(' ');
-    const firstName = nameParts[0];
-    const lastName  = nameParts.slice(1).join(' ') || '';
-
-    const GHL_TOKEN   = 'pit-ff11c2d1-add3-49e6-b9ca-0dd78dd47f3b';
-    const LOCATION_ID = 'Mgfec8mT0vXxyhp9SizK';
-    const GHL_BASE    = 'https://services.leadconnectorhq.com';
+    // Send the ticket to our backend, which saves it to GHL (tagged
+    // ai-sponsor-support) and pings the support team in Slack. The GHL token
+    // stays server-side — no longer exposed in this page.
+    const payload = {
+      name:    document.getElementById('cf-name').value.trim(),
+      email:   document.getElementById('cf-email').value.trim(),
+      subject: document.getElementById('cf-subject').value,
+      message: document.getElementById('cf-message').value.trim(),
+      source:  'ai-sponsor-support-form'
+    };
 
     try {
-      // 1. Upsert contact in GHL
-      const contactRes = await fetch(`${GHL_BASE}/contacts/upsert`, {
+      const res = await fetch('https://ai-sponsor-f7de.onrender.com/support', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${GHL_TOKEN}`,
-          'Version': '2021-07-28'
-        },
-        body: JSON.stringify({
-          firstName,
-          lastName,
-          email,
-          locationId: LOCATION_ID,
-          tags: ['ai-sponsor-support'],
-          source: 'AI Sponsor Landing Page'
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
-      const contactData = await contactRes.json();
-      const contactId = contactData?.contact?.id;
+      if (!res.ok) throw new Error('support request failed');
 
-      // 2. Add note with their message
-      if (contactId) {
-        await fetch(`${GHL_BASE}/contacts/${contactId}/notes`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${GHL_TOKEN}`,
-            'Version': '2021-07-28'
-          },
-          body: JSON.stringify({
-            body: `[AI Sponsor Support Request]\nSubject: ${subject}\n\n${message}`,
-            userId: contactId
-          })
-        });
-      }
-
-      // Show confirmation
       document.getElementById('contactForm').style.display = 'none';
       document.getElementById('contactConfirm').classList.add('show');
 
     } catch (err) {
+      console.warn('[AI Sponsor] Support send failed:', err);
       btn.disabled = false;
       btn.textContent = 'Send message →';
       alert('Something went wrong. Please try again or email us directly.');
