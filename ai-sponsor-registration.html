@@ -310,6 +310,10 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
   .goal-grid{grid-template-columns:1fr 1fr}
   .row{grid-template-columns:1fr}
 }
+/* Mobile: keep all form fields at 16px so iOS Safari doesn't auto-zoom on focus */
+@media(max-width:640px){
+  input,select,textarea{font-size:16px!important}
+}
 @media(max-width:380px){.goal-grid{grid-template-columns:1fr}}
 
 /* ── Meetings note (Screen 7) ── */

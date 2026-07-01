@@ -694,6 +694,10 @@
       .security-banner { padding: 20px; margin-top: 32px; }
       footer { padding: 32px 20px; }
     }
+    /* Mobile: keep all form fields at 16px so iOS Safari doesn't auto-zoom on focus */
+    @media (max-width: 640px){
+      input, select, textarea { font-size: 16px !important; }
+    }
   </style>
 </head>
 <body>
