@@ -1422,14 +1422,16 @@ function onSponsorInput(){
 }
 
 /* ── GHL Registration ──────────────────────────────────────────────────────
-   Fires once when the user meets their sponsor (all onboarding data collected).
-   POSTs to Abdul's server /register endpoint — server handles GHL contact
-   creation and whitelisting. Silent fail so UX is never blocked.
-   Replace REGISTER_ENDPOINT with Abdul's live server URL when ready.
+   Fires at COMPLETION — when the user redeems a beta code (redeemCode) or
+   starts a paid trial (startTrial). By then ALL onboarding data is collected,
+   including the Amends step (Screen 10) and payment status, so it rides along.
+   POSTs to our backend /register endpoint, which upserts the contact into GHL
+   (Do-Not-Disturb, so no shared-location workflow can message them).
+   Silent fail so UX is never blocked.
 ──────────────────────────────────────────────────────────────────────────── */
-const REGISTER_ENDPOINT = 'https://YOUR_SERVER_URL/register'; // swap in when Abdul deploys
+const REGISTER_ENDPOINT = 'https://ai-sponsor-f7de.onrender.com/register';
 
-async function registerUser() {
+async function registerUser(paymentStatus) {
   const payload = {
     name:        D.name         || '',
     email:       D.email        || '',
@@ -1444,6 +1446,9 @@ async function registerUser() {
     delivery:    D.delivery     || '',
     sponsorName: D.sponsorName  || '',
     sponsorStyle: D.sponsorStyle || '',
+    amendsInterest: !!D.amendsInterest,
+    amendsWho:   D.amendsWho     || '',
+    paymentStatus: paymentStatus || 'Unpaid',
     source:      'ai-sponsor-registration'
   };
   try {
@@ -1464,7 +1469,8 @@ function createSponsor(){
     : selectedStyle;
   D.sponsorName = sname;
   D.sponsorStyle = style;
-  registerUser(); // fire-and-forget — syncs user to GHL
+  // Note: GHL sync fires later, at completion (redeemCode / startTrial), once
+  // the Amends step + payment status are known — see registerUser().
   document.getElementById('s9-create').style.display='none';
   document.getElementById('s9-back').style.display='none';
   document.getElementById('s9-meet').style.display='block';
@@ -1658,6 +1664,7 @@ function startTrial(){
   document.getElementById('cardSection').style.display='none';
   document.getElementById('trialLen').textContent='30-day free trial';
   document.getElementById('codeSuccess').classList.add('show');
+  registerUser('Paid'); // fire-and-forget — save to GHL as a paid/trial user
   clearState();
 }
 function showCodeSection(){
@@ -1678,6 +1685,7 @@ function redeemCode(){
     document.getElementById('stripeNote').style.display='none';
     document.getElementById('trialLen').textContent='free access';
     document.getElementById('codeSuccess').classList.add('show');
+    registerUser('Beta'); // fire-and-forget — save to GHL as a beta user
   } else {
     document.getElementById('e-code').classList.add('show');
   }

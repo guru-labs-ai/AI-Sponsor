@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
 const stripeModule = require('./stripe');
+const ghl = require('./ghl');
 
 // WhatsApp (Twilio) module is loaded ONLY when Twilio is configured. Its SDK
 // clients (Twilio + OpenAI) throw at construction when their keys are missing,
@@ -332,6 +333,21 @@ app.post('/api/session', (req, res) => {
   conversations.set(userId, []);
 
   res.json({ success: true, userId });
+});
+
+// Save a website registration into GoHighLevel (CRM).
+// Contacts are created Do-Not-Disturb (see ghl.js) so no shared-location
+// workflow can message them. Fire-and-forget from the frontend, so a failure
+// here must never block the user — we just log and return the error.
+app.post('/register', async (req, res) => {
+  try {
+    const result = await ghl.registerContact(req.body || {});
+    console.log(`[register] GHL contact ${result.isNew ? 'created' : 'updated'}: ${result.contactId}`);
+    res.json({ success: true, contactId: result.contactId });
+  } catch (err) {
+    console.error('[register] GHL sync failed:', err.message, err.detail || '');
+    res.status(err.statusCode || 500).json({ success: false, error: err.message });
+  }
 });
 
 // Get conversation history for a user
