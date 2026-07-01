@@ -7,6 +7,7 @@ Disallow: /ai-sponsor-funnel.html
 Disallow: /ai-sponsor-lean-canvas.html
 Disallow: /ai-sponsor-roadmap.html
 Disallow: /ai-sponsor-chat-test.html
+Disallow: /ai-sponsor-monetization.html
 Disallow: /ai-sponsor-backend/
 
 Sitemap: https://getaisponsor.com/sitemap.xml

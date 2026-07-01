@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>AI Sponsor — Monetization Strategy</title>
+<link rel="icon" href="/favicon.png">
+<style>
+  :root{
+    --navy:#0a0f1a; --blue:#2563eb; --blue-soft:#3b82f6; --blue-wash:#eff4ff;
+    --ink:#141a2a; --sub:#5b6577; --line:#e5e9f0; --bg:#f4f6fa; --card:#ffffff;
+    --gold:#d97706; --gold-wash:#fff7ed; --green:#0f7a52; --green-wash:#ecfdf5;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.6;padding:0 18px}
+  .wrap{max-width:820px;margin:0 auto;padding:40px 0 72px}
+
+  /* header */
+  .badge{display:inline-flex;align-items:center;gap:6px;background:var(--blue-wash);color:var(--blue);font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;padding:5px 12px;border-radius:100px}
+  h1{font-size:34px;line-height:1.15;letter-spacing:-.02em;margin:16px 0 10px;color:var(--navy)}
+  .lede{font-size:16px;color:var(--sub)}
+  .meta{font-size:12.5px;color:var(--sub);margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+
+  /* the bet */
+  .bet{background:var(--navy);color:#fff;border-radius:16px;padding:30px 28px;margin:28px 0}
+  .bet .k{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--blue-soft)}
+  .bet p{font-size:19px;line-height:1.5;margin-top:12px;color:#eef2f9}
+  .bet p strong{color:#fff}
+  .bet .fine{font-size:13.5px;color:#9aa6bd;margin-top:14px;line-height:1.6}
+
+  h2{font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);margin:40px 0 4px}
+  .h2sub{font-size:22px;font-weight:700;letter-spacing:-.01em;color:var(--navy);margin-bottom:16px}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 22px;margin-bottom:14px}
+  .card h3{font-size:16.5px;color:var(--navy);margin-bottom:6px}
+  .card p{font-size:14.5px;color:#3c4557}
+  .card p + p{margin-top:9px}
+  .card .ev{display:block;font-size:12.5px;color:var(--sub);margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+  .card .ev b{color:var(--blue)}
+
+  .callout{background:var(--blue-wash);border:1px solid #d5e2ff;border-radius:14px;padding:22px}
+  .callout h3{color:var(--navy);font-size:17px;margin-bottom:8px}
+  .callout p{font-size:14.5px;color:#354258}
+
+  /* ranked */
+  ol.rank{list-style:none;counter-reset:r;margin-top:6px}
+  ol.rank li{counter-increment:r;position:relative;padding:14px 16px 14px 54px;background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:10px;font-size:14.5px}
+  ol.rank li::before{content:counter(r);position:absolute;left:14px;top:13px;width:28px;height:28px;background:var(--blue);color:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+  ol.rank li b{color:var(--navy)}
+
+  /* table */
+  .tbl{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .tbl th,.tbl td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+  .tbl th{background:#f8fafd;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--sub)}
+  .tbl tr:last-child td{border-bottom:none}
+  .tbl td b{color:var(--navy)}
+
+  .dont{background:var(--gold-wash);border:1px solid #fde3c4;border-radius:14px;padding:20px 22px}
+  .dont h3{color:var(--gold);font-size:16px;margin-bottom:6px}
+  .dont p{font-size:14.5px;color:#5b4a33}
+
+  .living{background:var(--green-wash);border:1px solid #c3f0dc;border-radius:14px;padding:20px 22px;margin-top:12px}
+  .living h3{color:var(--green);font-size:16px;margin-bottom:6px}
+  .living p{font-size:14.5px;color:#33513f}
+
+  .src{margin-top:36px;padding-top:20px;border-top:1px solid var(--line);font-size:12px;color:var(--sub)}
+  .src b{color:var(--ink)}
+  .src a{color:var(--blue);text-decoration:none}
+  .src a:hover{text-decoration:underline}
+
+  @media(max-width:640px){
+    body{padding:0 14px}
+    .wrap{padding:28px 0 52px}
+    h1{font-size:27px}
+    .bet{padding:24px 20px}
+    .bet p{font-size:17px}
+    .card,.callout,.dont,.living{padding:18px}
+    .h2sub{font-size:19px}
+    input,select,textarea{font-size:16px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <span class="badge">🌱 Living doc · Strategy</span>
+  <h1>AI Sponsor — how we make it more profitable</h1>
+  <p class="lede">Ideas for monetizing AI Sponsor, grounded in what funded competitors are actually doing. Built for the product call — we'll keep adding to this.</p>
+  <p class="meta">Owner: Mariam · For: Matt · Started July 2026 · This is a working document, not a plan of record — flag anything you want cut or pushed.</p>
+
+  <!-- THE BET -->
+  <div class="bet">
+    <span class="k">The bet</span>
+    <p>The $5 subscription isn't the business — it's the <strong>front door</strong>. The money the market is finding is in what the AI routes people <em>to</em>: personalization they'll pay more for, human care at the right moment, keepsakes, and institutions who'll pay per-seat.</p>
+    <p class="fine">⚠️ Hard constraint: this is a <strong>sensitive audience</strong> and 12-step culture is wary of profiting off recovery. Every idea here is filtered to <em>add genuine value to the person's recovery</em> — never extract from vulnerability. That's not a nicety; it's what protects the trust the whole product runs on.</p>
+  </div>
+
+  <!-- CORE INSIGHT -->
+  <h2>The core insight</h2>
+  <div class="h2sub">The AI is the front door to higher-value help</div>
+  <div class="callout">
+    <h3>What the funded players actually do</h3>
+    <p><b>Sunflower</b> (YC / a16z) has openly moved past its subscription — its real revenue is a <b>teletherapy clinic inside the app</b>. The AI's data (relapse signals, mood, milestones, engagement drop-off) tells them <b>exactly when a user needs a human</b>, and they route that person to high-margin care. <b>Reframe</b> does a lighter version with its "Thrive Coaching" upsell. Dario Health grew its market by pivoting from "app" to "app + human services."</p>
+    <p style="margin-top:10px">AI Sponsor sits with people <em>every day</em> and knows when they're struggling. That's a warm, perfectly-timed handoff — the most profitable <em>and</em> most on-mission lever we have, because it gets people real care.</p>
+  </div>
+
+  <!-- PRICING -->
+  <h2>Lever 1 · Pricing &amp; packaging</h2>
+  <div class="h2sub">Fixes the token-cost problem immediately</div>
+  <div class="card">
+    <h3>Add a $15–19 "Plus" tier</h3>
+    <p>Free (capped messages) → $5–9 Standard → <b>Premium</b> with voice + a custom ElevenLabs voice, persistent memory/journal, unlimited, faster model. Heavy users self-select into the tier that covers their token cost — which directly answers the "power user is upside-down at $5" worry.</p>
+    <span class="ev"><b>Evidence:</b> Replika Pro <b>$19.99/mo</b> (voice + memory + relationship modes). Reframe <b>$13.99</b>, I Am Sober <b>$9.99</b>, OpenRecovery <b>$10</b> — everyone charges above our $5.</span>
+  </div>
+  <div class="card">
+    <h3>Lifetime option (~$199–299) for upfront cash</h3>
+    <p>A one-time lifetime tier brings in runway cash now. Pair it with fair-use caps so ongoing token cost stays bounded.</p>
+    <span class="ev"><b>Evidence:</b> Replika sells a <b>$299 lifetime</b> tier.</span>
+  </div>
+  <div class="card">
+    <h3>Fair-use caps on the free tier</h3>
+    <p>Cap messages on free, unlimited on paid — protects margin and creates a natural reason to upgrade.</p>
+    <span class="ev"><b>Evidence:</b> I Am Sober caps free habit-tracking; Sunflower gates unlimited messaging behind its subscription.</span>
+  </div>
+
+  <!-- ASCENSION -->
+  <h2>Lever 2 · Ascension — AI → human &amp; clinical care</h2>
+  <div class="h2sub">Biggest + most defensible (and most on-mission)</div>
+  <div class="card">
+    <h3>Warm handoff to human recovery coaching</h3>
+    <p>When the AI detects the moment someone needs more than a chatbot, it can offer a vetted <b>recovery coach</b>. We take a referral cut or run the marketplace. Never a sales push — a well-timed offer of real help.</p>
+    <span class="ev"><b>Evidence:</b> coaches charge <b>$200–400/hr</b>; peer-coaching plans from <b>$375/mo</b>. Reframe's "Thrive Coaching" is this exact model.</span>
+  </div>
+  <div class="card">
+    <h3>Referral to teletherapy / medication treatment</h3>
+    <p>Partner with licensed telehealth providers for the highest-value handoffs. Often the <em>user</em> pays little because insurance covers it — we capture referral value, they get real care.</p>
+    <span class="ev"><b>Evidence:</b> Monument <b>$25/visit</b> (insured), Ophelia / Bicycle Health <b>~$245/mo</b>, insurance-reimbursed.</span>
+  </div>
+
+  <!-- PRODUCTS -->
+  <h2>Lever 3 · Recovery-native products</h2>
+  <div class="h2sub">High margin, culturally native (Matt's journal idea holds up)</div>
+  <div class="card">
+    <h3>Milestone "your story" journal</h3>
+    <p>A $30–40 keepsake at sobriety anniversaries — the wins, reflections and milestones the sponsor captured over 6/12 months. Anniversaries are a huge deal in recovery → emotionally resonant, high margin.</p>
+  </div>
+  <div class="card">
+    <h3>Physical sobriety chips / medallions</h3>
+    <p>The gamified digital chips → option to order the real chip, or gift one. The single most culturally native upsell — chips are sacred in the program.</p>
+  </div>
+  <div class="card">
+    <h3>Gifting</h3>
+    <p>Let loved ones buy a subscription or a chip for someone in recovery. The worried family member often has the money and urgency. Doubles as growth and ties to the 1-for-1 mission.</p>
+    <span class="ev"><b>Evidence:</b> the sober-companion market is sold to <b>family offices</b> at $750–2,500/day — families pay for recovery support.</span>
+  </div>
+
+  <!-- B2B + MISSION -->
+  <h2>Lever 4 · Institutions &amp; mission funding</h2>
+  <div class="h2sub">The highest-ceiling plays for later</div>
+  <div class="card">
+    <h3>Treatment-center / sober-living aftercare licensing</h3>
+    <p>White-label AI aftercare. Rehabs have budgets and a brutal <b>readmission problem</b> that AI aftercare directly reduces. Per-seat B2B dwarfs $5 consumer.</p>
+    <span class="ev"><b>Evidence:</b> this is <b>Loosid's</b> enterprise / EAP direction.</span>
+  </div>
+  <div class="card">
+    <h3>Nonprofit arm to fund the "give" side</h3>
+    <p>A 501(c)(3) arm can tap <b>SAMHSA grants</b> (the SABG block grant + the Recovery Community Services peer-support program), foundations, and corporate CSR to sponsor the 1-for-1 scholarships. Matt already floated non-profit — this turns the free side into a <em>funding engine</em> and a PR story, not a cost.</p>
+  </div>
+
+  <!-- DONT -->
+  <h2>The one clear "don't"</h2>
+  <div class="dont">
+    <h3>⚠️ No ads, no data-selling</h3>
+    <p>Character.AI rolled out intrusive full-screen ads in 2026 and damaged its own product. In recovery, trust is the entire asset. We monetize through <b>value</b> — care, personalization, keepsakes — never through attention or data.</p>
+  </div>
+
+  <!-- RANKED -->
+  <h2>What to pursue first</h2>
+  <div class="h2sub">Honest ranking</div>
+  <ol class="rank">
+    <li><b>$15 Premium tier</b> — fastest, fixes unit economics, zero mission risk.</li>
+    <li><b>AI-as-front-door to coaching / clinical care</b> — biggest + most defensible; what the funded players are building.</li>
+    <li><b>Milestone journal + physical chips</b> — Matt's instinct, high margin, tasteful.</li>
+    <li><b>B2B aftercare licensing + nonprofit grant arm</b> — highest ceiling, for later.</li>
+  </ol>
+
+  <!-- MARKET TABLE -->
+  <h2>Market reference</h2>
+  <div class="h2sub">What the field charges</div>
+  <table class="tbl">
+    <tr><th>Product</th><th>Price</th><th>Model note</th></tr>
+    <tr><td><b>AI Sponsor</b> (us)</td><td>$5/mo · $49/yr</td><td>Lowest-priced; WhatsApp; 1-for-1</td></tr>
+    <tr><td>Sunflower</td><td>Freemium</td><td>Real revenue = teletherapy clinic inside</td></tr>
+    <tr><td>Replika</td><td>$19.99/mo · $299 life</td><td>Voice + memory + personalization tiers</td></tr>
+    <tr><td>Reframe</td><td>$13.99/mo</td><td>+ "Thrive Coaching" human upsell</td></tr>
+    <tr><td>OpenRecovery</td><td>$10/mo</td><td>Has a hardship fund (give model)</td></tr>
+    <tr><td>Monument</td><td>$25/visit</td><td>Insurance-reimbursed clinical</td></tr>
+    <tr><td>Ophelia / Bicycle</td><td>~$245/mo</td><td>Insurance-reimbursed MAT</td></tr>
+    <tr><td>Sober coaching</td><td>$200–400/hr</td><td>Family offices pay $750–2,500/day</td></tr>
+  </table>
+
+  <!-- LIVING -->
+  <h2>Next</h2>
+  <div class="living">
+    <h3>🌱 This is a living doc</h3>
+    <p>We keep adding ideas here as they come. Immediate next step if we want it: <b>model the $15-tier unit economics against real token costs</b> so the pricing case is on paper. Add a comment or tell Mariam anything you want explored deeper.</p>
+  </div>
+
+  <div class="src">
+    <b>Sources:</b>
+    Sunflower (<a href="https://pitchbook.com/news/articles/sobriety-ai-sponsor-sunflowers-duolingo">PitchBook</a>) ·
+    Reframe / I Am Sober (<a href="https://www.choosingtherapy.com/reframe-app-review/">ChoosingTherapy</a>) ·
+    Replika pricing (<a href="https://www.eesel.ai/blog/replika-ai-pricing">eesel</a>) ·
+    Character.AI ads (<a href="https://www.startuphub.ai/ai-news/reviews/2026/character-ai-review-2026">StartupHub</a>) ·
+    Monument / Bicycle / Ophelia (<a href="https://www.choosingtherapy.com/monument-review/">ChoosingTherapy</a>) ·
+    Sober coaching (<a href="https://spearheadhealth.com/blog/how-much-does-a-sober-companion-cost-in-2025-a-guide-for-families-and-family-offices/">Spearhead</a>) ·
+    SAMHSA grants (<a href="https://grantsights.com/blog/samhsa-grant-programs-guide">Grantsights</a>)
+  </div>
+
+</div>
+</body>
+</html>
