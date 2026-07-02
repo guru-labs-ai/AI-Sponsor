@@ -87,13 +87,29 @@
   <span class="badge">🌱 Living doc · Strategy</span>
   <h1>AI Sponsor — how we make it more profitable</h1>
   <p class="lede">Ideas for monetizing AI Sponsor, grounded in what funded competitors are actually doing. Built for the product call — we'll keep adding to this.</p>
-  <p class="meta">Owner: Mariam · For: Matt · Started July 2026 · This is a working document, not a plan of record — flag anything you want cut or pushed.</p>
+  <p class="meta">Owner: Mariam · For: Matt · Started July 1, 2026 · Updated July 2 (current-situation projection + new research) · This is a working document, not a plan of record — flag anything you want cut or pushed.</p>
 
   <!-- THE BET -->
   <div class="bet">
     <span class="k">The bet</span>
     <p>The $5 subscription isn't the business — it's the <strong>front door</strong>. The money the market is finding is in what the AI routes people <em>to</em>: personalization they'll pay more for, human care at the right moment, keepsakes, and institutions who'll pay per-seat.</p>
     <p class="fine">⚠️ Hard constraint: this is a <strong>sensitive audience</strong> and 12-step culture is wary of profiting off recovery. Every idea here is filtered to <em>add genuine value to the person's recovery</em> — never extract from vulnerability. That's not a nicety; it's what protects the trust the whole product runs on.</p>
+  </div>
+
+  <!-- CURRENT SITUATION -->
+  <h2>Where we stand today · July 2026</h2>
+  <div class="h2sub">The honest picture with the beta cohort and the current deal</div>
+  <div class="card">
+    <h3>What the current setup costs us</h3>
+    <p>The live backend runs on <b>Claude Opus</b> — the premium model tier ($5 in / $25 out per million tokens). At typical chat sizes that's roughly <b>2¢ per message</b>. Per user per month: a casual user (~5 msgs/day) costs ~<b>$3</b>, a regular user (~15/day) ~<b>$9</b>, a heavy user (~30/day) ~<b>$20+</b> — before caching.</p>
+    <p>With the 59-person beta cohort (growing toward ~150 as Matt keeps inviting), a normal engagement mix works out to roughly <b>$250–500/month in AI cost, $0 revenue</b> for the ~6-month free window. Total beta-phase burn ≈ <b>$2–4K</b>. That's the whole bill — fine to eat, exactly the "burn now" Matt is comfortable with.</p>
+    <span class="ev"><b>The real risk isn't the bill — it's an outage.</b> The Anthropic account has a <b>$500/month spend cap</b>. If beta engagement runs hot (and this is the one product where PMF signal is strong), we hit the cap mid-month and chat goes dark for every user — a repeat of the June 19 outage, but with real users in recovery on the other end. Fix: raise the cap + set alerts at 50/75/90%, and verify prompt caching is actually firing (it cuts input cost up to ~90%; console showed it not enabled in June).</span>
+  </div>
+  <div class="card">
+    <h3>What the current deal earns — and where it caps out</h3>
+    <p>Right now: <b>nothing is monetized</b>. Stripe is in test mode, beta codes grant free access, and there's no live paid path. That's fine for now — but it also means <b>this is the cheapest moment we'll ever have to change the pricing</b>: no existing subscribers to grandfather, no "they raised prices on people in recovery" story. Whatever structure we want long-term should be the one we launch with.</p>
+    <p>The uncomfortable math: at <b>$5 flat on the Opus model</b>, the average user leaves ~$1–2/month of margin and a heavy user loses us ~$15/month. The current deal roughly <b>breaks even at any scale</b> — 100 users or 100,000. It's a front door, not a business, which is exactly the doc's thesis — but it means the levers below aren't optional extras; they're the actual revenue model.</p>
+    <span class="ev"><b>The pricing pyramid solves itself with model tiering:</b> run Standard ($5–9) on a fast, cheaper model (~0.4–1.3¢/msg → margin-positive even for heavy users) and reserve Opus + voice + custom voice + long-term memory for the <b>$15–19 Premium tier</b>. "Smarter model" as a premium feature is standard in the AI-companion market — that's Replika's exact structure.</span>
   </div>
 
   <!-- CORE INSIGHT -->
@@ -110,8 +126,8 @@
   <div class="h2sub">Fixes the token-cost problem immediately</div>
   <div class="card">
     <h3>Add a $15–19 "Plus" tier</h3>
-    <p>Free (capped messages) → $5–9 Standard → <b>Premium</b> with voice + a custom ElevenLabs voice, persistent memory/journal, unlimited, faster model. Heavy users self-select into the tier that covers their token cost — which directly answers the "power user is upside-down at $5" worry.</p>
-    <span class="ev"><b>Evidence:</b> Replika Pro <b>$19.99/mo</b> (voice + memory + relationship modes). Reframe <b>$13.99</b>, I Am Sober <b>$9.99</b>, OpenRecovery <b>$10</b> — everyone charges above our $5.</span>
+    <p>Free (capped messages) → $5–9 Standard → <b>Premium</b> with voice + a custom ElevenLabs voice, persistent memory/journal, unlimited, and the <b>smartest model</b>. Heavy users self-select into the tier that covers their token cost — which directly answers the "power user is upside-down at $5" worry.</p>
+    <span class="ev"><b>Evidence:</b> Replika Pro <b>$19.99/mo</b> (voice + memory + relationship modes). Loosid premium <b>$12.99</b>, I Am Sober <b>$9.99</b>, OpenRecovery <b>$10</b>, Reframe <b>$100/yr</b> — everyone charges above our $5. AI-companion market norms (2026): <b>$9.99–14.99/mo</b> gating voice/memory/customization; expect <b>&lt;5% free→paid conversion</b>, plan around it; voice adds ~$1–3/mo per user in cost.</span>
   </div>
   <div class="card">
     <h3>Lifetime option (~$199–299) for upfront cash</h3>
@@ -134,8 +150,12 @@
   </div>
   <div class="card">
     <h3>Referral to teletherapy / medication treatment</h3>
-    <p>Partner with licensed telehealth providers for the highest-value handoffs. Often the <em>user</em> pays little because insurance covers it — we capture referral value, they get real care.</p>
+    <p>Partner with licensed telehealth providers for the highest-value handoffs. Often the <em>user</em> pays little because insurance covers it — they get real care, we structure the partnership so it pays (see the legal note below for how).</p>
     <span class="ev"><b>Evidence:</b> Monument <b>$25/visit</b> (insured), Ophelia / Bicycle Health <b>~$245/mo</b>, insurance-reimbursed.</span>
+  </div>
+  <div class="dont" style="margin-bottom:14px">
+    <h3>⚠️ Legal guardrail on clinical referrals: EKRA</h3>
+    <p>Per-patient referral fees to <b>clinical addiction treatment</b> (treatment facilities, recovery homes, labs) are a federal crime under <b>EKRA</b> (Eliminating Kickbacks in Recovery Act, 2018) — it applies to <em>all</em> payers, including cash and private insurance, with penalties up to $200K / 10 years per occurrence. Several states (Florida most aggressively) add patient-brokering laws on top. This is why <b>Sunflower owns its clinic</b> instead of brokering referrals. What's safe: <b>non-clinical coaching</b> referrals/marketplace, flat sponsorship/licensing fees vetted by counsel, or eventually owning the care layer — never a per-patient cut on clinical care.</p>
   </div>
 
   <!-- PRODUCTS -->
@@ -168,6 +188,41 @@
     <p>A 501(c)(3) arm can tap <b>SAMHSA grants</b> (the SABG block grant + the Recovery Community Services peer-support program), foundations, and corporate CSR to sponsor the 1-for-1 scholarships. Matt already floated non-profit — this turns the free side into a <em>funding engine</em> and a PR story, not a cost.</p>
   </div>
 
+  <!-- NEW MARKETS -->
+  <h2>Lever 5 · New markets on the same engine</h2>
+  <div class="h2sub">From the July 2 deep dive — same product, bigger doors</div>
+  <div class="card">
+    <h3>The family SKU — sell to the worried spouse/parent</h3>
+    <p>Nobody has built a strong digital product for the <b>family members</b> of people struggling — the Al-Anon / Nar-Anon audience. They have money, urgency, and no 24/7 support of their own. An "AI companion for families" (CRAFT-informed: the evidence-based method proven <b>6× more effective than Al-Anon</b> at getting a loved one into treatment) is a second product on the exact same engine — and a growth loop: the family member subscribes, the loved one gets invited.</p>
+    <span class="ev"><b>Evidence:</b> CRAFT engages the loved one into treatment in ~7 of 10 families; the family/friends support space is still meetings-first, digitally underserved.</span>
+  </div>
+  <div class="card">
+    <h3>Sober-curious mode — 10× the audience</h3>
+    <p>49% of Americans say they plan to drink less; the moderation apps (Sunnyside: 600K+ users; Reframe) monetize <b>"gray-area drinkers"</b> who will never identify as addicts or walk into a 12-step room. A "drink less" mode or sister brand on the same engine multiplies the addressable market far beyond diagnosed addiction — and it's a feeder: some moderation users discover they need the full sponsor.</p>
+    <span class="ev"><b>Evidence:</b> Dry January at 30% participation and climbing; non-alcoholic beverages passed $1B in US sales; Sunnyside even upsells naltrexone telehealth on top.</span>
+  </div>
+  <div class="card">
+    <h3>Faith channel — Celebrate Recovery's 35,000 churches</h3>
+    <p><b>Celebrate Recovery</b> runs Christ-centered 12-step ministries in 35,000+ churches with 5M+ lifetime participants — plus prisons, rescue missions and universities. A CR-flavored or church-white-label sponsor (their 8 principles + Christ-centered steps), distributed through ministries that <em>sponsor access for their congregation</em>, is a distribution channel nobody in the AI space is touching. Adjacent to Matt's Conscious AI audience.</p>
+  </div>
+  <div class="card">
+    <h3>Courts &amp; diversion programs — B2G per-participant</h3>
+    <p>Drug courts and DUI diversion programs mandate recovery activity and pay vendors for monitoring/education (a mature market — CorrectiveSolutions et al.). AI Sponsor as <b>court-approved between-session support</b>, sold per-participant to programs. Must be positioned as <em>support, not surveillance</em> — participant-consented engagement summaries only, or we torch the trust the product runs on.</p>
+  </div>
+  <div class="card">
+    <h3>Opioid settlement funds — a $57.7B pool being granted right now</h3>
+    <p>States and counties are actively distributing <b>$57.7B</b> in opioid settlement money earmarked for treatment, recovery and prevention — e.g. Colorado just awarded $11M in one round. County-level grants for "24/7 AI recovery support access for residents" is a real, current application — and the natural funding engine for the 1-for-1 give side (pairs with the nonprofit arm in Lever 4).</p>
+  </div>
+  <div class="card">
+    <h3>Be the tool for Medicaid-billable peer support — not the billable thing</h3>
+    <p>48 states + DC reimburse <b>peer recovery support services</b> ($25–40/hr). We don't bill Medicaid — certified peer specialists and recovery organizations do. AI Sponsor licensed <b>per-seat to those organizations</b> lets one peer specialist support a bigger caseload (AI covers 3am; the human covers the moments that matter), documented for their billing.</p>
+    <span class="ev"><b>Cautionary tale baked in:</b> Pear Therapeutics got FDA approval for reSET (digital SUD therapeutic), couldn't get payers to reimburse $1,300/course, and went <b>bankrupt</b>. Lesson: never build the business on insurers paying for the app itself — sell to the humans who already get paid.</span>
+  </div>
+  <div class="card">
+    <h3>Commerce &amp; marketplace — the Loosid playbook (done our way)</h3>
+    <p>Loosid layered a <b>sober shop</b> (~$70 average order), a brand-discount marketplace (members save ~$1,200/yr), and premium at $12.99 on top of community — and grew from <b>$650K (2024) toward a projected $4.15M (2025)</b>. Their ad layer we skip (see the don't below), but a curated shop + partner discounts is value-add, not extraction — and pairs naturally with chips, journals and gifting in Lever 3.</p>
+  </div>
+
   <!-- DONT -->
   <h2>The one clear "don't"</h2>
   <div class="dont">
@@ -179,10 +234,11 @@
   <h2>What to pursue first</h2>
   <div class="h2sub">Honest ranking</div>
   <ol class="rank">
-    <li><b>$15 Premium tier</b> — fastest, fixes unit economics, zero mission risk.</li>
-    <li><b>AI-as-front-door to coaching / clinical care</b> — biggest + most defensible; what the funded players are building.</li>
-    <li><b>Milestone journal + physical chips</b> — Matt's instinct, high margin, tasteful.</li>
-    <li><b>B2B aftercare licensing + nonprofit grant arm</b> — highest ceiling, for later.</li>
+    <li><b>Fix the launch structure now</b> — raise the Anthropic spend cap + alerts, verify caching, and set the tier pyramid ($5–9 Standard on a cheaper model / $15–19 Premium on the best model) <em>before</em> Stripe goes live. Free to do today; expensive to do after we have subscribers.</li>
+    <li><b>AI-as-front-door to coaching / clinical care</b> — biggest + most defensible; what the funded players are building. Coaching first (no EKRA exposure), clinical partnerships only with counsel-vetted flat-fee structures.</li>
+    <li><b>Milestone journal + chips + gifting + curated shop</b> — Matt's instinct, high margin, tasteful; Loosid proves community + commerce compounds.</li>
+    <li><b>Family SKU + sober-curious mode</b> — the two biggest audience multipliers on the same engine; family side also feeds growth.</li>
+    <li><b>Institutions &amp; mission money</b> — treatment-center aftercare, peer-support per-seat licensing, Celebrate Recovery channel, courts, opioid settlement grants + nonprofit arm. Highest ceiling; needs sales motion; for later.</li>
   </ol>
 
   <!-- MARKET TABLE -->
@@ -193,8 +249,11 @@
     <tr><td><b>AI Sponsor</b> (us)</td><td>$5/mo · $49/yr</td><td>Lowest-priced; WhatsApp; 1-for-1</td></tr>
     <tr><td>Sunflower</td><td>Freemium</td><td>Real revenue = teletherapy clinic inside</td></tr>
     <tr><td>Replika</td><td>$19.99/mo · $299 life</td><td>Voice + memory + personalization tiers</td></tr>
-    <tr><td>Reframe</td><td>$13.99/mo</td><td>+ "Thrive Coaching" human upsell</td></tr>
+    <tr><td>Reframe</td><td>$100/yr</td><td>+ "Thrive Coaching" $49.99–249.99/mo</td></tr>
+    <tr><td>Loosid</td><td>$12.99/mo premium</td><td>Dating + shop + marketplace; $650K'24 → ~$4.15M'25 proj.</td></tr>
+    <tr><td>Sunnyside</td><td>Subscription</td><td>600K+ users, moderation + naltrexone telehealth upsell</td></tr>
     <tr><td>OpenRecovery</td><td>$10/mo</td><td>Has a hardship fund (give model)</td></tr>
+    <tr><td>Pelago (B2B)</td><td>Per-employee/mo, at-risk fees</td><td>100+ employers/health plans, 2.5M covered lives, claims 4.5:1 ROI</td></tr>
     <tr><td>Monument</td><td>$25/visit</td><td>Insurance-reimbursed clinical</td></tr>
     <tr><td>Ophelia / Bicycle</td><td>~$245/mo</td><td>Insurance-reimbursed MAT</td></tr>
     <tr><td>Sober coaching</td><td>$200–400/hr</td><td>Family offices pay $750–2,500/day</td></tr>
@@ -204,7 +263,7 @@
   <h2>Next</h2>
   <div class="living">
     <h3>🌱 This is a living doc</h3>
-    <p>We keep adding ideas here as they come. Immediate next step if we want it: <b>model the $15-tier unit economics against real token costs</b> so the pricing case is on paper. Add a comment or tell Mariam anything you want explored deeper.</p>
+    <p>We keep adding ideas here as they come. Done July 2: current-situation burn projection, real unit economics, EKRA guardrail, and the Lever-5 new-market scan. Immediate asks for Matt: (1) OK to <b>raise the Anthropic spend cap</b> before beta engagement ramps, (2) pick the <b>launch tier structure</b> so Stripe goes live with the right deal, (3) tell Mariam which Lever-5 doors are worth a first conversation.</p>
   </div>
 
   <div class="src">
@@ -215,7 +274,17 @@
     Character.AI ads (<a href="https://www.startuphub.ai/ai-news/reviews/2026/character-ai-review-2026">StartupHub</a>) ·
     Monument / Bicycle / Ophelia (<a href="https://www.choosingtherapy.com/monument-review/">ChoosingTherapy</a>) ·
     Sober coaching (<a href="https://spearheadhealth.com/blog/how-much-does-a-sober-companion-cost-in-2025-a-guide-for-families-and-family-offices/">Spearhead</a>) ·
-    SAMHSA grants (<a href="https://grantsights.com/blog/samhsa-grant-programs-guide">Grantsights</a>)
+    SAMHSA grants (<a href="https://grantsights.com/blog/samhsa-grant-programs-guide">Grantsights</a>) ·
+    Loosid revenue/model (<a href="https://kingscrowd.com/what-investors-want-to-know-how-loosid-is-catering-to-recovery-and-sober-dating/">Kingscrowd</a>, <a href="https://wefunder.com/loosid">Wefunder</a>) ·
+    Opioid settlement $57.7B (<a href="https://app.grantfinder.com/opioid-settlement-funding-report-february-2026">GrantFinder Feb 2026</a>, <a href="https://coag.gov/press-releases/colorado-awards-11-million-for-opioid-treatment-and-recovery/">Colorado AG</a>) ·
+    Medicaid peer support 48 states (<a href="https://www.kff.org/other/state-indicator/medicaid-behavioral-health-services-peer-support-services/">KFF</a>, <a href="https://www.onestepsoftware.com/peer-support-and-medicaid-reimbursement-a-guide/">One Step</a>) ·
+    Pear Therapeutics collapse (<a href="https://aishealth.mmitnetwork.com/blogs/health-plan-weekly/pear-bankruptcy-filing-highlights-reimbursement-barriers-for-digital-therapeutics">AIS Health</a>, <a href="https://www.statnews.com/2024/08/22/pear-pursuecare-reset-digital-therapeutic-substance-abuse/">STAT</a>) ·
+    CRAFT effectiveness (<a href="https://bha.colorado.gov/behavioral-health/CRAFT">Colorado BHA</a>) ·
+    Celebrate Recovery 35K churches (<a href="https://celebraterecovery.com/">CR</a>, <a href="https://en.wikipedia.org/wiki/Celebrate_Recovery">Wikipedia</a>) ·
+    Sober-curious stats (<a href="https://www.joinreframeapp.com/articles/sober-curious-movement-2025-gen-z-stats-beverage-brands">Reframe</a>) ·
+    Pelago EAP (<a href="https://www.pelagohealth.com/how-it-works/for-employers/">Pelago</a>) ·
+    AI-companion market norms (<a href="https://www.aimagicx.com/blog/ai-companion-market-analysis-builders-guide-2026">AI Magicx 2026</a>, <a href="https://aicompanionguides.com/blog/ai-companion-pricing-guide-2026/">Pricing Guide 2026</a>) ·
+    EKRA 18 U.S.C. §220 (SUPPORT Act 2018)
   </div>
 
 </div>
