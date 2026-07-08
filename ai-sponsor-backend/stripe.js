@@ -88,11 +88,39 @@ function constructWebhookEvent(rawBody, signature) {
   );
 }
 
+/* ── Guard: this Stripe account is shared with other products (DRM, GHL
+   funnels), so before processing any event we confirm it actually belongs
+   to AI Sponsor. checkout.session/subscription objects carry our own
+   metadata.plan tag (set above in createCheckoutSession). Invoices don't
+   carry that metadata at the top level, but Stripe mirrors the parent
+   subscription's metadata onto invoice.subscription_details.metadata, so
+   we check there. Line-item price ID is kept only as a last-resort
+   fallback since its shape has changed across Stripe API versions. ────── */
+function belongsToAiSponsor(event) {
+  const obj = event.data.object;
+
+  const directPlan = obj.metadata?.plan;
+  if (directPlan === 'monthly' || directPlan === 'annual') return true;
+
+  const invoicePlan = obj.subscription_details?.metadata?.plan;
+  if (invoicePlan === 'monthly' || invoicePlan === 'annual') return true;
+
+  const linePriceId = obj.lines?.data?.[0]?.price?.id
+    || obj.lines?.data?.[0]?.pricing?.price_details?.price;
+  if (linePriceId && Object.values(PRICE_IDS).includes(linePriceId)) return true;
+
+  return false;
+}
+
 /* ── Handle webhook events ──────────────────────────────────────────────────
    Returns a small descriptive object so server.js can log / forward to GHL
    without this module needing to know about GHL directly.
 ─────────────────────────────────────────────────────────────────────────── */
 async function handleWebhookEvent(event) {
+  if (!belongsToAiSponsor(event)) {
+    return { type: 'ignored_not_ai_sponsor', stripeEventType: event.type };
+  }
+
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object;
