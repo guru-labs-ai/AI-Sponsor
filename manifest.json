@@ -1,0 +1,13 @@
+{
+  "name": "AI Sponsor",
+  "short_name": "AI Sponsor",
+  "description": "A private, judgment-free AI sponsor for 12-step recovery. 24/7 support whenever you need it.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B1A2C",
+  "theme_color": "#0B1A2C",
+  "icons": [
+    { "src": "/favicon.png", "sizes": "any", "type": "image/png" },
+    { "src": "/logo.png", "sizes": "1254x1254", "type": "image/png" }
+  ]
+}

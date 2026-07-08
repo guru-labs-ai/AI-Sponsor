@@ -23,7 +23,7 @@
     script.src = "https://215466.t.hyros.com/v1/lst/universal-script?ph=395a23f1c62bf26a497b91f272b6fc6b27906736d5a140cd7a9e220d722c2456&tag=!ai_sponsor&ref_url=" + encodeURI(document.URL);
     head.appendChild(script);
   </script>
-  <title>AI Sponsor</title>
+  <title>AI Sponsor | 24/7 AI Recovery Sponsor for 12-Step Programs</title>
   <meta name="description" content="AI Sponsor — a private, judgment-free AI sponsor for 12-step recovery (AA, NA, OA and more). 24/7 support whenever you need it, no waiting. Always here.">
   <link rel="canonical" href="https://getaisponsor.com/">
   <!-- Open Graph / link preview -->
@@ -32,11 +32,12 @@
   <meta property="og:title" content="AI Sponsor — Always Here">
   <meta property="og:description" content="A private, judgment-free AI sponsor for 12-step recovery (AA, NA, OA and more). 24/7 support whenever you need it, no waiting.">
   <meta property="og:url" content="https://getaisponsor.com/">
-  <meta property="og:image" content="https://getaisponsor.com/favicon.png">
+  <meta property="og:image" content="https://getaisponsor.com/logo.png">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="AI Sponsor — Always Here">
   <meta name="twitter:description" content="A private, judgment-free AI sponsor for 12-step recovery (AA, NA, OA and more). 24/7 support whenever you need it.">
-  <meta name="twitter:image" content="https://getaisponsor.com/favicon.png">
+  <meta name="twitter:image" content="https://getaisponsor.com/logo.png">
+  <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -1397,8 +1398,22 @@
       "@id": "https://getaisponsor.com/#org",
       "name": "AI Sponsor",
       "url": "https://getaisponsor.com/",
-      "logo": "https://getaisponsor.com/favicon.png",
-      "description": "A private, 24/7 AI sponsor for 12-step recovery programs. Not affiliated with, endorsed by, or connected to Alcoholics Anonymous, Narcotics Anonymous, or any 12-step program."
+      "logo": "https://getaisponsor.com/logo.png",
+      "description": "A private, 24/7 AI sponsor for 12-step recovery programs. Not affiliated with, endorsed by, or connected to Alcoholics Anonymous, Narcotics Anonymous, or any 12-step program.",
+      "founder": { "@type": "Person", "name": "Matt Crowe" },
+      "parentOrganization": { "@type": "Organization", "name": "Guru Labs", "url": "https://guru-labs.ai" }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "AI Sponsor",
+      "url": "https://getaisponsor.com/",
+      "applicationCategory": "HealthApplication",
+      "operatingSystem": "Web",
+      "creator": { "@id": "https://getaisponsor.com/#org" },
+      "offers": [
+        { "@type": "Offer", "price": "5.00", "priceCurrency": "USD", "description": "$5/month after a 30-day free trial." },
+        { "@type": "Offer", "price": "49.00", "priceCurrency": "USD", "description": "$49/year after a 30-day free trial." }
+      ]
     },
     {
       "@type": "WebSite",
