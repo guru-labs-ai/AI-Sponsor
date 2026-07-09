@@ -67,6 +67,11 @@ function render() {
   const previewDays = parseInt(new URLSearchParams(location.search).get('preview'));
   if (previewDays > 0 && !u) {
     u = { name: '', sponsorName: '', signupDate: new Date(Date.now() - (previewDays - 1) * 86400000).toISOString() };
+    // Keep preview mode alive across navigation (real users don't need this —
+    // their pill comes from localStorage on every page).
+    const back = 'ai-sponsor-chat.html?preview=' + previewDays;
+    document.querySelector('.back').href = back;
+    window.__chatHref = back;
   }
   const el = document.getElementById('content');
 
@@ -105,7 +110,7 @@ function render() {
         '<div><div class="m-name">' + m.name + '</div>' +
         '<div class="m-sub">' + (reached ? 'Reached ✓' : m.sub) + '</div></div></div>';
     }).join('') +
-    '<a class="cta" href="ai-sponsor-chat.html">Talk to ' + (u.sponsorName || 'your sponsor') + ' →</a>';
+    '<a class="cta" href="' + (window.__chatHref || 'ai-sponsor-chat.html') + '">Talk to ' + (u.sponsorName || 'your sponsor') + ' →</a>';
 }
 render();
 </script>

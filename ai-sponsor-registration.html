@@ -1488,7 +1488,7 @@ async function registerUser(paymentStatus) {
       access: paymentStatus || 'Unpaid'
     }));
     const pill = document.getElementById('dayPill');
-    if (pill) { pill.textContent = '🌱 Day 1'; pill.style.display = 'inline-block'; }
+    if (pill) { pill.textContent = '🌱 Day 1 · My journey'; pill.style.display = 'inline-block'; }
   } catch(e) {}
   try {
     await fetch(REGISTER_ENDPOINT, {

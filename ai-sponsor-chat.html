@@ -127,7 +127,7 @@ const userId = (savedUser && savedUser.userId)
 if (savedUser && savedUser.signupDate) {
   const days = Math.max(1, Math.floor((Date.now() - new Date(savedUser.signupDate).getTime()) / 86400000) + 1);
   const pill = document.getElementById('dayPill');
-  pill.textContent = '🌱 Day ' + days;
+  pill.textContent = '🌱 Day ' + days + ' · My journey';
   pill.style.display = 'inline-block';
 }
 if (savedUser && savedUser.sponsorName) {
