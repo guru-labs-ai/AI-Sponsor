@@ -63,6 +63,11 @@ const MILESTONES = [
 function render() {
   let u = null;
   try { u = JSON.parse(localStorage.getItem('ais_user')); } catch (e) {}
+  // Internal preview (?preview=N): render as if signed up N days ago, no data written.
+  const previewDays = parseInt(new URLSearchParams(location.search).get('preview'));
+  if (previewDays > 0 && !u) {
+    u = { name: '', sponsorName: '', signupDate: new Date(Date.now() - (previewDays - 1) * 86400000).toISOString() };
+  }
   const el = document.getElementById('content');
 
   if (!u || !u.signupDate) {

@@ -115,6 +115,12 @@ const BACKEND_URL = 'https://ai-sponsor-f7de.onrender.com';
 // is continuous, and show the "Day N" journey pill in the header.
 let savedUser = null;
 try { savedUser = JSON.parse(localStorage.getItem('ais_user')); } catch (e) {}
+// Internal preview (?preview=N): render the Day-N pill without registering.
+const previewDays = parseInt(new URLSearchParams(location.search).get('preview'));
+if (previewDays > 0 && !savedUser) {
+  savedUser = { signupDate: new Date(Date.now() - (previewDays - 1) * 86400000).toISOString() };
+  document.getElementById('dayPill').href = 'ai-sponsor-journey.html?preview=' + previewDays;
+}
 const userId = (savedUser && savedUser.userId)
   ? savedUser.userId
   : 'web-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
