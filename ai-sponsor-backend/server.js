@@ -18,6 +18,11 @@ if (process.env.TWILIO_ACCOUNT_SID) {
   whatsapp = require('./whatsapp');
 }
 
+// Voice comparison relay (Matt's OpenAI-vs-xAI voice test). Safe to require
+// unconditionally — it constructs nothing at load; providers without keys are
+// simply not offered, and the relay 404s when neither key is set.
+const voiceCompare = require('./voice-compare');
+
 const app = express();
 app.use(cors());
 
@@ -321,7 +326,11 @@ async function getSponsorReply(userId, message) {
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'ai-sponsor-backend' });
+  res.json({
+    status: 'ok',
+    service: 'ai-sponsor-backend',
+    voiceProviders: voiceCompare.enabledProviders(),
+  });
 });
 
 // Save user profile from onboarding + optionally clear history
@@ -607,7 +616,7 @@ if (whatsapp) {
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`AI Sponsor backend running on http://localhost:${PORT}`);
   console.log(`Endpoints:`);
   console.log(`  GET  /health`);
@@ -615,4 +624,7 @@ app.listen(PORT, () => {
   console.log(`  POST /api/first-message — generate Screen 9 welcome message (streaming)`);
   console.log(`  POST /api/chat         — send a message, get streaming response`);
   console.log(`  GET  /api/history/:userId`);
+  console.log(`  WS   /api/voice/relay  — voice comparison (openai | xai)`);
 });
+
+voiceCompare.attach(server, MASTER_SYSTEM_PROMPT);

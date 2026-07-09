@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>AI Sponsor — Voice Comparison (Internal)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#0080D4; --blue-dark:#0068AC; --ink:#212529; --muted:#6B7280;
+  --bg:#F0F4F8; --card:#FFFFFF; --line:#E5E7EB; --red:#DC2626; --green:#16A34A;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;padding:20px 16px 40px}
+.wrap{max-width:560px;margin:0 auto}
+header{text-align:center;margin-bottom:18px}
+header h1{font-size:22px;font-weight:800;letter-spacing:-0.02em}
+header p{font-size:13.5px;color:var(--muted);margin-top:6px;line-height:1.5}
+.badge{display:inline-block;background:#FEF3C7;color:#92400E;font-size:11px;font-weight:700;
+  padding:3px 10px;border-radius:99px;margin-bottom:10px;letter-spacing:0.04em;text-transform:uppercase}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:14px;
+  box-shadow:0 1px 3px rgba(16,42,67,0.06)}
+.card h2{font-size:16.5px;font-weight:700;display:flex;align-items:center;gap:8px}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.card .sub{font-size:12.5px;color:var(--muted);margin:4px 0 14px}
+.btn{width:100%;padding:15px;border:none;border-radius:12px;font-family:inherit;font-size:15.5px;
+  font-weight:700;cursor:pointer;background:var(--blue);color:#fff;transition:background .15s}
+.btn:active{background:var(--blue-dark)}
+.btn.stop{background:var(--red)}
+.btn:disabled{background:#CBD5E1;cursor:not-allowed}
+.status{margin-top:12px;font-size:13.5px;color:var(--muted);min-height:20px;display:flex;
+  align-items:center;gap:8px;justify-content:center;text-align:center}
+.status .live{color:var(--green);font-weight:600}
+.pulse{width:9px;height:9px;border-radius:50%;background:var(--green);animation:pu 1.2s infinite;flex:none}
+@keyframes pu{0%,100%{opacity:1}50%{opacity:.25}}
+.meta{display:flex;justify-content:center;gap:18px;margin-top:10px;font-size:12px;color:var(--muted)}
+.meta b{color:var(--ink);font-weight:600}
+.note{font-size:12.5px;color:var(--muted);line-height:1.55;background:var(--card);
+  border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.note b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="badge">Internal test — not public</div>
+    <h1>Your Sponsor, Two Voices</h1>
+    <p>Same AI Sponsor, same prompt — one runs on OpenAI's realtime voice, one on xAI's Grok voice.
+    Tap, allow the microphone, and just talk. Interrupt it like a real call.</p>
+  </header>
+
+  <div class="card" id="card-openai">
+    <h2><span class="dot" style="background:#10A37F"></span>OpenAI</h2>
+    <div class="sub">gpt-realtime · voice "Marin" · ~$0.20–0.40/min</div>
+    <button class="btn" data-provider="openai">Talk to your sponsor — OpenAI</button>
+    <div class="status" data-status></div>
+    <div class="meta"><span>Session <b data-timer>0:00</b></span><span>First reply <b data-latency>—</b></span></div>
+  </div>
+
+  <div class="card" id="card-xai">
+    <h2><span class="dot" style="background:#000"></span>xAI (Grok)</h2>
+    <div class="sub">grok-voice-latest · voice "Eve" · $0.05/min flat</div>
+    <button class="btn" data-provider="xai">Talk to your sponsor — Grok</button>
+    <div class="status" data-status></div>
+    <div class="meta"><span>Session <b data-timer>0:00</b></span><span>First reply <b data-latency>—</b></span></div>
+  </div>
+
+  <div class="note">
+    <b>How to compare:</b> say the same thing to both — e.g. <i>"I'm three weeks sober and tonight is rough."</i>
+    Listen for warmth, naturalness, how fast it answers, and how it handles being interrupted.
+    First connect can take ~1 minute if the server is waking up. Sessions auto-end after 10 minutes.
+  </div>
+</div>
+
+<script>
+const BACKEND = 'wss://ai-sponsor-f7de.onrender.com/api/voice/relay';
+const RATE = 24000;
+let active = null; // one live session at a time
+
+document.querySelectorAll('.btn[data-provider]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const provider = btn.dataset.provider;
+    if (active && active.provider === provider) { active.stop('Ended.'); return; }
+    if (active) active.stop('Ended.');
+    active = new Session(provider, btn.closest('.card'));
+    active.start();
+  });
+});
+
+function Session(provider, card) {
+  const btn = card.querySelector('.btn');
+  const statusEl = card.querySelector('[data-status]');
+  const timerEl = card.querySelector('[data-timer]');
+  const latencyEl = card.querySelector('[data-latency]');
+  let ws, ctx, micStream, workletNode, timerInt;
+  let playhead = 0, sources = [], speechStoppedAt = 0, firstDeltaSeen = false, startedAt = 0;
+  const self = this;
+  this.provider = provider;
+
+  function setStatus(html) { statusEl.innerHTML = html; }
+
+  this.start = async function () {
+    btn.textContent = 'End conversation';
+    btn.classList.add('stop');
+    setStatus('Requesting microphone…');
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    } catch (e) {
+      self.stop('Microphone blocked — allow mic access and retry.');
+      return;
+    }
+    setStatus('Connecting… (up to ~1 min if the server is asleep)');
+    ws = new WebSocket(BACKEND + '?provider=' + provider);
+
+    ws.onopen = async () => {
+      startedAt = Date.now();
+      timerInt = setInterval(() => {
+        const s = Math.floor((Date.now() - startedAt) / 1000);
+        timerEl.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+      }, 1000);
+      await initAudio();
+      setStatus('<span class="pulse"></span><span class="live">Live — just start talking</span>');
+    };
+
+    ws.onmessage = (ev) => {
+      let msg; try { msg = JSON.parse(ev.data); } catch (e) { return; }
+      const t = msg.type || '';
+      if (t === 'response.output_audio.delta' || t === 'response.audio.delta') {
+        if (!firstDeltaSeen && speechStoppedAt) {
+          latencyEl.textContent = ((Date.now() - speechStoppedAt) / 1000).toFixed(1) + 's';
+          firstDeltaSeen = true;
+        }
+        playChunk(msg.delta || msg.audio);
+      } else if (t === 'input_audio_buffer.speech_started') {
+        stopPlayback(); // barge-in: user interrupted the sponsor
+      } else if (t === 'input_audio_buffer.speech_stopped') {
+        speechStoppedAt = Date.now(); firstDeltaSeen = false;
+      } else if (t === 'relay.session_expired') {
+        self.stop('Session hit the 10-minute test limit.');
+      } else if (t === 'relay.error' || t === 'error') {
+        self.stop('Connection error — ' + (msg.message || (msg.error && msg.error.message) || 'try again.'));
+      }
+    };
+    ws.onclose = () => { if (active === self) self.stop('Disconnected.'); };
+    ws.onerror = () => {};
+  };
+
+  async function initAudio() {
+    ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: RATE });
+    await ctx.resume();
+    const workletCode = `
+      class PCMCapture extends AudioWorkletProcessor {
+        process(inputs) {
+          const ch = inputs[0][0];
+          if (ch) this.port.postMessage(ch.slice(0));
+          return true;
+        }
+      }
+      registerProcessor('pcm-capture', PCMCapture);`;
+    const blobUrl = URL.createObjectURL(new Blob([workletCode], { type: 'application/javascript' }));
+    await ctx.audioWorklet.addModule(blobUrl);
+    const src = ctx.createMediaStreamSource(micStream);
+    workletNode = new AudioWorkletNode(ctx, 'pcm-capture');
+    let buf = [];
+    workletNode.port.onmessage = (e) => {
+      buf.push(e.data);
+      if (buf.reduce((n, a) => n + a.length, 0) >= RATE / 10) { // ~100ms chunks
+        sendPCM(mergeFloat32(buf)); buf = [];
+      }
+    };
+    src.connect(workletNode);
+    workletNode.connect(ctx.destination); // keeps the worklet alive; emits no sound
+  }
+
+  function mergeFloat32(arrs) {
+    const out = new Float32Array(arrs.reduce((n, a) => n + a.length, 0));
+    let o = 0; arrs.forEach(a => { out.set(a, o); o += a.length; });
+    return out;
+  }
+
+  function sendPCM(f32) {
+    if (!ws || ws.readyState !== 1) return;
+    // Resample if the device refused a 24 kHz context (some Android browsers).
+    if (ctx.sampleRate !== RATE) f32 = resample(f32, ctx.sampleRate, RATE);
+    const i16 = new Int16Array(f32.length);
+    for (let i = 0; i < f32.length; i++) i16[i] = Math.max(-1, Math.min(1, f32[i])) * 0x7FFF;
+    const bytes = new Uint8Array(i16.buffer);
+    let bin = ''; for (let i = 0; i < bytes.length; i += 8192) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+    ws.send(JSON.stringify({ type: 'input_audio_buffer.append', audio: btoa(bin) }));
+  }
+
+  function resample(f32, from, to) {
+    const out = new Float32Array(Math.round(f32.length * to / from));
+    for (let i = 0; i < out.length; i++) {
+      const x = i * from / to, x0 = Math.floor(x), x1 = Math.min(x0 + 1, f32.length - 1);
+      out[i] = f32[x0] + (f32[x1] - f32[x0]) * (x - x0);
+    }
+    return out;
+  }
+
+  function playChunk(b64) {
+    if (!b64 || !ctx) return;
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const i16 = new Int16Array(bytes.buffer);
+    const f32 = new Float32Array(i16.length);
+    for (let i = 0; i < i16.length; i++) f32[i] = i16[i] / 0x8000;
+    const audioBuf = ctx.createBuffer(1, f32.length, RATE);
+    audioBuf.getChannelData(0).set(f32);
+    const node = ctx.createBufferSource();
+    node.buffer = audioBuf; node.connect(ctx.destination);
+    const now = ctx.currentTime;
+    if (playhead < now) playhead = now + 0.05;
+    node.start(playhead);
+    playhead += audioBuf.duration;
+    sources.push(node);
+    node.onended = () => { sources = sources.filter(s => s !== node); };
+  }
+
+  function stopPlayback() {
+    sources.forEach(s => { try { s.stop(); } catch (e) {} });
+    sources = []; playhead = 0;
+  }
+
+  this.stop = function (msg) {
+    clearInterval(timerInt);
+    stopPlayback();
+    try { ws && ws.close(); } catch (e) {}
+    try { workletNode && workletNode.disconnect(); } catch (e) {}
+    try { ctx && ctx.close(); } catch (e) {}
+    try { micStream && micStream.getTracks().forEach(t => t.stop()); } catch (e) {}
+    btn.textContent = 'Talk to your sponsor — ' + (provider === 'openai' ? 'OpenAI' : 'Grok');
+    btn.classList.remove('stop');
+    setStatus(msg || '');
+    if (active === self) active = null;
+  };
+}
+</script>
+</body>
+</html>
