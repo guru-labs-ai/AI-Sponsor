@@ -1033,6 +1033,7 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
       <div class="chat-hname" id="chatSponsorName">Your AI Sponsor</div>
       <div class="chat-hstatus">● Online — here for you 24/7</div>
     </div>
+    <a id="dayPill" href="ai-sponsor-journey.html" style="display:none;margin-left:auto;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.35);color:#fff;text-decoration:none;font-size:12.5px;font-weight:700;padding:6px 12px;border-radius:99px;white-space:nowrap"></a>
   </div>
   <div class="chat-messages" id="chatMessages"></div>
   <div class="chat-bar">
@@ -1476,6 +1477,19 @@ async function registerUser(paymentStatus) {
     paymentStatus: paymentStatus || 'Unpaid',
     source:      'ai-sponsor-registration'
   };
+  // Durable identity for this device: the chat header's "Day N" pill and the
+  // journey page read this. Cross-device sync comes with real accounts later.
+  try {
+    localStorage.setItem('ais_user', JSON.stringify({
+      userId: chatUserId,
+      name: D.name || '',
+      sponsorName: D.sponsorName || '',
+      signupDate: new Date().toISOString(),
+      access: paymentStatus || 'Unpaid'
+    }));
+    const pill = document.getElementById('dayPill');
+    if (pill) { pill.textContent = '🌱 Day 1'; pill.style.display = 'inline-block'; }
+  } catch(e) {}
   try {
     await fetch(REGISTER_ENDPOINT, {
       method: 'POST',

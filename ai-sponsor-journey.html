@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Your Journey — AI Sponsor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--blue:#0080D4;--blue-dark:#0068AC;--ink:#212529;--muted:#6B7280;--bg:#F0F4F8;
+  --card:#FFFFFF;--line:#E5E7EB;--gold:#B45309;--gold-bg:#FEF3C7}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;padding:22px 16px 44px}
+.wrap{max-width:480px;margin:0 auto}
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--muted);text-decoration:none;
+  font-size:13px;font-weight:600;margin-bottom:16px}
+.hero{background:linear-gradient(160deg,var(--blue),var(--blue-dark));color:#fff;border-radius:18px;
+  padding:28px 24px;text-align:center;margin-bottom:16px;box-shadow:0 4px 16px rgba(0,128,212,0.25)}
+.hero .day{font-size:56px;font-weight:800;letter-spacing:-0.02em;line-height:1.05}
+.hero .day small{font-size:20px;font-weight:600;opacity:0.85}
+.hero .with{font-size:14.5px;margin-top:6px;opacity:0.92}
+.hero .since{font-size:12px;margin-top:8px;opacity:0.7}
+.gentle{font-size:13px;color:var(--muted);line-height:1.6;text-align:center;padding:0 10px;margin-bottom:20px}
+h2{font-size:15px;font-weight:700;margin:0 2px 10px}
+.mstone{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);
+  border-radius:14px;padding:14px 16px;margin-bottom:9px}
+.mstone.reached{border-color:#F5D488;background:linear-gradient(0deg,var(--gold-bg),#fffdf5)}
+.chip{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex:none;background:var(--bg);border:2px dashed var(--line)}
+.reached .chip{background:var(--gold-bg);border:2px solid #F5D488}
+.m-name{font-size:14.5px;font-weight:700}
+.m-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.reached .m-sub{color:var(--gold);font-weight:600}
+.next{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:4px 0 20px}
+.next .lbl{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em}
+.next .txt{font-size:14px;font-weight:600;margin-top:4px}
+.bar{height:8px;background:var(--bg);border-radius:99px;margin-top:10px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--blue);border-radius:99px;transition:width .6s ease}
+.cta{display:block;text-align:center;background:var(--blue);color:#fff;text-decoration:none;font-weight:700;
+  font-size:15px;padding:15px;border-radius:12px;margin-top:22px}
+.empty{text-align:center;padding:60px 20px;color:var(--muted);font-size:14.5px;line-height:1.7}
+.empty a{color:var(--blue);font-weight:700;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="ai-sponsor-chat.html">← Back to chat</a>
+  <div id="content"></div>
+</div>
+
+<script>
+const MILESTONES = [
+  { days: 1,   emoji: '🌱', name: '24 hours',  sub: 'The hardest one. It all starts here.' },
+  { days: 7,   emoji: '🌿', name: '1 week',    sub: 'Seven days, one at a time.' },
+  { days: 30,  emoji: '🥉', name: '30 days',   sub: 'A full month of showing up.' },
+  { days: 60,  emoji: '🥈', name: '60 days',   sub: 'Two months. This is becoming who you are.' },
+  { days: 90,  emoji: '🥇', name: '90 days',   sub: 'Ninety in ninety. A real foundation.' },
+  { days: 180, emoji: '⭐', name: '6 months',  sub: 'Half a year of walking this road.' },
+  { days: 365, emoji: '🏆', name: '1 year',    sub: 'A full year. One day at a time, 365 times.' },
+];
+
+function render() {
+  let u = null;
+  try { u = JSON.parse(localStorage.getItem('ais_user')); } catch (e) {}
+  const el = document.getElementById('content');
+
+  if (!u || !u.signupDate) {
+    el.innerHTML = '<div class="empty">This page shows your days in the program with your sponsor —<br>' +
+      'but it looks like you haven’t registered on this device yet.<br><br>' +
+      '<a href="ai-sponsor-registration.html">Start your journey →</a></div>';
+    return;
+  }
+
+  const days = Math.max(1, Math.floor((Date.now() - new Date(u.signupDate).getTime()) / 86400000) + 1);
+  const sponsor = u.sponsorName ? ' with ' + u.sponsorName : ' with your sponsor';
+  const since = new Date(u.signupDate).toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' });
+
+  const nextM = MILESTONES.find(m => days < m.days);
+  const prevDays = nextM ? (MILESTONES[MILESTONES.indexOf(nextM) - 1]?.days || 0) : 365;
+  const pct = nextM ? Math.round(((days - prevDays) / (nextM.days - prevDays)) * 100) : 100;
+
+  el.innerHTML =
+    '<div class="hero">' +
+      '<div class="day">Day ' + days + '</div>' +
+      '<div class="with">' + (u.name ? u.name + ', you’re' : 'You’re') + ' on this road' + sponsor + '</div>' +
+      '<div class="since">Together since ' + since + '</div>' +
+    '</div>' +
+    '<p class="gentle">Every day counts — including today. If you’ve had a setback, that doesn’t erase the road behind you. Talk to your sponsor about it.</p>' +
+    (nextM
+      ? '<div class="next"><div class="lbl">Next milestone</div>' +
+        '<div class="txt">' + nextM.emoji + ' ' + nextM.name + ' — ' + (nextM.days - days) + ' day' + (nextM.days - days === 1 ? '' : 's') + ' to go</div>' +
+        '<div class="bar"><i style="width:' + Math.max(4, pct) + '%"></i></div></div>'
+      : '') +
+    '<h2>Milestones</h2>' +
+    MILESTONES.map(m => {
+      const reached = days >= m.days;
+      return '<div class="mstone' + (reached ? ' reached' : '') + '">' +
+        '<div class="chip">' + m.emoji + '</div>' +
+        '<div><div class="m-name">' + m.name + '</div>' +
+        '<div class="m-sub">' + (reached ? 'Reached ✓' : m.sub) + '</div></div></div>';
+    }).join('') +
+    '<a class="cta" href="ai-sponsor-chat.html">Talk to ' + (u.sponsorName || 'your sponsor') + ' →</a>';
+}
+render();
+</script>
+</body>
+</html>

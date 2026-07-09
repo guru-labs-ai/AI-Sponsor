@@ -90,6 +90,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);min-height:100vh;
       <div class="chat-hname">Your AI Sponsor</div>
       <div class="chat-hstatus">● Online — here for you 24/7</div>
     </div>
+    <a id="dayPill" href="ai-sponsor-journey.html" style="display:none;margin-left:auto;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.35);color:#fff;text-decoration:none;font-size:12.5px;font-weight:700;padding:6px 12px;border-radius:99px;white-space:nowrap"></a>
   </div>
   <div class="chat-messages" id="chatMessages"></div>
   <div class="chat-bar">
@@ -109,11 +110,29 @@ body{font-family:'Inter',sans-serif;background:var(--bg);min-height:100vh;
 // Chat runs through the AI Sponsor backend — the Anthropic key lives server-side
 // (in Render env), never in the browser. Backend: Express + Claude, SSE streaming.
 const BACKEND_URL = 'https://ai-sponsor-f7de.onrender.com';
-const userId = 'web-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+// Registered on this device? Reuse the same identity so the sponsor relationship
+// is continuous, and show the "Day N" journey pill in the header.
+let savedUser = null;
+try { savedUser = JSON.parse(localStorage.getItem('ais_user')); } catch (e) {}
+const userId = (savedUser && savedUser.userId)
+  ? savedUser.userId
+  : 'web-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+if (savedUser && savedUser.signupDate) {
+  const days = Math.max(1, Math.floor((Date.now() - new Date(savedUser.signupDate).getTime()) / 86400000) + 1);
+  const pill = document.getElementById('dayPill');
+  pill.textContent = '🌱 Day ' + days;
+  pill.style.display = 'inline-block';
+}
+if (savedUser && savedUser.sponsorName) {
+  document.querySelector('.chat-hname').textContent = savedUser.sponsorName;
+}
+
 let sessionReady = false;
 let recognition = null;
 let isListening = false;
 let profile = { name: 'friend', program: 'AA', stage: 'active', why: '' };
+if (savedUser && savedUser.name) profile.name = savedUser.name;
 
 // When this page is opened with profile details (e.g. from registration), pick them up.
 (function readProfileFromURL() {
