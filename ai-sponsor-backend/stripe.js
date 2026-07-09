@@ -168,9 +168,41 @@ async function handleWebhookEvent(event) {
   }
 }
 
+/* ── List AI Sponsor subscriptions (for the north-star metrics endpoint) ─────
+   The Stripe account is SHARED across products, so we keep only subscriptions
+   whose price id matches an AI Sponsor price — same isolation rule as the
+   webhook guard. Returns date/status fields only, no customer details.       */
+async function listSponsorSubscriptions() {
+  if (!stripe) return []; // Stripe not configured — metrics degrade gracefully
+  const sponsorPrices = Object.values(PRICE_IDS).filter(Boolean);
+  const subs = [];
+  let startingAfter;
+  for (let page = 0; page < 10; page++) {
+    const resp = await stripe.subscriptions.list({
+      status: 'all',
+      limit: 100,
+      ...(startingAfter ? { starting_after: startingAfter } : {}),
+    });
+    resp.data.forEach((s) => {
+      const priceId = s.items?.data?.[0]?.price?.id;
+      if (!sponsorPrices.includes(priceId)) return;
+      subs.push({
+        status: s.status,
+        created: s.created,                    // unix seconds
+        canceledAt: s.canceled_at || null,
+        endedAt: s.ended_at || null,
+      });
+    });
+    if (!resp.has_more) break;
+    startingAfter = resp.data[resp.data.length - 1].id;
+  }
+  return subs;
+}
+
 module.exports = {
   createCheckoutSession,
   constructWebhookEvent,
   handleWebhookEvent,
+  listSponsorSubscriptions,
   PRICE_IDS,
 };

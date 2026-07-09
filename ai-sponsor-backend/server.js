@@ -333,6 +333,76 @@ app.get('/health', (req, res) => {
   });
 });
 
+// ─── North-star metrics (Matt's "cumulative recovery days", per Sunflower) ────
+// Aggregates only — no names/emails/PII ever leave this endpoint. Sign-up dates
+// come from GHL (registration pipeline live since Jul 1 2026); cancellations
+// come from Stripe (AI Sponsor prices only). Cached 10 min to spare both APIs.
+let metricsCache = { at: 0, data: null };
+app.get('/api/metrics/northstar', async (req, res) => {
+  if (metricsCache.data && Date.now() - metricsCache.at < 10 * 60 * 1000) {
+    return res.json(metricsCache.data);
+  }
+  try {
+    const [contacts, subs] = await Promise.all([
+      ghl.listSponsorContacts(),
+      stripeModule.listSponsorSubscriptions().catch((e) => {
+        console.error('[Metrics] Stripe list failed:', e.message);
+        return [];
+      }),
+    ]);
+
+    const now = Date.now();
+    const signupsByDay = {};
+    let cumulativeDays = 0;
+    let beta = 0;
+    let paid = 0;
+    contacts.forEach((c) => {
+      const added = new Date(c.dateAdded).getTime();
+      if (!added) return;
+      cumulativeDays += Math.max(0, Math.floor((now - added) / 86400000));
+      const day = new Date(added).toISOString().slice(0, 10);
+      signupsByDay[day] = (signupsByDay[day] || 0) + 1;
+      if (c.tags.includes('ai-sponsor-paid')) paid++;
+      else beta++;
+    });
+
+    const canceled = subs.filter((s) => s.endedAt || s.canceledAt);
+    const daysToCancel = canceled
+      .map((s) => ((s.endedAt || s.canceledAt) - s.created) / 86400)
+      .filter((d) => d >= 0);
+
+    const data = {
+      generatedAt: new Date().toISOString(),
+      northStar: {
+        cumulativeRecoveryDays: cumulativeDays,
+        activeUsers: contacts.length,
+        avgDaysPerUser: contacts.length
+          ? Math.round((cumulativeDays / contacts.length) * 10) / 10
+          : 0,
+        cancellations: canceled.length,
+        avgDaysToCancel: daysToCancel.length
+          ? Math.round((daysToCancel.reduce((a, b) => a + b, 0) / daysToCancel.length) * 10) / 10
+          : null,
+      },
+      signups: { total: contacts.length, beta, paid, byDay: signupsByDay },
+      billing: {
+        stripeConfigured: subs.length > 0 || !!process.env.STRIPE_SECRET_KEY,
+        activeSubscriptions: subs.filter((s) => s.status === 'active' || s.status === 'trialing').length,
+      },
+      dataNotes: [
+        'Sign-up capture started Jul 1 2026 (web registrations that complete the flow).',
+        'The WhatsApp beta cohort (59+ people) is not in GHL yet, so it is not counted here.',
+        'Beta users have no cancel event until Stripe subscriptions exist — everyone counts as active.',
+      ],
+    };
+    metricsCache = { at: Date.now(), data };
+    res.json(data);
+  } catch (err) {
+    console.error('[Metrics] northstar failed:', err.message);
+    res.status(err.statusCode || 500).json({ error: err.message });
+  }
+});
+
 // Save user profile from onboarding + optionally clear history
 app.post('/api/session', (req, res) => {
   const { userId, profile } = req.body;

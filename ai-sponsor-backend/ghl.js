@@ -215,6 +215,46 @@ async function deleteContact(contactId) {
   return resp.ok;
 }
 
+// List AI Sponsor SIGN-UPS (completed registrations) for the metrics endpoint.
+// Only ai-sponsor-beta / ai-sponsor-paid count as sign-ups — support tickets and
+// amends-tv applicants also live in this shared location but are not users.
+// Returns aggregate-safe fields only (no names/emails leave the backend).
+async function listSponsorContacts() {
+  const out = [];
+  let searchAfter = null;
+  for (let page = 0; page < 10; page++) {
+    const body = {
+      locationId: LOCATION_ID,
+      pageLimit: 100,
+      filters: [
+        {
+          group: 'OR',
+          filters: [
+            { field: 'tags', operator: 'contains', value: ['ai-sponsor-beta'] },
+            { field: 'tags', operator: 'contains', value: ['ai-sponsor-paid'] },
+          ],
+        },
+      ],
+    };
+    if (searchAfter) body.searchAfter = searchAfter;
+    const resp = await fetch(`${GHL_BASE}/contacts/search`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify(body),
+    });
+    const json = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(json.message || `contact search failed (${resp.status})`);
+    const contacts = json.contacts || [];
+    contacts.forEach((c) => {
+      out.push({ dateAdded: c.dateAdded, tags: c.tags || [] });
+    });
+    if (contacts.length < 100) break;
+    searchAfter = contacts[contacts.length - 1].searchAfter;
+    if (!searchAfter) break;
+  }
+  return out;
+}
+
 // One-time: ensure the "Amends - who" custom field exists; returns its id.
 async function ensureAmendsField() {
   if (process.env.GHL_AMENDS_FIELD_ID) return process.env.GHL_AMENDS_FIELD_ID;
@@ -233,6 +273,7 @@ module.exports = {
   registerContact,
   submitSupport,
   deleteContact,
+  listSponsorContacts,
   ensureAmendsField,
   buildContactBody,
   _maps: { PROGRAM_MAP, STAGE_MAP, DELIVERY_MAP, FIELD_IDS },
