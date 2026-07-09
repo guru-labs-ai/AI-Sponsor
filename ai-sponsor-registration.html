@@ -1484,6 +1484,9 @@ async function registerUser(paymentStatus) {
       userId: chatUserId,
       name: D.name || '',
       sponsorName: D.sponsorName || '',
+      sponsorStyle: D.sponsorStyle || '',
+      program: Array.isArray(D.program) && D.program.length ? D.program.join(' and ') : (D.program || ''),
+      stage: D.stage || '',
       signupDate: new Date().toISOString(),
       access: paymentStatus || 'Unpaid'
     }));

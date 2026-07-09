@@ -75,15 +75,21 @@ function render() {
   }
   const el = document.getElementById('content');
 
-  if (!u || !u.signupDate) {
+  if (!u || !u.signupDate || !isFinite(new Date(u.signupDate).getTime())) {
     el.innerHTML = '<div class="empty">This page shows your days in the program with your sponsor —<br>' +
       'but it looks like you haven’t registered on this device yet.<br><br>' +
       '<a href="ai-sponsor-registration.html">Start your journey →</a></div>';
     return;
   }
 
+  // User-typed values go into HTML — escape them.
+  const esc = (s) => String(s || '').replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const name = esc(u.name);
+  const sponsorName = esc(u.sponsorName);
+
   const days = Math.max(1, Math.floor((Date.now() - new Date(u.signupDate).getTime()) / 86400000) + 1);
-  const sponsor = u.sponsorName ? ' with ' + u.sponsorName : ' with your sponsor';
+  const sponsor = sponsorName ? ' with ' + sponsorName : ' with your sponsor';
   const since = new Date(u.signupDate).toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' });
 
   const nextM = MILESTONES.find(m => days < m.days);
@@ -93,7 +99,7 @@ function render() {
   el.innerHTML =
     '<div class="hero">' +
       '<div class="day">Day ' + days + '</div>' +
-      '<div class="with">' + (u.name ? u.name + ', you’re' : 'You’re') + ' on this road' + sponsor + '</div>' +
+      '<div class="with">' + (name ? name + ', you’re' : 'You’re') + ' on this road' + sponsor + '</div>' +
       '<div class="since">Together since ' + since + '</div>' +
     '</div>' +
     '<p class="gentle">Every day counts — including today. If you’ve had a setback, that doesn’t erase the road behind you. Talk to your sponsor about it.</p>' +
@@ -110,7 +116,7 @@ function render() {
         '<div><div class="m-name">' + m.name + '</div>' +
         '<div class="m-sub">' + (reached ? 'Reached ✓' : m.sub) + '</div></div></div>';
     }).join('') +
-    '<a class="cta" href="' + (window.__chatHref || 'ai-sponsor-chat.html') + '">Talk to ' + (u.sponsorName || 'your sponsor') + ' →</a>';
+    '<a class="cta" href="' + (window.__chatHref || 'ai-sponsor-chat.html') + '">Talk to ' + (sponsorName || 'your sponsor') + ' →</a>';
 }
 render();
 </script>
