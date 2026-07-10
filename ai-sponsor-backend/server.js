@@ -22,6 +22,7 @@ if (process.env.TWILIO_ACCOUNT_SID) {
 // unconditionally — it constructs nothing at load; providers without keys are
 // simply not offered, and the relay 404s when neither key is set.
 const voiceCompare = require('./voice-compare');
+const scoreboard = require('./scoreboard');
 
 // Persistent store (Postgres) — no-ops until DATABASE_URL is set (see db.js).
 const db = require('./db');
@@ -35,6 +36,11 @@ app.use(cors());
 app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
 
 app.use(express.json());
+
+// Shared team KPI scoreboard (see scoreboard.js) — used by the GitHub Pages
+// dashboard weekly-scoreboard.html, not by the AI Sponsor product itself.
+app.get('/api/scoreboard', scoreboard.getScoreboard);
+app.post('/api/scoreboard', scoreboard.postScoreboard);
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
