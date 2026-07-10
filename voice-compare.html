@@ -25,6 +25,11 @@ header p{font-size:13.5px;color:var(--muted);margin-top:6px;line-height:1.5}
 .card h2{font-size:16.5px;font-weight:700;display:flex;align-items:center;gap:8px}
 .dot{width:10px;height:10px;border-radius:50%;flex:none}
 .card .sub{font-size:12.5px;color:var(--muted);margin:4px 0 14px}
+.voice-row{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.voice-row label{font-size:12.5px;color:var(--muted);font-weight:600;flex:none}
+.voice-select{flex:1;padding:9px 10px;border:1px solid var(--line);border-radius:9px;
+  font-family:inherit;font-size:13.5px;background:#fff;color:var(--ink)}
+.voice-select:disabled{background:#F3F4F6;color:var(--muted)}
 .btn{width:100%;padding:15px;border:none;border-radius:12px;font-family:inherit;font-size:15.5px;
   font-weight:700;cursor:pointer;background:var(--blue);color:#fff;transition:background .15s}
 .btn:active{background:var(--blue-dark)}
@@ -48,12 +53,27 @@ header p{font-size:13.5px;color:var(--muted);margin-top:6px;line-height:1.5}
     <div class="badge">Internal test — not public</div>
     <h1>Your Sponsor, Two Voices</h1>
     <p>Same AI Sponsor, same prompt — one runs on OpenAI's realtime voice, one on xAI's Grok voice.
-    Tap, allow the microphone, and just talk. Interrupt it like a real call.</p>
+    Pick a voice below, tap, allow the microphone, and just talk. Interrupt it like a real call.</p>
   </header>
 
   <div class="card" id="card-openai">
     <h2><span class="dot" style="background:#10A37F"></span>OpenAI</h2>
-    <div class="sub">gpt-realtime · voice "Marin" · ~$0.20–0.40/min</div>
+    <div class="sub">gpt-realtime · ~$0.20–0.40/min</div>
+    <div class="voice-row">
+      <label for="voice-openai">Voice</label>
+      <select class="voice-select" id="voice-openai" data-voice-select>
+        <option value="marin" selected>Marin (recommended)</option>
+        <option value="cedar">Cedar (recommended)</option>
+        <option value="alloy">Alloy</option>
+        <option value="ash">Ash</option>
+        <option value="ballad">Ballad</option>
+        <option value="coral">Coral</option>
+        <option value="echo">Echo</option>
+        <option value="sage">Sage</option>
+        <option value="shimmer">Shimmer</option>
+        <option value="verse">Verse</option>
+      </select>
+    </div>
     <button class="btn" data-provider="openai">Talk to your sponsor — OpenAI</button>
     <div class="status" data-status></div>
     <div class="meta"><span>Session <b data-timer>0:00</b></span><span>First reply <b data-latency>—</b></span></div>
@@ -61,7 +81,44 @@ header p{font-size:13.5px;color:var(--muted);margin-top:6px;line-height:1.5}
 
   <div class="card" id="card-xai">
     <h2><span class="dot" style="background:#000"></span>xAI (Grok)</h2>
-    <div class="sub">grok-voice-latest · voice "Eve" · $0.05/min flat</div>
+    <div class="sub">grok-voice-latest · $0.05/min flat</div>
+    <div class="voice-row">
+      <label for="voice-xai">Voice</label>
+      <select class="voice-select" id="voice-xai" data-voice-select>
+        <option value="eve" selected>Eve (default, energetic)</option>
+        <optgroup label="Best fit for a sponsor / support role">
+          <option value="carina">Carina — soft, empathetic, soothing</option>
+          <option value="luna">Luna — gentle, patient, nurturing</option>
+          <option value="celeste">Celeste — compassionate, reassuring</option>
+          <option value="lux">Lux — grounded, calm, quietly wise</option>
+          <option value="rigel">Rigel — precise, professional, calm</option>
+          <option value="naksh">Naksh — warm, thoughtful, wise</option>
+          <option value="ursa">Ursa — friendly, warm, steadfast</option>
+          <option value="atlas">Atlas — confident, commanding, reassuring</option>
+        </optgroup>
+        <optgroup label="Original five">
+          <option value="ara">Ara — warm and friendly</option>
+          <option value="leo">Leo — authoritative and strong</option>
+          <option value="rex">Rex — confident and clear</option>
+          <option value="sal">Sal — smooth and balanced</option>
+        </optgroup>
+        <optgroup label="Other tones">
+          <option value="zagan">Zagan — powerful, dramatic</option>
+          <option value="helix">Helix — bold, dynamic, adrenaline</option>
+          <option value="orion">Orion — rich, cinematic, resonant</option>
+          <option value="iris">Iris — friendly, upbeat, charming</option>
+          <option value="altair">Altair — elegant, refined, premium</option>
+          <option value="zenith">Zenith — sharp, focused, driven</option>
+          <option value="perseus">Perseus — strong, confident</option>
+          <option value="helios">Helios — upbeat, energetic, versatile</option>
+          <option value="kepler">Kepler — inventive, charismatic</option>
+          <option value="cosmo">Cosmo — bright, curious, easy to follow</option>
+          <option value="sirius">Sirius — quick-witted, playful</option>
+          <option value="lumen">Lumen — warm, articulate, engaging</option>
+          <option value="castor">Castor — charismatic, easygoing</option>
+        </optgroup>
+      </select>
+    </div>
     <button class="btn" data-provider="xai">Talk to your sponsor — Grok</button>
     <div class="status" data-status></div>
     <div class="meta"><span>Session <b data-timer>0:00</b></span><span>First reply <b data-latency>—</b></span></div>
@@ -70,7 +127,9 @@ header p{font-size:13.5px;color:var(--muted);margin-top:6px;line-height:1.5}
   <div class="note">
     <b>How to compare:</b> say the same thing to both — e.g. <i>"I'm three weeks sober and tonight is rough."</i>
     Listen for warmth, naturalness, how fast it answers, and how it handles being interrupted.
-    First connect can take ~1 minute if the server is waking up. Sessions auto-end after 10 minutes.
+    Try a couple of different voices per provider before deciding — the dropdown above each button picks
+    the voice for your <i>next</i> session (can't be changed mid-call). First connect can take ~1 minute
+    if the server is waking up. Sessions auto-end after 10 minutes.
   </div>
 </div>
 
@@ -84,16 +143,19 @@ document.querySelectorAll('.btn[data-provider]').forEach(btn => {
     const provider = btn.dataset.provider;
     if (active && active.provider === provider) { active.stop('Ended.'); return; }
     if (active) active.stop('Ended.');
-    active = new Session(provider, btn.closest('.card'));
+    const card = btn.closest('.card');
+    const voiceSelect = card.querySelector('[data-voice-select]');
+    active = new Session(provider, card, voiceSelect ? voiceSelect.value : null);
     active.start();
   });
 });
 
-function Session(provider, card) {
+function Session(provider, card, voice) {
   const btn = card.querySelector('.btn');
   const statusEl = card.querySelector('[data-status]');
   const timerEl = card.querySelector('[data-timer]');
   const latencyEl = card.querySelector('[data-latency]');
+  const voiceSelect = card.querySelector('[data-voice-select]');
   let ws, ctx, micStream, workletNode, timerInt;
   let playhead = 0, sources = [], speechStoppedAt = 0, firstDeltaSeen = false, startedAt = 0;
   const self = this;
@@ -104,6 +166,7 @@ function Session(provider, card) {
   this.start = async function () {
     btn.textContent = 'End conversation';
     btn.classList.add('stop');
+    if (voiceSelect) voiceSelect.disabled = true; // locked for the duration of the call
     setStatus('Requesting microphone…');
     try {
       micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
@@ -112,7 +175,8 @@ function Session(provider, card) {
       return;
     }
     setStatus('Connecting… (up to ~1 min if the server is asleep)');
-    ws = new WebSocket(BACKEND + '?provider=' + provider);
+    const voiceParam = voice ? '&voice=' + encodeURIComponent(voice) : '';
+    ws = new WebSocket(BACKEND + '?provider=' + provider + voiceParam);
 
     ws.onopen = async () => {
       startedAt = Date.now();
@@ -232,6 +296,7 @@ function Session(provider, card) {
     try { workletNode && workletNode.disconnect(); } catch (e) {}
     try { ctx && ctx.close(); } catch (e) {}
     try { micStream && micStream.getTracks().forEach(t => t.stop()); } catch (e) {}
+    if (voiceSelect) voiceSelect.disabled = false;
     btn.textContent = 'Talk to your sponsor — ' + (provider === 'openai' ? 'OpenAI' : 'Grok');
     btn.classList.remove('stop');
     setStatus(msg || '');
