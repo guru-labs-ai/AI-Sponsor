@@ -156,9 +156,10 @@ async function getHistory(userId, limit = 40) {
 // North-star + usage aggregates for /api/metrics/northstar.
 async function getMetrics() {
   if (!enabled) return null;
-  const [users, activity] = await Promise.all([
+  const [users, activity, byDay] = await Promise.all([
     pool.query(`
       SELECT COUNT(*)::int AS registered,
+             COUNT(*) FILTER (WHERE access = 'Paid')::int AS paid,
              COALESCE(SUM(GREATEST(0, (now()::date - signup_date::date))), 0)::int AS cumulative_days,
              COUNT(*) FILTER (WHERE last_active > now() - interval '7 days')::int AS active_last_7d
       FROM users`),
@@ -168,8 +169,15 @@ async function getMetrics() {
              COALESCE(SUM(a.messages), 0)::int AS total_messages
       FROM activity_days a
       JOIN users u ON u.user_id = a.user_id`),
+    pool.query(`
+      SELECT signup_date::date AS day, COUNT(*)::int AS n
+      FROM users GROUP BY 1 ORDER BY 1`),
   ]);
-  return { ...users.rows[0], ...activity.rows[0] };
+  const signupsByDay = {};
+  byDay.rows.forEach((r) => {
+    signupsByDay[new Date(r.day).toISOString().slice(0, 10)] = r.n;
+  });
+  return { ...users.rows[0], ...activity.rows[0], signupsByDay };
 }
 
 module.exports = {

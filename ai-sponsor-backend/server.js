@@ -414,20 +414,32 @@ app.get('/api/metrics/northstar', async (req, res) => {
       .map((s) => ((s.endedAt || s.canceledAt) - s.created) / 86400)
       .filter((d) => d >= 0);
 
+    // DB is the source of truth once it holds users (real join dates, incl. the
+    // imported beta cohort). GHL remains the fallback when the DB is off/empty.
+    const dbFirst = usage && usage.registered > 0;
+    const nsUsers = dbFirst ? usage.registered : contacts.length;
+    const nsCumulative = dbFirst ? usage.cumulative_days : cumulativeDays;
+
     const data = {
       generatedAt: new Date().toISOString(),
+      source: dbFirst ? 'db' : 'ghl',
       northStar: {
-        cumulativeRecoveryDays: cumulativeDays,
-        activeUsers: contacts.length,
-        avgDaysPerUser: contacts.length
-          ? Math.round((cumulativeDays / contacts.length) * 10) / 10
-          : 0,
+        cumulativeRecoveryDays: nsCumulative,
+        activeUsers: nsUsers,
+        avgDaysPerUser: nsUsers ? Math.round((nsCumulative / nsUsers) * 10) / 10 : 0,
         cancellations: canceled.length,
         avgDaysToCancel: daysToCancel.length
           ? Math.round((daysToCancel.reduce((a, b) => a + b, 0) / daysToCancel.length) * 10) / 10
           : null,
       },
-      signups: { total: contacts.length, beta, paid, byDay: signupsByDay },
+      signups: dbFirst
+        ? {
+            total: usage.registered,
+            beta: usage.registered - usage.paid,
+            paid: usage.paid,
+            byDay: usage.signupsByDay,
+          }
+        : { total: contacts.length, beta, paid, byDay: signupsByDay },
       // Real usage (from our own DB, once DATABASE_URL is set): days people
       // actually chatted — not just membership duration. null until DB is live.
       usage: usage
@@ -444,11 +456,17 @@ app.get('/api/metrics/northstar', async (req, res) => {
         stripeConfigured: subs.length > 0 || !!process.env.STRIPE_SECRET_KEY,
         activeSubscriptions: subs.filter((s) => s.status === 'active' || s.status === 'trialing').length,
       },
-      dataNotes: [
-        'Sign-up capture started Jul 1 2026 (web registrations that complete the flow).',
-        'The WhatsApp beta cohort (59+ people) is not in GHL yet, so it is not counted here.',
-        'Beta users have no cancel event until Stripe subscriptions exist — everyone counts as active.',
-      ],
+      dataNotes: dbFirst
+        ? [
+            'The 59-person WhatsApp beta cohort was imported Jul 10 with sign-up dates approximated to Jun 29 2026 (when the cohort list was finalized) — true join dates are unknown.',
+            'Web registrations are recorded with exact dates from Jul 1 2026 onward.',
+            'Beta users have no cancel event until Stripe subscriptions exist — everyone counts as active.',
+          ]
+        : [
+            'Sign-up capture started Jul 1 2026 (web registrations that complete the flow).',
+            'The WhatsApp beta cohort (59+ people) is not in GHL yet, so it is not counted here.',
+            'Beta users have no cancel event until Stripe subscriptions exist — everyone counts as active.',
+          ],
     };
     metricsCache = { at: Date.now(), data };
     res.json(data);
