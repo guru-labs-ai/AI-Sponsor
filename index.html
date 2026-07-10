@@ -1518,5 +1518,12 @@
   ]
 }
 </script>
+<!-- Audos SDK (metrics/contacts/conversions — task 86ajcxgdg). Deliberately NOT
+     on the chat surface: the SDK has session-recording/chat-ingest capabilities
+     and recovery conversations must stay out of third-party tracking. -->
+<script>
+  (window._audosQueue = window._audosQueue || []).push(['init', { apiKey: 'ak_live_c10b5f93e23762cc1b4988b56486706fad57d379ceba55aa1429d880190fa2cc', autoTrack: true }]);
+</script>
+<script src="https://audos.com/sdk/audos.js" data-api-key="ak_live_c10b5f93e23762cc1b4988b56486706fad57d379ceba55aa1429d880190fa2cc" data-auto-track="true"></script>
 </body>
 </html>
