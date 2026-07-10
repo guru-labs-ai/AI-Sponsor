@@ -26,6 +26,7 @@ const FIELD_IDS = {
   recoveryStage:  'a0ZkVb3dTSda1Slyx2UL', // SINGLE_OPTIONS
   deliveryMethod: 'YHvDIM8wdZEiUhsrfYVx', // SINGLE_OPTIONS
   paymentStatus:  '8IuJgDL10gGOW8SsbDZv', // SINGLE_OPTIONS
+  chatUserId:     'ut3yT8rCygCR5MDRhZqh', // TEXT — bridges GHL contact ↔ backend chat sessions
 };
 
 // Registration form value -> GHL option value.
@@ -113,6 +114,7 @@ function buildContactBody(data) {
     stage ? { id: FIELD_IDS.recoveryStage, value: stage } : null,
     delivery ? { id: FIELD_IDS.deliveryMethod, value: delivery } : null,
     { id: FIELD_IDS.paymentStatus, value: paymentStatus },
+    data.chatUserId ? { id: FIELD_IDS.chatUserId, value: String(data.chatUserId) } : null,
   ].filter(Boolean);
 
   // "Amends - who" free text — only if we have a field id for it.

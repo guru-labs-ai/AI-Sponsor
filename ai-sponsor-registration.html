@@ -1475,7 +1475,8 @@ async function registerUser(paymentStatus) {
     amendsInterest: !!D.amendsInterest,
     amendsWho:   D.amendsWho     || '',
     paymentStatus: paymentStatus || 'Unpaid',
-    source:      'ai-sponsor-registration'
+    source:      'ai-sponsor-registration',
+    chatUserId:  chatUserId // bridges this GHL contact to their backend chat sessions
   };
   // Durable identity for this device: the chat header's "Day N" pill and the
   // journey page read this. Cross-device sync comes with real accounts later.

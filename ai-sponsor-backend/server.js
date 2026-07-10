@@ -23,6 +23,10 @@ if (process.env.TWILIO_ACCOUNT_SID) {
 // simply not offered, and the relay 404s when neither key is set.
 const voiceCompare = require('./voice-compare');
 
+// Persistent store (Postgres) — no-ops until DATABASE_URL is set (see db.js).
+const db = require('./db');
+db.init().catch((e) => console.error('[DB] init failed:', e.message));
+
 const app = express();
 app.use(cors());
 
@@ -343,11 +347,15 @@ app.get('/api/metrics/northstar', async (req, res) => {
     return res.json(metricsCache.data);
   }
   try {
-    const [contacts, subs] = await Promise.all([
+    const [contacts, subs, usage] = await Promise.all([
       ghl.listSponsorContacts(),
       stripeModule.listSponsorSubscriptions().catch((e) => {
         console.error('[Metrics] Stripe list failed:', e.message);
         return [];
+      }),
+      db.getMetrics().catch((e) => {
+        console.error('[Metrics] DB failed:', e.message);
+        return null;
       }),
     ]);
 
@@ -385,6 +393,18 @@ app.get('/api/metrics/northstar', async (req, res) => {
           : null,
       },
       signups: { total: contacts.length, beta, paid, byDay: signupsByDay },
+      // Real usage (from our own DB, once DATABASE_URL is set): days people
+      // actually chatted — not just membership duration. null until DB is live.
+      usage: usage
+        ? {
+            registeredUsers: usage.registered,
+            cumulativeDaysDb: usage.cumulative_days,
+            activeLast7d: usage.active_last_7d,
+            totalActiveDays: usage.total_active_days,
+            usersWhoChatted: usage.users_who_chatted,
+            totalMessages: usage.total_messages,
+          }
+        : null,
       billing: {
         stripeConfigured: subs.length > 0 || !!process.env.STRIPE_SECRET_KEY,
         activeSubscriptions: subs.filter((s) => s.status === 'active' || s.status === 'trialing').length,
@@ -422,6 +442,16 @@ app.post('/register', async (req, res) => {
   try {
     const result = await ghl.registerContact(req.body || {});
     console.log(`[register] GHL contact ${result.isNew ? 'created' : 'updated'}: ${result.contactId}`);
+    // Also persist the user in our own store (fire-and-forget; GHL stays the CRM copy).
+    const b = req.body || {};
+    db.upsertUser({
+      userId: b.chatUserId,
+      name: b.name, email: b.email, phone: b.phone,
+      ghlContactId: result.contactId,
+      sponsorName: b.sponsorName, sponsorStyle: b.sponsorStyle,
+      program: b.program, stage: b.stage,
+      access: b.paymentStatus,
+    }).catch((e) => console.error('[DB] upsertUser failed:', e.message));
     res.json({ success: true, contactId: result.contactId });
   } catch (err) {
     console.error('[register] GHL sync failed:', err.message, err.detail || '');
@@ -545,6 +575,9 @@ app.post('/api/chat', async (req, res) => {
   if (!userId || !message) {
     return res.status(400).json({ error: 'userId and message required' });
   }
+
+  // Usage tracking: one row per user per day (fire-and-forget, never blocks chat).
+  db.recordActivity(userId).catch((e) => console.error('[DB] recordActivity failed:', e.message));
 
   const profile = userProfiles.get(userId) || {};
   const history = conversations.get(userId) || [];
