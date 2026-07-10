@@ -168,7 +168,15 @@ function relay(client, provider, instructions, voice) {
   upstream.on('close', closeBoth);
   upstream.on('error', (err) => {
     console.error('[VoiceCompare] upstream error:', err.message);
-    safeSend(client, { type: 'relay.error', message: 'Provider connection failed.' });
+    // 401/402/403 on the provider handshake = key/billing problem, not a bug —
+    // say so, so testers don't chase a phantom outage (the xAI $0-credit case).
+    const authish = /40[123]/.test(err.message || '');
+    safeSend(client, {
+      type: 'relay.error',
+      message: authish
+        ? 'This provider’s account isn’t funded/authorized yet — once credits are added it works with no other changes.'
+        : 'Provider connection failed.',
+    });
     closeBoth();
   });
   client.on('close', closeBoth);
