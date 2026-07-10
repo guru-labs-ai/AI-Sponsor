@@ -45,6 +45,19 @@ async function init() {
       messages INT  NOT NULL DEFAULT 0,
       PRIMARY KEY (user_id, day)
     );
+    CREATE TABLE IF NOT EXISTS profiles (
+      user_id    TEXT PRIMARY KEY,
+      profile    JSONB NOT NULL DEFAULT '{}',
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    CREATE TABLE IF NOT EXISTS messages (
+      id         BIGSERIAL PRIMARY KEY,
+      user_id    TEXT NOT NULL,
+      role       TEXT NOT NULL,
+      content    TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS messages_user_idx ON messages (user_id, id);
   `);
   console.log('DB connected — users + activity_days tables ready.');
 }
@@ -88,6 +101,58 @@ async function recordActivity(userId) {
   );
 }
 
+// Save the onboarding profile. Merges: existing keys survive unless the incoming
+// profile has a non-empty value for them (the standalone chat sends a slimmer
+// profile than registration — it must never erase goals/whatBroughtYouHere).
+async function saveProfile(userId, profile) {
+  if (!enabled || !userId) return;
+  const clean = {};
+  Object.entries(profile || {}).forEach(([k, v]) => {
+    const empty = v == null || v === '' || (Array.isArray(v) && v.length === 0);
+    if (!empty) clean[k] = v;
+  });
+  await pool.query(
+    `INSERT INTO profiles (user_id, profile) VALUES ($1, $2::jsonb)
+     ON CONFLICT (user_id) DO UPDATE SET
+       profile = profiles.profile || EXCLUDED.profile,
+       updated_at = now()`,
+    [userId, JSON.stringify(clean)]
+  );
+}
+
+async function getProfile(userId) {
+  if (!enabled || !userId) return null;
+  const r = await pool.query(`SELECT profile FROM profiles WHERE user_id = $1`, [userId]);
+  return r.rows[0] ? r.rows[0].profile : null;
+}
+
+// Append chat turns. msgs = [{ role, content }, …]
+async function appendMessages(userId, msgs) {
+  if (!enabled || !userId || !msgs || !msgs.length) return;
+  const values = [];
+  const params = [];
+  msgs.forEach((m, i) => {
+    params.push(userId, m.role, String(m.content || ''));
+    values.push(`($${i * 3 + 1}, $${i * 3 + 2}, $${i * 3 + 3})`);
+  });
+  await pool.query(
+    `INSERT INTO messages (user_id, role, content) VALUES ${values.join(',')}`,
+    params
+  );
+}
+
+// Last `limit` turns in chronological order (Claude context cap lives here).
+async function getHistory(userId, limit = 40) {
+  if (!enabled || !userId) return null;
+  const r = await pool.query(
+    `SELECT role, content FROM (
+       SELECT id, role, content FROM messages WHERE user_id = $1 ORDER BY id DESC LIMIT $2
+     ) t ORDER BY id ASC`,
+    [userId, limit]
+  );
+  return r.rows;
+}
+
 // North-star + usage aggregates for /api/metrics/northstar.
 async function getMetrics() {
   if (!enabled) return null;
@@ -107,4 +172,7 @@ async function getMetrics() {
   return { ...users.rows[0], ...activity.rows[0] };
 }
 
-module.exports = { enabled, init, upsertUser, recordActivity, getMetrics };
+module.exports = {
+  enabled, init, upsertUser, recordActivity, getMetrics,
+  saveProfile, getProfile, appendMessages, getHistory,
+};

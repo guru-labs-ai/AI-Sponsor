@@ -292,13 +292,39 @@ function buildUserContextBlock(profile) {
   return lines.join('\n');
 }
 
+/* Session loader — RAM first, DB hydration after a restart. This is what makes
+   the sponsor REMEMBER people across deploys: RAM is just a cache now, the
+   durable copy lives in Postgres (profiles + messages tables). Without a DB
+   configured, behavior is identical to before (RAM only). */
+async function loadSession(userId) {
+  let profile = userProfiles.get(userId);
+  let history = conversations.get(userId);
+  if (db.enabled && (!profile || !history)) {
+    if (!profile) {
+      const p = await db.getProfile(userId).catch(() => null);
+      if (p) { profile = p; userProfiles.set(userId, p); }
+    }
+    if (!history) {
+      const h = await db.getHistory(userId).catch(() => null);
+      if (h && h.length) { history = h; conversations.set(userId, h); }
+    }
+  }
+  return { profile: profile || {}, history: history || [] };
+}
+
+// Persist a completed exchange: RAM (fast path) + DB (durable), never blocking.
+function persistExchange(userId, updatedHistory, newTurns) {
+  conversations.set(userId, updatedHistory);
+  db.appendMessages(userId, newTurns)
+    .catch((e) => console.error('[DB] appendMessages failed:', e.message));
+}
+
 /* Non-streaming sponsor reply — returns one complete text block.
    Used by channels that can't consume a stream (e.g. WhatsApp). The /api/chat
    route keeps streaming for the web UI; both share MASTER_SYSTEM_PROMPT +
    conversation history, so the sponsor behaves identically across web + WhatsApp. */
 async function getSponsorReply(userId, message) {
-  const profile = userProfiles.get(userId) || {};
-  const history = conversations.get(userId) || [];
+  const { profile, history } = await loadSession(userId);
 
   const userContext = buildUserContextBlock(profile);
   const systemBlocks = [
@@ -312,7 +338,7 @@ async function getSponsorReply(userId, message) {
     model: 'claude-opus-4-6',
     max_tokens: 1024,
     system: systemBlocks,
-    messages: updatedHistory,
+    messages: updatedHistory.slice(-40), // context cap — full history stays in DB
   });
 
   const replyText = response.content
@@ -321,7 +347,10 @@ async function getSponsorReply(userId, message) {
     .join('');
 
   updatedHistory.push({ role: 'assistant', content: replyText });
-  conversations.set(userId, updatedHistory);
+  persistExchange(userId, updatedHistory, [
+    { role: 'user', content: message },
+    { role: 'assistant', content: replyText },
+  ]);
 
   return replyText;
 }
@@ -429,7 +458,15 @@ app.post('/api/session', (req, res) => {
   if (!userId) return res.status(400).json({ error: 'userId required' });
 
   userProfiles.set(userId, profile || {});
-  conversations.set(userId, []);
+  if (db.enabled) {
+    // Durable profile (merge — a slim profile never erases a rich one), and
+    // drop the RAM history so the next message re-hydrates from the DB. This
+    // is what lets a returning user's sponsor remember them.
+    db.saveProfile(userId, profile).catch((e) => console.error('[DB] saveProfile failed:', e.message));
+    conversations.delete(userId);
+  } else {
+    conversations.set(userId, []);
+  }
 
   res.json({ success: true, userId });
 });
@@ -501,10 +538,9 @@ app.post('/support', async (req, res) => {
 });
 
 // Get conversation history for a user
-app.get('/api/history/:userId', (req, res) => {
+app.get('/api/history/:userId', async (req, res) => {
   const { userId } = req.params;
-  const history = conversations.get(userId) || [];
-  const profile = userProfiles.get(userId) || {};
+  const { history, profile } = await loadSession(userId);
   res.json({ history, profile });
 });
 
@@ -514,9 +550,12 @@ app.post('/api/first-message', async (req, res) => {
   const { userId, profile } = req.body;
   if (!userId) return res.status(400).json({ error: 'userId required' });
 
-  // Store profile
+  // Store profile (durable when the DB is on; first-message always starts fresh)
   userProfiles.set(userId, profile || {});
   conversations.set(userId, []);
+  if (db.enabled) {
+    db.saveProfile(userId, profile).catch((e) => console.error('[DB] saveProfile failed:', e.message));
+  }
 
   const userContext = buildUserContextBlock(profile);
   const systemBlocks = [
@@ -557,8 +596,10 @@ ${profile.whatBroughtYouHere ? `They wrote: "${profile.whatBroughtYouHere}"` : '
       }
     }
 
-    // Store the welcome message as the first assistant turn
+    // Store the welcome message as the first assistant turn (RAM + DB)
     conversations.get(userId).push({ role: 'assistant', content: fullResponse });
+    db.appendMessages(userId, [{ role: 'assistant', content: fullResponse }])
+      .catch((e) => console.error('[DB] appendMessages failed:', e.message));
 
     res.write('data: [DONE]\n\n');
     res.end();
@@ -579,8 +620,7 @@ app.post('/api/chat', async (req, res) => {
   // Usage tracking: one row per user per day (fire-and-forget, never blocks chat).
   db.recordActivity(userId).catch((e) => console.error('[DB] recordActivity failed:', e.message));
 
-  const profile = userProfiles.get(userId) || {};
-  const history = conversations.get(userId) || [];
+  const { profile, history } = await loadSession(userId);
 
   const userContext = buildUserContextBlock(profile);
   const systemBlocks = [
@@ -610,7 +650,7 @@ app.post('/api/chat', async (req, res) => {
       max_tokens: 1024,
       stream: true,
       system: systemBlocks,
-      messages: updatedHistory,
+      messages: updatedHistory.slice(-40), // context cap — full history stays in DB
     });
 
     for await (const event of stream) {
@@ -620,9 +660,12 @@ app.post('/api/chat', async (req, res) => {
       }
     }
 
-    // Persist the full exchange
+    // Persist the full exchange (RAM + DB)
     updatedHistory.push({ role: 'assistant', content: fullResponse });
-    conversations.set(userId, updatedHistory);
+    persistExchange(userId, updatedHistory, [
+      { role: 'user', content: message },
+      { role: 'assistant', content: fullResponse },
+    ]);
 
     res.write('data: [DONE]\n\n');
     res.end();
