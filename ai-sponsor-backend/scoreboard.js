@@ -8,7 +8,7 @@
 //   SCOREBOARD_GITHUB_TOKEN — token with write access to the repo below
 //   SCOREBOARD_KEY          — shared team key the page sends on writes
 
-const GH_REPO = 'Mariamgvv/Clickup-live';
+const GH_REPO = 'guru-labs-ai/Company-Brain';
 const GH_PATH = 'scoreboard-data.json';
 const GH_API = `https://api.github.com/repos/${GH_REPO}/contents/${GH_PATH}`;
 
