@@ -4,9 +4,8 @@
 //
 // Storage = a JSON file committed to the dashboard repo itself. No database
 // needed, every save is versioned, and the repo is already the source of
-// truth for the dashboards. Requires two env vars:
+// truth for the dashboards. Requires one env var:
 //   SCOREBOARD_GITHUB_TOKEN — token with write access to the repo below
-//   SCOREBOARD_KEY          — shared team key the page sends on writes
 
 const GH_REPO = 'guru-labs-ai/Company-Brain';
 const GH_PATH = 'scoreboard-data.json';
@@ -80,9 +79,8 @@ async function getScoreboard(req, res) {
 }
 
 async function postScoreboard(req, res) {
-  if (!process.env.SCOREBOARD_KEY || req.get('X-Scoreboard-Key') !== process.env.SCOREBOARD_KEY) {
-    return res.status(401).json({ error: 'bad team key' });
-  }
+  // No auth by team decision (Jul 10): tiny team, unlisted URL, and every
+  // save is a GitHub commit so any vandalism is one revert away.
   const incoming = req.body && req.body.state;
   if (!incoming || !Array.isArray(incoming.weeks)) {
     return res.status(400).json({ error: 'state.weeks missing' });
