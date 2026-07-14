@@ -963,39 +963,22 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
       </div>
 
       <!-- Trial pricing -->
-      <div class="trial-box">
+      <div class="trial-box" id="trialBox">
         <div class="trial-top">
           <span class="trial-days" id="trialNum">0</span>
           <div class="trial-right">
-            <div class="trial-label">days free</div>
+            <div class="trial-label" id="trialLabel">days free</div>
             <div class="trial-then" id="trialThen">then $5 / month, cancel anytime</div>
           </div>
         </div>
-        <p class="trial-note" id="stripeNote">Your card is saved now but won't be charged until day 31.</p>
+        <p class="trial-note" id="stripeNote">You'll add your card on Stripe's secure checkout. Nothing is charged until day 31.</p>
       </div>
 
-      <!-- Card form (placeholder until Stripe connected) -->
+      <!-- Payment: card details are collected by Stripe on their own hosted
+           checkout page, so no card ever touches this site or our server. -->
       <div id="cardSection">
-        <div class="fg" style="margin-bottom:14px">
-          <label>Card number</label>
-          <input type="text" id="f-card" placeholder="1234 5678 9012 3456" maxlength="19"
-            oninput="fmtCard(this)">
-          <span class="err-msg" id="e-card">Please enter a valid card number</span>
-        </div>
-        <div class="row" style="margin-bottom:18px">
-          <div class="fg">
-            <label>Expiry</label>
-            <input type="text" id="f-exp" placeholder="MM / YY" maxlength="7"
-              oninput="fmtExp(this)">
-            <span class="err-msg" id="e-exp">Please enter a valid expiry date</span>
-          </div>
-          <div class="fg">
-            <label>CVC</label>
-            <input type="text" id="f-cvc" placeholder="123" maxlength="3">
-            <span class="err-msg" id="e-cvc">Please enter your CVC</span>
-          </div>
-        </div>
-        <button class="btn" onclick="startTrial()">Start my free 30 days →</button>
+        <button class="btn" id="payBtn" onclick="startCheckout()">Start my free 30 days →</button>
+        <span class="err-msg" id="e-pay"></span>
         <p class="or-code">Have a beta access code instead? <button class="link-btn" onclick="showCodeSection()">Enter it here</button></p>
       </div>
 
@@ -1147,7 +1130,7 @@ function goTo(n){
   document.getElementById('pLabel').textContent=stepLabel(cur);
   updateSteps(cur);
   // run screen-11 init on re-entry/restore too (fixes "0 days free" on return)
-  if(n===11) countUp('trialNum', 30, 800);
+  if(n===11) renderPlanBox();
 }
 
 function clearState(){ try{ localStorage.removeItem('ais_d'); localStorage.removeItem('ais_cur'); }catch(e){} }
@@ -1170,7 +1153,7 @@ function go(n){
   // restore s9 back button if returning to screen 9
   if(n===9){ const b=document.getElementById('s9-back'); if(b)b.style.display=''; }
   // screen 9 message built after sponsor creation
-  if(n===11) countUp('trialNum', 30, 800);
+  if(n===11) renderPlanBox();
   window.scrollTo({top:0,behavior:'smooth'});
   saveState();
 }
@@ -1404,9 +1387,12 @@ function typeWriter(text, el, speed=14){
   }, speed);
 }
 
+// Returns the interval handle so a caller that re-renders the same element
+// mid-animation can cancel it — otherwise the ticks keep overwriting whatever
+// was drawn next.
 function countUp(id, target, ms=800){
   const el=document.getElementById(id);
-  if(!el) return;
+  if(!el) return null;
   let n=0;
   const step=target/(ms/16);
   const t=setInterval(()=>{
@@ -1414,6 +1400,7 @@ function countUp(id, target, ms=800){
     el.textContent=Math.round(n);
     if(n>=target) clearInterval(t);
   }, 16);
+  return t;
 }
 
 function setupValidation(){
@@ -1449,7 +1436,8 @@ function onSponsorInput(){
 
 /* ── GHL Registration ──────────────────────────────────────────────────────
    Fires at COMPLETION — when the user redeems a beta code (redeemCode) or
-   starts a paid trial (startTrial). By then ALL onboarding data is collected,
+   returns from a paid Stripe Checkout (handlePaymentReturn). By then ALL
+   onboarding data is collected,
    including the Amends step (Screen 10) and payment status, so it rides along.
    POSTs to our backend /register endpoint, which upserts the contact into GHL
    (Do-Not-Disturb, so no shared-location workflow can message them).
@@ -1512,7 +1500,7 @@ function createSponsor(){
     : selectedStyle;
   D.sponsorName = sname;
   D.sponsorStyle = style;
-  // Note: GHL sync fires later, at completion (redeemCode / startTrial), once
+  // Note: GHL sync fires later, at completion (redeemCode / payment return), once
   // the Amends step + payment status are known — see registerUser().
   document.getElementById('s9-create').style.display='none';
   document.getElementById('s9-back').style.display='none';
@@ -1650,66 +1638,101 @@ document.addEventListener('click',function(){
   if(dd)dd.classList.remove('open');
 });
 
-function fmtCard(el){
-  let v=el.value.replace(/\D/g,'').substring(0,16);
-  el.value=v.replace(/(.{4})/g,'$1 ').trim();
-}
-function fmtExp(el){
-  let v=el.value.replace(/\D/g,'').substring(0,4);
-  if(v.length>=2)v=v.substring(0,2)+' / '+v.substring(2);
-  el.value=v;
-}
 let selectedPlan = 'monthly';
 function selectPlan(plan){
   selectedPlan = plan;
   document.getElementById('planMonthly').classList.toggle('active', plan==='monthly');
   document.getElementById('planAnnual').classList.toggle('active', plan==='annual');
-  document.getElementById('trialThen').textContent = plan==='monthly'
-    ? 'then $5 / month, cancel anytime'
-    : 'then $49 / year, cancel anytime';
+  renderPlanBox();
 }
 
-function startTrial(){
-  const card=document.getElementById('f-card').value.replace(/\s/g,'');
-  const exp=document.getElementById('f-exp').value.replace(/\s/g,'');
-  const cvc=document.getElementById('f-cvc').value.trim();
-  let ok=true;
-  // Card: must be 13-19 digits
-  if(!/^\d{13,19}$/.test(card)){
-    document.getElementById('e-card').classList.add('show');
-    document.getElementById('f-card').parentElement.classList.add('bad');
-    ok=false;
-  } else {
-    document.getElementById('e-card').classList.remove('show');
-    document.getElementById('f-card').parentElement.classList.remove('bad');
-  }
-  // Expiry: must be MM/YY format with valid month
-  const expDigits=exp.replace('/','');
-  const mm=parseInt(expDigits.substring(0,2),10);
-  if(!/^\d{4}$/.test(expDigits)||mm<1||mm>12){
-    document.getElementById('e-exp').classList.add('show');
-    document.getElementById('f-exp').parentElement.classList.add('bad');
-    ok=false;
-  } else {
-    document.getElementById('e-exp').classList.remove('show');
-    document.getElementById('f-exp').parentElement.classList.remove('bad');
-  }
-  // CVC: must be 3-4 digits
-  if(!/^\d{3,4}$/.test(cvc)){
-    document.getElementById('e-cvc').classList.add('show');
-    document.getElementById('f-cvc').parentElement.classList.add('bad');
-    ok=false;
-  } else {
-    document.getElementById('e-cvc').classList.remove('show');
-    document.getElementById('f-cvc').parentElement.classList.remove('bad');
-  }
-  if(!ok)return;
-  document.getElementById('cardSection').style.display='none';
-  document.getElementById('trialLen').textContent='30-day free trial';
-  document.getElementById('codeSuccess').classList.add('show');
-  registerUser('Paid'); // fire-and-forget — save to GHL as a paid/trial user
-  clearState();
+/* Only the monthly plan carries the 30-day trial — annual is charged in full
+   on day one (see subscription_data in the backend's createCheckoutSession).
+   The panel has to say which one is happening or we'd promise a free month
+   and then take $49 immediately. */
+let planCountTimer = null;
+function renderPlanBox(){
+  const annual = selectedPlan === 'annual';
+  const num = document.getElementById('trialNum');
+  // Both plans draw into #trialNum — one as an animated day count, one as a
+  // flat price — so kill any in-flight count before drawing the other.
+  if (planCountTimer) { clearInterval(planCountTimer); planCountTimer = null; }
+  document.getElementById('trialLabel').textContent = annual ? 'today' : 'days free';
+  document.getElementById('trialThen').textContent = annual
+    ? 'then $49 / year, cancel anytime'
+    : 'then $5 / month, cancel anytime';
+  document.getElementById('stripeNote').textContent = annual
+    ? "You'll pay on Stripe's secure checkout. $49 covers your first full year."
+    : "You'll add your card on Stripe's secure checkout. Nothing is charged until day 31.";
+  const btn = document.getElementById('payBtn');
+  if (btn) btn.textContent = annual ? 'Subscribe for $49 / year →' : 'Start my free 30 days →';
+  if (annual) { num.textContent = '$49'; } else { planCountTimer = countUp('trialNum', 30, 800); }
 }
+
+/* ── Real Stripe Checkout ───────────────────────────────────────────────────
+   Hands off to Stripe's hosted checkout page rather than taking card details
+   here, so no card data touches this site or our server. The user leaves the
+   site entirely and comes back to ?payment=success or ?payment=cancelled —
+   handlePaymentReturn() below picks them up. GHL registration deliberately
+   fires only on the way back, so an abandoned checkout writes nothing.
+──────────────────────────────────────────────────────────────────────────── */
+async function startCheckout(){
+  const btn = document.getElementById('payBtn');
+  const err = document.getElementById('e-pay');
+  err.classList.remove('show');
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Taking you to checkout…';
+  try {
+    // Survives the round trip to Stripe: this page reloads on the way back and
+    // would otherwise mint a new chat id, orphaning the Stripe subscription
+    // from the GHL contact we write on return.
+    try { localStorage.setItem('ais_pending', JSON.stringify({ plan: selectedPlan, uid: chatUserId })); } catch(e){}
+    const res = await fetch(BACKEND_URL + '/api/stripe/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan: selectedPlan, email: D.email || '', userId: chatUserId })
+    });
+    const data = await res.json().catch(()=>({}));
+    if (!res.ok || !data.checkoutUrl) throw new Error(data.error || ('HTTP ' + res.status));
+    window.location.href = data.checkoutUrl;
+  } catch(e) {
+    console.error('[AI Sponsor] Checkout failed:', e);
+    btn.disabled = false;
+    btn.textContent = label;
+    err.textContent = "We couldn't open the payment page. Please try again — or use a beta code if you have one.";
+    err.classList.add('show');
+  }
+}
+
+/* Runs on load after restoreState(), so D is repopulated before we register. */
+function handlePaymentReturn(){
+  const status = new URLSearchParams(window.location.search).get('payment');
+  if (!status) return;
+  // Drop the param so a refresh can't replay this.
+  try { history.replaceState(null, '', window.location.pathname); } catch(e){}
+
+  let pending = {};
+  try { pending = JSON.parse(localStorage.getItem('ais_pending') || '{}'); } catch(e){}
+
+  goTo(11);
+
+  if (status === 'success') {
+    // Reuse the id we gave Stripe so subscription metadata and the GHL contact
+    // point at the same person.
+    if (pending.uid) chatUserId = pending.uid;
+    showSuccess(pending.plan === 'annual' ? 'annual subscription' : '30-day free trial');
+    registerUser('Paid'); // fire-and-forget — save to GHL as a paid/trial user
+    try { localStorage.removeItem('ais_pending'); } catch(e){}
+    clearState();
+  } else if (status === 'cancelled') {
+    if (pending.plan) selectPlan(pending.plan);
+    const err = document.getElementById('e-pay');
+    err.textContent = "No problem — nothing was charged. You can start whenever you're ready.";
+    err.classList.add('show');
+  }
+}
+document.addEventListener('DOMContentLoaded', handlePaymentReturn);
 function showCodeSection(){
   document.getElementById('cardSection').style.display='none';
   document.getElementById('codeSection').style.display='block';
@@ -1719,15 +1742,24 @@ function showCardSection(){
   document.getElementById('cardSection').style.display='block';
 }
 
+/* Swap the whole payment step for the "You're in" state. Everything about
+   choosing/paying goes away — leaving the plan toggle and trial box on screen
+   next to "You're in" reads like the purchase didn't take. */
+function showSuccess(accessLabel){
+  ['cardSection','codeSection','planToggle','trialBox'].forEach(id=>{
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  document.getElementById('trialLen').textContent = accessLabel;
+  document.getElementById('codeSuccess').classList.add('show');
+}
+
 const VALID_BETA_CODES=['SPONSOR-7KX4Q9'];
 function redeemCode(){
   const code=document.getElementById('f-code').value.trim().toUpperCase();
   if(VALID_BETA_CODES.includes(code)){
     document.getElementById('e-code').classList.remove('show');
-    document.getElementById('codeSection').style.display='none';
-    document.getElementById('stripeNote').style.display='none';
-    document.getElementById('trialLen').textContent='6 months of free access';
-    document.getElementById('codeSuccess').classList.add('show');
+    showSuccess('6 months of free access');
     registerUser('Beta'); // fire-and-forget — save to GHL as a beta user
   } else {
     document.getElementById('e-code').classList.add('show');
@@ -1737,7 +1769,9 @@ function redeemCode(){
 /* ── Chat Beta ── */
 // Runs through the AI Sponsor backend — the Anthropic key stays server-side, never in the browser.
 const BACKEND_URL = 'https://ai-sponsor-f7de.onrender.com';
-const chatUserId = 'reg-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+// let, not const: a return trip from Stripe Checkout reloads the page, and
+// handlePaymentReturn() restores the id we sent to Stripe over this fresh one.
+let chatUserId = 'reg-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
 let sessionReady = false;
 let chatHistory = [];
 let recognition = null;
