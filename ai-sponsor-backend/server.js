@@ -464,14 +464,13 @@ app.get('/api/metrics/northstar', async (req, res) => {
       },
       dataNotes: dbFirst
         ? [
-            'The 59-person WhatsApp beta cohort was imported Jul 10 with sign-up dates approximated to Jun 29 2026 (when the cohort list was finalized) — true join dates are unknown.',
-            'Web registrations are recorded with exact dates from Jul 1 2026 onward.',
-            'Beta users have no cancel event until Stripe subscriptions exist — everyone counts as active.',
+            'Counts only people who actually signed up — every sign-up date here is real.',
+            "Matt's beta list is staged in GHL and deliberately NOT counted: those people were imported so they'd match themselves once WhatsApp is live, but until someone redeems their code or messages the number, they haven't joined anything. A list is not a user.",
+            'No cancel events exist until Stripe subscriptions do — everyone counted here is active.',
           ]
         : [
-            'Sign-up capture started Jul 1 2026 (web registrations that complete the flow).',
-            'The WhatsApp beta cohort (59+ people) is not in GHL yet, so it is not counted here.',
-            'Beta users have no cancel event until Stripe subscriptions exist — everyone counts as active.',
+            'The database is unreachable, so these are GHL contact counts, not product usage.',
+            "GHL includes Matt's staged beta list — people who have not signed up — so this over-counts. Treat it as an upper bound until the DB is back.",
           ],
     };
     metricsCache = { at: Date.now(), data };
