@@ -777,14 +777,10 @@
   box-shadow:0 0 0 10px rgba(255,211,77,0.35),0 0 0 20px rgba(255,211,77,0.15);position:relative}
 .mission-sun .core::after{content:'☺';position:absolute;inset:0;display:flex;align-items:center;
   justify-content:center;font-size:24px;color:#B77F00}
-.mission-hill{padding:52px 28px 30px;text-align:center;position:relative}
-.mission-hill .sprouts{position:absolute;top:14px;left:0;right:0;display:flex;
+.mission-hill{padding:56px 28px 26px;text-align:center;position:relative}
+.mission-hill .sprouts{position:absolute;top:16px;left:0;right:0;display:flex;
   justify-content:space-around;font-size:15px;opacity:0.9}
-.mission-hill .helped{font-size:13.5px;color:rgba(255,255,255,0.95);font-weight:600}
-.mission-hill .num{font-family:'Source Serif 4',serif;font-size:52px;font-weight:700;color:#fff;
-  line-height:1.15;margin:4px 0 2px;font-variant-numeric:tabular-nums;text-shadow:0 2px 10px rgba(0,60,20,0.25)}
-.mission-hill .what{font-size:14px;color:rgba(255,255,255,0.95);font-weight:600}
-@media(max-width:480px){.mission{padding:56px 16px 48px}.mission-hill .num{font-size:44px}}
+@media(max-width:480px){.mission{padding:56px 16px 48px}}
 </style>
 <section class="mission" id="mission">
   <div class="mission-card reveal">
@@ -792,13 +788,12 @@
       <p>We're on a mission to create<br><strong>one MILLION days of recovery,</strong><br>one day at a time.</p>
       <div class="mission-sun"><div class="core"></div></div>
     </div>
+    <!-- The hill is decorative. A live "days of recovery created" counter lived
+         here until Jul 15; it summed days-since-signup across the imported beta
+         cohort, none of whom have used the product yet, so it claimed an outcome
+         that hasn't happened. Put a number back only when it counts real usage. -->
     <div class="mission-hill">
       <div class="sprouts"><span>🌱</span><span>🌼</span><span>🌱</span><span>🌻</span><span>🌱</span></div>
-      <div id="missionCount" style="display:none">
-        <div class="helped">AI Sponsor has helped create:</div>
-        <div class="num" id="missionDays">0</div>
-        <div class="what">days of recovery (so far)</div>
-      </div>
     </div>
   </div>
 </section>
@@ -1242,33 +1237,6 @@
     }, 900);
   });
 
-  // Mission counter — live cumulative recovery days from the backend north-star
-  // metric. Fetch quietly; if the backend is asleep/unreachable, the card keeps
-  // its mission line and simply shows no number (never a fake or stale figure).
-  (function () {
-    let missionValue = null, missionVisible = false, missionShown = false;
-    function showMission() {
-      if (missionShown || missionValue === null || !missionVisible) return;
-      missionShown = true;
-      document.getElementById('missionCount').style.display = 'block';
-      animateCounter(document.getElementById('missionDays'), missionValue, 1600);
-    }
-    fetch('https://ai-sponsor-f7de.onrender.com/api/metrics/northstar')
-      .then(r => r.json())
-      .then(d => {
-        if (d && d.northStar && d.northStar.cumulativeRecoveryDays > 0) {
-          missionValue = d.northStar.cumulativeRecoveryDays;
-          showMission();
-        }
-      })
-      .catch(() => {});
-    const missionObserver = new IntersectionObserver((entries) => {
-      entries.forEach(e => {
-        if (e.isIntersecting) { missionVisible = true; showMission(); missionObserver.disconnect(); }
-      });
-    }, { threshold: 0.4 });
-    missionObserver.observe(document.getElementById('mission'));
-  })();
 
   // Pricing days counter when section visible
   let pricingDone = false;
