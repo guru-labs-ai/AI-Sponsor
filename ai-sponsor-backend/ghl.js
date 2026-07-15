@@ -163,6 +163,85 @@ async function registerContact(data) {
   return { contactId: contact.id, isNew: json.new, tags: contact.tags };
 }
 
+/* ─── Stripe → GHL sync helpers ─────────────────────────────────────────────
+   Used by the Stripe webhook so subscription state reaches the CRM. Tags are
+   added/removed through the dedicated tag endpoints rather than PUT /contacts,
+   because sending a `tags` array on the contact itself replaces the whole set —
+   which would wipe unrelated tags like amends-tv off the same person.
+──────────────────────────────────────────────────────────────────────────── */
+
+async function ghlFetch(path, options) {
+  const resp = await fetch(`${GHL_BASE}${path}`, { headers: headers(), ...options });
+  const json = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    const err = new Error(json.message || `GHL ${path} failed (${resp.status})`);
+    err.statusCode = resp.status;
+    err.detail = json;
+    throw err;
+  }
+  return json;
+}
+
+async function getContact(contactId) {
+  const json = await ghlFetch(`/contacts/${contactId}`, { method: 'GET' });
+  return json.contact || json;
+}
+
+async function addTags(contactId, tags) {
+  if (!tags || !tags.length) return;
+  await ghlFetch(`/contacts/${contactId}/tags`, {
+    method: 'POST',
+    body: JSON.stringify({ tags }),
+  });
+}
+
+async function removeTags(contactId, tags) {
+  if (!tags || !tags.length) return;
+  // A tag that isn't on the contact makes this 4xx — not worth failing a
+  // webhook over, so treat removal as best-effort.
+  await ghlFetch(`/contacts/${contactId}/tags`, {
+    method: 'DELETE',
+    body: JSON.stringify({ tags }),
+  }).catch((e) => console.warn(`[GHL] removeTags ${tags.join(',')}: ${e.message}`));
+}
+
+async function setPaymentStatus(contactId, status) {
+  if (!['Paid', 'Beta', 'Unpaid'].includes(status)) {
+    throw new Error(`Invalid Payment Status "${status}" — GHL only accepts Paid/Beta/Unpaid`);
+  }
+  await ghlFetch(`/contacts/${contactId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ customFields: [{ id: FIELD_IDS.paymentStatus, value: status }] }),
+  });
+}
+
+/* Find-or-create the contact behind a Stripe event.
+   The webhook can land BEFORE the site ever registers this person: they pay on
+   Stripe's page, and the browser redirect that triggers /register may be slow or
+   may never happen (they close the tab). Somebody being charged must exist in the
+   CRM regardless, so we upsert on email — GHL dedupes on it, and the fuller
+   registration payload merges into the same contact whenever it arrives. */
+async function upsertStripeContact({ email, userId }) {
+  if (!email) {
+    const err = new Error('Stripe event has no email — cannot resolve a GHL contact');
+    err.statusCode = 400;
+    throw err;
+  }
+  const customFields = [{ id: FIELD_IDS.paymentStatus, value: 'Paid' }];
+  if (userId) customFields.push({ id: FIELD_IDS.chatUserId, value: String(userId) });
+  const json = await ghlFetch('/contacts/upsert', {
+    method: 'POST',
+    body: JSON.stringify({
+      locationId: LOCATION_ID,
+      email,
+      dnd: true, // same silence guardrail as every other AI Sponsor contact
+      customFields,
+      source: 'stripe-webhook',
+    }),
+  });
+  return (json.contact || json).id;
+}
+
 // Save a support-form submission: upsert the contact (tagged ai-sponsor-support,
 // DND like the rest) and attach a note with the subject + message.
 async function submitSupport(data) {
@@ -278,5 +357,11 @@ module.exports = {
   listSponsorContacts,
   ensureAmendsField,
   buildContactBody,
+  // Stripe → GHL sync
+  getContact,
+  addTags,
+  removeTags,
+  setPaymentStatus,
+  upsertStripeContact,
   _maps: { PROGRAM_MAP, STAGE_MAP, DELIVERY_MAP, FIELD_IDS },
 };

@@ -739,11 +739,96 @@ async function handleStripeWebhook(req, res) {
   try {
     const result = await stripeModule.handleWebhookEvent(event);
     console.log('Stripe webhook handled:', result);
-    // TODO (Abdul): sync subscription events to GHL here (tag paying / trial-ending).
+    await syncStripeToGhl(result);
     res.json({ received: true });
   } catch (err) {
+    // Non-2xx makes Stripe retry with backoff for ~3 days, which is what we want
+    // for a transient GHL/DB blip. syncStripeToGhl() swallows the failures that
+    // retrying can't fix, so anything reaching here is worth another attempt.
     console.error('Stripe webhook handling error:', err.message);
     res.status(500).json({ error: err.message });
+  }
+}
+
+/* ─── Stripe → GHL sync ──────────────────────────────────────────────────────
+   Turns a Stripe subscription event into CRM state: Payment Status + tags on the
+   contact, and the Stripe ids on the user row.
+
+   Ordering note: this webhook regularly arrives BEFORE /register does. The user
+   pays on Stripe's page and only reaches /register once the browser redirect
+   lands — which can be slow, or never (they close the tab). So subscription
+   events upsert the contact by email rather than expecting to find one; the
+   fuller registration payload merges into the same contact when it shows up.
+──────────────────────────────────────────────────────────────────────────── */
+async function syncStripeToGhl(result) {
+  if (!result || !process.env.GHL_API_TOKEN) return;
+
+  // Resolve the user row behind an event. checkout.session + subscription events
+  // carry our userId in metadata; invoices carry only the Stripe customer.
+  const findUser = async ({ userId, customerId }) =>
+    (userId && (await db.getUser(userId))) || (customerId && (await db.findByStripeCustomer(customerId))) || null;
+
+  switch (result.type) {
+    case 'subscription_started': {
+      const contactId = await ghl.upsertStripeContact({ email: result.email, userId: result.userId });
+      await ghl.addTags(contactId, ['ai-sponsor', 'ai-sponsor-paid']);
+      // A new subscription makes any earlier cancel/failure/trial state stale.
+      await ghl.removeTags(contactId, ['ai-sponsor-cancelled', 'ai-sponsor-payment-failed', 'ai-sponsor-trial-ending']);
+      if (result.userId) {
+        await db.upsertUser({
+          userId: result.userId,
+          email: result.email || '',
+          access: 'Paid',
+          ghlContactId: contactId,
+        });
+        await db.linkSubscription(result.userId, {
+          customerId: result.customerId,
+          subscriptionId: result.subscriptionId,
+        });
+      }
+      console.log(`[Stripe→GHL] paid: ${result.email} (${result.plan}) → contact ${contactId}`);
+      return;
+    }
+
+    case 'subscription_cancelled': {
+      const user = await findUser(result);
+      if (!user || !user.ghl_contact_id) {
+        console.warn(`[Stripe→GHL] cancelled: no contact for userId=${result.userId} customer=${result.customerId}`);
+        return;
+      }
+      // Beta people have free access independent of any subscription — flipping
+      // them to Unpaid on a cancel would strip access they were promised.
+      const contact = await ghl.getContact(user.ghl_contact_id).catch(() => null);
+      const isBeta = (contact?.tags || []).some((t) => t === 'ai-sponsor-beta' || t === 'ai-sponsor-lifetime');
+      await ghl.setPaymentStatus(user.ghl_contact_id, isBeta ? 'Beta' : 'Unpaid');
+      await ghl.addTags(user.ghl_contact_id, ['ai-sponsor-cancelled']);
+      await ghl.removeTags(user.ghl_contact_id, ['ai-sponsor-paid']);
+      await db.setAccess(user.user_id, isBeta ? 'Beta' : 'Unpaid');
+      console.log(`[Stripe→GHL] cancelled: ${user.email} → ${isBeta ? 'Beta' : 'Unpaid'}`);
+      return;
+    }
+
+    case 'trial_ending_soon': {
+      const user = await findUser(result);
+      if (!user || !user.ghl_contact_id) return;
+      await ghl.addTags(user.ghl_contact_id, ['ai-sponsor-trial-ending']);
+      console.log(`[Stripe→GHL] trial ending: ${user.email}`);
+      return;
+    }
+
+    case 'payment_failed': {
+      const user = await findUser(result);
+      if (!user || !user.ghl_contact_id) {
+        console.warn(`[Stripe→GHL] payment_failed: no contact for customer=${result.customerId}`);
+        return;
+      }
+      await ghl.addTags(user.ghl_contact_id, ['ai-sponsor-payment-failed']);
+      console.log(`[Stripe→GHL] payment failed (attempt ${result.attemptCount}): ${user.email}`);
+      return;
+    }
+
+    default:
+      return; // ignored_not_ai_sponsor / unhandled — nothing to sync
   }
 }
 

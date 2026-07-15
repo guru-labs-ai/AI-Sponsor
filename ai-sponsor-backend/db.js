@@ -59,6 +59,15 @@ async function init() {
     );
     CREATE INDEX IF NOT EXISTS messages_user_idx ON messages (user_id, id);
   `);
+  // Added Jul 2026 with the Stripe→GHL sync. Separate from the CREATE above so
+  // the existing live table picks them up (CREATE TABLE IF NOT EXISTS is a no-op
+  // once the table exists). invoice.payment_failed only carries a Stripe customer
+  // id, so stripe_customer_id is the only way back to the user.
+  await pool.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id     TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
+    CREATE INDEX IF NOT EXISTS users_stripe_customer_idx ON users (stripe_customer_id);
+  `);
   console.log('DB connected — users + activity_days tables ready.');
 }
 
@@ -83,6 +92,37 @@ async function upsertUser(u) {
      u.sponsorName || '', u.sponsorStyle || '', u.program || '', u.stage || '',
      u.access || '']
   );
+}
+
+/* ─── Stripe linkage (written by the Stripe webhook) ────────────────────────── */
+
+// Remember which Stripe customer/subscription a user is, so later events that
+// only carry a customer id (invoice.payment_failed) can find their way home.
+async function linkSubscription(userId, { customerId, subscriptionId }) {
+  if (!enabled || !userId) return;
+  await pool.query(
+    `UPDATE users SET stripe_customer_id = COALESCE($2, stripe_customer_id),
+                      stripe_subscription_id = COALESCE($3, stripe_subscription_id)
+     WHERE user_id = $1`,
+    [userId, customerId || null, subscriptionId || null]
+  );
+}
+
+async function findByStripeCustomer(customerId) {
+  if (!enabled || !customerId) return null;
+  const r = await pool.query(`SELECT * FROM users WHERE stripe_customer_id = $1 LIMIT 1`, [customerId]);
+  return r.rows[0] || null;
+}
+
+async function getUser(userId) {
+  if (!enabled || !userId) return null;
+  const r = await pool.query(`SELECT * FROM users WHERE user_id = $1`, [userId]);
+  return r.rows[0] || null;
+}
+
+async function setAccess(userId, access) {
+  if (!enabled || !userId) return;
+  await pool.query(`UPDATE users SET access = $2 WHERE user_id = $1`, [userId, access]);
 }
 
 // Called on every chat message — one row per user per day, message count bumped.
@@ -183,4 +223,5 @@ async function getMetrics() {
 module.exports = {
   enabled, init, upsertUser, recordActivity, getMetrics,
   saveProfile, getProfile, appendMessages, getHistory,
+  linkSubscription, findByStripeCustomer, getUser, setAccess,
 };
