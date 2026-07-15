@@ -524,6 +524,7 @@ app.post('/register', async (req, res) => {
       sponsorName: b.sponsorName, sponsorStyle: b.sponsorStyle,
       program: b.program, stage: b.stage,
       access: b.paymentStatus,
+      attribution: b.attribution, // how they found us (first touch, from the browser)
     }).catch((e) => console.error('[DB] upsertUser failed:', e.message));
     res.json({ success: true, contactId: result.contactId });
   } catch (err) {

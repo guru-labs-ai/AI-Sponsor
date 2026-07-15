@@ -23,6 +23,35 @@
     script.src = "https://215466.t.hyros.com/v1/lst/universal-script?ph=395a23f1c62bf26a497b91f272b6fc6b27906736d5a140cd7a9e220d722c2456&tag=!ai_sponsor&ref_url=" + encodeURI(document.URL);
     head.appendChild(script);
   </script>
+  <!-- ── Attribution: remember how they found us ───────────────────────────────
+       FIRST TOUCH WINS. Someone can land from an ad, browse, leave, come back
+       direct, and only then register — last-touch would credit "Direct" and the
+       ad that actually found them would look like it did nothing. The UTM is on
+       THIS page's URL, not on the registration page they click through to, so it
+       has to be stashed here and read at the end of the flow.
+       No PII: the source, not the person. ───────────────────────────────────── -->
+  <script>
+  (function(){
+    try{
+      if (localStorage.getItem('ais_attr')) return;      // already know how they got here
+      var p = new URLSearchParams(location.search);
+      var refHost = '';
+      try {
+        if (document.referrer) refHost = new URL(document.referrer).hostname.replace(/^www\./,'');
+      } catch(e){}
+      // Our own pages aren't a referrer.
+      if (refHost && refHost === location.hostname.replace(/^www\./,'')) refHost = '';
+      localStorage.setItem('ais_attr', JSON.stringify({
+        utmSource:   p.get('utm_source')   || '',
+        utmMedium:   p.get('utm_medium')   || '',
+        utmCampaign: p.get('utm_campaign') || '',
+        referrer:    refHost,
+        landing:     location.pathname,
+        at:          new Date().toISOString()
+      }));
+    }catch(e){}
+  })();
+  </script>
   <title>AI Sponsor | 24/7 AI Recovery Sponsor for 12-Step Programs</title>
   <meta name="description" content="AI Sponsor — a private, judgment-free AI sponsor for 12-step recovery (AA, NA, OA and more). 24/7 support whenever you need it, no waiting. Always here.">
   <link rel="canonical" href="https://getaisponsor.com/">

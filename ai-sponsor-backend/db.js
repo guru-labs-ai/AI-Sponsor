@@ -67,18 +67,61 @@ async function init() {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id     TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
     CREATE INDEX IF NOT EXISTS users_stripe_customer_idx ON users (stripe_customer_id);
+    -- How they found us. acquired_from is the resolved label the dashboard groups
+    -- on; the raw utm/referrer are kept so a wrong label can always be re-derived
+    -- rather than lost.
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS acquired_from TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS utm_source    TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS utm_medium    TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS utm_campaign  TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS referrer      TEXT;
   `);
   console.log('DB connected — users + activity_days tables ready.');
+}
+
+/* Resolve "how did this person find us" to ONE label the dashboard can group on.
+   utm_source wins when the link was tagged; otherwise the referring domain is
+   mapped to a familiar name; a real browser visit with neither is genuinely
+   Direct. Anything with no browser at all (a WhatsApp arrival, an import) is
+   Unknown — NOT Direct, which would silently claim credit we haven't earned. */
+const REFERRER_NAMES = [
+  [/(^|\.)google\./, 'Google'], [/(^|\.)(facebook|fb)\./, 'Facebook'],
+  [/(^|\.)instagram\./, 'Instagram'], [/(^|\.)(twitter|x)\.com$/, 'X/Twitter'],
+  [/(^|\.)t\.co$/, 'X/Twitter'], [/(^|\.)reddit\./, 'Reddit'],
+  [/(^|\.)linkedin\./, 'LinkedIn'], [/(^|\.)bing\./, 'Bing'],
+  [/(^|\.)duckduckgo\./, 'DuckDuckGo'], [/(^|\.)youtube\./, 'YouTube'],
+  [/(^|\.)tiktok\./, 'TikTok'], [/(^|\.)chatgpt\.com$/, 'ChatGPT'],
+  [/(^|\.)openai\./, 'ChatGPT'], [/(^|\.)perplexity\./, 'Perplexity'],
+  [/(^|\.)claude\.ai$/, 'Claude'],
+];
+function resolveSource(a) {
+  if (!a || typeof a !== 'object') return 'Unknown';
+  const utm = String(a.utmSource || '').trim();
+  if (utm) return utm.charAt(0).toUpperCase() + utm.slice(1);
+  const ref = String(a.referrer || '').trim().toLowerCase();
+  if (ref) {
+    for (const [re, name] of REFERRER_NAMES) if (re.test(ref)) return name;
+    return ref;
+  }
+  // A browser was here (we know the landing page) but nothing referred them.
+  return a.landing ? 'Direct' : 'Unknown';
 }
 
 // Called from /register (the only place that creates a user row).
 async function upsertUser(u) {
   if (!enabled || !u || !u.userId) return;
+  const a = u.attribution;
   await pool.query(
     `INSERT INTO users (user_id, name, email, phone, ghl_contact_id, sponsor_name,
-                        sponsor_style, program, stage, access)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+                        sponsor_style, program, stage, access,
+                        acquired_from, utm_source, utm_medium, utm_campaign, referrer)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
      ON CONFLICT (user_id) DO UPDATE SET
+       acquired_from = COALESCE(users.acquired_from, EXCLUDED.acquired_from),
+       utm_source    = COALESCE(NULLIF(users.utm_source, ''), EXCLUDED.utm_source),
+       utm_medium    = COALESCE(NULLIF(users.utm_medium, ''), EXCLUDED.utm_medium),
+       utm_campaign  = COALESCE(NULLIF(users.utm_campaign, ''), EXCLUDED.utm_campaign),
+       referrer      = COALESCE(NULLIF(users.referrer, ''), EXCLUDED.referrer),
        name = COALESCE(NULLIF(EXCLUDED.name, ''), users.name),
        email = COALESCE(NULLIF(EXCLUDED.email, ''), users.email),
        phone = COALESCE(NULLIF(EXCLUDED.phone, ''), users.phone),
@@ -90,7 +133,12 @@ async function upsertUser(u) {
        access = COALESCE(NULLIF(EXCLUDED.access, ''), users.access)`,
     [u.userId, u.name || '', u.email || '', u.phone || '', u.ghlContactId || null,
      u.sponsorName || '', u.sponsorStyle || '', u.program || '', u.stage || '',
-     u.access || '']
+     u.access || '',
+     // Attribution is first-touch and immutable: only stamped when we have it,
+     // and the COALESCE above never lets a later write overwrite it.
+     a ? resolveSource(a) : null,
+     (a && a.utmSource) || '', (a && a.utmMedium) || '',
+     (a && a.utmCampaign) || '', (a && a.referrer) || '']
   );
 }
 
@@ -232,7 +280,7 @@ async function getMetrics() {
    conversations do not leave the database.                                   */
 async function getBreakdowns() {
   if (!enabled) return null;
-  const [program, stage, access, channel, msgsByDay] = await Promise.all([
+  const [program, stage, access, channel, msgsByDay, source] = await Promise.all([
     // program is stored comma-joined ("AA, NA") — one person can be in several
     pool.query(`
       SELECT trim(p) AS k, COUNT(*)::int AS n
@@ -259,6 +307,11 @@ async function getBreakdowns() {
       FROM activity_days
       WHERE day >= CURRENT_DATE - INTERVAL '29 days'
       GROUP BY 1 ORDER BY 1`),
+    // How they found us. Pre-attribution rows are genuinely Unknown — never
+    // fold them into Direct, which would credit a channel we can't evidence.
+    pool.query(`
+      SELECT COALESCE(NULLIF(acquired_from, ''), 'Unknown') AS k, COUNT(*)::int AS n
+      FROM users GROUP BY 1 ORDER BY n DESC, 1`),
   ]);
   const toObj = (rows) => Object.fromEntries(rows.map((r) => [r.k, r.n]));
   return {
@@ -266,6 +319,7 @@ async function getBreakdowns() {
     byStage: toObj(stage.rows),
     byAccess: toObj(access.rows),
     byChannel: toObj(channel.rows),
+    bySource: toObj(source.rows),
     messagesByDay: toObj(msgsByDay.rows),
   };
 }
