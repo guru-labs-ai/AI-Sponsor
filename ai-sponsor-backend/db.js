@@ -248,10 +248,10 @@ async function getBreakdowns() {
     // web- anonymous web chat (never registered), beta- imported no-phone
     pool.query(`
       SELECT CASE
-               WHEN user_id LIKE 'reg-%'  THEN 'web registration'
-               WHEN user_id LIKE 'wa-%'   THEN 'whatsapp'
-               WHEN user_id LIKE 'web-%'  THEN 'web chat (unregistered)'
-               ELSE 'other'
+               WHEN user_id LIKE 'reg-%'  THEN 'Website'
+               WHEN user_id LIKE 'wa-%'   THEN 'WhatsApp'
+               WHEN user_id LIKE 'web-%'  THEN 'Web chat only'
+               ELSE 'Other'
              END AS k, COUNT(*)::int AS n
       FROM users GROUP BY 1 ORDER BY n DESC`),
     pool.query(`
