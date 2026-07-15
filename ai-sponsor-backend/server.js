@@ -495,12 +495,11 @@ app.get('/api/metrics/northstar', async (req, res) => {
       dataNotes: dbFirst
         ? [
             'Counts only people who actually signed up — every sign-up date here is real.',
-            "Matt's beta list is staged in GHL and deliberately NOT counted: those people were imported so they'd match themselves once WhatsApp is live, but until someone redeems their code or messages the number, they haven't joined anything. A list is not a user.",
+            'Nothing is pre-loaded. Someone appears here when they redeem their code or message the sponsor, and not a moment before.',
             'No cancel events exist until Stripe subscriptions do — everyone counted here is active.',
           ]
         : [
-            'The database is unreachable, so these are GHL contact counts, not product usage.',
-            "GHL includes Matt's staged beta list — people who have not signed up — so this over-counts. Treat it as an upper bound until the DB is back.",
+            'The database is unreachable, so these are GHL contact counts rather than product usage — treat them as an upper bound until it is back.',
           ],
     };
     metricsCache = { at: Date.now(), data };
