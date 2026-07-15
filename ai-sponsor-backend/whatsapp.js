@@ -33,6 +33,8 @@ const axios = require('axios');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const ghl = require('./ghl'); // safe to require unconfigured — throws only when called
+const db = require('./db');   // no-ops without DATABASE_URL
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -44,6 +46,56 @@ const twilioClient = twilio(
 
 // Your Wyoming (307) Twilio WhatsApp number — set in .env once purchased
 const TWILIO_WHATSAPP_NUMBER = process.env.TWILIO_WHATSAPP_NUMBER; // e.g. "whatsapp:+13071234567"
+
+/* ── Identity key ────────────────────────────────────────────────────────────
+   "whatsapp:+4477…" → "wa-+4477…".
+
+   The wa- prefix is NOT cosmetic. The Jul 10 beta-cohort import keyed all 58
+   phone-holding members as wa-<E.164> precisely so they'd match themselves the
+   first time they message. A bare phone here would strand every one of them as a
+   brand-new stranger — no profile, duplicate row — and because getMetrics() joins
+   activity_days to users on this key, their chats would land under a key with no
+   user row and vanish from the usage numbers entirely. Keep in lockstep with the
+   import. */
+function waUserId(fromPhone) {
+  return 'wa-' + String(fromPhone || '').replace('whatsapp:', '').trim();
+}
+
+/* ── Phase 5: capture WhatsApp-origin people ─────────────────────────────────
+   The number is OPEN — anyone can message without ever touching the website, so
+   for those people this is the only moment they'd ever be recorded anywhere.
+
+   Fire-and-forget by design: a CRM hiccup must never cost someone in recovery
+   their reply. Runs once per number per process; a failure clears the guard so
+   the next message retries. */
+const capturedNumbers = new Set();
+
+async function captureWhatsAppUser(userId, phone) {
+  if (capturedNumbers.has(userId)) return;
+  capturedNumbers.add(userId);
+  try {
+    // Already known — an imported beta-cohort member, or an earlier message.
+    // Their tags/status are already right; re-stamping would only damage them.
+    if (await db.getUser(userId)) return;
+    if (!process.env.GHL_API_TOKEN) return;
+
+    const { contactId, isNew } = await ghl.upsertWhatsAppContact({ phone, userId });
+    await db.upsertUser({
+      userId,
+      phone,
+      // Only claim a status when we actually created the contact. If the phone
+      // already existed, it may be someone who registered on the web — we don't
+      // know what they are from a WhatsApp message alone, and guessing "Unpaid"
+      // over a paying user is worse than leaving it blank.
+      access: isNew ? 'Unpaid' : '',
+      ghlContactId: contactId,
+    });
+    console.log(`[WhatsApp→GHL] captured ${userId} → contact ${contactId} (newContact=${isNew})`);
+  } catch (e) {
+    capturedNumbers.delete(userId); // let the next message try again
+    console.error('[WhatsApp→GHL] capture failed:', e.message);
+  }
+}
 
 /* ── Security: Validate the request is genuinely from Twilio ─────────────────
    Twilio signs every webhook with X-Twilio-Signature using your Auth Token.
@@ -219,8 +271,12 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
       // ── 5. Get Claude's reply ────────────────────────────────────────────
       // Uses the SAME getSponsorReply() function as the web chat —
       // identical AI sponsor behavior, conversation memory, crisis protocol.
-      // userId = the sender's phone number (strips "whatsapp:" prefix for consistency)
-      const userId = fromPhone.replace('whatsapp:', '');
+      const userId = waUserId(fromPhone);
+
+      // Record them in GHL + the DB (Phase 5). Not awaited: the reply must never
+      // wait on the CRM, and must still go out if the CRM is down.
+      captureWhatsAppUser(userId, fromPhone.replace('whatsapp:', '')).catch(() => {});
+
       const replyText = await getSponsorReply(userId, userMessageText);
       console.log(`[WhatsApp] Claude reply to ${fromPhone}: "${replyText.substring(0, 80)}..."`);
 

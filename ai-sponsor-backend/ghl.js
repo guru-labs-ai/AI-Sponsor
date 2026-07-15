@@ -242,6 +242,54 @@ async function upsertStripeContact({ email, userId }) {
   return (json.contact || json).id;
 }
 
+/* Phase 5 — record a WhatsApp-origin person.
+   The WhatsApp number is open, so this may be the only trace of them anywhere.
+
+   Upsert dedupes on phone, which means the contact often already exists — an
+   imported beta-cohort member, or someone who registered on the web from the
+   same number. So identity/status fields are stamped ONLY on contacts we
+   actually created: overwriting a paying user's status back to Unpaid, or
+   replacing their web chat id, would be worse than recording nothing. Tags are
+   safe either way — ai-sponsor-whatsapp is true regardless of who they are.
+
+   Deliberately NOT tagged ai-sponsor-beta (which the original task text asked
+   for): beta means "was given a code", and listSponsorContacts() counts
+   beta/paid tags as sign-ups. Tagging every inbound stranger beta would quietly
+   inflate the beta cohort and the sign-up metric. */
+async function upsertWhatsAppContact({ phone, userId }) {
+  if (!phone) {
+    const err = new Error('phone required to record a WhatsApp contact');
+    err.statusCode = 400;
+    throw err;
+  }
+  const json = await ghlFetch('/contacts/upsert', {
+    method: 'POST',
+    body: JSON.stringify({
+      locationId: LOCATION_ID,
+      phone,
+      dnd: true, // same silence guardrail as every other AI Sponsor contact
+      source: 'whatsapp-inbound',
+    }),
+  });
+  const contact = json.contact || json;
+  const isNew = json.new === true;
+
+  if (isNew) {
+    await ghlFetch(`/contacts/${contact.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        customFields: [
+          { id: FIELD_IDS.paymentStatus, value: 'Unpaid' },
+          { id: FIELD_IDS.deliveryMethod, value: 'WhatsApp' },
+          { id: FIELD_IDS.chatUserId, value: String(userId) },
+        ],
+      }),
+    });
+  }
+  await addTags(contact.id, ['ai-sponsor', 'ai-sponsor-whatsapp']);
+  return { contactId: contact.id, isNew };
+}
+
 // Save a support-form submission: upsert the contact (tagged ai-sponsor-support,
 // DND like the rest) and attach a note with the subject + message.
 async function submitSupport(data) {
@@ -363,5 +411,6 @@ module.exports = {
   removeTags,
   setPaymentStatus,
   upsertStripeContact,
+  upsertWhatsAppContact,
   _maps: { PROGRAM_MAP, STAGE_MAP, DELIVERY_MAP, FIELD_IDS },
 };
