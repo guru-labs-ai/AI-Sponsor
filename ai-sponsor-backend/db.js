@@ -220,8 +220,58 @@ async function getMetrics() {
   return { ...users.rows[0], ...activity.rows[0], signupsByDay };
 }
 
+/* ─── Who they are / what they're doing ─────────────────────────────────────
+   Replaces the June-22 "GHL reporting dashboard" spec (86aj5mrtp), which asked
+   for qualified leads / meetings booked / pipeline value — a lead-gen funnel
+   that doesn't exist in this product. Nobody books a meeting to get a $5 AI
+   sponsor. These are the questions the product can actually answer, and Matt
+   asked for exactly them on the Jul 14 call: what program they're in, where
+   they came from, how many messages people are doing per day.
+
+   Aggregates only — never names, emails or message content. Recovery
+   conversations do not leave the database.                                   */
+async function getBreakdowns() {
+  if (!enabled) return null;
+  const [program, stage, access, channel, msgsByDay] = await Promise.all([
+    // program is stored comma-joined ("AA, NA") — one person can be in several
+    pool.query(`
+      SELECT trim(p) AS k, COUNT(*)::int AS n
+      FROM users, unnest(string_to_array(NULLIF(program, ''), ',')) AS p
+      GROUP BY 1 ORDER BY n DESC, 1`),
+    pool.query(`
+      SELECT COALESCE(NULLIF(stage, ''), 'unknown') AS k, COUNT(*)::int AS n
+      FROM users GROUP BY 1 ORDER BY n DESC`),
+    pool.query(`
+      SELECT COALESCE(NULLIF(access, ''), 'unknown') AS k, COUNT(*)::int AS n
+      FROM users GROUP BY 1 ORDER BY n DESC`),
+    // user_id prefix is the channel: reg- web registration, wa- WhatsApp,
+    // web- anonymous web chat (never registered), beta- imported no-phone
+    pool.query(`
+      SELECT CASE
+               WHEN user_id LIKE 'reg-%'  THEN 'web registration'
+               WHEN user_id LIKE 'wa-%'   THEN 'whatsapp'
+               WHEN user_id LIKE 'web-%'  THEN 'web chat (unregistered)'
+               ELSE 'other'
+             END AS k, COUNT(*)::int AS n
+      FROM users GROUP BY 1 ORDER BY n DESC`),
+    pool.query(`
+      SELECT day::text AS k, SUM(messages)::int AS n
+      FROM activity_days
+      WHERE day >= CURRENT_DATE - INTERVAL '29 days'
+      GROUP BY 1 ORDER BY 1`),
+  ]);
+  const toObj = (rows) => Object.fromEntries(rows.map((r) => [r.k, r.n]));
+  return {
+    byProgram: toObj(program.rows),
+    byStage: toObj(stage.rows),
+    byAccess: toObj(access.rows),
+    byChannel: toObj(channel.rows),
+    messagesByDay: toObj(msgsByDay.rows),
+  };
+}
+
 module.exports = {
-  enabled, init, upsertUser, recordActivity, getMetrics,
+  enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
   saveProfile, getProfile, appendMessages, getHistory,
   linkSubscription, findByStripeCustomer, getUser, setAccess,
 };

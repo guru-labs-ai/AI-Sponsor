@@ -382,7 +382,7 @@ app.get('/api/metrics/northstar', async (req, res) => {
     return res.json(metricsCache.data);
   }
   try {
-    const [contacts, subs, usage] = await Promise.all([
+    const [contacts, subs, usage, breakdowns] = await Promise.all([
       ghl.listSponsorContacts(),
       stripeModule.listSponsorSubscriptions().catch((e) => {
         console.error('[Metrics] Stripe list failed:', e.message);
@@ -390,6 +390,10 @@ app.get('/api/metrics/northstar', async (req, res) => {
       }),
       db.getMetrics().catch((e) => {
         console.error('[Metrics] DB failed:', e.message);
+        return null;
+      }),
+      db.getBreakdowns().catch((e) => {
+        console.error('[Metrics] DB breakdowns failed:', e.message);
         return null;
       }),
     ]);
@@ -462,6 +466,9 @@ app.get('/api/metrics/northstar', async (req, res) => {
         stripeConfigured: subs.length > 0 || !!process.env.STRIPE_SECRET_KEY,
         activeSubscriptions: subs.filter((s) => s.status === 'active' || s.status === 'trialing').length,
       },
+      // Who they are / what they're doing. Aggregates only — no names, emails
+      // or message content ever leave the DB.
+      breakdowns,
       dataNotes: dbFirst
         ? [
             'Counts only people who actually signed up — every sign-up date here is real.',
