@@ -414,9 +414,15 @@ app.get('/api/metrics/northstar', async (req, res) => {
       .map((s) => ((s.endedAt || s.canceledAt) - s.created) / 86400)
       .filter((d) => d >= 0);
 
-    // DB is the source of truth once it holds users (real join dates, incl. the
-    // imported beta cohort). GHL remains the fallback when the DB is off/empty.
-    const dbFirst = usage && usage.registered > 0;
+    // The DB is the source of truth whenever it's working — including when its
+    // honest answer is zero. `usage` is null ONLY if the DB is off or erroring,
+    // which is the one case GHL should stand in for.
+    //
+    // This used to read `usage.registered > 0`, which quietly meant "an empty DB
+    // falls back to counting GHL contacts". GHL holds Matt's staged beta list —
+    // people who haven't signed up — so an empty product would have reported the
+    // mailing list as its user count instead of 0.
+    const dbFirst = !!usage;
     const nsUsers = dbFirst ? usage.registered : contacts.length;
     const nsCumulative = dbFirst ? usage.cumulative_days : cumulativeDays;
 
