@@ -317,9 +317,9 @@ You are here because this person chose to be here, at whatever hour, in whatever
 // without a code change; defaults preserve the previous behaviour.
 const RECENT_TURNS = parseInt(process.env.MEMORY_RECENT_TURNS || '40', 10);  // verbatim turns sent to Claude
 const SUMMARY_BATCH = parseInt(process.env.MEMORY_SUMMARY_BATCH || '12', 10); // fold aged-out turns in once this many pile up
-// Summaries run rarely and in the background; opus is the model we know is live
-// on this account. Swap to a cheaper model here if summary spend ever matters.
-const SUMMARY_MODEL = 'claude-opus-4-6';
+// Summaries run rarely and in the background. Swap to a cheaper model here if
+// summary spend ever matters.
+const SUMMARY_MODEL = 'claude-opus-4-8';
 
 function buildMemoryBlock(memory) {
   if (!memory || !memory.digest) return null;
@@ -451,7 +451,7 @@ async function getSponsorReply(userId, message) {
   const updatedHistory = [...history, { role: 'user', content: message }];
 
   const response = await client.messages.create({
-    model: 'claude-opus-4-6',
+    model: 'claude-opus-4-8',
     max_tokens: 1024,
     system: systemBlocks,
     messages: updatedHistory.slice(-RECENT_TURNS), // recent window; older turns live in the digest + DB
@@ -753,7 +753,7 @@ ${profile.whatBroughtYouHere ? `They wrote: "${profile.whatBroughtYouHere}"` : '
     let fullResponse = '';
 
     const stream = await client.messages.create({
-      model: 'claude-opus-4-6',
+      model: 'claude-opus-4-8',
       max_tokens: 512,
       stream: true,
       system: systemBlocks,
@@ -821,7 +821,7 @@ app.post('/api/chat', async (req, res) => {
     let fullResponse = '';
 
     const stream = await client.messages.create({
-      model: 'claude-opus-4-6',
+      model: 'claude-opus-4-8',
       max_tokens: 1024,
       stream: true,
       system: systemBlocks,
