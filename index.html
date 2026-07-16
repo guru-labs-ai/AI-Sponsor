@@ -1152,6 +1152,145 @@
   </div>
 </section>
 
+<!-- ── MISSION COUNTER (on-brand, per Matt's Jul 16 mockup) ─────────────────────
+     Self-contained: all styles/markup/JS scoped with the mc- prefix and inlined
+     here so this block can be changed or removed without touching anything else
+     on the page. Counter reads the REAL cumulative-recovery-days metric — 0 today,
+     shown honestly as 000000, and it climbs on its own once people actually use
+     the product. Never a placeholder number. -->
+<style>
+.mc-wrap{background:var(--navy);padding:88px 20px;display:flex;justify-content:center}
+.mc-card{position:relative;width:100%;max-width:680px;border-radius:26px;overflow:hidden;
+  padding:52px 40px 46px;text-align:center;
+  background:
+    radial-gradient(120% 90% at 50% 118%, rgba(0,128,212,0.22), transparent 60%),
+    linear-gradient(168deg, #10233b 0%, #0b1a2c 55%, #091626 100%);
+  border:1px solid rgba(120,170,225,0.16);
+  box-shadow:0 30px 80px -30px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.05);}
+.mc-mission{position:relative;z-index:2;font-family:'Source Serif 4',Georgia,serif;
+  font-size:clamp(21px,4.6vw,29px);line-height:1.34;font-weight:400;color:#e8f0f8;
+  letter-spacing:-0.01em;margin:0 auto;max-width:15em}
+.mc-mission strong{font-weight:700}
+.mc-mission .mc-em{color:var(--blue-light);font-weight:700}
+/* logo rising over a glowing horizon */
+.mc-stage{position:relative;height:118px;margin:30px 0 10px}
+.mc-horizon{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);
+  width:150%;height:150px;pointer-events:none}
+.mc-logo{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);width:60px;height:60px;z-index:2}
+.mc-logo::before{content:'';position:absolute;inset:-16px;border-radius:50%;z-index:-1;
+  background:radial-gradient(circle, rgba(41,121,255,0.45), rgba(41,121,255,0) 68%);
+  animation:mc-breathe 4.5s ease-in-out infinite}
+.mc-logo img{width:100%;height:100%;display:block;
+  filter:drop-shadow(0 0 10px rgba(64,150,255,0.55))}
+@keyframes mc-breathe{0%,100%{opacity:.75;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
+/* split-flap counter */
+.mc-counter{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;
+  gap:clamp(4px,1.4vw,8px);margin:6px 0 16px}
+.mc-digit{position:relative;width:clamp(38px,9.4vw,58px);height:clamp(54px,13vw,80px);
+  border-radius:9px;overflow:hidden;
+  background:linear-gradient(180deg,#1b3251 0%,#132A44 49.5%,#0e2138 50.5%,#0b1a2e 100%);
+  border:1px solid rgba(120,170,225,0.14);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.07), 0 6px 16px -6px rgba(0,0,0,0.6)}
+.mc-digit::after{content:'';position:absolute;left:0;right:0;top:50%;height:1px;
+  transform:translateY(-0.5px);background:rgba(0,0,0,0.45);
+  box-shadow:0 1px 0 rgba(255,255,255,0.04)}
+.mc-digit span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:'Inter',sans-serif;font-weight:600;color:#eef4fb;
+  font-size:clamp(26px,6.6vw,42px);font-variant-numeric:tabular-nums;
+  text-shadow:0 1px 3px rgba(0,0,0,0.5)}
+.mc-digit.mc-flip span{animation:mc-flipanim .32s cubic-bezier(.4,0,.3,1)}
+@keyframes mc-flipanim{
+  0%{transform:translateY(0) rotateX(0);opacity:1}
+  49%{transform:translateY(-46%) rotateX(-88deg);opacity:0}
+  51%{transform:translateY(46%) rotateX(88deg);opacity:0}
+  100%{transform:translateY(0) rotateX(0);opacity:1}}
+.mc-comma{align-self:flex-end;margin-bottom:clamp(8px,2.4vw,16px);
+  font-family:'Inter',sans-serif;font-weight:700;color:rgba(190,210,232,0.7);
+  font-size:clamp(22px,5.5vw,34px)}
+.mc-label{position:relative;z-index:2;font-family:'Inter',sans-serif;font-size:11.5px;
+  font-weight:600;letter-spacing:0.24em;text-transform:uppercase;color:rgba(150,178,208,0.8)}
+@media(max-width:520px){
+  .mc-wrap{padding:60px 14px}
+  .mc-card{padding:40px 20px 36px;border-radius:22px}
+  .mc-label{letter-spacing:0.16em;font-size:10.5px}
+}
+</style>
+<section class="mc-wrap" aria-label="Our mission">
+  <div class="mc-card reveal">
+    <p class="mc-mission">We're on a mission to create<br>
+      <strong>one <span class="mc-em">MILLION</span> days of recovery,</strong><br>one day at a time.</p>
+    <div class="mc-stage">
+      <svg class="mc-horizon" viewBox="0 0 300 150" fill="none" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+        <defs>
+          <linearGradient id="mcHz" x1="0" y1="0" x2="300" y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#2979FF" stop-opacity="0"/>
+            <stop offset="0.5" stop-color="#4d9bff" stop-opacity="0.95"/>
+            <stop offset="1" stop-color="#2979FF" stop-opacity="0"/>
+          </linearGradient>
+          <filter id="mcGlow" x="-20%" y="-60%" width="140%" height="260%">
+            <feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <path d="M4 132 Q150 92 296 132" stroke="url(#mcHz)" stroke-width="2" filter="url(#mcGlow)"/>
+      </svg>
+      <span class="mc-logo"><img src="logo-hero.svg" alt="AI Sponsor" width="60" height="60"></span>
+    </div>
+    <div class="mc-counter" id="mcCounter" role="img" aria-label="0 days of recovery and counting"></div>
+    <p class="mc-label">Days of recovery and counting</p>
+  </div>
+</section>
+<script>
+(function(){
+  var el=document.getElementById('mcCounter');
+  if(!el) return;
+  var METRIC='https://ai-sponsor-f7de.onrender.com/api/metrics/northstar';
+  var DIGITS=6;              // 000000 → 999999
+  var target=0, shown=null, seen=false, timers=[], tiles=[];
+
+  // Build the tiles: 3 digits · comma · 3 digits (e.g. 000,000)
+  for(var i=0;i<DIGITS;i++){
+    if(i===DIGITS-3){ var c=document.createElement('span'); c.className='mc-comma'; c.textContent=','; el.appendChild(c); }
+    var d=document.createElement('span'); d.className='mc-digit';
+    var s=document.createElement('span'); s.textContent='0'; d.appendChild(s);
+    el.appendChild(d); tiles.push(s);
+  }
+
+  function setDigit(tile, val){
+    tile.textContent=String(val);
+    var t=tile.parentNode; t.classList.remove('mc-flip'); void t.offsetWidth; t.classList.add('mc-flip');
+  }
+
+  // Roll the board alive and settle on the real number's digits. Left tiles
+  // settle first, right ones keep flipping a beat longer — the mechanical feel.
+  function play(){
+    if(!seen || shown===target) return;   // wait until on-screen; skip if nothing changed
+    shown=target;
+    timers.forEach(clearInterval); timers=[];
+    var str=String(target).padStart(DIGITS,'0');
+    tiles.forEach(function(tile,i){
+      var end=+str[i], steps=6+i*2, n=0;
+      var iv=setInterval(function(){
+        n++; setDigit(tile, n>=steps ? end : (n%10));
+        if(n>=steps) clearInterval(iv);
+      }, 55);
+      timers.push(iv);
+    });
+    el.setAttribute('aria-label', target.toLocaleString()+' days of recovery and counting');
+  }
+
+  // Real number — 0 today (shown honestly as 000000); climbs for real later.
+  // Runs independently of the reveal: whichever finishes last triggers play().
+  fetch(METRIC).then(function(r){return r.json();}).then(function(d){
+    var v=d&&d.northStar&&d.northStar.cumulativeRecoveryDays;
+    if(typeof v==='number'&&v>=0){ target=Math.min(v,999999); play(); }
+  }).catch(function(){});
+
+  new IntersectionObserver(function(entries,obs){
+    entries.forEach(function(e){ if(e.isIntersecting){ seen=true; play(); obs.disconnect(); } });
+  },{threshold:0.4}).observe(el);
+})();
+</script>
+
 <!-- FINAL CTA -->
 <section class="final-cta">
   <div class="container">
