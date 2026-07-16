@@ -47,6 +47,7 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 // ─── In-memory storage (swap for a real DB when ready) ───────────────────────
 const conversations = new Map(); // userId -> [{ role, content }]
 const userProfiles = new Map();  // userId -> profile object
+const userMemory = new Map();    // userId -> { digest, upto } | null  (rolling long-term memory)
 
 // ─── Master System Prompt ─────────────────────────────────────────────────────
 // This is cached by Claude API after the first call — saves ~90% on input tokens.
@@ -305,6 +306,85 @@ You are here because this person chose to be here, at whatever hour, in whatever
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+/* ─── Rolling long-term memory ────────────────────────────────────────────────
+   Claude only ever sees RECENT_TURNS of verbatim history (the window below),
+   so a fact from three weeks ago would otherwise just fall off the end. As turns
+   age out of that window we fold their durable facts into a running digest and
+   inject it as its own system block — so "the sponsor that remembers" holds over
+   a real relationship, not just within one session. Purely additive: short and
+   medium conversations that fit inside the window behave exactly as before. */
+// Env-overridable so the thresholds can be tuned (and tested with small values)
+// without a code change; defaults preserve the previous behaviour.
+const RECENT_TURNS = parseInt(process.env.MEMORY_RECENT_TURNS || '40', 10);  // verbatim turns sent to Claude
+const SUMMARY_BATCH = parseInt(process.env.MEMORY_SUMMARY_BATCH || '12', 10); // fold aged-out turns in once this many pile up
+// Summaries run rarely and in the background; opus is the model we know is live
+// on this account. Swap to a cheaper model here if summary spend ever matters.
+const SUMMARY_MODEL = 'claude-opus-4-6';
+
+function buildMemoryBlock(memory) {
+  if (!memory || !memory.digest) return null;
+  return (
+    '## WHAT YOU ALREADY KNOW ABOUT THEM (from earlier conversations)\n' +
+    'This is what you remember about this person from before the recent messages ' +
+    'below — things they told you in past conversations. Treat it as genuinely ' +
+    'known: bring it up naturally when it matters, and never tell them you don\'t ' +
+    'remember it.\n\n' +
+    memory.digest
+  );
+}
+
+// One in-flight summary per user at a time — rapid messages must not spawn
+// concurrent summarizers that double-fold the same turns.
+const summarizing = new Set();
+
+async function maybeUpdateMemory(userId) {
+  if (!db.enabled || summarizing.has(userId)) return;
+  try {
+    const current = userMemory.get(userId) ?? (await db.getMemory(userId).catch(() => null));
+    const sinceId = current ? current.upto : 0;
+    const { rows, total } = await db.getAgedOutMessages(userId, RECENT_TURNS, sinceId);
+    if (total <= RECENT_TURNS || rows.length < SUMMARY_BATCH) return;
+
+    summarizing.add(userId);
+    const transcript = rows.map((m) => `${m.role === 'user' ? 'Them' : 'You (sponsor)'}: ${m.content}`).join('\n');
+    const prior = current && current.digest ? current.digest : '(nothing yet)';
+
+    const resp = await client.messages.create({
+      model: SUMMARY_MODEL,
+      max_tokens: 700,
+      system: [{
+        type: 'text',
+        text:
+          'You maintain a recovery sponsor\'s private memory of a person they support. ' +
+          'Given the running memory so far and some older messages that are about to ' +
+          'fall out of recent history, return an UPDATED running memory.\n\n' +
+          'Keep only durable, worth-remembering facts: their sobriety/clean date and ' +
+          'day count, program specifics, the people in their life (names, relationships), ' +
+          'triggers and cravings, what helps them, commitments they\'ve made, relapses or ' +
+          'close calls, milestones, and recurring struggles. Drop small talk and anything ' +
+          'ephemeral. Write terse factual notes, not prose. Merge new facts into the old; ' +
+          'if something was updated (a new day count, a relapse), reflect the latest. ' +
+          'Keep it under ~250 words. Return ONLY the updated memory, nothing else.',
+      }],
+      messages: [{
+        role: 'user',
+        content: `RUNNING MEMORY SO FAR:\n${prior}\n\nOLDER MESSAGES TO FOLD IN:\n${transcript}`,
+      }],
+    });
+
+    const digest = resp.content.filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
+    if (!digest) return;
+    const upto = rows[rows.length - 1].id;
+    await db.saveMemory(userId, digest, upto);
+    userMemory.set(userId, { digest, upto });
+    console.log(`[memory] digest updated for ${userId} — folded ${rows.length} turns, upto id ${upto}`);
+  } catch (e) {
+    console.error('[memory] summarize failed:', e.message);
+  } finally {
+    summarizing.delete(userId);
+  }
+}
+
 function buildUserContextBlock(profile) {
   if (!profile || Object.keys(profile).length === 0) return null;
 
@@ -328,7 +408,8 @@ function buildUserContextBlock(profile) {
 async function loadSession(userId) {
   let profile = userProfiles.get(userId);
   let history = conversations.get(userId);
-  if (db.enabled && (!profile || !history)) {
+  let memory = userMemory.get(userId);
+  if (db.enabled) {
     if (!profile) {
       const p = await db.getProfile(userId).catch(() => null);
       if (p) { profile = p; userProfiles.set(userId, p); }
@@ -337,8 +418,12 @@ async function loadSession(userId) {
       const h = await db.getHistory(userId).catch(() => null);
       if (h && h.length) { history = h; conversations.set(userId, h); }
     }
+    if (memory === undefined) { // undefined = never loaded; null = loaded, none yet
+      memory = await db.getMemory(userId).catch(() => null);
+      userMemory.set(userId, memory);
+    }
   }
-  return { profile: profile || {}, history: history || [] };
+  return { profile: profile || {}, history: history || [], memory: memory || null };
 }
 
 // Persist a completed exchange: RAM (fast path) + DB (durable), never blocking.
@@ -353,13 +438,15 @@ function persistExchange(userId, updatedHistory, newTurns) {
    route keeps streaming for the web UI; both share MASTER_SYSTEM_PROMPT +
    conversation history, so the sponsor behaves identically across web + WhatsApp. */
 async function getSponsorReply(userId, message) {
-  const { profile, history } = await loadSession(userId);
+  const { profile, history, memory } = await loadSession(userId);
 
   const userContext = buildUserContextBlock(profile);
+  const memoryBlock = buildMemoryBlock(memory);
   const systemBlocks = [
     { type: 'text', text: MASTER_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
   ];
   if (userContext) systemBlocks.push({ type: 'text', text: userContext });
+  if (memoryBlock) systemBlocks.push({ type: 'text', text: memoryBlock });
 
   const updatedHistory = [...history, { role: 'user', content: message }];
 
@@ -367,7 +454,7 @@ async function getSponsorReply(userId, message) {
     model: 'claude-opus-4-6',
     max_tokens: 1024,
     system: systemBlocks,
-    messages: updatedHistory.slice(-40), // context cap — full history stays in DB
+    messages: updatedHistory.slice(-RECENT_TURNS), // recent window; older turns live in the digest + DB
   });
 
   const replyText = response.content
@@ -380,6 +467,7 @@ async function getSponsorReply(userId, message) {
     { role: 'user', content: message },
     { role: 'assistant', content: replyText },
   ]);
+  maybeUpdateMemory(userId).catch(() => {}); // fire-and-forget; never blocks the reply
 
   return replyText;
 }
@@ -522,6 +610,7 @@ app.post('/api/session', (req, res) => {
     // is what lets a returning user's sponsor remember them.
     db.saveProfile(userId, profile).catch((e) => console.error('[DB] saveProfile failed:', e.message));
     conversations.delete(userId);
+    userMemory.delete(userId); // re-hydrate the digest from the DB too on reopen
   } else {
     conversations.set(userId, []);
   }
@@ -679,9 +768,10 @@ app.post('/api/chat', async (req, res) => {
   // Usage tracking: one row per user per day (fire-and-forget, never blocks chat).
   db.recordActivity(userId).catch((e) => console.error('[DB] recordActivity failed:', e.message));
 
-  const { profile, history } = await loadSession(userId);
+  const { profile, history, memory } = await loadSession(userId);
 
   const userContext = buildUserContextBlock(profile);
+  const memoryBlock = buildMemoryBlock(memory);
   const systemBlocks = [
     {
       type: 'text',
@@ -691,6 +781,9 @@ app.post('/api/chat', async (req, res) => {
   ];
   if (userContext) {
     systemBlocks.push({ type: 'text', text: userContext });
+  }
+  if (memoryBlock) {
+    systemBlocks.push({ type: 'text', text: memoryBlock });
   }
 
   // Add the new user message
@@ -709,7 +802,7 @@ app.post('/api/chat', async (req, res) => {
       max_tokens: 1024,
       stream: true,
       system: systemBlocks,
-      messages: updatedHistory.slice(-40), // context cap — full history stays in DB
+      messages: updatedHistory.slice(-RECENT_TURNS), // recent window; older turns live in the digest + DB
     });
 
     for await (const event of stream) {
@@ -725,6 +818,7 @@ app.post('/api/chat', async (req, res) => {
       { role: 'user', content: message },
       { role: 'assistant', content: fullResponse },
     ]);
+    maybeUpdateMemory(userId).catch(() => {}); // fire-and-forget; never blocks the reply
 
     res.write('data: [DONE]\n\n');
     res.end();

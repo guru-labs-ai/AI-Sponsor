@@ -75,6 +75,13 @@ async function init() {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS utm_medium    TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS utm_campaign  TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS referrer      TEXT;
+    -- Rolling long-term memory. We only ever send Claude the recent window of
+    -- turns, so anything older would silently fall out of recall. memory_digest
+    -- is a running summary of the durable facts (names, dates, triggers,
+    -- commitments) from turns that have aged out of that window; _upto is the
+    -- highest message id already folded in, so we never re-summarize a turn.
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS memory_digest      TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS memory_digest_upto BIGINT DEFAULT 0;
   `);
   console.log('DB connected — users + activity_days tables ready.');
 }
@@ -229,6 +236,46 @@ async function appendMessages(userId, msgs) {
   );
 }
 
+/* ─── Rolling long-term memory ──────────────────────────────────────────────── */
+
+async function getMemory(userId) {
+  if (!enabled || !userId) return null;
+  const r = await pool.query(
+    'SELECT memory_digest, memory_digest_upto FROM users WHERE user_id = $1',
+    [userId]
+  );
+  const row = r.rows[0];
+  if (!row || !row.memory_digest) return null;
+  return { digest: row.memory_digest, upto: Number(row.memory_digest_upto) || 0 };
+}
+
+async function saveMemory(userId, digest, upto) {
+  if (!enabled || !userId) return;
+  await pool.query(
+    'UPDATE users SET memory_digest = $2, memory_digest_upto = $3 WHERE user_id = $1',
+    [userId, digest, upto]
+  );
+}
+
+/* Turns that have aged out of the recent window and haven't been summarized yet.
+   Keeps the most recent `recentKeep` verbatim (those still go to Claude in full),
+   returns older ones with id > sinceId, oldest-first, ready to fold into the
+   digest. Also reports the total so the caller can decide it's worth a summary. */
+async function getAgedOutMessages(userId, recentKeep, sinceId) {
+  if (!enabled || !userId) return { rows: [], total: 0 };
+  const total = (await pool.query(
+    'SELECT COUNT(*)::int n FROM messages WHERE user_id = $1', [userId]
+  )).rows[0].n;
+  const r = await pool.query(
+    `SELECT id, role, content FROM (
+       SELECT id, role, content, ROW_NUMBER() OVER (ORDER BY id DESC) AS rn
+       FROM messages WHERE user_id = $1
+     ) t WHERE rn > $2 AND id > $3 ORDER BY id ASC`,
+    [userId, recentKeep, sinceId]
+  );
+  return { rows: r.rows, total };
+}
+
 // Last `limit` turns in chronological order (Claude context cap lives here).
 async function getHistory(userId, limit = 40) {
   if (!enabled || !userId) return null;
@@ -328,4 +375,5 @@ module.exports = {
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
   saveProfile, getProfile, appendMessages, getHistory,
   linkSubscription, findByStripeCustomer, getUser, setAccess,
+  getMemory, saveMemory, getAgedOutMessages,
 };
