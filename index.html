@@ -793,39 +793,12 @@
   </div>
 </section>
 
-<!-- MISSION COUNTER (live from the backend north-star metric) -->
-<style>
-.mission{padding:72px 24px 64px;background:var(--blue-pale)}
-.mission-card{max-width:430px;margin:0 auto;border-radius:24px;overflow:hidden;
-  box-shadow:0 14px 40px rgba(0,102,179,0.18);background:linear-gradient(180deg,#BFE3FB 0%,#E8F4FD 46%,#7FC24E 46.5%,#5CA83A 100%);position:relative}
-.mission-sky{padding:30px 28px 10px;text-align:center}
-.mission-sky p{font-size:16.5px;line-height:1.5;color:#0B4A73;font-weight:600}
-.mission-sky p strong{font-family:'Source Serif 4',serif;font-size:18px}
-.mission-sun{width:74px;height:74px;margin:14px auto -37px;position:relative;z-index:1}
-.mission-sun .core{width:54px;height:54px;border-radius:50%;background:#FFD34D;margin:10px auto;
-  box-shadow:0 0 0 10px rgba(255,211,77,0.35),0 0 0 20px rgba(255,211,77,0.15);position:relative}
-.mission-sun .core::after{content:'☺';position:absolute;inset:0;display:flex;align-items:center;
-  justify-content:center;font-size:24px;color:#B77F00}
-.mission-hill{padding:56px 28px 26px;text-align:center;position:relative}
-.mission-hill .sprouts{position:absolute;top:16px;left:0;right:0;display:flex;
-  justify-content:space-around;font-size:15px;opacity:0.9}
-@media(max-width:480px){.mission{padding:56px 16px 48px}}
-</style>
-<section class="mission" id="mission">
-  <div class="mission-card reveal">
-    <div class="mission-sky">
-      <p>We're on a mission to create<br><strong>one MILLION days of recovery,</strong><br>one day at a time.</p>
-      <div class="mission-sun"><div class="core"></div></div>
-    </div>
-    <!-- The hill is decorative. A live "days of recovery created" counter lived
-         here until Jul 15; it summed days-since-signup across the imported beta
-         cohort, none of whom have used the product yet, so it claimed an outcome
-         that hasn't happened. Put a number back only when it counts real usage. -->
-    <div class="mission-hill">
-      <div class="sprouts"><span>🌱</span><span>🌼</span><span>🌱</span><span>🌻</span><span>🌱</span></div>
-    </div>
-  </div>
-</section>
+<!-- Mission card removed Jul 16 per Matt: the Sunflower-style green sun/hill card
+     read as off-brand and "interjected" right under the hero, breaking the
+     intentional top-of-page design. The mission + a days counter will come back
+     as an on-brand AI Sponsor treatment, placed further down — awaiting Matt's
+     mockup. (Card first added Jul 10 in 07d5aa3; counter number already pulled
+     Jul 15 as it was fake.) -->
 
 <!-- B1G1 -->
 <section class="b1g1" id="b1g1">
