@@ -99,7 +99,7 @@
 
 <!-- HEADER -->
 <div class="header">
-  <div class="tag">Product Brief · Updated June 29, 2026</div>
+  <div class="tag">Product Brief · Updated July 16, 2026</div>
   <h1>AI Sponsor</h1>
   <div class="subtitle">An AI-powered recovery companion available 24/7 via WhatsApp — built for the tens of millions of people in 12-step programs worldwide.</div>
 </div>
@@ -128,7 +128,7 @@
   <div class="stat-divider"></div>
   <div class="stat-item">
     <div class="stat-val">59</div>
-    <div class="stat-lbl">Beta Users Ready</div>
+    <div class="stat-lbl">Beta List Ready</div>
   </div>
 </div>
 
@@ -275,7 +275,7 @@
   <div class="stack-card">
     <div class="stack-icon">💳</div>
     <div class="stack-name">Stripe</div>
-    <div class="stack-role">$5/mo + $49/yr subscriptions, 30-day trial. Code built &amp; deployed; on hold until paid-public (beta is free).</div>
+    <div class="stack-role">$5/mo + $49/yr subscriptions, 30-day trial. Live in production and wired to the registration checkout; syncs subscription status to GHL. Beta stays free via code.</div>
   </div>
 
   <div class="stack-card">
@@ -320,10 +320,10 @@
   <div class="status-item">
     <div class="s-icon">⚙️</div>
     <div class="s-content">
-      <div class="s-title">GHL CRM</div>
-      <div class="s-desc">GHL side is <strong>done</strong> — Abdul built the custom fields (program, stage, delivery, payment status), tags, pipeline, and KPI dashboard. Remaining: the backend connector that pushes registration data into GHL (on Mariam/backend).</div>
+      <div class="s-title">GHL CRM — connected</div>
+      <div class="s-desc">GHL fields + tags (Abdul) plus the full backend sync (built) are both live: every registration, Stripe subscription event, and WhatsApp arrival now flows into GHL automatically. GHL holds who someone is — never their conversations.</div>
     </div>
-    <span class="s-owner ow-abdul">Abdul ✓ / backend pending</span>
+    <span class="s-owner ow-built">Live ✓</span>
   </div>
 
   <div class="status-item">
@@ -336,12 +336,30 @@
   </div>
 
   <div class="status-item">
-    <div class="s-icon">🔴</div>
+    <div class="s-icon">✅</div>
     <div class="s-content">
-      <div class="s-title">Stripe — built, on hold</div>
-      <div class="s-desc">Stripe module ($5/mo + $49/yr + 30-day trial) is built &amp; deployed but dormant. Not needed for beta (beta = free codes/access), so it waits for paid-public. Open decision for Matt: what role the beta code plays now WhatsApp is open.</div>
+      <div class="s-title">The sponsor remembers people — LIVE</div>
+      <div class="s-desc">Every conversation is stored durably in the product database (Neon Postgres), and the sponsor genuinely remembers people across sessions — their story, their clean date, their triggers — with a rolling summary so recall holds over a long relationship, not just one chat. Conversations live only in our database, never in the CRM. This is the core trust feature and the difference between a sponsor and ChatGPT.</div>
     </div>
-    <span class="s-owner ow-later">On Hold</span>
+    <span class="s-owner ow-built">Live ✓</span>
+  </div>
+
+  <div class="status-item">
+    <div class="s-icon">✅</div>
+    <div class="s-content">
+      <div class="s-title">Analytics dashboard — LIVE</div>
+      <div class="s-desc">One live dashboard reads the product database: sign-ups, messages per day, program mix, where people came from (Facebook / Google / ChatGPT / direct), beta vs paid. Aggregates only — no names or conversations. Reads an honest 0 today (the beta hasn't opened) and fills in as real people arrive.</div>
+    </div>
+    <span class="s-owner ow-built">Live ✓</span>
+  </div>
+
+  <div class="status-item">
+    <div class="s-icon">✅</div>
+    <div class="s-content">
+      <div class="s-title">Payments (Stripe) — LIVE</div>
+      <div class="s-desc">Stripe is live in production ($5/mo + 30-day trial, or $49/yr) and the registration payment screen is wired to real Stripe Checkout — card details go to Stripe, never to us. Subscription events (paid / cancelled / failed / trial-ending) sync to GHL automatically. One live-mode card test remains for Matt to run. Beta stays free via invite code.</div>
+    </div>
+    <span class="s-owner ow-built">Live ✓</span>
   </div>
 
   <div class="status-item">
@@ -383,9 +401,9 @@
     <div class="rb-tasks">
       <div class="rb-task">Register the Twilio 307 number with WhatsApp Business (blocked on Meta access)</div>
       <div class="rb-task">GHL CRM — done ✓ (fields, tags, pipeline, KPI dashboard built)</div>
-      <div class="rb-task">Create Stripe products/prices when we go paid-public (on hold for now)</div>
-      <div class="rb-task">Set up support-ticket handling in GHL (contact form already wired)</div>
-      <div class="rb-task">Add Hyros pixel + Google Analytics</div>
+      <div class="rb-task">Stripe payments — done ✓ (live, checkout wired, subscription→GHL sync)</div>
+      <div class="rb-task">Support-ticket handling in GHL — done ✓ (form + Slack alerts)</div>
+      <div class="rb-task">Hyros pixel + Google Analytics — done ✓</div>
     </div>
   </div>
 
