@@ -83,6 +83,19 @@ async function init() {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS memory_digest      TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS memory_digest_upto BIGINT DEFAULT 0;
   `);
+  // Beta invite codes, server-side so they're not readable in the page source
+  // and can be turned off without a deploy (just UPDATE active = false).
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS beta_codes (
+      code       TEXT PRIMARY KEY,
+      active     BOOLEAN NOT NULL DEFAULT true,
+      label      TEXT,
+      redeemed   INT NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    INSERT INTO beta_codes (code, label) VALUES ('SPONSOR-7KX4Q9', 'original shared beta code')
+      ON CONFLICT (code) DO NOTHING;
+  `);
   console.log('DB connected — users + activity_days tables ready.');
 }
 
@@ -371,9 +384,21 @@ async function getBreakdowns() {
   };
 }
 
+// Validate a beta code and count the redemption. Returns true only if the code
+// exists and is active. Unknown/killed codes return false.
+async function redeemBetaCode(code) {
+  if (!enabled || !code) return false;
+  const r = await pool.query(
+    `UPDATE beta_codes SET redeemed = redeemed + 1
+       WHERE code = $1 AND active = true RETURNING code`,
+    [code]
+  );
+  return r.rowCount > 0;
+}
+
 module.exports = {
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
   saveProfile, getProfile, appendMessages, getHistory,
   linkSubscription, findByStripeCustomer, getUser, setAccess,
-  getMemory, saveMemory, getAgedOutMessages,
+  getMemory, saveMemory, getAgedOutMessages, redeemBetaCode,
 };

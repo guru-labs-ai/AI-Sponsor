@@ -644,6 +644,29 @@ app.post('/register', async (req, res) => {
   }
 });
 
+// Validate a beta invite code SERVER-SIDE. Previously the code lived in the page
+// source (readable, un-killable without a deploy). Now it's checked here against
+// the beta_codes table, so codes can be turned off instantly (UPDATE active=false)
+// and never appear in the browser. Fallback: if the DB is momentarily down, honour
+// BETA_CODE_FALLBACK (env) so a real beta user is never locked out by a cold DB.
+app.post('/api/redeem-code', async (req, res) => {
+  const code = String((req.body && req.body.code) || '').trim().toUpperCase();
+  if (!code) return res.status(400).json({ valid: false });
+  try {
+    let ok = await db.redeemBetaCode(code);
+    if (!ok && !db.enabled) {
+      const fb = (process.env.BETA_CODE_FALLBACK || '').toUpperCase();
+      ok = fb && code === fb;
+    }
+    return res.json({ valid: !!ok, access: ok ? 'Beta' : undefined });
+  } catch (err) {
+    console.error('[redeem-code] error:', err.message);
+    // On an unexpected DB error, fall back to the env code rather than hard-fail.
+    const fb = (process.env.BETA_CODE_FALLBACK || '').toUpperCase();
+    return res.json({ valid: !!fb && code === fb, access: (fb && code === fb) ? 'Beta' : undefined });
+  }
+});
+
 // Notify the support pool in Slack about a new ticket. Uses an Incoming Webhook
 // URL (SLACK_SUPPORT_WEBHOOK). If it's not set, this quietly no-ops so the
 // ticket still saves to GHL — the webhook can be added later.
@@ -806,6 +829,14 @@ app.post('/api/chat', async (req, res) => {
     });
 
     for await (const event of stream) {
+      // Prompt-cache visibility: message_start carries the input-token usage.
+      // cache_read > 0 means the master prompt is being served from cache (the
+      // big cost saving); cache_creation is the one-time write. Logged so we can
+      // always see caching is firing, not just verify it once.
+      if (event.type === 'message_start' && event.message && event.message.usage) {
+        const u = event.message.usage;
+        console.log(`[cache] input=${u.input_tokens} cache_write=${u.cache_creation_input_tokens||0} cache_read=${u.cache_read_input_tokens||0}`);
+      }
       if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
         fullResponse += event.delta.text;
         res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);

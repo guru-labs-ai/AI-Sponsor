@@ -1781,15 +1781,35 @@ function showSuccess(accessLabel){
   document.getElementById('codeSuccess').classList.add('show');
 }
 
-const VALID_BETA_CODES=['SPONSOR-7KX4Q9'];
-function redeemCode(){
+// Beta code is validated SERVER-SIDE now — it isn't in this page's source, and
+// it can be turned off without redeploying the site. The button shows a brief
+// checking state because the backend can cold-start.
+async function redeemCode(){
+  const btn=document.querySelector('#codeSection .code-btn');
+  const err=document.getElementById('e-code');
   const code=document.getElementById('f-code').value.trim().toUpperCase();
-  if(VALID_BETA_CODES.includes(code)){
-    document.getElementById('e-code').classList.remove('show');
-    showSuccess('6 months of free access');
-    registerUser('Beta'); // fire-and-forget — save to GHL as a beta user
-  } else {
-    document.getElementById('e-code').classList.add('show');
+  if(!code){ err.classList.add('show'); return; }
+  err.classList.remove('show');
+  const label=btn?btn.textContent:'';
+  if(btn){ btn.disabled=true; btn.textContent='Checking…'; }
+  try{
+    const res=await fetch(BACKEND_URL+'/api/redeem-code',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({code})
+    });
+    const data=await res.json().catch(()=>({}));
+    if(data && data.valid){
+      showSuccess('6 months of free access');
+      registerUser('Beta'); // fire-and-forget — save to GHL as a beta user
+    } else {
+      err.textContent="That code doesn't look right. Try again.";
+      err.classList.add('show');
+    }
+  }catch(e){
+    err.textContent="We couldn't check that just now — please try again in a moment.";
+    err.classList.add('show');
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent=label||'Unlock'; }
   }
 }
 
