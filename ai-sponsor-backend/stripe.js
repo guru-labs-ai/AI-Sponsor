@@ -199,10 +199,38 @@ async function listSponsorSubscriptions() {
   return subs;
 }
 
+/* ── "Forget me" deletion support ─────────────────────────────────────────
+   Two functions, used together by deletion.js's Stripe-confirmation step:
+
+   cancelSubscription — immediate cancel (equivalent to DELETE /subscriptions/
+   :id), NOT cancel-at-period-end, per Mariam's spec. Stripe's synchronous
+   response is authoritative: if it comes back "canceled", that's final and no
+   follow-up check is needed.
+
+   getSubscriptionStatus — a read-only lookup, used ONLY on the cancel-call
+   error path. Stripe never hard-deletes a subscription, so a "no such
+   subscription" error does NOT mean it's safe to proceed — it usually means a
+   wrong id or a test/live key mismatch. This lookup is how the caller tells
+   the difference between "already cancelled, fine" and "something's wrong,
+   stop." Never used on the normal/happy path. ───────────────────────────── */
+async function cancelSubscription(subscriptionId) {
+  if (!stripe) throw new Error('Stripe is not configured (STRIPE_SECRET_KEY missing).');
+  const sub = await stripe.subscriptions.cancel(subscriptionId);
+  return sub.status; // 'canceled' on success
+}
+
+async function getSubscriptionStatus(subscriptionId) {
+  if (!stripe) throw new Error('Stripe is not configured (STRIPE_SECRET_KEY missing).');
+  const sub = await stripe.subscriptions.retrieve(subscriptionId);
+  return sub.status;
+}
+
 module.exports = {
   createCheckoutSession,
   constructWebhookEvent,
   handleWebhookEvent,
   listSponsorSubscriptions,
+  cancelSubscription,
+  getSubscriptionStatus,
   PRICE_IDS,
 };

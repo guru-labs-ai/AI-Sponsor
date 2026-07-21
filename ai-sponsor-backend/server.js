@@ -28,6 +28,10 @@ const scoreboard = require('./scoreboard');
 const db = require('./db');
 db.init().catch((e) => console.error('[DB] init failed:', e.message));
 
+// "Forget me" deletion orchestration (Stripe → DB → GHL). See deletion.js for
+// the full spec/ordering rationale agreed with Mariam.
+const { deleteUserIdentity } = require('./deletion');
+
 const app = express();
 app.use(cors());
 
@@ -667,6 +671,45 @@ app.post('/api/redeem-code', async (req, res) => {
   }
 });
 
+// ─── Admin: full "forget me" deletion (v1 — admin-run only) ──────────────────
+// Gated by a shared secret (ADMIN_API_KEY) rather than real auth, since the
+// login work (86aj6vfqd) a real user-facing delete button would depend on
+// hasn't landed yet. Deliberately runs in-process (not a standalone script):
+// a separate script could purge the DB/Stripe/GHL just fine, but it can't
+// reach into this running server's RAM caches (conversations/userProfiles/
+// userMemory) — and a stale RAM entry would keep serving a "deleted" user's
+// data right back to them on this instance until it happened to restart.
+function requireAdminKey(req, res, next) {
+  const key = req.headers['x-admin-key'];
+  if (!process.env.ADMIN_API_KEY || key !== process.env.ADMIN_API_KEY) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  next();
+}
+
+app.post('/api/admin/delete-user', requireAdminKey, async (req, res) => {
+  const { userId } = req.body || {};
+  if (!userId) return res.status(400).json({ error: 'userId required' });
+
+  try {
+    const result = await deleteUserIdentity(userId, {
+      requestedBy: req.headers['x-admin-user'] || 'admin',
+    });
+    if (!result.stopped) {
+      // Clear this instance's RAM cache so nothing stale gets served again.
+      conversations.delete(userId);
+      userProfiles.delete(userId);
+      userMemory.delete(userId);
+    }
+    // 409 = deletion deliberately stopped (Stripe not confirmed cancelled) —
+    // distinct from a 5xx, since nothing failed, it's flagged for review.
+    res.status(result.stopped ? 409 : 200).json(result);
+  } catch (err) {
+    console.error('[admin/delete-user] failed:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Notify the support pool in Slack about a new ticket. Uses an Incoming Webhook
 // URL (SLACK_SUPPORT_WEBHOOK). If it's not set, this quietly no-ops so the
 // ticket still saves to GHL — the webhook can be added later.
@@ -1039,6 +1082,7 @@ const server = app.listen(PORT, () => {
   console.log(`  POST /api/first-message — generate Screen 9 welcome message (streaming)`);
   console.log(`  POST /api/chat         — send a message, get streaming response`);
   console.log(`  GET  /api/history/:userId`);
+  console.log(`  POST /api/admin/delete-user — "forget me" (admin-only, X-Admin-Key header)`);
   console.log(`  WS   /api/voice/relay  — voice comparison (openai | xai)`);
 });
 
