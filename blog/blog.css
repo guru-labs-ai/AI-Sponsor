@@ -1,0 +1,322 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   AI Sponsor blog surface
+   Shared by /blog/ and every post. Same tokens as index.html so the blog
+   reads as part of the site, not a bolted-on subdomain.
+   Mobile first: base styles are the phone; media queries scale UP.
+   ────────────────────────────────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy: #0B1A2C;
+  --navy-mid: #132238;
+  --blue: #0066B3;
+  --blue-light: #0080D4;
+  --blue-pale: #E8F4FD;
+  --bg: #F4F6F9;
+  --white: #FFFFFF;
+  --text: #0F172A;
+  --sub: #475569;
+  --border: #E2E8F0;
+  --gold: #D97706;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  color: var(--text);
+  background: var(--white);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 { font-family: 'Source Serif 4', Georgia, serif; }
+
+a { color: var(--blue); }
+
+/* ── NAV ─────────────────────────────────────────────────────────────────
+   Solid from the start. The landing page nav is transparent over a navy
+   hero; blog pages have a light header, so transparent would be invisible. */
+#nav {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  background: rgba(255,255,255,0.96);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 1px 0 var(--border);
+}
+.nav-logo {
+  font-family: 'Source Serif 4', serif;
+  font-size: 26px; font-weight: 700;
+  color: var(--navy);
+  letter-spacing: -.5px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.nav-right { display: flex; align-items: center; gap: 18px; }
+.nav-link {
+  font-size: 14px; font-weight: 500;
+  color: var(--sub); text-decoration: none;
+  transition: color .2s;
+  display: none;
+}
+.nav-link:hover { color: var(--blue); }
+.nav-cta {
+  font-size: 12px; font-weight: 600;
+  background: var(--blue); color: var(--white);
+  border: none; border-radius: 6px;
+  padding: 8px 14px; cursor: pointer;
+  text-decoration: none; white-space: nowrap;
+  transition: background .2s, transform .15s;
+}
+.nav-cta:hover { transform: translateY(-1px); background: var(--blue-light); }
+
+/* ── SHELL ── */
+.wrap { max-width: 720px; margin: 0 auto; padding: 0 20px; }
+
+/* ── BLOG INDEX HEADER ── */
+.blog-head {
+  background: var(--navy);
+  padding: 56px 20px 48px;
+  text-align: center;
+  position: relative; overflow: hidden;
+}
+.blog-head::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(0,102,179,.35) 0%, transparent 70%);
+  pointer-events: none;
+}
+.blog-head h1 {
+  position: relative;
+  font-size: 32px; font-weight: 600; line-height: 1.15;
+  color: var(--white); letter-spacing: -.02em;
+  margin-bottom: 14px;
+}
+.blog-head p {
+  position: relative;
+  font-size: 15px; line-height: 1.7;
+  color: rgba(255,255,255,.65);
+  max-width: 520px; margin: 0 auto;
+}
+
+/* ── POST LIST ── */
+.post-list { padding: 40px 0 64px; }
+.post-card {
+  display: block;
+  border-bottom: 1px solid var(--border);
+  padding: 26px 0;
+  text-decoration: none; color: inherit;
+}
+.post-card:first-child { padding-top: 0; }
+.post-card:last-child { border-bottom: none; }
+.post-meta {
+  font-size: 12px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--blue);
+  margin-bottom: 10px;
+}
+.post-card h2 {
+  font-size: 22px; font-weight: 600; line-height: 1.25;
+  letter-spacing: -.01em; margin-bottom: 10px;
+  color: var(--navy);
+}
+.post-card:hover h2 { color: var(--blue); }
+.post-card p { font-size: 15px; line-height: 1.7; color: var(--sub); }
+.post-card .more {
+  display: inline-block; margin-top: 12px;
+  font-size: 14px; font-weight: 600; color: var(--blue);
+}
+
+.empty-note {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 12px; padding: 22px 20px;
+  font-size: 14px; line-height: 1.7; color: var(--sub);
+}
+
+/* ── ARTICLE ── */
+.article { padding: 36px 0 56px; }
+
+.breadcrumb {
+  font-size: 13px; color: var(--sub);
+  margin-bottom: 22px;
+}
+.breadcrumb a { color: var(--sub); text-decoration: none; }
+.breadcrumb a:hover { color: var(--blue); text-decoration: underline; }
+
+.article h1 {
+  font-size: 30px; font-weight: 600; line-height: 1.2;
+  letter-spacing: -.02em; color: var(--navy);
+  margin-bottom: 16px;
+}
+
+/* Byline. Dates are visible on purpose: AI engines weight freshness, and a
+   page with no date is treated as undateable rather than as new. */
+.byline {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--sub);
+  padding-bottom: 22px; margin-bottom: 28px;
+  border-bottom: 1px solid var(--border);
+}
+.byline .sep { color: var(--border); }
+.byline strong { color: var(--text); font-weight: 600; }
+
+/* The answer block. This is the citable passage: ~150 words, self-contained,
+   directly answering the title question, inside the first 30% of the page. */
+.answer {
+  background: var(--blue-pale);
+  border-left: 3px solid var(--blue);
+  border-radius: 0 12px 12px 0;
+  padding: 22px 20px;
+  margin-bottom: 34px;
+}
+.answer .answer-label {
+  font-size: 11px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--blue);
+  margin-bottom: 12px;
+}
+.answer p {
+  font-size: 16px; line-height: 1.75; color: var(--text);
+  margin-bottom: 14px;
+}
+.answer p:last-child { margin-bottom: 0; }
+.answer strong { font-weight: 600; }
+
+.article h2 {
+  font-size: 23px; font-weight: 600; line-height: 1.3;
+  letter-spacing: -.01em; color: var(--navy);
+  margin: 40px 0 14px;
+}
+.article h3 {
+  font-size: 18px; font-weight: 600; line-height: 1.35;
+  color: var(--navy); margin: 28px 0 10px;
+}
+.article p {
+  font-size: 16px; line-height: 1.8; color: var(--text);
+  margin-bottom: 18px;
+}
+.article ul, .article ol { margin: 0 0 18px 20px; }
+.article li {
+  font-size: 16px; line-height: 1.8; color: var(--text);
+  margin-bottom: 10px; padding-left: 4px;
+}
+.article strong { font-weight: 600; }
+.article a { text-decoration: underline; text-underline-offset: 2px; }
+
+.callout {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 28px 0;
+}
+.callout p { font-size: 15px; margin-bottom: 12px; }
+.callout p:last-child { margin-bottom: 0; }
+
+/* Standalone, not scoped to .callout: the crisis box uses it too. */
+.callout-title {
+  font-family: 'Source Serif 4', serif;
+  font-size: 17px; font-weight: 600; color: var(--navy);
+  line-height: 1.35;
+  margin-bottom: 10px;
+}
+
+/* Crisis resources. Deliberately loud and never below a CTA. */
+.crisis {
+  background: #FEF3C7;
+  border: 1px solid #FCD34D;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 32px 0;
+}
+.crisis .callout-title { color: #92400E; }
+.crisis p { font-size: 15px; line-height: 1.7; color: #78350F; margin-bottom: 0; }
+.crisis a { color: #92400E; }
+
+/* ── IN-ARTICLE CTA ── */
+.article-cta {
+  background: var(--navy);
+  border-radius: 14px;
+  padding: 28px 22px;
+  text-align: center;
+  margin: 40px 0 8px;
+}
+.article-cta h3 {
+  font-size: 21px; color: var(--white); font-weight: 600;
+  margin-bottom: 10px;
+}
+.article-cta p {
+  font-size: 14px; line-height: 1.7;
+  color: rgba(255,255,255,.65);
+  margin-bottom: 20px;
+}
+.article-cta .btn {
+  display: inline-block;
+  background: var(--white); color: var(--blue);
+  font-size: 15px; font-weight: 600;
+  padding: 13px 26px; border-radius: 8px;
+  text-decoration: none;
+  transition: transform .15s;
+}
+.article-cta .btn:hover { transform: translateY(-1px); }
+
+.article-foot {
+  margin-top: 36px; padding-top: 24px;
+  border-top: 1px solid var(--border);
+  font-size: 14px; line-height: 1.7; color: var(--sub);
+}
+.article-foot a { font-weight: 600; }
+
+/* ── FOOTER ── */
+footer {
+  background: #060E1A;
+  padding: 32px 20px;
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; gap: 16px;
+}
+.footer-logo {
+  font-family: 'Source Serif 4', serif;
+  font-size: 16px; color: rgba(255,255,255,.5);
+  text-decoration: none; transition: color .2s;
+}
+.footer-logo:hover { color: rgba(255,255,255,.85); }
+.footer-nav { display: flex; align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap; }
+.footer-nav-link { font-size: 13px; font-weight: 500; color: rgba(255,255,255,.45); text-decoration: none; transition: color .2s; }
+.footer-nav-link:hover { color: rgba(255,255,255,.85); }
+.footer-disclaimer {
+  font-size: 13px; font-weight: 500; color: rgba(255,255,255,.75);
+  max-width: 560px; line-height: 1.8;
+}
+.footer-copy { font-size: 12px; color: rgba(255,255,255,.25); }
+
+/* ── SCALE UP ── */
+@media (min-width: 768px) {
+  #nav { padding: 16px 48px; }
+  .nav-logo { font-size: 30px; }
+  .nav-link { display: inline; }
+  .nav-cta { font-size: 14px; padding: 10px 22px; }
+
+  .wrap { padding: 0 24px; }
+
+  .blog-head { padding: 88px 24px 72px; }
+  .blog-head h1 { font-size: 48px; }
+  .blog-head p { font-size: 17px; }
+
+  .post-list { padding: 56px 0 88px; }
+  .post-card { padding: 34px 0; }
+  .post-card h2 { font-size: 27px; }
+  .post-card p { font-size: 16px; }
+
+  .article { padding: 56px 0 80px; }
+  .article h1 { font-size: 44px; }
+  .article h2 { font-size: 29px; margin: 52px 0 16px; }
+  .article h3 { font-size: 21px; }
+  .article p, .article li { font-size: 17px; }
+  .answer { padding: 28px 30px; }
+  .answer p { font-size: 18px; line-height: 1.8; }
+  .article-cta { padding: 44px 40px; }
+  .article-cta h3 { font-size: 26px; }
+
+  footer { flex-direction: row; justify-content: space-between; text-align: left; padding: 40px 48px; }
+  .footer-disclaimer { text-align: right; }
+}
