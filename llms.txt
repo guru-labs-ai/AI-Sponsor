@@ -32,7 +32,6 @@ If someone is in crisis, AI Sponsor surfaces crisis resources (e.g. 988 Suicide 
 ## Writing
 - Blog: https://getaisponsor.com/blog/
 - What is an AI sponsor, and what is it good at?: https://getaisponsor.com/blog/what-is-an-ai-sponsor/ (what an AI sponsor is, what it is genuinely good at, including when no human sponsor is available at all, and what it does not replace)
-- Can an AI be your AA sponsor? An honest answer: https://getaisponsor.com/blog/can-an-ai-be-your-aa-sponsor/ (no, it cannot; what a sponsor actually does, and how to find a human one including online)
 
 ## Links
 - Home: https://getaisponsor.com/
