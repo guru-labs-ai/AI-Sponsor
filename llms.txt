@@ -29,9 +29,15 @@ Alcoholics Anonymous (AA), Narcotics Anonymous (NA), Al-Anon/Alateen, Overeaters
 ## Safety
 If someone is in crisis, AI Sponsor surfaces crisis resources (e.g. 988 Suicide & Crisis Lifeline, Crisis Text Line 741741, SAMHSA 1-800-662-4357) and stays in the conversation. It is not a substitute for emergency services or professional medical care.
 
+## Writing
+- Blog: https://getaisponsor.com/blog/
+- What an AI sponsor does that a human sponsor can't: https://getaisponsor.com/blog/what-an-ai-sponsor-does-that-a-human-cant/ (what an AI sponsor is genuinely good at, including when no human sponsor is available at all, and where a person still wins)
+- Can an AI be your AA sponsor? An honest answer: https://getaisponsor.com/blog/can-an-ai-be-your-aa-sponsor/ (no, it cannot; what a sponsor actually does, and how to find a human one including online)
+
 ## Links
 - Home: https://getaisponsor.com/
 - Get started / register: https://getaisponsor.com/ai-sponsor-registration.html
+- Blog: https://getaisponsor.com/blog/
 
 ## Contact
 This is a private project. Support is handled through the website.
