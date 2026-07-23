@@ -396,9 +396,41 @@ async function redeemBetaCode(code) {
   return r.rowCount > 0;
 }
 
+/* ─── "Forget me" — v1 full purge of one identity's data ─────────────────────
+   Spec agreed with Mariam (Jul 2026): admin-run/on-request only, one identity
+   per call (a single user_id — no cross-identity linking yet), no scheduled
+   auto-purge. This is step 2 of the deletion flow in deletion.js — it must
+   only ever be called AFTER the Stripe subscription is confirmed cancelled,
+   otherwise a purge here would erase the only record tying a still-billing
+   Stripe customer back to a person.
+
+   Deletes messages, profile, activity_days, and the users row itself (which
+   also drops signup_date, last_active, stripe/GHL linkage, and memory_digest —
+   there is nothing left to remember about this identity). Wrapped in a
+   transaction so a failure partway through can't leave a half-deleted user.
+   Safe to re-run: DELETE on a already-gone row is a no-op, not an error. */
+async function purgeUserData(userId) {
+  if (!enabled || !userId) return;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM messages WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM profiles WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM activity_days WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM users WHERE user_id = $1', [userId]);
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
   saveProfile, getProfile, appendMessages, getHistory,
   linkSubscription, findByStripeCustomer, getUser, setAccess,
   getMemory, saveMemory, getAgedOutMessages, redeemBetaCode,
+  purgeUserData,
 };
