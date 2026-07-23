@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Google Analytics GA4 Tag -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S6Y7JPLC0G"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S6Y7JPLC0G');
+  </script>
+
+  <!-- HYROS Universal Tracking Script -->
+  <script>
+    var head = document.head;
+    var script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = "https://215466.t.hyros.com/v1/lst/universal-script?ph=395a23f1c62bf26a497b91f272b6fc6b27906736d5a140cd7a9e220d722c2456&tag=!ai_sponsor&ref_url=" + encodeURI(document.URL);
+    head.appendChild(script);
+  </script>
+
+  <!-- ── Attribution: remember how they found us ───────────────────────────────
+       Same first-touch stash as the landing page. A blog post is often the
+       FIRST page someone ever sees, so if this were missing, anyone who read
+       an article and registered later would be credited as "Direct" and the
+       whole content channel would look like it produced nothing.
+       No PII: the source, not the person. ───────────────────────────────────── -->
+  <script>
+  (function(){
+    try{
+      if (localStorage.getItem('ais_attr')) return;      // already know how they got here
+      var p = new URLSearchParams(location.search);
+      var refHost = '';
+      try {
+        if (document.referrer) refHost = new URL(document.referrer).hostname.replace(/^www\./,'');
+      } catch(e){}
+      // Our own pages aren't a referrer.
+      if (refHost && refHost === location.hostname.replace(/^www\./,'')) refHost = '';
+      localStorage.setItem('ais_attr', JSON.stringify({
+        utmSource:   p.get('utm_source')   || '',
+        utmMedium:   p.get('utm_medium')   || '',
+        utmCampaign: p.get('utm_campaign') || '',
+        referrer:    refHost,
+        landing:     location.pathname,
+        at:          new Date().toISOString()
+      }));
+    }catch(e){}
+  })();
+  </script>
+
+  <title>Blog | AI Sponsor</title>
+  <meta name="description" content="Straight answers about recovery, sponsorship, and where AI actually helps. Written for people in 12-step programs, not for search engines.">
+  <link rel="canonical" href="https://getaisponsor.com/blog/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="AI Sponsor">
+  <meta property="og:title" content="AI Sponsor Blog">
+  <meta property="og:description" content="Straight answers about recovery, sponsorship, and where AI actually helps.">
+  <meta property="og:url" content="https://getaisponsor.com/blog/">
+  <meta property="og:image" content="https://getaisponsor.com/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="AI Sponsor Blog">
+  <meta name="twitter:description" content="Straight answers about recovery, sponsorship, and where AI actually helps.">
+  <meta name="twitter:image" content="https://getaisponsor.com/logo.png">
+
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/blog/blog.css">
+</head>
+<body>
+
+<nav id="nav">
+  <a href="/" class="nav-logo">AI Sponsor</a>
+  <div class="nav-right">
+    <a href="/#how" class="nav-link">How It Works</a>
+    <a href="/#pricing" class="nav-link">Pricing</a>
+    <a href="/#faq" class="nav-link">FAQ</a>
+    <a href="/ai-sponsor-registration.html" class="nav-cta">Get Started Free</a>
+  </div>
+</nav>
+
+<header class="blog-head">
+  <h1>The Blog</h1>
+  <p>Straight answers about recovery, sponsorship, and where AI actually helps. Written for people in the rooms, not for search engines.</p>
+</header>
+
+<main class="wrap">
+  <div class="post-list">
+
+    <a class="post-card" href="/blog/what-is-an-ai-sponsor/">
+      <div class="post-meta">22 July 2026</div>
+      <h2>What is an AI sponsor, and what is it good at?</h2>
+      <p>Someone you can text about your recovery at any hour. It answers at 3am, never makes you feel like a burden, and is there in the situations where no human sponsor is available to you at all. What it is genuinely good at, and what it does not replace.</p>
+      <span class="more">Read it &rarr;</span>
+    </a>
+
+  </div>
+</main>
+
+<footer>
+  <a href="/" class="footer-logo">AI Sponsor</a>
+  <nav class="footer-nav">
+    <a href="/#how" class="footer-nav-link">How It Works</a>
+    <a href="/#pricing" class="footer-nav-link">Pricing</a>
+    <a href="/#faq" class="footer-nav-link">FAQ</a>
+    <a href="/blog/" class="footer-nav-link">Blog</a>
+    <a href="/ai-sponsor-registration.html" class="footer-nav-link">Get Started</a>
+  </nav>
+  <p class="footer-disclaimer">AI Sponsor is a private product and is not affiliated with, endorsed by, or connected to Alcoholics Anonymous, Narcotics Anonymous, or any 12-step program or organisation. If you are in crisis, please contact the Crisis Text Line (text HOME to 741741) or call 988.</p>
+</footer>
+<div style="background:#060E1A;text-align:center;padding:16px 24px;border-top:1px solid rgba(255,255,255,.06);">
+  <p style="font-size:12px;color:rgba(255,255,255,.25);">&copy; 2026 AI Sponsor. All rights reserved.</p>
+</div>
+
+<!-- Structured data: tells Google and AI engines this is a real publication
+     with dated articles, not a marketing page with words on it. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Blog",
+      "@id": "https://getaisponsor.com/blog/#blog",
+      "url": "https://getaisponsor.com/blog/",
+      "name": "AI Sponsor Blog",
+      "description": "Straight answers about recovery, sponsorship, and where AI actually helps.",
+      "publisher": { "@id": "https://getaisponsor.com/#org" },
+      "blogPost": [
+        {
+          "@type": "BlogPosting",
+          "headline": "What is an AI sponsor, and what is it good at?",
+          "url": "https://getaisponsor.com/blog/what-is-an-ai-sponsor/",
+          "datePublished": "2026-07-22",
+          "dateModified": "2026-07-22"
+        }
+      ]
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "AI Sponsor", "item": "https://getaisponsor.com/" },
+        { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://getaisponsor.com/blog/" }
+      ]
+    }
+  ]
+}
+</script>
+
+</body>
+</html>
