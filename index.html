@@ -140,7 +140,12 @@
       border: none; border-radius: 6px;
       padding: 10px 22px; cursor: pointer;
       text-decoration: none;
-      transition: background .2s, transform .15s;
+      /* background + color must flip together on scroll. If background is
+         eased and color is not, the text snaps to white while the background
+         is still white → ~1.3:1 white-on-white for the length of the ease.
+         Both end states pass (5.9:1), so snap them together, no low-contrast
+         mid-frame. Only transform stays eased. */
+      transition: transform .15s;
     }
     #nav.scrolled .nav-cta { background: var(--blue); color: var(--white); }
     .nav-cta:hover { transform: translateY(-1px); }
@@ -205,14 +210,15 @@
     }
     .btn-primary {
       display: inline-flex; align-items: center; gap: 8px;
-      background: var(--blue-light); color: var(--white);
+      /* --blue (5.9:1) not --blue-light (4.17:1, fails AA) for white text */
+      background: var(--blue); color: var(--white);
       font-size: 15px; font-weight: 600;
       padding: 14px 30px; border-radius: 8px;
       text-decoration: none; border: none; cursor: pointer;
       transition: background .2s, transform .15s, box-shadow .2s;
       box-shadow: 0 4px 24px rgba(0,128,212,.4);
     }
-    .btn-primary:hover { background: #0090E8; transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,128,212,.5); }
+    .btn-primary:hover { background: #0072C4; transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,128,212,.5); }
     .btn-ghost {
       font-size: 14px; font-weight: 500;
       color: rgba(255,255,255,.65);
@@ -432,8 +438,9 @@
     .amends-lp .section-title { color: var(--white); max-width: 640px; margin: 0 auto 24px; }
     .amends-lp-body { font-size: 17px; line-height: 1.8; color: rgba(255,255,255,.55); max-width: 560px; margin: 0 auto 16px; }
     .amends-lp-paid { font-size: 13px; color: rgba(255,255,255,.35); margin-bottom: 44px; }
-    .amends-lp .btn-primary { margin: 0 auto; background: #d97706; box-shadow: 0 4px 24px rgba(217,119,6,.35); }
-    .amends-lp .btn-primary:hover { background: #b45309; }
+    /* #b45309 (5.0:1) not #d97706 (3.19:1, fails AA) for white text */
+    .amends-lp .btn-primary { margin: 0 auto; background: #b45309; box-shadow: 0 4px 24px rgba(180,83,9,.35); }
+    .amends-lp .btn-primary:hover { background: #92400e; }
     /* ── AMENDS MODAL ── */
     .amends-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:200; align-items:center; justify-content:center; padding:24px; }
     .amends-modal-overlay.open { display:flex; }
@@ -454,8 +461,8 @@
     .amends-field input:focus, .amends-field textarea:focus { border-color:rgba(217,119,6,.6); }
     .amends-field textarea { min-height:100px; }
     .amends-field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    .amends-modal-submit { width:100%; padding:14px; background:#d97706; color:#fff; border:none; border-radius:7px; font-size:14px; font-weight:700; letter-spacing:.04em; cursor:pointer; margin-top:8px; transition:background .2s; }
-    .amends-modal-submit:hover { background:#b45309; }
+    .amends-modal-submit { width:100%; padding:14px; background:#b45309; color:#fff; border:none; border-radius:7px; font-size:14px; font-weight:700; letter-spacing:.04em; cursor:pointer; margin-top:8px; transition:background .2s; }
+    .amends-modal-submit:hover { background:#92400e; }
     .amends-modal-confirm { display:none; text-align:center; padding:20px 0; }
     .amends-modal-confirm.show { display:block; }
     .amends-modal-confirm p { font-size:15px; color:rgba(255,255,255,.75); line-height:1.7; }
@@ -590,7 +597,7 @@
       font-size: 14px; font-weight: 600; cursor: pointer;
       margin-top: 4px; transition: background .2s, transform .15s;
     }
-    .contact-submit:hover { background: var(--blue-light); transform: translateY(-1px); }
+    .contact-submit:hover { background: #0072C4; transform: translateY(-1px); }
     .contact-submit:disabled { background: #94a3b8; cursor: not-allowed; transform: none; }
     .contact-confirm {
       display: none; text-align: center; padding: 24px 0;
