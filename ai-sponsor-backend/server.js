@@ -700,6 +700,10 @@ app.post('/api/admin/delete-user', requireAdminKey, async (req, res) => {
       conversations.delete(userId);
       userProfiles.delete(userId);
       userMemory.delete(userId);
+      // whatsapp.js keeps its own per-process guard (capturedNumbers) keyed by
+      // the same user_id — same staleness risk as the three caches above, so
+      // it has to be cleared here too (only exists when Twilio is configured).
+      if (whatsapp) whatsapp.clearCapturedNumber(userId);
     }
     // 409 = deletion deliberately stopped (Stripe not confirmed cancelled) —
     // distinct from a 5xx, since nothing failed, it's flagged for review.
