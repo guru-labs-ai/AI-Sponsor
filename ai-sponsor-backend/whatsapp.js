@@ -309,4 +309,14 @@ module.exports = {
   handleIncomingMessage,
   sendTextReply,
   validateTwilioSignature,
+  // "Forget me" support: capturedNumbers is a per-process guard against
+  // re-capturing the same WhatsApp number twice (see captureWhatsAppUser
+  // above). It's keyed by user_id, same as the RAM caches in server.js, and
+  // has the exact same staleness problem: if a wa- identity gets deleted but
+  // stays in this Set, they'd message again post-deletion and
+  // captureWhatsAppUser would early-return on the stale guard — silently
+  // skipping GHL recapture until this instance happens to restart. The admin
+  // delete route calls this alongside clearing conversations/userProfiles/
+  // userMemory so all four RAM caches stay in sync on deletion.
+  clearCapturedNumber: (userId) => capturedNumbers.delete(userId),
 };
