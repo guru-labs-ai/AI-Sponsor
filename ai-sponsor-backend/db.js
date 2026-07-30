@@ -6,6 +6,11 @@
 // the server runs exactly as before. Point DATABASE_URL at a free Neon/Supabase
 // Postgres and it comes alive on the next deploy (tables self-create at boot).
 
+// Message content and memory digests are encrypted before they're written and
+// decrypted on the way out — see fieldcrypto.js for what that does and doesn't
+// protect. Pass-through when no key is configured.
+const fc = require('./fieldcrypto');
+
 const enabled = !!process.env.DATABASE_URL;
 
 let pool = null;
@@ -240,13 +245,32 @@ async function appendMessages(userId, msgs) {
   const values = [];
   const params = [];
   msgs.forEach((m, i) => {
-    params.push(userId, m.role, String(m.content || ''));
+    params.push(userId, m.role, fc.encrypt(String(m.content || '')));
     values.push(`($${i * 3 + 1}, $${i * 3 + 2}, $${i * 3 + 3})`);
   });
   await pool.query(
     `INSERT INTO messages (user_id, role, content) VALUES ${values.join(',')}`,
     params
   );
+}
+
+/* Decrypt a batch of message rows on the way out. A row we can't read (wrong
+   or rotated key) is DROPPED rather than passed on: sending ciphertext to
+   Claude would produce a confused reply, and an empty string isn't a valid
+   message. Losing history is bad; a broken conversation for someone who needed
+   to talk is worse. fieldcrypto logs every failure. */
+function decryptRows(rows) {
+  const out = [];
+  let unreadable = 0;
+  for (const row of rows) {
+    const content = fc.decrypt(row.content);
+    if (content === null) { unreadable++; continue; }
+    out.push({ ...row, content });
+  }
+  if (unreadable) {
+    console.error(`[DB] ${unreadable} message(s) could not be decrypted and were skipped.`);
+  }
+  return out;
 }
 
 /* ─── Rolling long-term memory ──────────────────────────────────────────────── */
@@ -259,14 +283,18 @@ async function getMemory(userId) {
   );
   const row = r.rows[0];
   if (!row || !row.memory_digest) return null;
-  return { digest: row.memory_digest, upto: Number(row.memory_digest_upto) || 0 };
+  // An unreadable digest is treated as "no digest yet" rather than an error —
+  // the recent window still reaches Claude, so the conversation keeps working.
+  const digest = fc.decrypt(row.memory_digest);
+  if (digest === null) return null;
+  return { digest, upto: Number(row.memory_digest_upto) || 0 };
 }
 
 async function saveMemory(userId, digest, upto) {
   if (!enabled || !userId) return;
   await pool.query(
     'UPDATE users SET memory_digest = $2, memory_digest_upto = $3 WHERE user_id = $1',
-    [userId, digest, upto]
+    [userId, fc.encrypt(digest), upto]
   );
 }
 
@@ -286,7 +314,7 @@ async function getAgedOutMessages(userId, recentKeep, sinceId) {
      ) t WHERE rn > $2 AND id > $3 ORDER BY id ASC`,
     [userId, recentKeep, sinceId]
   );
-  return { rows: r.rows, total };
+  return { rows: decryptRows(r.rows), total };
 }
 
 // Last `limit` turns in chronological order (Claude context cap lives here).
@@ -298,7 +326,7 @@ async function getHistory(userId, limit = 40) {
      ) t ORDER BY id ASC`,
     [userId, limit]
   );
-  return r.rows;
+  return decryptRows(r.rows);
 }
 
 // North-star + usage aggregates for /api/metrics/northstar.
