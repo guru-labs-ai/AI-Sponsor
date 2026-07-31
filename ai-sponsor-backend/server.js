@@ -714,8 +714,22 @@ app.post('/support', async (req, res) => {
   }
 });
 
-// Get conversation history for a user
-app.get('/api/history/:userId', async (req, res) => {
+// Admin-only key check. Same pattern as /api/admin/delete-user (feature/forget-me-deletion-path):
+// a shared secret rather than real auth, since the login work a real user-facing
+// check would depend on hasn't landed yet.
+function requireAdminKey(req, res, next) {
+  const key = req.headers['x-admin-key'];
+  if (!process.env.ADMIN_API_KEY || key !== process.env.ADMIN_API_KEY) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  next();
+}
+
+// Get conversation history for a user. Nothing in the live product calls this
+// (not referenced by any frontend page) — it returns full decrypted message
+// content, so until real per-user auth exists this must stay admin-only. It
+// was open to the public internet with no check at all until this fix.
+app.get('/api/history/:userId', requireAdminKey, async (req, res) => {
   const { userId } = req.params;
   const { history, profile } = await loadSession(userId);
   res.json({ history, profile });
