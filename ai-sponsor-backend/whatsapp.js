@@ -9,8 +9,8 @@
    3. If text     → sends directly to Claude
    4. If audio    → downloads the OGG voice note → Whisper transcribes it → Claude
    5. Gets Claude's reply (same getSponsorReply() function as web chat — identical AI behavior)
-   6. If original was text  → sends text reply back via Twilio
-   7. If original was audio → sends text reply AND synthesized audio reply via Twilio TTS
+   6. If original was text  → sends a text reply back via Twilio
+   7. If original was audio → sends ONLY a synthesized audio reply via Twilio TTS, matching the medium the person used
    8. Returns TwiML response to Twilio (required — Twilio expects XML, not JSON)
 
    REAL TWILIO PAYLOAD FIELDS (from official docs — no guessing):
@@ -280,13 +280,13 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
       const replyText = await getSponsorReply(userId, userMessageText);
       console.log(`[WhatsApp] Claude reply to ${fromPhone}: "${replyText.substring(0, 80)}..."`);
 
-      // ── 6. Send text reply (always) ──────────────────────────────────────
-      await sendTextReply(fromPhone, replyText);
-
-      // ── 7. Also send audio reply if user sent a voice note ───────────────
+      // ── 6/7. Reply in the same medium the person used ────────────────────
+      // Voice in, voice back. Text in, text back. No longer sends both.
       if (isAudio) {
         const audioPath = await synthesizeSpeech(replyText);
         await sendAudioReply(fromPhone, audioPath, expressApp);
+      } else {
+        await sendTextReply(fromPhone, replyText);
       }
 
     } catch (err) {
