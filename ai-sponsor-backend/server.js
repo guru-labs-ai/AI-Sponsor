@@ -427,10 +427,16 @@ async function loadSession(userId) {
 }
 
 // Persist a completed exchange: RAM (fast path) + DB (durable), never blocking.
+// Also records the activity-day row here, once, so every caller (web /api/chat,
+// WhatsApp via getSponsorReply) is counted the same way. This used to live only
+// in /api/chat, so WhatsApp conversations were saved but never counted, and the
+// north-star dashboard read zero usage no matter how many people chatted there.
 function persistExchange(userId, updatedHistory, newTurns) {
   conversations.set(userId, updatedHistory);
   db.appendMessages(userId, newTurns)
     .catch((e) => console.error('[DB] appendMessages failed:', e.message));
+  db.recordActivity(userId)
+    .catch((e) => console.error('[DB] recordActivity failed:', e.message));
 }
 
 /* Non-streaming sponsor reply — returns one complete text block.
@@ -787,9 +793,6 @@ app.post('/api/chat', async (req, res) => {
   if (!userId || !message) {
     return res.status(400).json({ error: 'userId and message required' });
   }
-
-  // Usage tracking: one row per user per day (fire-and-forget, never blocks chat).
-  db.recordActivity(userId).catch((e) => console.error('[DB] recordActivity failed:', e.message));
 
   const { profile, history, memory } = await loadSession(userId);
 
