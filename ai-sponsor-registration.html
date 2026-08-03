@@ -1818,7 +1818,12 @@ async function redeemCode(){
 const BACKEND_URL = 'https://ai-sponsor-f7de.onrender.com';
 // let, not const: a return trip from Stripe Checkout reloads the page, and
 // handlePaymentReturn() restores the id we sent to Stripe over this fresh one.
-let chatUserId = 'reg-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+// crypto.randomUUID(), not Math.random()+Date.now(). This id is the only thing
+// standing between one person's conversation and anyone who can guess it, since
+// /api/chat and /api/session accept it with no other check. Math.random() isn't
+// cryptographically random, and Date.now() narrows the search further for
+// anyone who roughly knows when a person signed up.
+let chatUserId = 'reg-' + crypto.randomUUID();
 let sessionReady = false;
 let chatHistory = [];
 let recognition = null;

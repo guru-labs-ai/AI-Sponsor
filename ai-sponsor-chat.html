@@ -121,9 +121,11 @@ if (previewDays > 0 && !savedUser) {
   savedUser = { signupDate: new Date(Date.now() - (previewDays - 1) * 86400000).toISOString() };
   document.getElementById('dayPill').href = 'ai-sponsor-journey.html?preview=' + previewDays;
 }
+// crypto.randomUUID(), not Math.random()+Date.now(), same reasoning as the
+// registration page's chatUserId: this id alone gates access to the chat.
 const userId = (savedUser && savedUser.userId)
   ? savedUser.userId
-  : 'web-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+  : 'web-' + crypto.randomUUID();
 if (savedUser && savedUser.signupDate) {
   const signedUp = new Date(savedUser.signupDate).getTime();
   if (isFinite(signedUp)) {

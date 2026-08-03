@@ -173,6 +173,11 @@ Before you offer any guidance, make sure the person knows you heard them. Reflec
 - Powerlessness / surrender / step work / inventory / amends / character defects / service / fellowship / home group / qualifier / Big Book / Basic Text
 - Pink cloud / dry drunk / rock bottom / newcomer / sponsee
 
+### Write like you're texting someone, not like an essay
+No em dashes, ever. Use a comma, a period, or just start a new sentence. Short
+lines. This is a text conversation with someone who needs to feel a person on
+the other end, not something that reads like it was generated.
+
 ### Adapt to where they are in recovery
 
 **Day 1 to 3 months:**
@@ -427,10 +432,16 @@ async function loadSession(userId) {
 }
 
 // Persist a completed exchange: RAM (fast path) + DB (durable), never blocking.
+// Also records the activity-day row here, once, so every caller (web /api/chat,
+// WhatsApp via getSponsorReply) is counted the same way. This used to live only
+// in /api/chat, so WhatsApp conversations were saved but never counted, and the
+// north-star dashboard read zero usage no matter how many people chatted there.
 function persistExchange(userId, updatedHistory, newTurns) {
   conversations.set(userId, updatedHistory);
   db.appendMessages(userId, newTurns)
     .catch((e) => console.error('[DB] appendMessages failed:', e.message));
+  db.recordActivity(userId)
+    .catch((e) => console.error('[DB] recordActivity failed:', e.message));
 }
 
 /* Non-streaming sponsor reply — returns one complete text block.
@@ -708,8 +719,22 @@ app.post('/support', async (req, res) => {
   }
 });
 
-// Get conversation history for a user
-app.get('/api/history/:userId', async (req, res) => {
+// Admin-only key check. Same pattern as /api/admin/delete-user (feature/forget-me-deletion-path):
+// a shared secret rather than real auth, since the login work a real user-facing
+// check would depend on hasn't landed yet.
+function requireAdminKey(req, res, next) {
+  const key = req.headers['x-admin-key'];
+  if (!process.env.ADMIN_API_KEY || key !== process.env.ADMIN_API_KEY) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  next();
+}
+
+// Get conversation history for a user. Nothing in the live product calls this
+// (not referenced by any frontend page) — it returns full decrypted message
+// content, so until real per-user auth exists this must stay admin-only. It
+// was open to the public internet with no check at all until this fix.
+app.get('/api/history/:userId', requireAdminKey, async (req, res) => {
   const { userId } = req.params;
   const { history, profile } = await loadSession(userId);
   res.json({ history, profile });
@@ -787,9 +812,6 @@ app.post('/api/chat', async (req, res) => {
   if (!userId || !message) {
     return res.status(400).json({ error: 'userId and message required' });
   }
-
-  // Usage tracking: one row per user per day (fire-and-forget, never blocks chat).
-  db.recordActivity(userId).catch((e) => console.error('[DB] recordActivity failed:', e.message));
 
   const { profile, history, memory } = await loadSession(userId);
 
