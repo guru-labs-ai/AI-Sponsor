@@ -93,7 +93,9 @@ async function init() {
       redeemed   INT NOT NULL DEFAULT 0,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
-    INSERT INTO beta_codes (code, label) VALUES ('SPONSOR-7KX4Q9', 'original shared beta code')
+    UPDATE beta_codes SET code = 'SPONSOR-BETA-USER', label = 'renamed shared beta code, Aug 2026'
+      WHERE code = 'SPONSOR-7KX4Q9';
+    INSERT INTO beta_codes (code, label) VALUES ('SPONSOR-BETA-USER', 'renamed shared beta code, Aug 2026')
       ON CONFLICT (code) DO NOTHING;
   `);
   console.log('DB connected — users + activity_days tables ready.');
