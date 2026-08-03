@@ -103,6 +103,21 @@ async function init() {
     INSERT INTO beta_codes (code, label) VALUES ('SPONSOR-BETA-USER', 'renamed shared beta code, Aug 2026')
       ON CONFLICT (code) DO NOTHING;
   `);
+  // Every call to an admin-gated route (currently just /api/history/:userId,
+  // which returns full decrypted conversation content) gets a row here —
+  // success or failure, so a leaked/guessed ADMIN_API_KEY leaves a trail
+  // instead of silently reading someone's history. Query directly in Neon;
+  // no UI built for this yet.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS admin_access_log (
+      id         BIGSERIAL PRIMARY KEY,
+      route      TEXT NOT NULL,
+      target_id  TEXT,
+      success    BOOLEAN NOT NULL,
+      ip         TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
   console.log('DB connected — users + activity_days tables ready.');
 }
 
@@ -426,9 +441,24 @@ async function redeemBetaCode(code) {
   return r.rowCount > 0;
 }
 
+// Fire-and-forget: a failure to write the audit row must never block or fail
+// the admin request itself, so errors are swallowed here (and logged) rather
+// than thrown.
+async function logAdminAccess(route, targetId, success, ip) {
+  if (!enabled) return;
+  try {
+    await pool.query(
+      `INSERT INTO admin_access_log (route, target_id, success, ip) VALUES ($1, $2, $3, $4)`,
+      [route, targetId || null, success, ip || null]
+    );
+  } catch (err) {
+    console.error('[DB] failed to write admin_access_log:', err.message);
+  }
+}
+
 module.exports = {
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
   saveProfile, getProfile, appendMessages, getHistory,
   linkSubscription, findByStripeCustomer, getUser, setAccess,
-  getMemory, saveMemory, getAgedOutMessages, redeemBetaCode,
+  getMemory, saveMemory, getAgedOutMessages, redeemBetaCode, logAdminAccess,
 };

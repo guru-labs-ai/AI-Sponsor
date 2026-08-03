@@ -724,7 +724,9 @@ app.post('/support', async (req, res) => {
 // check would depend on hasn't landed yet.
 function requireAdminKey(req, res, next) {
   const key = req.headers['x-admin-key'];
-  if (!process.env.ADMIN_API_KEY || key !== process.env.ADMIN_API_KEY) {
+  const ok = !!process.env.ADMIN_API_KEY && key === process.env.ADMIN_API_KEY;
+  db.logAdminAccess(req.path, req.params.userId, ok, req.ip).catch(() => {});
+  if (!ok) {
     return res.status(401).json({ error: 'unauthorized' });
   }
   next();
