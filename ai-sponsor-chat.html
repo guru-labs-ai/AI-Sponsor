@@ -126,6 +126,19 @@ if (previewDays > 0 && !savedUser) {
 const userId = (savedUser && savedUser.userId)
   ? savedUser.userId
   : 'web-' + crypto.randomUUID();
+// A visitor who lands here directly (not via registration) has no ais_user yet.
+// Without saving one, every reload would mint a brand-new id and orphan the
+// conversation from itself. Skip this in ?preview mode, which is a demo view,
+// not a real visit.
+if (!(savedUser && savedUser.userId) && !(previewDays > 0)) {
+  try {
+    localStorage.setItem('ais_user', JSON.stringify({
+      userId: userId,
+      signupDate: new Date().toISOString(),
+      access: 'Unpaid'
+    }));
+  } catch (e) {}
+}
 if (savedUser && savedUser.signupDate) {
   const signedUp = new Date(savedUser.signupDate).getTime();
   if (isFinite(signedUp)) {
