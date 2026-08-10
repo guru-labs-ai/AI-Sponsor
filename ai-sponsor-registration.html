@@ -342,6 +342,14 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
   color:#fff;margin:0 auto 18px;font-weight:700}
 .code-success h2{font-size:24px;font-weight:700;margin-bottom:8px}
 .code-success p{font-size:15px;color:var(--sub);line-height:1.7}
+.success-actions{display:flex;flex-direction:column;margin-top:24px}
+.wa-btn{display:block;text-align:center;text-decoration:none;
+  background:linear-gradient(135deg,#1FA855,#25D366)}
+.wa-btn:hover{box-shadow:0 6px 20px rgba(37,211,102,0.32)}
+.btn-secondary{background:none;border:1.5px solid var(--border);color:var(--blue)}
+.btn-secondary:hover{background:#F4F8FC;box-shadow:none}
+.wa-number{margin-top:16px;font-size:13.5px}
+.wa-number strong{color:var(--blue);white-space:nowrap}
 .s9-continue{text-align:center;margin-top:18px}
 .btn-ghost{background:none;border:none;font-family:inherit;font-size:14px;
   color:var(--sub);cursor:pointer;padding:8px;transition:color .2s}
@@ -1040,7 +1048,19 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
         <div class="s-icon">✓</div>
         <h2>You're in.</h2>
         <p>Your <span id="trialLen">access</span> starts now.<br>I'll be here whenever you need me, day or night.</p>
-        <button class="btn" style="margin-top:24px" onclick="openChat()">Start talking →</button>
+        <!-- This is the only place the WhatsApp number is ever shown, and a tap
+             here is the only way that channel can start: WhatsApp lets us reply
+             inside a 24h window that THEIR first message opens, and we have no
+             approved template to message anyone cold.
+             setupSuccessActions() decides which of these two is shown. Screen 6
+             currently offers WhatsApp as the only selectable option, so in
+             practice everyone lands on the WhatsApp-only version; the web chat
+             button is the fallback for a resumed, half-finished registration. -->
+        <div class="success-actions" id="successActions">
+          <a class="btn wa-btn" id="waBtn" href="https://wa.me/13073234467" target="_blank" rel="noopener">Message me on WhatsApp →</a>
+          <button class="btn" id="webBtn" onclick="openChat()">Start talking here →</button>
+        </div>
+        <p class="wa-number" id="waNumber">Or save my number and message any time: <strong>+1 307 323 4467</strong></p>
       </div>
 
     </div>
@@ -1813,7 +1833,40 @@ function showSuccess(accessLabel){
     if (el) el.style.display = 'none';
   });
   document.getElementById('trialLen').textContent = accessLabel;
+  setupSuccessActions();
   document.getElementById('codeSuccess').classList.add('show');
+}
+
+/* Lead with whichever channel they asked for on screen 6, and prefill the first
+   WhatsApp message with their name and the name they gave their sponsor.
+   The prefill is not decoration: a WhatsApp conversation is keyed on the phone
+   number (wa-<E.164>) while this registration is keyed on a reg- id, so the two
+   are separate identities today. Without the names in that opening line, someone
+   who has just spent ten screens naming their sponsor and telling it their story
+   would be met as a stranger. */
+function setupSuccessActions(){
+  const wa  = document.getElementById('waBtn');
+  const web = document.getElementById('webBtn');
+  if (!wa || !web) return;
+  const who     = (D.name || '').trim().split(/\s+/)[0];
+  const sponsor = (D.sponsorName || '').trim();
+  let hello = sponsor ? 'Hi ' + sponsor : 'Hi';
+  if (who) hello += ", it's " + who;
+  wa.href = 'https://wa.me/13073234467?text=' + encodeURIComponent(hello);
+  /* If they asked for WhatsApp, WhatsApp is the whole ending. Offering web chat
+     alongside it just pulls them back off the channel they picked, which is the
+     bug this screen had: it collected a WhatsApp preference and a phone number,
+     then sent everyone into the web chat regardless. */
+  const prefersWa = D.delivery === 'whatsapp';
+  const num = document.getElementById('waNumber');
+  web.style.display = prefersWa ? 'none' : '';
+  wa.style.order  = prefersWa ? '0' : '1';
+  web.style.order = prefersWa ? '1' : '0';
+  if (num) {
+    num.innerHTML = prefersWa
+      ? 'Save my number so you can reach me any time: <strong>+1 307 323 4467</strong>'
+      : 'Or save my number and message any time: <strong>+1 307 323 4467</strong>';
+  }
 }
 
 // Beta code is validated SERVER-SIDE now — it isn't in this page's source, and
