@@ -474,6 +474,24 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 .style-other-input:focus{border-color:var(--blue)}
 @media(max-width:420px){.style-grid{grid-template-columns:1fr}}
 
+/* ── Sponsor voice picker ── */
+.voice-note{font-size:12px;color:var(--sub);line-height:1.5;margin:-6px 0 12px}
+.voice-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:18px}
+.voice-card{border:1.5px solid var(--border);border-radius:12px;padding:11px 6px;cursor:pointer;
+  transition:border-color .15s,background .15s,opacity .15s;user-select:none;background:#FAFCFF;
+  display:flex;flex-direction:column;align-items:center;gap:7px}
+.voice-card:hover{border-color:var(--blue);background:rgba(0,102,179,0.03)}
+.voice-card.sel{border-color:var(--blue);background:rgba(0,102,179,0.06)}
+.voice-card.loading{opacity:.55}
+.voice-card .v-name{font-size:12px;font-weight:700;color:var(--text)}
+.voice-card.sel .v-name{color:var(--blue)}
+.v-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:#EAF2FA;color:var(--blue);flex-shrink:0;transition:background .15s,color .15s}
+.voice-card.sel .v-icon{background:var(--blue);color:#fff}
+.voice-card.playing .v-icon{animation:vpulse .8s ease-in-out infinite}
+@keyframes vpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.16)}}
+@media(max-width:420px){.voice-grid{grid-template-columns:1fr 1fr}}
+
 /* ── Amends Screen ── */
 .amends-tag{display:inline-block;background:rgba(245,158,11,.12);color:#d97706;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 12px;border-radius:100px;margin-bottom:16px}
 .amends-film{font-size:36px;margin-bottom:12px}
@@ -873,7 +891,7 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
         <p class="sub">Make them feel like someone you'd actually want to talk to.</p>
 
         <div class="fg" style="margin-bottom:20px">
-          <label>Give them a name</label>
+          <label>Give them a name <span class="opt">(you can change it at anytime!)</span></label>
           <input type="text" id="f-sname" placeholder="e.g. Alex, Jordan, Sam…" maxlength="30"
             oninput="onSponsorInput()">
         </div>
@@ -920,6 +938,17 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
           <input class="style-other-input" id="f-styleother" type="text"
             placeholder="e.g. Like a wise older sister who's been through it herself…"
             oninput="onSponsorInput()">
+        </div>
+
+        <p class="sec-label" style="margin-bottom:8px">How should they sound? <span class="opt" style="text-transform:none;letter-spacing:0">(optional)</span></p>
+        <p class="voice-note">Tap one to hear it. This is how they'll sound in their WhatsApp voice notes. Skip and we'll use a neutral voice.</p>
+        <div class="voice-grid">
+          <div class="voice-card" onclick="selVoice(this,'alloy')"><div class="v-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg></div><div class="v-name">Alloy</div></div>
+          <div class="voice-card" onclick="selVoice(this,'echo')"><div class="v-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg></div><div class="v-name">Echo</div></div>
+          <div class="voice-card" onclick="selVoice(this,'fable')"><div class="v-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg></div><div class="v-name">Fable</div></div>
+          <div class="voice-card" onclick="selVoice(this,'onyx')"><div class="v-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg></div><div class="v-name">Onyx</div></div>
+          <div class="voice-card" onclick="selVoice(this,'nova')"><div class="v-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg></div><div class="v-name">Nova</div></div>
+          <div class="voice-card" onclick="selVoice(this,'shimmer')"><div class="v-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg></div><div class="v-name">Shimmer</div></div>
         </div>
 
         <button class="btn" id="btn-create" onclick="createSponsor()" disabled>Meet my AI Sponsor →</button>
@@ -1100,7 +1129,7 @@ const D = {
   delivery:'',phone:'',
   wellbeing:'',
   wantsVideo:true,wantsIOS:true,
-  sponsorName:'',sponsorStyle:'',
+  sponsorName:'',sponsorStyle:'',sponsorVoice:'',
   amendsInterest:false,amendsWho:''
 };
 let cur = 1;
@@ -1136,6 +1165,16 @@ function restoreState(){
     if(fop&&D.otherProgram)fop.value=D.otherProgram;
     const btnProg=document.getElementById('btn-prog');
     if((D.program.length>0||D.otherProgram)&&btnProg)btnProg.disabled=false;
+
+    // Restore the chosen voice. It is saved the moment it's tapped (unlike the
+    // sponsor name and style, which are only read when the button is pressed),
+    // so on a resumed form it has to be shown as selected or it looks unpicked
+    // while still being the value that gets submitted.
+    if(D.sponsorVoice){
+      document.querySelectorAll('.voice-card').forEach(c=>{
+        if((c.getAttribute('onclick')||'').indexOf("'"+D.sponsorVoice+"'")>-1) c.classList.add('sel');
+      });
+    }
 
     // Restore stage
     document.querySelectorAll('#s3 .opt-row').forEach(o=>{
@@ -1540,6 +1579,47 @@ function onSponsorInput(){
   document.getElementById('btn-create').disabled = !(name && styleReady);
 }
 
+/* ── Sponsor voice ─────────────────────────────────────────────────────────
+   Deliberately optional and NOT part of onSponsorInput()'s enable check: this
+   is the last screen before someone meets their sponsor, and a voice they
+   haven't decided on must never be what stops them finishing. Skipping it means
+   the backend's default voice (see voices.js).
+
+   Previews come from /api/voice/preview, which synthesizes each voice once and
+   then serves it from memory. Render's free tier sleeps, so the very first tap
+   can take a few seconds — that's what the loading state is for. */
+let voiceAudio = null;
+
+function selVoice(el, val){
+  document.querySelectorAll('.voice-card').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  D.sponsorVoice = val;
+  saveState();
+  playVoicePreview(el, val);
+}
+
+function playVoicePreview(el, val){
+  // One at a time. Tapping down the row shouldn't leave six voices talking over
+  // each other.
+  if(voiceAudio){ try{ voiceAudio.pause(); }catch(e){} voiceAudio = null; }
+  document.querySelectorAll('.voice-card').forEach(c=>c.classList.remove('loading','playing'));
+  el.classList.add('loading');
+
+  const a = new Audio(BACKEND_URL + '/api/voice/preview?voice=' + encodeURIComponent(val));
+  voiceAudio = a;
+  const clear = ()=>{ el.classList.remove('loading','playing'); if(voiceAudio===a) voiceAudio=null; };
+  a.onplaying = ()=>{ if(voiceAudio===a){ el.classList.remove('loading'); el.classList.add('playing'); } };
+  a.onended = clear;
+  a.onerror = ()=>{
+    clear();
+    // Failing quietly is the right call. They have still chosen the voice, they
+    // just didn't get to hear it, and an error box here would read as "signup
+    // is broken" on the last screen.
+    console.warn('AI Sponsor — voice preview unavailable:', val);
+  };
+  a.play().catch(()=>clear());
+}
+
 /* ── GHL Registration ──────────────────────────────────────────────────────
    Fires at COMPLETION — when the user redeems a beta code (redeemCode) or
    returns from a paid Stripe Checkout (handlePaymentReturn). By then ALL
@@ -1566,6 +1646,7 @@ async function registerUser(paymentStatus) {
     delivery:    D.delivery     || '',
     sponsorName: D.sponsorName  || '',
     sponsorStyle: D.sponsorStyle || '',
+    sponsorVoice: D.sponsorVoice || '',
     amendsInterest: !!D.amendsInterest,
     amendsWho:   D.amendsWho     || '',
     paymentStatus: paymentStatus || 'Unpaid',
@@ -1960,7 +2041,8 @@ async function initSession() {
           goals: Array.isArray(D.goals) ? D.goals : [],
           deliveryMethod: D.delivery || '',
           sponsorName: D.sponsorName || '',
-          sponsorStyle: D.sponsorStyle || ''
+          sponsorStyle: D.sponsorStyle || '',
+          sponsorVoice: D.sponsorVoice || ''
         }
       })
     });

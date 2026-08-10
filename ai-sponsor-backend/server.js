@@ -22,6 +22,7 @@ if (process.env.TWILIO_ACCOUNT_SID) {
 // unconditionally — it constructs nothing at load; providers without keys are
 // simply not offered, and the relay 404s when neither key is set.
 const voiceCompare = require('./voice-compare');
+const voices = require('./voices'); // sponsor voice allow-list + previews
 const scoreboard = require('./scoreboard');
 
 // Persistent store (Postgres) — no-ops until DATABASE_URL is set (see db.js).
@@ -629,6 +630,30 @@ app.post('/api/session', (req, res) => {
   res.json({ success: true, userId });
 });
 
+/* Voice previews for the picker on the registration page. Everyone hears the
+   same line, so voices.js generates each one once per process and serves it from
+   memory after that. The long cache header matters more than usual here: this
+   backend sleeps on Render's free tier, and a cold start would otherwise make
+   every preview feel broken. */
+app.get('/api/voice/preview', async (req, res) => {
+  const voice = String(req.query.voice || '');
+  if (!voices.VOICES.includes(voice)) {
+    return res.status(400).json({ error: 'unknown voice' });
+  }
+  if (!voices.enabled) {
+    return res.status(503).json({ error: 'voice previews are not configured' });
+  }
+  try {
+    const buffer = await voices.preview(voice);
+    res.set('Content-Type', 'audio/mpeg');
+    res.set('Cache-Control', 'public, max-age=86400');
+    res.send(buffer);
+  } catch (err) {
+    console.error(`[voice] preview failed for ${voice}:`, err.message);
+    res.status(502).json({ error: 'preview failed' });
+  }
+});
+
 // Save a website registration into GoHighLevel (CRM).
 // Contacts are created Do-Not-Disturb (see ghl.js) so no shared-location
 // workflow can message them. Fire-and-forget from the frontend, so a failure
@@ -648,6 +673,47 @@ app.post('/register', async (req, res) => {
       access: b.paymentStatus,
       attribution: b.attribution, // how they found us (first touch, from the browser)
     }).catch((e) => console.error('[DB] upsertUser failed:', e.message));
+
+    // Mirror them onto their WhatsApp identity too.
+    //
+    // Registration keys people as `reg-<uuid>` (a browser id), but WhatsApp can
+    // only ever know someone by their number, so whatsapp.js keys them
+    // `wa-<E.164>`. Those two never meet on their own: someone would fill in
+    // eight screens here, message the number on the success screen, and reach a
+    // sponsor that had never heard of them — no name, no program, not even the
+    // name they had just chosen for it.
+    //
+    // The Jul 10 beta import already keyed its 58 members this way for exactly
+    // this reason. This does the same thing for everyone who signs up on the web.
+    // Same merge semantics as /api/session, so whichever channel they use first
+    // fills the row and the other one inherits it.
+    if (b.phone) {
+      const waId = 'wa-' + String(b.phone).trim();
+      db.upsertUser({
+        userId: waId,
+        name: b.name, email: b.email, phone: b.phone,
+        ghlContactId: result.contactId,
+        sponsorName: b.sponsorName, sponsorStyle: b.sponsorStyle,
+        program: b.program, stage: b.stage,
+        access: b.paymentStatus,
+        attribution: b.attribution,
+      }).catch((e) => console.error('[DB] upsertUser (wa) failed:', e.message));
+
+      db.saveProfile(waId, {
+        name: b.name || '',
+        program: b.program || '',
+        stage: b.stage || '',
+        whatBroughtYouHere: b.why || '',
+        goals: Array.isArray(b.goals) ? b.goals : [],
+        deliveryMethod: b.delivery || '',
+        sponsorName: b.sponsorName || '',
+        sponsorStyle: b.sponsorStyle || '',
+        sponsorVoice: b.sponsorVoice || '',
+      }).catch((e) => console.error('[DB] saveProfile (wa) failed:', e.message));
+
+      console.log(`[register] mirrored ${b.chatUserId} onto ${waId} for WhatsApp`);
+    }
+
     res.json({ success: true, contactId: result.contactId });
   } catch (err) {
     console.error('[register] GHL sync failed:', err.message, err.detail || '');

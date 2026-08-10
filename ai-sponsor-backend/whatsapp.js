@@ -35,6 +35,7 @@ const os = require('os');
 const path = require('path');
 const ghl = require('./ghl'); // safe to require unconfigured — throws only when called
 const db = require('./db');   // no-ops without DATABASE_URL
+const voices = require('./voices'); // the shared voice allow-list + TTS
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -149,21 +150,40 @@ async function transcribeAudio(filePath) {
 }
 
 /* ── Text-to-speech via OpenAI TTS ──────────────────────────────────────────
-   Converts Claude's text reply into an MP3 voice note to send back.
-   'nova' voice = warm, natural, good fit for a supportive sponsor persona.
-   NOTE: verify 'gpt-4o-mini-tts' is available on your OpenAI account.
-   If not, fall back to 'tts-1'. */
-async function synthesizeSpeech(text) {
-  const mp3 = await openai.audio.speech.create({
-    model: 'tts-1',  // safer fallback; upgrade to 'gpt-4o-mini-tts' when confirmed available
-    voice: 'nova',
-    input: text,
-  });
+   Converts Claude's text reply into an MP3 voice note to send back, in the voice
+   this person picked for their sponsor at registration.
 
-  const buffer = Buffer.from(await mp3.arrayBuffer());
+   This used to be hardcoded to one voice for everybody, which meant you could
+   name your sponsor and then hear a voice with no relation to that name. The
+   voice now comes from their profile; voices.js falls back to the default for
+   anyone who never picked one. */
+async function synthesizeSpeech(text, voice) {
+  const buffer = await voices.synthesize(text, voice);
   const tmpPath = path.join(os.tmpdir(), `wa-reply-${Date.now()}.mp3`);
   fs.writeFileSync(tmpPath, buffer);
   return tmpPath;
+}
+
+/* ── The spoken hello ────────────────────────────────────────────────────────
+   Sent once, alongside the first text reply, so someone hears the sponsor they
+   built in the voice they chose.
+
+   Deliberately NOT the text reply read aloud. That message has just landed in
+   their chat and hearing the same words again is noise. This is its own short
+   greeting, and short matters: it is quick to listen to, quick to generate, and
+   cheap. Falls back gracefully when the profile is thin, because plenty of
+   people reach this number without ever registering. */
+async function sendFirstVoiceNote(fromPhone, profile, expressApp) {
+  const sponsorName = (profile && profile.sponsorName) || '';
+  const theirName = String((profile && profile.name) || '').trim().split(/\s+/)[0];
+
+  const hello =
+    (theirName ? `Hi ${theirName}. ` : 'Hi. ') +
+    (sponsorName ? `It's ${sponsorName}. ` : '') +
+    "It's really good to hear from you. I'm here whenever you need me, day or night. Take your time.";
+
+  const audioPath = await synthesizeSpeech(hello, profile && profile.sponsorVoice);
+  await sendAudioReply(fromPhone, audioPath, expressApp);
 }
 
 /* ── Upload audio to a publicly accessible URL ───────────────────────────────
@@ -277,16 +297,40 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
       // wait on the CRM, and must still go out if the CRM is down.
       captureWhatsAppUser(userId, fromPhone.replace('whatsapp:', '')).catch(() => {});
 
+      /* Is this the first thing they have ever said to us? Must be asked BEFORE
+         getSponsorReply(), which appends this message to their history.
+         getHistory() returns null when the DB is off, and an unknown answer has
+         to count as "no": an unexpected voice note is worse than a missing one. */
+      const prior = await db.getHistory(userId, 1).catch(() => null);
+      const isFirstContact = Array.isArray(prior) && prior.length === 0;
+
+      /* Their sponsor as they built it. Registration mirrors the profile onto
+         this same wa- key (see /register), so someone who signed up on the web
+         is met by the sponsor they set up rather than a stock one. */
+      const profile = await db.getProfile(userId).catch(() => null);
+
       const replyText = await getSponsorReply(userId, userMessageText);
       console.log(`[WhatsApp] Claude reply to ${fromPhone}: "${replyText.substring(0, 80)}..."`);
 
       // ── 6/7. Reply in the same medium the person used ────────────────────
       // Voice in, voice back. Text in, text back. No longer sends both.
       if (isAudio) {
-        const audioPath = await synthesizeSpeech(replyText);
+        const audioPath = await synthesizeSpeech(replyText, profile && profile.sponsorVoice);
         await sendAudioReply(fromPhone, audioPath, expressApp);
       } else {
         await sendTextReply(fromPhone, replyText);
+
+        /* The one deliberate exception to text-in-text-back: the spoken hello.
+           People choose their sponsor's voice on the last screen of registration
+           and then arrive here by tapping a link that sends TEXT, so without
+           this they could talk for weeks and never once hear the voice they
+           picked. Once, on first contact only.
+           Not awaited: the text reply has already gone out, and a TTS or Twilio
+           hiccup must never turn a delivered reply into an error. */
+        if (isFirstContact) {
+          sendFirstVoiceNote(fromPhone, profile, expressApp)
+            .catch((e) => console.error('[WhatsApp] first voice note failed:', e.message));
+        }
       }
 
     } catch (err) {
