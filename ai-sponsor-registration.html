@@ -1164,7 +1164,15 @@ function restoreState(){
         }
       });
     }
-    if(D.phone){ const ph=document.getElementById('f-phone'); if(ph)ph.value=D.phone; }
+    // Restore what they typed, not the E.164 form, so the field doesn't show the
+    // dial code twice next to the selector. Put the selector back too, otherwise
+    // a resumed form silently re-prefixes a +44 number with +1.
+    const ph=document.getElementById('f-phone');
+    if(ph && (D.phoneLocal||D.phone)) ph.value=D.phoneLocal||D.phone;
+    if(D.phoneCC){
+      const sc=document.getElementById('selCode'); if(sc)sc.textContent='+'+D.phoneCC;
+      const sf=document.getElementById('selFlag'); if(sf&&D.phoneFlag)sf.textContent=D.phoneFlag;
+    }
 
     // Restore wellbeing selection (screen 7)
     if(D.wellbeing){
@@ -1311,6 +1319,25 @@ function collect(n){
     D.state=document.getElementById('f-state').value;
   }
   if(n===4)D.why=document.getElementById('f-why').value.trim();
+  if(n===6){
+    /* Screen 6 asks for a phone number and, until now, threw it away: there was
+       no case for it here, so `phone` went to /register as an empty string for
+       every single registrant, and GHL and the users table never saw one.
+       Stored as E.164 because WhatsApp identity is keyed on wa-<E.164>. That is
+       the value that has to match when they send their first message, and it is
+       the only thing that could ever link this registration to that chat. */
+    const inp=document.getElementById('f-phone');
+    const digits=inp?inp.value.replace(/\D/g,''):'';
+    if(digits){
+      const cc=(document.getElementById('selCode').textContent||'+1').replace(/\D/g,'');
+      // Tolerate someone typing their own country code into the field as well.
+      const national=(digits.startsWith(cc)&&digits.length>cc.length+6)?digits.slice(cc.length):digits;
+      D.phone='+'+cc+national;
+      D.phoneLocal=inp.value.trim();   // what they typed, so a resumed form looks right
+      D.phoneCC=cc;
+      D.phoneFlag=document.getElementById('selFlag').textContent;
+    }
+  }
   if(n===7){
     // trusted contact fields removed
   }
