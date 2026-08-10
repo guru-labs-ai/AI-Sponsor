@@ -117,6 +117,23 @@ body{font-family:'Inter',sans-serif;background:var(--bg);min-height:100vh;
   transition:opacity .25s,transform .25s;pointer-events:none}
 .fok.show{opacity:1;transform:translateY(-50%) scale(1.1)}
 
+/* Show/hide password. Typing a password blind on a phone is a coin flip, and the
+   browser won't let you copy it back out of a masked field to check. The eye sits
+   inside the field and the ✓ shifts left of it so the two never overlap.
+   40px box because this gets tapped with a thumb, not clicked with a mouse. */
+.input-wrap.pw-wrap > input{padding-right:52px}
+.input-wrap.pw-wrap .fok{right:48px}
+.pw-toggle{position:absolute;right:5px;top:50%;transform:translateY(-50%);
+  width:40px;height:40px;display:flex;align-items:center;justify-content:center;
+  background:none;border:none;padding:0;cursor:pointer;color:var(--sub);
+  border-radius:8px;transition:color .2s}
+.pw-toggle:hover{color:var(--blue)}
+.pw-toggle:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+.pw-toggle svg{display:block}
+.pw-toggle .icon-hide{display:none}
+.pw-toggle.revealed .icon-show{display:none}
+.pw-toggle.revealed .icon-hide{display:block}
+
 h1.heading{font-family:'Source Serif 4',Georgia,serif;font-size:26px;font-weight:700;line-height:1.25;margin-bottom:8px;color:var(--blue)}
 p.sub{font-size:15px;color:var(--sub);line-height:1.65;margin-bottom:28px}
 
@@ -537,7 +554,7 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 
       <div class="fg" id="fg-pw">
         <label>Password <span class="req-star">*</span></label>
-        <div class="input-wrap"><input type="password" id="f-pw" placeholder="At least 8 characters" autocomplete="new-password"><span class="fok" id="ok-pw">✓</span></div>
+        <div class="input-wrap pw-wrap"><input type="password" id="f-pw" placeholder="At least 8 characters" autocomplete="new-password"><span class="fok" id="ok-pw">✓</span><button type="button" class="pw-toggle" id="pw-toggle" onclick="togglePw(this)" aria-label="Show password" aria-pressed="false" title="Show password"><svg class="icon-show" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><svg class="icon-hide" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></button></div>
         <span class="err-msg" id="e-pw">Password must be at least 8 characters</span>
       </div>
 
@@ -1158,6 +1175,24 @@ function goTo(n){
 }
 
 function clearState(){ try{ localStorage.removeItem('ais_d'); localStorage.removeItem('ais_cur'); }catch(e){} }
+
+// Reveal/mask the password. Swapping input.type moves the caret to the end in
+// some browsers, which is maddening mid-word, so put it back where it was and
+// keep focus on the field so the phone keyboard doesn't close.
+function togglePw(btn){
+  const inp = document.getElementById('f-pw');
+  if(!inp) return;
+  const wasMasked = inp.type === 'password';
+  let pos = null;
+  try{ pos = inp.selectionStart; }catch(e){}
+  inp.type = wasMasked ? 'text' : 'password';
+  btn.classList.toggle('revealed', wasMasked);
+  btn.setAttribute('aria-pressed', String(wasMasked));
+  btn.setAttribute('aria-label', wasMasked ? 'Hide password' : 'Show password');
+  btn.setAttribute('title', wasMasked ? 'Hide password' : 'Show password');
+  inp.focus();
+  if(pos !== null){ try{ inp.setSelectionRange(pos,pos); }catch(e){} }
+}
 
 function go(n){
   if(n===cur)return;
