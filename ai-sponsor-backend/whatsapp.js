@@ -259,12 +259,60 @@ async function sendFirstVoiceNote(fromPhone, profile, expressApp) {
    2. Process Claude's reply in the background
    3. Send reply proactively via REST API
    This prevents Twilio timeout errors on slow Claude responses. */
+/* WhatsApp caps a message at 1600 characters and Twilio rejects the whole thing
+   for going over, which is how a beta user got "I'm having a moment" twice
+   instead of his answer: the sponsor wrote something long, Twilio refused it,
+   and the entire reply was lost.
+
+   So long replies are split and sent in order, which is what a person does
+   anyway when they have a lot to say. 1500 leaves room, because the limit
+   counts the concatenated body and I would rather not find the exact edge with
+   somebody's 3am message.
+
+   Split on a paragraph break where there is one, then a sentence end, then a
+   space, so the break lands somewhere a human would have paused rather than
+   mid-word. */
+const WA_CHAR_LIMIT = 1500;
+
+function splitForWhatsApp(text) {
+  const clean = String(text || '').trim();
+  if (clean.length <= WA_CHAR_LIMIT) return [clean];
+
+  const parts = [];
+  let rest = clean;
+  while (rest.length > WA_CHAR_LIMIT) {
+    const window = rest.slice(0, WA_CHAR_LIMIT);
+    let cut = window.lastIndexOf('\n\n');
+    if (cut < WA_CHAR_LIMIT * 0.4) cut = Math.max(window.lastIndexOf('. '), window.lastIndexOf('\n'));
+    if (cut < WA_CHAR_LIMIT * 0.4) cut = window.lastIndexOf(' ');
+    if (cut <= 0) cut = WA_CHAR_LIMIT - 1; // no break to find, e.g. one long unbroken string
+    parts.push(rest.slice(0, cut + 1).trim());
+    rest = rest.slice(cut + 1).trim();
+  }
+  if (rest) parts.push(rest);
+  return parts.filter(Boolean);
+}
+
 async function sendTextReply(toPhone, text) {
-  return twilioClient.messages.create({
-    from: TWILIO_WHATSAPP_NUMBER,
-    to: toPhone, // already has "whatsapp:" prefix from Twilio's incoming payload
-    body: text,
-  });
+  // Twilio rejects an empty body, and there is nothing to say anyway.
+  const parts = splitForWhatsApp(text).filter((p) => p.length);
+  if (!parts.length) {
+    console.warn('[WhatsApp] nothing to send — empty reply');
+    return null;
+  }
+  if (parts.length > 1) {
+    console.log(`[WhatsApp] reply is ${String(text).length} chars — sending as ${parts.length} messages`);
+  }
+  let last;
+  for (const body of parts) {
+    // Sequentially, so they arrive in the order they were written.
+    last = await twilioClient.messages.create({
+      from: TWILIO_WHATSAPP_NUMBER,
+      to: toPhone, // already has "whatsapp:" prefix from Twilio's incoming payload
+      body,
+    });
+  }
+  return last;
 }
 
 /* ── Send audio reply via Twilio REST API ────────────────────────────────────
