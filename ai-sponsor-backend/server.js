@@ -824,25 +824,37 @@ app.post('/api/sponsor-settings/support', async (req, res) => {
   const message = String(b.message || '').trim().slice(0, 4000);
   if (!message) return res.status(400).json({ error: 'Please write your message first.' });
 
+  /* The settings page now offers the same topic list as the support form on the
+     landing page, so tickets raised from here can be triaged the same way rather
+     than all arriving under one heading. Anything not on the list is dropped
+     rather than trusted, and every field falls back to what this endpoint did
+     on its own before, so an older page still works unchanged. */
+  const TOPICS = ['Account help', 'Billing / subscription', 'Cancel my subscription',
+                  'Technical issue', 'Something else'];
+  const chosenTopic = TOPICS.includes(String(b.subject || '').trim()) ? String(b.subject).trim() : '';
+  const givenName = String(b.name || '').trim().slice(0, 120);
+  const givenEmail = String(b.email || '').trim().slice(0, 200);
+
   const user = (await db.getUser(userId).catch(() => null)) || {};
   /* GHL needs an email to raise a ticket, and plenty of people here arrived
      through WhatsApp and never gave one. Rather than refuse them, fall back to
      a routable placeholder carrying their id, and put the real contact route
      (their phone) in the ticket body. */
-  const email = (user.email && user.email.trim()) || `${userId.replace(/[^a-z0-9]/gi, '-')}@no-email.aisponsor`;
-  const isPlaceholder = !(user.email && user.email.trim());
+  const onFile = (user.email && user.email.trim()) || '';
+  const email = givenEmail || onFile || `${userId.replace(/[^a-z0-9]/gi, '-')}@no-email.aisponsor`;
+  const isPlaceholder = !(givenEmail || onFile);
 
   try {
     const result = await ghl.submitSupport({
-      name: user.name || 'AI Sponsor member',
+      name: givenName || user.name || 'AI Sponsor member',
       email,
-      subject: 'Support request from the settings page',
+      subject: chosenTopic || 'Support request from the settings page',
       message: `${message}\n\n---\nuserId: ${userId}${user.phone ? `\nphone: ${user.phone}` : ''}${isPlaceholder ? '\n(no email on file — reply on WhatsApp)' : ''}`,
       source: 'ai-sponsor-settings-page',
     });
     notifySupportSlack({
       name: user.name || userId, email: isPlaceholder ? '(none — WhatsApp only)' : email,
-      subject: 'Settings page', message, contactId: result.contactId,
+      subject: chosenTopic ? `Settings page: ${chosenTopic}` : 'Settings page', message, contactId: result.contactId,
     }).catch((e) => console.warn('[settings] Slack notify failed:', e.message));
 
     db.recordEvent(userId, 'support_requested', { viaWhatsAppOnly: isPlaceholder }, 'settings-link')

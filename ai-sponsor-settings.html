@@ -80,15 +80,32 @@ p.note{font-size:13px;color:var(--sub);line-height:1.6;margin-bottom:16px}
   padding:5px 12px;font-weight:600}
 
 .fg{margin-bottom:20px}
-.fg label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+/* Same quiet uppercase label the support form on the landing page uses, and the
+   same treatment as .sec-label further down, so this page is consistent with
+   itself as well as with the site. */
+.fg label{display:block;font-size:12px;font-weight:600;color:var(--sub);
+  text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px}
+/* Two fields side by side, as the landing form does with name and email. One
+   column on a phone, which is where nearly all of this traffic lands, since
+   people arrive here from a WhatsApp link. */
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:560px){.fg-row{grid-template-columns:1fr;gap:0}}
 /* 16px is not a style choice. iOS Safari zooms the whole page in when you focus
    a field smaller than that, and you land zoomed and sideways on a form you were
    halfway through. */
-input[type=text],textarea{width:100%;padding:12px 16px;border:1.5px solid var(--border);
+input[type=text],input[type=email],textarea{width:100%;padding:12px 16px;border:1.5px solid var(--border);
   border-radius:10px;font-size:16px;font-family:inherit;color:var(--text);
   background:#FAFCFF;transition:border-color .2s,box-shadow .2s;outline:none;-webkit-appearance:none}
 textarea{min-height:110px;resize:vertical;line-height:1.6}
-input[type=text]:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
+input[type=text]:focus,input[type=email]:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
+/* The topic chooser. 16px for the same reason as the fields above: below that
+   iOS zooms the page on focus. The landing form sets 14px and would do exactly
+   that, so this matches its look without copying that part. Native arrow kept,
+   so no appearance:none here. */
+select{width:100%;padding:12px 16px;border:1.5px solid var(--border);border-radius:10px;
+  font-size:16px;font-family:inherit;color:var(--text);background:#FAFCFF;
+  transition:border-color .2s,box-shadow .2s;outline:none}
+select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
 
 .sec-label{font-size:12px;font-weight:600;color:var(--sub);
   text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
@@ -203,7 +220,29 @@ input[type=text]:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 
       <p class="note">Message a real person on the team. We'll come back to you.</p>
       <div class="msg err" id="errHelp"></div>
       <div class="msg ok" id="okHelp"></div>
+      <div class="fg-row">
+        <div class="fg">
+          <label for="f-help-name">Name</label>
+          <input type="text" id="f-help-name" placeholder="Your name">
+        </div>
+        <div class="fg">
+          <label for="f-help-email">Email</label>
+          <input type="email" id="f-help-email" placeholder="your@email.com">
+        </div>
+      </div>
       <div class="fg">
+        <label for="f-help-subject">Subject</label>
+        <select id="f-help-subject">
+          <option value="">Choose a topic…</option>
+          <option>Account help</option>
+          <option>Billing / subscription</option>
+          <option>Cancel my subscription</option>
+          <option>Technical issue</option>
+          <option>Something else</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label for="f-help">Message</label>
         <textarea id="f-help" maxlength="4000" placeholder="What's going on?"></textarea>
       </div>
       <button class="btn secondary" id="btn-help" onclick="sendHelp()">Send message</button>
@@ -310,6 +349,15 @@ async function load(){
 
     const you = data.you || {};
     if (you.name) $('introLine').textContent = 'Hi ' + you.name + '.';
+    // Prefill support from what we already know. The endpoint deliberately
+    // returns hasEmail rather than the address itself, so the email field stays
+    // empty and optional: people who signed up over WhatsApp never gave one, and
+    // this is the first place they can, which saves the backend inventing a
+    // placeholder address for them.
+    if (you.name) $('f-help-name').value = you.name;
+    $('f-help-email').placeholder = you.hasEmail
+      ? 'Optional, we already have one on file'
+      : 'your@email.com — so we can reply by email too';
     // Day count is the hero number right below; repeating it as a chip is noise.
     const chips = [];
     if (you.program) chips.push(you.program);
@@ -391,11 +439,18 @@ async function saveSponsor(){
 
 async function sendHelp(){
   const btn = $('btn-help'), message = $('f-help').value.trim();
+  const subject = $('f-help-subject').value;
+  const name    = $('f-help-name').value.trim();
+  const email   = $('f-help-email').value.trim();
   clearFlash('errHelp','okHelp');
+  if(!subject) return flash('errHelp', 'Choose a topic first.');
   if(!message) return flash('errHelp', 'Write your message first.');
+  if(email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    return flash('errHelp', 'That email address does not look right.');
+  }
   btn.disabled = true; btn.textContent = 'Sending…';
   try{
-    await api('/api/sponsor-settings/support', { message });
+    await api('/api/sponsor-settings/support', { message, subject, name, email });
     $('f-help').value = '';
     flash('okHelp', 'Sent. Someone on the team will come back to you.');
   }catch(e){ flash('errHelp', e.message); }
