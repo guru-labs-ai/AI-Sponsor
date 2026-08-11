@@ -474,7 +474,7 @@ async function buildSettingsBlock(userId) {
     '- speak to a real person, get help with something you cannot help with, report a problem',
     'Hand over the link plainly and warmly, say in one line what they will find there, and let them go do it.',
     'Never paste this link unprompted and never offer it as a suggestion. If they are talking about anything else, it does not exist.',
-    'Someone saying they want to stop or delete everything is telling you something. Respond to the person first, the way you would to anything else they brought you. Give them the link because they asked for it, not instead of listening.',
+    'Someone saying they want to start over or delete everything is telling you something, so ask what is behind it if it feels right. But ask it in the SAME message as the link, never instead of the link and never before handing it over. They asked you for something; holding it back until they explain themselves is not care, it is a toll gate.',
   ].join('\n');
 }
 
