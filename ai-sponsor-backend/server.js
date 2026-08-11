@@ -496,6 +496,7 @@ async function getSponsorReply(userId, message, context) {
         ? 'They sent you a voice note. It was transcribed for you, and your reply is being spoken back to them as a voice note in the voice they chose for you. So you CAN hear them and you DO speak.'
         : 'They sent you a text message and your reply goes back as text. If they send you a voice note you will hear it, and you will answer with one.',
       'Never tell them you cannot hear audio or cannot send voice messages. Both are untrue here.',
+      'IMPORTANT: earlier in this same conversation you may have told them you cannot do either. That was wrong, caused by a fault that has since been fixed, and it is still sitting in the history above. Do not stay consistent with it. If they point at it, say plainly that you were wrong and that you can hear them and send voice notes.',
       'Write to be heard as much as read: short sentences, contractions, no bullet points, headings or markdown, and nothing that only works on a screen.',
     ].join('\n') });
   }
@@ -1216,15 +1217,32 @@ if (whatsapp) {
     }
   );
 
-  // Serve temporary audio files for WhatsApp voice-note replies.
-  // SECURITY: only files prefixed "wa-reply-" (+ basename) to block path traversal.
+  /* Serve temporary audio files for WhatsApp voice-note replies.
+
+     This is THE media route. sendAudioReply also registers a route per file,
+     but this one is mounted at boot and therefore matches first, so this is
+     what Twilio actually reaches.
+
+     The extension comes from voices.js rather than being written out here. It
+     was hardcoded to .mp3, so the moment the audio became Ogg/Opus every voice
+     note 404'd, Twilio reported 63019 "media failed to download", and because
+     an audio reply sends audio and nothing else, people got silence. A format
+     change in one file must not be able to silently break delivery in another.
+
+     SECURITY: basename plus the "wa-reply-" prefix, to block path traversal. */
   app.get('/media/:filename', (req, res) => {
     const filename = path.basename(req.params.filename);
-    if (!filename.startsWith('wa-reply-') || !filename.endsWith('.mp3')) {
+    if (!filename.startsWith('wa-reply-') || !filename.endsWith(`.${voices.FILE_EXT}`)) {
+      console.warn(`[WhatsApp] media rejected: ${filename} (expected wa-reply-*.${voices.FILE_EXT})`);
       return res.status(404).send('Not found');
     }
     const filePath = path.join(os.tmpdir(), filename);
-    if (!fs.existsSync(filePath)) return res.status(404).send('Not found');
+    if (!fs.existsSync(filePath)) {
+      console.warn(`[WhatsApp] media gone: ${filename}`);
+      return res.status(404).send('Not found');
+    }
+    console.log(`[WhatsApp] media served: ${filename} (${fs.statSync(filePath).size} bytes)`);
+    res.type(voices.CONTENT_TYPE);
     res.sendFile(filePath);
   });
   console.log('WhatsApp (Twilio) routes mounted.');

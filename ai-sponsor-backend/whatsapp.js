@@ -232,23 +232,16 @@ async function sendTextReply(toPhone, text) {
 async function sendAudioReply(toPhone, audioFilePath, expressApp) {
   const filename = path.basename(audioFilePath);
 
-  // The Content-Type is set explicitly: Twilio passes it through to WhatsApp,
-  // and WhatsApp decides between a voice-note bubble and a file attachment on
-  // what it is told the media is.
-  expressApp.get(`/media/${filename}`, (req, res) => {
-    const size = fs.existsSync(audioFilePath) ? fs.statSync(audioFilePath).size : 0;
-    console.log(`[WhatsApp] media fetch: ${filename} (${size} bytes) by "${req.get('user-agent') || 'unknown'}"`);
-    if (!size) {
-      console.error(`[WhatsApp] media MISSING or empty: ${filename}`);
-      return res.status(404).end();
-    }
-    res.type(voices.CONTENT_TYPE);
-    res.sendFile(audioFilePath, (err) => {
-      if (err) console.error(`[WhatsApp] media send failed for ${filename}:`, err.message);
-    });
-  });
+  /* No route is registered here on purpose. server.js mounts /media/:filename
+     at boot, which therefore matches before anything added later, so a
+     per-file route registered now would never be reached. One used to be, and
+     it quietly did nothing while looking like the thing serving the audio.
+     server.js owns serving; this function owns making the file and sending the
+     message. */
 
-  // Sole cleanup path, five minutes after the message goes out.
+  // Cleanup, five minutes after the message goes out. Deliberately not "delete
+  // once served": Twilio does not promise to fetch a URL exactly once, and a
+  // retry finding nothing there is 63019 all over again.
   setTimeout(() => fs.unlink(audioFilePath, () => {}), 5 * 60 * 1000);
 
   /* Fetch our own URL from the public internet before handing it to Twilio.
