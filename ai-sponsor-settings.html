@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Sponsor — Change your sponsor</title>
+<title>AI Sponsor — Your settings</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
@@ -16,27 +16,39 @@
   --shadow:0 2px 16px rgba(0,0,0,0.10)
 }
 body{font-family:'Inter',sans-serif;background:var(--bg);min-height:100vh;
-  display:flex;align-items:center;justify-content:center;padding:20px;color:var(--text)}
-.container{width:100%;max-width:520px}
-.brand{text-align:center;margin-bottom:20px}
+  padding:20px;color:var(--text)}
+.container{width:100%;max-width:560px;margin:0 auto}
+.brand{text-align:center;margin:8px 0 20px}
 .brand-logo{font-size:20px;font-weight:700;color:var(--blue);letter-spacing:.04em}
-.card{background:var(--card);border-radius:4px;padding:32px 28px;
-  box-shadow:var(--shadow);border:1px solid #D0D5DD;border-top:4px solid var(--blue)}
-h1{font-family:'Source Serif 4',Georgia,serif;font-size:24px;font-weight:700;
-  line-height:1.25;margin-bottom:8px;color:var(--blue)}
-p.sub{font-size:15px;color:var(--sub);line-height:1.6;margin-bottom:26px}
 
-.fg{margin-bottom:22px}
+.card{background:var(--card);border-radius:4px;padding:26px 24px;margin-bottom:16px;
+  box-shadow:var(--shadow);border:1px solid #D0D5DD;border-top:4px solid var(--blue)}
+.card.plain{border-top-color:#D0D5DD}
+.card.danger{border-top-color:var(--error)}
+
+h1{font-family:'Source Serif 4',Georgia,serif;font-size:25px;font-weight:700;
+  line-height:1.25;margin-bottom:6px;color:var(--blue)}
+h2{font-family:'Source Serif 4',Georgia,serif;font-size:19px;font-weight:700;
+  margin-bottom:4px;color:var(--text)}
+p.sub{font-size:14.5px;color:var(--sub);line-height:1.6;margin-bottom:20px}
+p.note{font-size:13px;color:var(--sub);line-height:1.6;margin-bottom:16px}
+
+.you{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
+.chip{font-size:12.5px;background:#EEF4FA;color:var(--blue);border-radius:999px;
+  padding:5px 12px;font-weight:600}
+
+.fg{margin-bottom:20px}
 .fg label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
-input[type=text]{width:100%;padding:12px 16px;border:1.5px solid var(--border);
+input[type=text],textarea{width:100%;padding:12px 16px;border:1.5px solid var(--border);
   border-radius:10px;font-size:15px;font-family:inherit;color:var(--text);
   background:#FAFCFF;transition:border-color .2s,box-shadow .2s;outline:none;-webkit-appearance:none}
-input[type=text]:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
+textarea{min-height:110px;resize:vertical;line-height:1.6}
+input[type=text]:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
 
 .sec-label{font-size:12px;font-weight:600;color:var(--sub);
   text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
 .voice-note{font-size:12px;color:var(--sub);line-height:1.5;margin-bottom:12px}
-.voice-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:24px}
+.voice-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:22px}
 .voice-card{border:1.5px solid var(--border);border-radius:12px;padding:11px 6px;cursor:pointer;
   transition:border-color .15s,background .15s,opacity .15s;user-select:none;background:#FAFCFF;
   display:flex;flex-direction:column;align-items:center;gap:7px}
@@ -52,43 +64,60 @@ input[type=text]:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,
 @keyframes vpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.16)}}
 @media(max-width:420px){.voice-grid{grid-template-columns:1fr 1fr}}
 
-.btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--blue),var(--blue-light));
-  color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;
-  font-family:inherit;cursor:pointer;transition:all .2s;letter-spacing:.01em}
+.btn{width:100%;padding:15px;background:linear-gradient(135deg,var(--blue),var(--blue-light));
+  color:#fff;border:none;border-radius:12px;font-size:15.5px;font-weight:600;
+  font-family:inherit;cursor:pointer;transition:all .2s}
 .btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,102,179,0.3)}
 .btn:disabled{background:#B0C4D8;cursor:not-allowed;transform:none;box-shadow:none}
+.btn.secondary{background:none;border:1.5px solid var(--border);color:var(--text)}
+.btn.secondary:hover:not(:disabled){background:#F4F8FC;box-shadow:none;transform:none;border-color:var(--blue)}
+.btn.danger{background:none;border:1.5px solid #E8C4BE;color:var(--error)}
+.btn.danger:hover:not(:disabled){background:#FDF0EE;box-shadow:none;transform:none}
 
-.msg{font-size:14px;line-height:1.6;padding:14px 16px;border-radius:10px;margin-bottom:20px;display:none}
+.msg{font-size:14px;line-height:1.6;padding:13px 15px;border-radius:10px;margin-bottom:16px;display:none}
 .msg.show{display:block}
 .msg.err{background:#FDF0EE;color:var(--error);border:1px solid #F3C9C2}
-.state{text-align:center;padding:12px 0}
-.state .big{font-size:38px;margin-bottom:12px}
-.muted{font-size:13px;color:var(--sub);text-align:center;margin-top:16px;line-height:1.6}
+.msg.ok{background:#EDF7F1;color:var(--success);border:1px solid #C2E3D0}
+
+.state{text-align:center;padding:26px 0}
+.state .big{font-size:36px;margin-bottom:10px}
+.confirm{display:none;margin-top:12px}
+.confirm.show{display:block}
+.footer{text-align:center;font-size:12.5px;color:var(--sub);margin:6px 0 30px;line-height:1.6}
 </style>
 </head>
 <body>
 <div class="container">
   <div class="brand"><div class="brand-logo">AI SPONSOR</div></div>
-  <div class="card">
 
-    <!-- Loading -->
-    <div id="s-load" class="state">
-      <p class="sub" style="margin:0">Loading…</p>
-    </div>
+  <!-- Loading -->
+  <div id="s-load" class="card"><div class="state"><p class="sub" style="margin:0">Loading…</p></div></div>
 
-    <!-- Bad or expired link -->
-    <div id="s-bad" class="state" style="display:none">
+  <!-- Bad or expired link -->
+  <div id="s-bad" class="card" style="display:none">
+    <div class="state">
       <div class="big">🔗</div>
       <h1>This link has expired</h1>
       <p class="sub" style="margin-bottom:0" id="badMsg">Message your sponsor on WhatsApp and ask for a new one.</p>
     </div>
+  </div>
 
-    <!-- The form -->
-    <div id="s-form" style="display:none">
-      <h1>Change your sponsor</h1>
-      <p class="sub">Rename them, or change how they sound. Both take effect straight away.</p>
+  <!-- The dashboard -->
+  <div id="s-dash" style="display:none">
 
-      <div class="msg err" id="errBox"></div>
+    <div class="card">
+      <h1>Your settings</h1>
+      <p class="sub" id="introLine">Everything here is yours to change. Nothing is shared with anyone.</p>
+      <div class="you" id="youChips"></div>
+    </div>
+
+    <!-- Sponsor -->
+    <div class="card plain">
+      <h2>Your sponsor</h2>
+      <p class="note">Their name and how they sound. Both take effect on your next message.</p>
+
+      <div class="msg err" id="errSponsor"></div>
+      <div class="msg ok" id="okSponsor"></div>
 
       <div class="fg">
         <label for="f-name">Their name</label>
@@ -99,17 +128,53 @@ input[type=text]:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,
       <p class="voice-note">Tap one to hear it. This is how they'll sound in their WhatsApp voice notes.</p>
       <div class="voice-grid" id="voiceGrid"></div>
 
-      <button class="btn" id="btn-save" onclick="save()">Save changes</button>
+      <button class="btn" id="btn-save" onclick="saveSponsor()">Save changes</button>
     </div>
 
-    <!-- Saved -->
-    <div id="s-done" class="state" style="display:none">
-      <div class="big">✅</div>
-      <h1 id="doneTitle">All set</h1>
-      <p class="sub" id="doneMsg" style="margin-bottom:0"></p>
-      <p class="muted" id="doneHint"></p>
+    <!-- Support -->
+    <div class="card plain">
+      <h2>Need a hand?</h2>
+      <p class="note">Message a real person on the team. We'll come back to you.</p>
+      <div class="msg err" id="errHelp"></div>
+      <div class="msg ok" id="okHelp"></div>
+      <div class="fg">
+        <textarea id="f-help" maxlength="4000" placeholder="What's going on?"></textarea>
+      </div>
+      <button class="btn secondary" id="btn-help" onclick="sendHelp()">Send message</button>
     </div>
 
+    <!-- Start over -->
+    <div class="card plain">
+      <h2>Start the conversation over</h2>
+      <p class="note">Clears everything you and your sponsor have said, and what they remember of it. Your sponsor, your name and your settings stay exactly as they are. This can't be undone.</p>
+      <div class="msg err" id="errRestart"></div>
+      <div class="msg ok" id="okRestart"></div>
+      <button class="btn secondary" id="btn-restart" onclick="askRestart()">Start over</button>
+      <div class="confirm" id="confirmRestart">
+        <p class="note" style="margin:14px 0 10px"><strong>Sure?</strong> Your conversation history will be gone for good.</p>
+        <button class="btn secondary" onclick="doRestart()">Yes, clear it</button>
+        <button class="btn secondary" style="margin-top:8px" onclick="cancelRestart()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Deactivate -->
+    <div class="card danger">
+      <h2>Deactivate and delete my data</h2>
+      <p class="note">Removes your account and everything in it, and cancels any subscription. A person on the team handles this and confirms once it's done.</p>
+      <div class="msg err" id="errKill"></div>
+      <div class="msg ok" id="okKill"></div>
+      <button class="btn danger" id="btn-kill" onclick="askKill()">Request deletion</button>
+      <div class="confirm" id="confirmKill">
+        <div class="fg" style="margin-top:14px">
+          <label for="f-reason">Anything you want to tell us? (optional)</label>
+          <textarea id="f-reason" maxlength="2000" placeholder="Not required."></textarea>
+        </div>
+        <button class="btn danger" onclick="doKill()">Yes, delete everything</button>
+        <button class="btn secondary" style="margin-top:8px" onclick="cancelKill()">Cancel</button>
+      </div>
+    </div>
+
+    <p class="footer">You can get back here any time by asking your sponsor on WhatsApp.</p>
   </div>
 </div>
 
@@ -121,19 +186,22 @@ const BACKEND_URL = 'https://ai-sponsor-f7de.onrender.com';
    anyone who glances at their screen, and in browser history. */
 const TOKEN = new URLSearchParams(location.search).get('t') || '';
 
-let VOICES = [];
-let selectedVoice = '';
-let voiceAudio = null;
+let VOICES = [], selectedVoice = '', voiceAudio = null;
 
-function show(id){
-  ['s-load','s-bad','s-form','s-done'].forEach(s=>{
-    document.getElementById(s).style.display = (s===id) ? (s==='s-form'?'block':'block') : 'none';
+const $ = (id) => document.getElementById(id);
+function show(id){ ['s-load','s-bad','s-dash'].forEach(s => $(s).style.display = s===id ? 'block' : 'none'); }
+function flash(id, text){ const el=$(id); el.textContent=text; el.classList.add('show'); }
+function clearFlash(...ids){ ids.forEach(i => $(i).classList.remove('show')); }
+function fail(msg){ if(msg) $('badMsg').textContent = msg; show('s-bad'); }
+
+async function api(path, body){
+  const res = await fetch(BACKEND_URL + path, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(Object.assign({ t: TOKEN }, body || {}))
   });
-}
-
-function fail(msg){
-  if(msg) document.getElementById('badMsg').textContent = msg;
-  show('s-bad');
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Something went wrong. Please try again.');
+  return data;
 }
 
 async function load(){
@@ -141,26 +209,36 @@ async function load(){
   try{
     const res = await fetch(BACKEND_URL + '/api/sponsor-settings?t=' + encodeURIComponent(TOKEN));
     if(!res.ok){
-      const body = await res.json().catch(()=>({}));
-      return fail(body.error || 'This link has expired. Ask your sponsor for a new one.');
+      const b = await res.json().catch(()=>({}));
+      return fail(b.error || 'This link has expired. Ask your sponsor for a new one.');
     }
     const data = await res.json();
     VOICES = data.voices || [];
     selectedVoice = data.sponsorVoice || '';
-    document.getElementById('f-name').value = data.sponsorName || '';
+    $('f-name').value = data.sponsorName || '';
+
+    const you = data.you || {};
+    if (you.name) $('introLine').textContent = 'Hi ' + you.name + '. Everything here is yours to change, and nothing is shared with anyone.';
+    const chips = [];
+    if (you.program) chips.push(you.program);
+    if (you.stage) chips.push(you.stage);
+    if (you.days) chips.push('Day ' + you.days);
+    $('youChips').innerHTML = chips.map(c => '<span class="chip"></span>').join('');
+    [...$('youChips').children].forEach((el,i) => el.textContent = chips[i]);
+
     renderVoices();
-    show('s-form');
+    show('s-dash');
   }catch(e){
-    /* Render's free tier sleeps, so a cold start can look exactly like a broken
+    /* Render's free tier sleeps, so a cold start looks exactly like a broken
        link. Say so rather than blaming their link. */
     fail('Could not reach your sponsor just now. Give it a moment and refresh.');
   }
 }
 
 function renderVoices(){
-  const grid = document.getElementById('voiceGrid');
+  const grid = $('voiceGrid');
   grid.innerHTML = '';
-  VOICES.forEach(v=>{
+  VOICES.forEach(v => {
     const card = document.createElement('div');
     card.className = 'voice-card' + (v===selectedVoice ? ' sel' : '');
     card.innerHTML =
@@ -169,72 +247,78 @@ function renderVoices(){
       '<path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg></div>' +
       '<div class="v-name"></div>';
     card.querySelector('.v-name').textContent = v;
-    card.onclick = ()=>selVoice(card, v);
+    card.onclick = () => selVoice(card, v);
     grid.appendChild(card);
   });
 }
 
 function selVoice(el, val){
-  document.querySelectorAll('.voice-card').forEach(c=>c.classList.remove('sel'));
+  document.querySelectorAll('.voice-card').forEach(c => c.classList.remove('sel'));
   el.classList.add('sel');
   selectedVoice = val;
 
   // One at a time, and never leave a card stuck mid-load if the preview fails.
   if(voiceAudio){ try{ voiceAudio.pause(); }catch(e){} voiceAudio = null; }
-  document.querySelectorAll('.voice-card').forEach(c=>c.classList.remove('loading','playing'));
+  document.querySelectorAll('.voice-card').forEach(c => c.classList.remove('loading','playing'));
   el.classList.add('loading');
 
   const a = new Audio(BACKEND_URL + '/api/voice/preview?voice=' + encodeURIComponent(val));
   voiceAudio = a;
-  const clear = ()=>{ el.classList.remove('loading','playing'); if(voiceAudio===a) voiceAudio=null; };
-  a.onplaying = ()=>{ if(voiceAudio===a){ el.classList.remove('loading'); el.classList.add('playing'); } };
+  const clear = () => { el.classList.remove('loading','playing'); if(voiceAudio===a) voiceAudio=null; };
+  a.onplaying = () => { if(voiceAudio===a){ el.classList.remove('loading'); el.classList.add('playing'); } };
   a.onended = clear;
-  a.onerror = ()=>{ clear(); console.warn('AI Sponsor — voice preview unavailable:', val); };
-  a.play().catch(()=>clear());
+  a.onerror = () => { clear(); console.warn('AI Sponsor — voice preview unavailable:', val); };
+  a.play().catch(clear);
 }
 
-async function save(){
-  const btn = document.getElementById('btn-save');
-  const err = document.getElementById('errBox');
-  const name = document.getElementById('f-name').value.trim();
-
-  err.classList.remove('show');
-  if(!name && !selectedVoice){
-    err.textContent = 'Pick a name or a voice first.';
-    err.classList.add('show');
-    return;
-  }
-
-  btn.disabled = true;
-  btn.textContent = 'Saving…';
+async function saveSponsor(){
+  const btn = $('btn-save'), name = $('f-name').value.trim();
+  clearFlash('errSponsor','okSponsor');
+  if(!name && !selectedVoice) return flash('errSponsor', 'Pick a name or a voice first.');
+  btn.disabled = true; btn.textContent = 'Saving…';
   try{
-    const res = await fetch(BACKEND_URL + '/api/sponsor-settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ t: TOKEN, sponsorName: name, sponsorVoice: selectedVoice })
-    });
-    const body = await res.json().catch(()=>({}));
-    if(!res.ok){
-      err.textContent = body.error || 'Could not save that. Please try again.';
-      err.classList.add('show');
-      btn.disabled = false;
-      btn.textContent = 'Save changes';
-      return;
-    }
-    const who = body.sponsorName || 'Your sponsor';
-    document.getElementById('doneTitle').textContent = 'All set';
-    document.getElementById('doneMsg').textContent =
-      selectedVoice
-        ? who + ' is sending you a voice note now so you can hear it.'
-        : 'They’ll go by ' + who + ' from now on.';
-    document.getElementById('doneHint').textContent = 'Head back to WhatsApp to carry on.';
-    show('s-done');
-  }catch(e){
-    err.textContent = 'Could not reach your sponsor just now. Give it a moment and try again.';
-    err.classList.add('show');
-    btn.disabled = false;
-    btn.textContent = 'Save changes';
-  }
+    const r = await api('/api/sponsor-settings', { sponsorName: name, sponsorVoice: selectedVoice });
+    flash('okSponsor', selectedVoice
+      ? (r.sponsorName || 'Your sponsor') + ' is sending you a voice note now so you can hear it.'
+      : 'Saved. They’ll go by ' + (r.sponsorName || 'that') + ' from now on.');
+  }catch(e){ flash('errSponsor', e.message); }
+  btn.disabled = false; btn.textContent = 'Save changes';
+}
+
+async function sendHelp(){
+  const btn = $('btn-help'), message = $('f-help').value.trim();
+  clearFlash('errHelp','okHelp');
+  if(!message) return flash('errHelp', 'Write your message first.');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try{
+    await api('/api/sponsor-settings/support', { message });
+    $('f-help').value = '';
+    flash('okHelp', 'Sent. Someone on the team will come back to you.');
+  }catch(e){ flash('errHelp', e.message); }
+  btn.disabled = false; btn.textContent = 'Send message';
+}
+
+function askRestart(){ $('confirmRestart').classList.add('show'); $('btn-restart').style.display='none'; }
+function cancelRestart(){ $('confirmRestart').classList.remove('show'); $('btn-restart').style.display=''; }
+async function doRestart(){
+  clearFlash('errRestart','okRestart');
+  try{
+    const r = await api('/api/sponsor-settings/restart');
+    cancelRestart();
+    flash('okRestart', 'Done. Your next message starts a fresh conversation'
+      + (r.messagesRemoved ? ' (' + r.messagesRemoved + ' messages cleared).' : '.'));
+  }catch(e){ flash('errRestart', e.message); }
+}
+
+function askKill(){ $('confirmKill').classList.add('show'); $('btn-kill').style.display='none'; }
+function cancelKill(){ $('confirmKill').classList.remove('show'); $('btn-kill').style.display=''; }
+async function doKill(){
+  clearFlash('errKill','okKill');
+  try{
+    await api('/api/sponsor-settings/deactivate', { reason: $('f-reason').value.trim() });
+    cancelKill();
+    flash('okKill', 'Requested. Someone on the team will delete your data and confirm. You can keep using your sponsor until then.');
+  }catch(e){ flash('errKill', e.message); }
 }
 
 load();

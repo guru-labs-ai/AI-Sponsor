@@ -464,10 +464,16 @@ async function buildSettingsBlock(userId) {
   const token = await db.getOrCreateSettingsToken(userId).catch(() => null);
   if (!token) return '';
   return [
-    '## IF THEY ASK TO CHANGE YOUR NAME OR YOUR VOICE',
-    `Give them this link, and only then: ${SITE_URL}/ai-sponsor-settings.html?t=${token}`,
-    'It opens a page where they can rename you and pick how you sound. Anything they choose takes effect straight away.',
-    'Never paste this link unprompted, never offer it as a suggestion, and do not refer to it at all unless they have actually asked to change your name or your voice. If they are talking about anything else, it does not exist.',
+    '## THEIR SETTINGS PAGE',
+    `One link covers all of it: ${SITE_URL}/ai-sponsor-settings.html?t=${token}`,
+    'Give it to them when, and only when, they ask to do any of these:',
+    '- change your name, or change how you sound',
+    '- start over, wipe the conversation, have you forget everything and begin again',
+    '- deactivate, close their account, delete their data, leave',
+    '- speak to a real person, get help with something you cannot help with, report a problem',
+    'Hand over the link plainly and warmly, say in one line what they will find there, and let them go do it.',
+    'Never paste this link unprompted and never offer it as a suggestion. If they are talking about anything else, it does not exist.',
+    'Someone saying they want to stop or delete everything is telling you something. Respond to the person first, the way you would to anything else they brought you. Give them the link because they asked for it, not instead of listening.',
   ].join('\n');
 }
 
@@ -757,12 +763,132 @@ app.get('/api/sponsor-settings', async (req, res) => {
     return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
   }
   const profile = (await db.getProfile(userId).catch(() => null)) || {};
+  const user = (await db.getUser(userId).catch(() => null)) || {};
+  const days = user.signup_date
+    ? Math.max(1, Math.floor((Date.now() - new Date(user.signup_date).getTime()) / 86400000) + 1)
+    : null;
   res.json({
     sponsorName: profile.sponsorName || '',
     sponsorVoice: profile.sponsorVoice || '',
     voices: voices.VOICES,
     defaultVoice: voices.DEFAULT_VOICE,
+    // Shown read-only, so somebody can see what their sponsor actually knows
+    // about them rather than having to ask it.
+    you: {
+      name: profile.name || user.name || '',
+      program: profile.program || user.program || '',
+      stage: profile.stage || user.stage || '',
+      days,
+      hasEmail: !!(user.email && user.email.trim()),
+    },
   });
+});
+
+/* Start the conversation over, keeping the account. Deliberately separate from
+   deactivating: people ask for a clean slate far more often than they want to
+   leave, and making them the same button would mean the only way to reset is to
+   destroy everything. */
+app.post('/api/sponsor-settings/restart', async (req, res) => {
+  const userId = await db.resolveSettingsToken(String((req.body || {}).t || '')).catch(() => null);
+  if (!userId) return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
+  try {
+    const removed = await db.clearConversation(userId);
+    userProfiles.delete(userId);
+    conversations.delete(userId);
+    userMemory.delete(userId);
+    db.recordEvent(userId, 'conversation_restarted', { messagesRemoved: removed }, 'settings-link')
+      .catch((e) => console.error('[settings] recordEvent failed:', e.message));
+    console.log(`[settings] ${userId} restarted their conversation (${removed} messages)`);
+    res.json({ success: true, messagesRemoved: removed });
+  } catch (err) {
+    console.error('[settings] restart failed:', err.message);
+    res.status(500).json({ error: 'Could not do that just now. Please try again.' });
+  }
+});
+
+/* Message the humans. Reuses the support pipeline the website contact form
+   already runs on (GHL contact + tagged note, then a Slack ping), so tickets
+   from here land in the same place as every other one. */
+app.post('/api/sponsor-settings/support', async (req, res) => {
+  const b = req.body || {};
+  const userId = await db.resolveSettingsToken(String(b.t || '')).catch(() => null);
+  if (!userId) return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
+
+  const message = String(b.message || '').trim().slice(0, 4000);
+  if (!message) return res.status(400).json({ error: 'Please write your message first.' });
+
+  const user = (await db.getUser(userId).catch(() => null)) || {};
+  /* GHL needs an email to raise a ticket, and plenty of people here arrived
+     through WhatsApp and never gave one. Rather than refuse them, fall back to
+     a routable placeholder carrying their id, and put the real contact route
+     (their phone) in the ticket body. */
+  const email = (user.email && user.email.trim()) || `${userId.replace(/[^a-z0-9]/gi, '-')}@no-email.aisponsor`;
+  const isPlaceholder = !(user.email && user.email.trim());
+
+  try {
+    const result = await ghl.submitSupport({
+      name: user.name || 'AI Sponsor member',
+      email,
+      subject: 'Support request from the settings page',
+      message: `${message}\n\n---\nuserId: ${userId}${user.phone ? `\nphone: ${user.phone}` : ''}${isPlaceholder ? '\n(no email on file — reply on WhatsApp)' : ''}`,
+      source: 'ai-sponsor-settings-page',
+    });
+    notifySupportSlack({
+      name: user.name || userId, email: isPlaceholder ? '(none — WhatsApp only)' : email,
+      subject: 'Settings page', message, contactId: result.contactId,
+    }).catch((e) => console.warn('[settings] Slack notify failed:', e.message));
+
+    db.recordEvent(userId, 'support_requested', { viaWhatsAppOnly: isPlaceholder }, 'settings-link')
+      .catch(() => {});
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[settings] support failed:', err.message);
+    res.status(500).json({ error: 'Could not send that just now. Please try again.' });
+  }
+});
+
+/* Deactivation is REQUESTED here, not executed.
+
+   The full delete is a real piece of work that already exists, unmerged, on
+   feature/forget-me-deletion-path: it cancels any live Stripe subscription and
+   confirms the cancellation before purging, wipes the DB rows, and removes or
+   untags the GHL contact. Wiring a button straight to an unreviewed branch that
+   cancels billing and destroys recovery data is not something to do quickly.
+
+   So this files the request, tells the team immediately, and records it. The
+   person gets a definite answer instead of a dead button, and when that branch
+   lands this endpoint calls it directly. */
+app.post('/api/sponsor-settings/deactivate', async (req, res) => {
+  const b = req.body || {};
+  const userId = await db.resolveSettingsToken(String(b.t || '')).catch(() => null);
+  if (!userId) return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
+
+  const user = (await db.getUser(userId).catch(() => null)) || {};
+  const email = (user.email && user.email.trim()) || `${userId.replace(/[^a-z0-9]/gi, '-')}@no-email.aisponsor`;
+  const reason = String(b.reason || '').trim().slice(0, 2000);
+
+  try {
+    db.recordEvent(userId, 'deactivation_requested', { reason: reason || null }, 'settings-link')
+      .catch((e) => console.error('[settings] recordEvent failed:', e.message));
+
+    const result = await ghl.submitSupport({
+      name: user.name || 'AI Sponsor member',
+      email,
+      subject: 'DELETE MY DATA — deactivation requested',
+      message: `This person asked to deactivate and have their data deleted.\n\nuserId: ${userId}${user.phone ? `\nphone: ${user.phone}` : ''}\nreason: ${reason || '(not given)'}`,
+      source: 'ai-sponsor-deactivate',
+    });
+    notifySupportSlack({
+      name: user.name || userId, email,
+      subject: '🔴 Deactivation + data deletion requested',
+      message: reason || '(no reason given)', contactId: result.contactId,
+    }).catch((e) => console.warn('[settings] Slack notify failed:', e.message));
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[settings] deactivate request failed:', err.message);
+    res.status(500).json({ error: 'Could not send that just now. Please try again.' });
+  }
 });
 
 app.post('/api/sponsor-settings', async (req, res) => {

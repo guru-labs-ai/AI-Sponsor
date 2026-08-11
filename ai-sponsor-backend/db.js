@@ -243,6 +243,24 @@ async function findByStripeCustomer(customerId) {
   return r.rows[0] || null;
 }
 
+/* Wipe the conversation and start clean, keeping the account.
+
+   The rolling memory digest goes with it. Leaving it would mean the sponsor
+   "starting over" while still recalling everything that was said, which is
+   worse than not offering the option at all: someone asking for a clean slate
+   is usually asking to not be reminded.
+
+   Returns how many messages were removed, so it can be recorded and shown. */
+async function clearConversation(userId) {
+  if (!enabled || !userId) return 0;
+  const r = await pool.query('DELETE FROM messages WHERE user_id = $1', [userId]);
+  await pool.query(
+    `UPDATE users SET memory_digest = NULL, memory_digest_upto = 0 WHERE user_id = $1`,
+    [userId]
+  );
+  return r.rowCount || 0;
+}
+
 /* ─── Account change log ────────────────────────────────────────────────────
    Append-only. Written whenever someone changes something about their own
    account, so the change survives beyond a log line and can be answered for
@@ -601,7 +619,7 @@ async function logAdminAccess(route, targetId, success, ip) {
 module.exports = {
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
   saveProfile, getProfile, appendMessages, getHistory, findPersonId,
-  recordEvent, getEvents,
+  recordEvent, getEvents, clearConversation,
   getOrCreateSettingsToken, resolveSettingsToken,
   linkSubscription, findByStripeCustomer, getUser, setAccess,
   getMemory, saveMemory, getAgedOutMessages, redeemBetaCode, logAdminAccess,
