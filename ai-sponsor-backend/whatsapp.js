@@ -454,7 +454,15 @@ async function sendVoiceNote(toPhone, text, voice, expressApp) {
   return sendAudioReply(toPhone, audioPath, expressApp);
 }
 
+/* Deleting someone has to clear this process's "already captured" guard too,
+   or a person who deletes and later comes back is silently skipped by
+   captureWhatsAppUser until the next deploy. */
+function clearCapturedNumber(userId) {
+  capturedNumbers.delete(userId);
+}
+
 module.exports = {
+  clearCapturedNumber,
   handleIncomingMessage,
   sendTextReply,
   sendVoiceNote,

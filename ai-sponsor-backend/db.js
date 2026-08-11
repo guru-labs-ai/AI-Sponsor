@@ -303,6 +303,70 @@ async function clearConversation(userId) {
   return r.rowCount || 0;
 }
 
+/* ─── Deleting someone, properly ─────────────────────────────────────────────
+   Every user-scoped table, in one transaction, so a failure halfway cannot
+   leave somebody half-deleted.
+
+   The list below is the whole point of this comment. When this was written the
+   product had four user-scoped tables; it now has seven, and the three added
+   since (sponsor_tokens, link_codes, account_events) all hold something real.
+   A surviving sponsor_token still opens their settings page. account_events
+   still holds their sponsor's name and every voice they picked. If you add
+   another table keyed on user_id, add it here in the same commit. */
+async function purgeUserData(userId) {
+  if (!enabled || !userId) return;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM messages WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM profiles WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM activity_days WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM sponsor_tokens WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM link_codes WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM account_events WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM users WHERE user_id = $1', [userId]);
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/* Every identity belonging to the same person.
+
+   One human is routinely two rows now: reg-<uuid> from the website and
+   wa-<E.164> from WhatsApp, because registration mirrors the profile onto the
+   phone key so their sponsor knows them. When the deletion path was written
+   those two were unlinked and deleting one was all anyone could do. Today it
+   would delete half of somebody and leave the other half holding their name,
+   their programme and their reason for coming, which is not what "delete my
+   data" means to the person asking.
+
+   Matched on email and phone both, because this is the opposite situation to
+   findPersonId: there the risk was a typo pulling in a stranger, here the risk
+   is leaving part of someone behind. Callers must still confirm identity before
+   asking for this. */
+async function findAllIdentities(userId) {
+  if (!enabled || !userId) return userId ? [userId] : [];
+  const seed = await pool.query(`SELECT email, phone FROM users WHERE user_id = $1`, [userId]);
+  const s = seed.rows[0];
+  if (!s) return [userId];
+  const email = (s.email || '').trim();
+  const phone = (s.phone || '').trim();
+  if (!email && !phone) return [userId];
+  const r = await pool.query(
+    `SELECT user_id FROM users
+      WHERE ($1 <> '' AND LOWER(email) = LOWER($1))
+         OR ($2 <> '' AND phone = $2)`,
+    [email, phone]
+  );
+  const ids = r.rows.map((x) => x.user_id);
+  if (!ids.includes(userId)) ids.push(userId);
+  return ids;
+}
+
 /* ─── Proving a phone number really belongs to them ─────────────────────────
    A number typed into a form is a claim. The number a WhatsApp message arrives
    from is a fact: Twilio reports the real sender, and nobody can forge it by
@@ -712,6 +776,7 @@ module.exports = {
   saveProfile, getProfile, appendMessages, getHistory, findPersonId,
   recordEvent, getEvents, clearConversation, getPersonStats,
   createLinkCode, claimLinkCode,
+  purgeUserData, findAllIdentities,
   getOrCreateSettingsToken, resolveSettingsToken,
   linkSubscription, findByStripeCustomer, getUser, setAccess,
   getMemory, saveMemory, getAgedOutMessages, redeemBetaCode, logAdminAccess,

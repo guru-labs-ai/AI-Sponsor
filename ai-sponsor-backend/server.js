@@ -23,6 +23,7 @@ if (process.env.TWILIO_ACCOUNT_SID) {
 // simply not offered, and the relay 404s when neither key is set.
 const voiceCompare = require('./voice-compare');
 const voices = require('./voices'); // sponsor voice allow-list + previews
+const { deleteUserIdentity } = require('./deletion');
 
 // Public site base, used to build the tokenised "change your sponsor" link.
 const SITE_URL = process.env.SITE_URL || 'https://getaisponsor.com';
@@ -1136,6 +1137,41 @@ app.post('/register', async (req, res) => {
   } catch (err) {
     console.error('[register] failed:', err.message, err.detail || '');
     res.status(err.statusCode || 500).json({ success: false, error: err.message });
+  }
+});
+
+/* Delete everything about a person, on request.
+
+   Admin-gated on purpose. The settings page files a deactivation REQUEST and a
+   human runs this, because the step before the purge cancels a live Stripe
+   subscription and there is no undo on either half.
+
+   Returns 409, not 500, when it deliberately stops: nothing failed, Stripe just
+   could not be confirmed cancelled, and the difference matters to whoever reads
+   the response. */
+app.post('/api/admin/delete-user', requireAdminKey, async (req, res) => {
+  const { userId } = req.body || {};
+  if (!userId) return res.status(400).json({ error: 'userId required' });
+
+  try {
+    const result = await deleteUserIdentity(userId, {
+      requestedBy: req.headers['x-admin-user'] || 'admin',
+    });
+    if (!result.stopped) {
+      /* Clear the RAM caches for EVERY identity that was purged, not just the
+         one asked for. loadSession reads these first, so a survivor here would
+         keep serving a deleted person's profile until the next restart. */
+      for (const id of result.identities || [userId]) {
+        conversations.delete(id);
+        userProfiles.delete(id);
+        userMemory.delete(id);
+        if (whatsapp && whatsapp.clearCapturedNumber) whatsapp.clearCapturedNumber(id);
+      }
+    }
+    res.status(result.stopped ? 409 : 200).json(result);
+  } catch (err) {
+    console.error('[admin/delete-user] failed:', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
