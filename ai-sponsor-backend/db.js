@@ -221,6 +221,33 @@ async function findByStripeCustomer(customerId) {
   return r.rows[0] || null;
 }
 
+/* Has this person been here before?
+
+   The browser mints a fresh reg-<uuid> on every visit, so a returning person
+   arrives looking brand new even when the email is character-for-character the
+   same. That is how Matt ended up as three separate users with his history and
+   profile split across them.
+
+   Email is checked first because it survives someone changing their number.
+   Preference order when several rows match: a reg- row first, because that is
+   the identity the website's own chat runs on, then the oldest, because that is
+   where the longest history lives. Returns null for genuinely new people. */
+async function findPersonId({ email, phone }) {
+  if (!enabled) return null;
+  const e = (email || '').trim();
+  const p = (phone || '').trim();
+  if (!e && !p) return null;
+  const r = await pool.query(
+    `SELECT user_id FROM users
+      WHERE ($1 <> '' AND LOWER(email) = LOWER($1))
+         OR ($2 <> '' AND phone = $2)
+      ORDER BY (user_id LIKE 'reg-%') DESC, signup_date ASC
+      LIMIT 1`,
+    [e, p]
+  );
+  return r.rows[0] ? r.rows[0].user_id : null;
+}
+
 async function getUser(userId) {
   if (!enabled || !userId) return null;
   const r = await pool.query(`SELECT * FROM users WHERE user_id = $1`, [userId]);
@@ -527,7 +554,7 @@ async function logAdminAccess(route, targetId, success, ip) {
 
 module.exports = {
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
-  saveProfile, getProfile, appendMessages, getHistory,
+  saveProfile, getProfile, appendMessages, getHistory, findPersonId,
   getOrCreateSettingsToken, resolveSettingsToken,
   linkSubscription, findByStripeCustomer, getUser, setAccess,
   getMemory, saveMemory, getAgedOutMessages, redeemBetaCode, logAdminAccess,

@@ -1631,6 +1631,11 @@ function playVoicePreview(el, val){
 ──────────────────────────────────────────────────────────────────────────── */
 const REGISTER_ENDPOINT = 'https://ai-sponsor-f7de.onrender.com/register';
 
+/* Set while /register is in flight. initSession() waits on it so the chat never
+   starts under the throwaway id when the backend is about to hand back the
+   identity this person already had. */
+let registrationInFlight = null;
+
 async function registerUser(paymentStatus) {
   const payload = {
     name:        D.name         || '',
@@ -1672,15 +1677,39 @@ async function registerUser(paymentStatus) {
     const pill = document.getElementById('dayPill');
     if (pill) { pill.textContent = '🌱 Day 1 of my journey'; pill.style.display = 'inline-block'; }
   } catch(e) {}
-  try {
-    await fetch(REGISTER_ENDPOINT, {
+  /* The whole exchange, including adopting the id, is one promise. An earlier
+     version resolved this as soon as the HTTP response arrived, which was too
+     soon: initSession() was released while the body was still being read, and
+     the chat opened under the throwaway id anyway. It has to cover the adoption
+     itself, not just the request. */
+  registrationInFlight = (async () => {
+    const res = await fetch(REGISTER_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-  } catch(e) {
+
+    /* If this person has registered before, the backend answers with the id
+       they already had rather than the fresh one this browser invented. Adopt
+       it, or they carry on chatting as a stranger and their history splits away
+       from everything they did last time. */
+    const data = await res.json().catch(() => ({}));
+    if (data && data.userId && data.userId !== chatUserId) {
+      console.log('[AI Sponsor] welcome back — resuming existing profile');
+      chatUserId = data.userId;
+      try {
+        const saved = JSON.parse(localStorage.getItem('ais_user') || '{}');
+        saved.userId = chatUserId;
+        localStorage.setItem('ais_user', JSON.stringify(saved));
+      } catch(e) {}
+      // ais_pending is deliberately left alone: it carries the Stripe plan
+      // across the checkout round trip, and rewriting it here would drop that.
+    }
+  })().catch((e) => {
     console.warn('[AI Sponsor] Registration sync failed:', e);
-  }
+  });
+
+  await registrationInFlight;
 }
 
 function createSponsor(){
@@ -2027,6 +2056,8 @@ let isListening = false;
 
 // Register this user's onboarding profile with the backend so the sponsor knows them.
 async function initSession() {
+  // Wait for /register to say who this person is, if it is still deciding.
+  if (registrationInFlight) { try { await registrationInFlight; } catch(e) {} }
   try {
     await fetch(BACKEND_URL + '/api/session', {
       method: 'POST',

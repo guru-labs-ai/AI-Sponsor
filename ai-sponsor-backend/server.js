@@ -825,8 +825,22 @@ app.post('/register', async (req, res) => {
     console.log(`[register] GHL contact ${result.isNew ? 'created' : 'updated'}: ${result.contactId}`);
     // Also persist the user in our own store (fire-and-forget; GHL stays the CRM copy).
     const b = req.body || {};
+
+    /* Reuse the identity this person already has, if they have one. The browser
+       hands us a fresh reg-<uuid> on every visit, so without this a returning
+       person becomes a second user with their history and profile split off
+       from the first. Matt registered three times and became three people.
+       GHL has always deduplicated on its side (contacts/upsert); this is our
+       own store catching up. The resolved id goes back in the response so the
+       browser can carry on as who it already was. */
+    const existingId = await db.findPersonId({ email: b.email, phone: b.phone }).catch(() => null);
+    const userId = existingId || b.chatUserId;
+    if (existingId && existingId !== b.chatUserId) {
+      console.log(`[register] returning person: reusing ${existingId} instead of ${b.chatUserId}`);
+    }
+
     db.upsertUser({
-      userId: b.chatUserId,
+      userId,
       name: b.name, email: b.email, phone: b.phone,
       ghlContactId: result.contactId,
       sponsorName: b.sponsorName, sponsorStyle: b.sponsorStyle,
@@ -872,10 +886,12 @@ app.post('/register', async (req, res) => {
         sponsorVoice: b.sponsorVoice || '',
       }).catch((e) => console.error('[DB] saveProfile (wa) failed:', e.message));
 
-      console.log(`[register] mirrored ${b.chatUserId} onto ${waId} for WhatsApp`);
+      console.log(`[register] mirrored ${userId} onto ${waId} for WhatsApp`);
     }
 
-    res.json({ success: true, contactId: result.contactId });
+    // userId goes back so a returning browser can carry on as who it already
+    // was, instead of chatting into a brand-new identity.
+    res.json({ success: true, contactId: result.contactId, userId });
   } catch (err) {
     console.error('[register] GHL sync failed:', err.message, err.detail || '');
     res.status(err.statusCode || 500).json({ success: false, error: err.message });
