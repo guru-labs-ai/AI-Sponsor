@@ -973,10 +973,23 @@ app.post('/api/sponsor-settings', async (req, res) => {
 // here must never block the user — we just log and return the error.
 app.post('/register', async (req, res) => {
   try {
-    const result = await ghl.registerContact(req.body || {});
-    console.log(`[register] GHL contact ${result.isNew ? 'created' : 'updated'}: ${result.contactId}`);
-    // Also persist the user in our own store (fire-and-forget; GHL stays the CRM copy).
     const b = req.body || {};
+
+    /* GHL is the CRM copy, not the record of truth, and it must not be able to
+       take our own store down with it. This used to be the first awaited call in
+       the handler, so a GHL outage or a bad token threw before anything was
+       written here: no user row, no profile, no WhatsApp identity, and the
+       person's whole registration existed nowhere. Now a CRM failure costs the
+       CRM row and nothing else. */
+    let result = { contactId: null, isNew: false };
+    let ghlError = null;
+    try {
+      result = await ghl.registerContact(b);
+      console.log(`[register] GHL contact ${result.isNew ? 'created' : 'updated'}: ${result.contactId}`);
+    } catch (e) {
+      ghlError = e;
+      console.error('[register] GHL sync failed, continuing with our own store:', e.message);
+    }
 
     /* Reuse the identity this person already has, if they have one. The browser
        hands us a fresh reg-<uuid> on every visit, so without this a returning
@@ -985,7 +998,7 @@ app.post('/register', async (req, res) => {
        GHL has always deduplicated on its side (contacts/upsert); this is our
        own store catching up. The resolved id goes back in the response so the
        browser can carry on as who it already was. */
-    const existingId = await db.findPersonId({ email: b.email, phone: b.phone }).catch(() => null);
+    const existingId = await db.findPersonId({ email: b.email }).catch(() => null);
     const userId = existingId || b.chatUserId;
     const returning = !!(existingId && existingId !== b.chatUserId);
     if (returning) {
@@ -1026,6 +1039,27 @@ app.post('/register', async (req, res) => {
     // fills the row and the other one inherits it.
     if (b.phone) {
       const waId = 'wa-' + String(b.phone).trim();
+
+      /* A typed phone number is a claim, not proof. Nobody has verified it, and
+         one wrong digit lands on a number that may well belong to a real person.
+         If that person then messages the WhatsApp number, their sponsor would
+         greet them by a stranger's name and know a stranger's program, stage and
+         reason for coming. That is the worst thing this product could do.
+
+         So never write over a wa- identity that already belongs to somebody
+         else. A returning person matches on email and is fine; a stranger's
+         number is left exactly as it was, and the mismatch is recorded so it can
+         be looked at rather than silently swallowed. */
+      const occupant = await db.getUser(waId).catch(() => null);
+      const takenBySomeoneElse = !!(
+        occupant && occupant.email && b.email &&
+        occupant.email.trim().toLowerCase() !== String(b.email).trim().toLowerCase()
+      );
+
+      if (takenBySomeoneElse) {
+        console.warn(`[register] refused to mirror onto ${waId}: already belongs to a different person`);
+        db.recordEvent(userId, 'phone_conflict', { phone: b.phone }, 'registration').catch(() => {});
+      } else {
       db.upsertUser({
         userId: waId,
         name: b.name, email: b.email, phone: b.phone,
@@ -1048,14 +1082,22 @@ app.post('/register', async (req, res) => {
         sponsorVoice: b.sponsorVoice || '',
       }).catch((e) => console.error('[DB] saveProfile (wa) failed:', e.message));
 
-      console.log(`[register] mirrored ${userId} onto ${waId} for WhatsApp`);
+        console.log(`[register] mirrored ${userId} onto ${waId} for WhatsApp`);
+      }
     }
 
-    // userId goes back so a returning browser can carry on as who it already
-    // was, instead of chatting into a brand-new identity.
-    res.json({ success: true, contactId: result.contactId, userId });
+    /* userId goes back so a returning browser can carry on as who it already
+       was, instead of chatting into a brand-new identity. Still a success even
+       when the CRM refused us: the person is registered here, which is what
+       decides whether their sponsor knows them. */
+    res.json({
+      success: true,
+      contactId: result.contactId,
+      userId,
+      crmSynced: !ghlError,
+    });
   } catch (err) {
-    console.error('[register] GHL sync failed:', err.message, err.detail || '');
+    console.error('[register] failed:', err.message, err.detail || '');
     res.status(err.statusCode || 500).json({ success: false, error: err.message });
   }
 });

@@ -233,6 +233,9 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 
 /* Phone code selector */
 .phone-input-wrap{display:flex;border:1.5px solid var(--border);border-radius:10px;overflow:visible;background:#FAFCFF;transition:border-color .2s,box-shadow .2s}
+.phone-echo{font-size:12.5px;color:var(--sub);margin-top:7px;line-height:1.5;display:none}
+.phone-echo.show{display:block}
+.phone-echo strong{color:var(--blue);white-space:nowrap}
 .phone-input-wrap:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px rgba(27,94,138,0.12)}
 .code-selector{position:relative;flex-shrink:0}
 .code-trigger{display:flex;align-items:center;gap:5px;padding:12px 10px 12px 14px;
@@ -819,9 +822,13 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
               </button>
               <div class="code-dropdown" id="codeDD"></div>
             </div>
-            <input type="tel" id="f-phone" placeholder="000 000 0000" oninput="this.value=this.value.replace(/[^0-9+\-\s()]/g,'')">
+            <input type="tel" id="f-phone" placeholder="000 000 0000" inputmode="tel" autocomplete="tel" oninput="this.value=this.value.replace(/[^0-9+\-\s()]/g,'');echoPhone()">
           </div>
-          <span class="err-msg" id="e-phone">Please enter a valid phone number</span>
+          <span class="err-msg" id="e-phone">Please check that number — it doesn't look complete</span>
+          <!-- Echoes the full number back as they type. A typo here is otherwise
+               completely silent: they finish signing up, tap through to WhatsApp,
+               and their sponsor is waiting on a number that is not theirs. -->
+          <p class="phone-echo" id="phoneEcho"></p>
         </div>
       </div>
       <div class="coming-soon-wrap">
@@ -1321,10 +1328,19 @@ function validate(n){
   if(n===6){
     const needsPhone=document.getElementById('phoneWrap').classList.contains('show');
     if(needsPhone){
+      /* This number is how their sponsor will know them for good, and one wrong
+         digit sends their name and their programme to a stranger's phone. So it
+         gets more than a "has some digits" check: E.164 allows 15 digits total,
+         no national number is under 6, and a run of identical or straight
+         sequential digits is somebody filling the box in rather than giving us
+         their number. */
       const phone=document.getElementById('f-phone').value.replace(/\D/g,'');
       const phoneWrap=document.getElementById('phoneWrap');
       const ePhone=document.getElementById('e-phone');
-      const invalid=phone.length<7;
+      const cc=(document.getElementById('selCode').textContent||'+1').replace(/\D/g,'');
+      const national=(phone.startsWith(cc)&&phone.length>cc.length+6)?phone.slice(cc.length):phone;
+      const junk=/^(\d)+$/.test(national) || '01234567890123'.includes(national) || '09876543210987'.includes(national);
+      const invalid = national.length<6 || (cc.length+national.length)>15 || junk;
       phoneWrap.classList.toggle('bad',invalid);
       ePhone.classList.toggle('show',invalid);
       if(invalid)return false;
@@ -1585,6 +1601,20 @@ function selStyle(el, val){
   const isOther = val==='other';
   document.getElementById('styleOtherWrap').style.display = isOther ? 'block' : 'none';
   if(!isOther) onSponsorInput();
+}
+
+/* Show them the exact number we will use, in the exact form WhatsApp will see
+   it. They are far more likely to spot a wrong digit reading it back than while
+   typing it. */
+function echoPhone(){
+  const el=document.getElementById('phoneEcho'); if(!el) return;
+  const inp=document.getElementById('f-phone');
+  const digits=inp?inp.value.replace(/\D/g,''):'';
+  const cc=(document.getElementById('selCode').textContent||'+1').replace(/\D/g,'');
+  const national=(digits.startsWith(cc)&&digits.length>cc.length+6)?digits.slice(cc.length):digits;
+  if(national.length<6){ el.classList.remove('show'); return; }
+  el.innerHTML = 'Your sponsor will message you on <strong>+'+cc+' '+national+'</strong>. Check it carefully.';
+  el.classList.add('show');
 }
 
 function onSponsorInput(){
@@ -1864,6 +1894,7 @@ function selectDialCode(flag,code){
   document.getElementById('selFlag').textContent=flag;
   document.getElementById('selCode').textContent=code;
   document.getElementById('codeDD').classList.remove('open');
+  echoPhone(); // the full number just changed, so show the new one
 }
 
 document.addEventListener('click',function(){

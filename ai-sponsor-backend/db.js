@@ -321,22 +321,26 @@ async function getEvents(userId, limit = 50) {
    same. That is how Matt ended up as three separate users with his history and
    profile split across them.
 
-   Email is checked first because it survives someone changing their number.
+   Matches on email ONLY, deliberately. Matching on phone as well seemed helpful
+   and was dangerous: nobody verifies a typed number, so one wrong digit landed
+   the person on a stranger's row and they would have carried on writing into
+   that stranger's account. Email at least belongs to whoever is sitting there,
+   and a typo'd one simply creates a new person rather than hijacking an
+   existing one. Caught by the wrong-number test, not by reasoning.
+
    Preference order when several rows match: a reg- row first, because that is
    the identity the website's own chat runs on, then the oldest, because that is
    where the longest history lives. Returns null for genuinely new people. */
-async function findPersonId({ email, phone }) {
+async function findPersonId({ email }) {
   if (!enabled) return null;
   const e = (email || '').trim();
-  const p = (phone || '').trim();
-  if (!e && !p) return null;
+  if (!e) return null;
   const r = await pool.query(
     `SELECT user_id FROM users
-      WHERE ($1 <> '' AND LOWER(email) = LOWER($1))
-         OR ($2 <> '' AND phone = $2)
+      WHERE LOWER(email) = LOWER($1)
       ORDER BY (user_id LIKE 'reg-%') DESC, signup_date ASC
       LIMIT 1`,
-    [e, p]
+    [e]
   );
   return r.rows[0] ? r.rows[0].user_id : null;
 }
