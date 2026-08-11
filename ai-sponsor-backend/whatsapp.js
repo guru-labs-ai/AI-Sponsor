@@ -349,8 +349,19 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
   return { twiml: emptyTwiML };
 }
 
+/* Send a one-off voice note outside the reply flow. Used by the settings page so
+   that changing your sponsor's voice is answered IN the new voice, which is the
+   only way the change is actually perceivable, and the same reasoning as the
+   spoken hello. Subject to the usual 24h window: fine in practice, because they
+   only have the link because they were just talking to their sponsor. */
+async function sendVoiceNote(toPhone, text, voice, expressApp) {
+  const audioPath = await synthesizeSpeech(text, voice);
+  return sendAudioReply(toPhone, audioPath, expressApp);
+}
+
 module.exports = {
   handleIncomingMessage,
   sendTextReply,
+  sendVoiceNote,
   validateTwilioSignature,
 };

@@ -23,6 +23,9 @@ if (process.env.TWILIO_ACCOUNT_SID) {
 // simply not offered, and the relay 404s when neither key is set.
 const voiceCompare = require('./voice-compare');
 const voices = require('./voices'); // sponsor voice allow-list + previews
+
+// Public site base, used to build the tokenised "change your sponsor" link.
+const SITE_URL = process.env.SITE_URL || 'https://getaisponsor.com';
 const scoreboard = require('./scoreboard');
 
 // Persistent store (Postgres) — no-ops until DATABASE_URL is set (see db.js).
@@ -407,6 +410,25 @@ function buildUserContextBlock(profile) {
   return lines.join('\n');
 }
 
+/* Lets the sponsor hand out a link for changing its own name or voice.
+
+   Injected per-reply rather than written into MASTER_SYSTEM_PROMPT because the
+   URL carries a token unique to this person. Deliberately phrased as a
+   capability with a hard condition attached, not as something to bring up:
+   nobody wants a sponsor that keeps offering them a settings link while they
+   are trying to talk about their week. Returns '' when there is no DB, in which
+   case the sponsor simply never knows the link exists. */
+async function buildSettingsBlock(userId) {
+  const token = await db.getOrCreateSettingsToken(userId).catch(() => null);
+  if (!token) return '';
+  return [
+    '## IF THEY ASK TO CHANGE YOUR NAME OR YOUR VOICE',
+    `Give them this link, and only then: ${SITE_URL}/ai-sponsor-settings.html?t=${token}`,
+    'It opens a page where they can rename you and pick how you sound. Anything they choose takes effect straight away.',
+    'Never paste this link unprompted, never offer it as a suggestion, and do not refer to it at all unless they have actually asked to change your name or your voice. If they are talking about anything else, it does not exist.',
+  ].join('\n');
+}
+
 /* Session loader — RAM first, DB hydration after a restart. This is what makes
    the sponsor REMEMBER people across deploys: RAM is just a cache now, the
    durable copy lives in Postgres (profiles + messages tables). Without a DB
@@ -454,11 +476,13 @@ async function getSponsorReply(userId, message) {
 
   const userContext = buildUserContextBlock(profile);
   const memoryBlock = buildMemoryBlock(memory);
+  const settingsBlock = await buildSettingsBlock(userId);
   const systemBlocks = [
     { type: 'text', text: MASTER_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
   ];
   if (userContext) systemBlocks.push({ type: 'text', text: userContext });
   if (memoryBlock) systemBlocks.push({ type: 'text', text: memoryBlock });
+  if (settingsBlock) systemBlocks.push({ type: 'text', text: settingsBlock });
 
   const updatedHistory = [...history, { role: 'user', content: message }];
 
@@ -651,6 +675,77 @@ app.get('/api/voice/preview', async (req, res) => {
   } catch (err) {
     console.error(`[voice] preview failed for ${voice}:`, err.message);
     res.status(502).json({ error: 'preview failed' });
+  }
+});
+
+/* ─── "Change your sponsor" ─────────────────────────────────────────────────
+   Reached from a tokenised link the sponsor hands out on WhatsApp. The token IS
+   the identity, so the URL never carries a phone number: WhatsApp renders link
+   previews, other people see someone's screen, and URLs survive in history and
+   logs. On a product about addiction recovery that is not a small detail.
+
+   People who registered before the voice picker existed have no voice stored,
+   and nothing anywhere let them rename a sponsor they had already named. This
+   is the way in for both. */
+app.get('/api/sponsor-settings', async (req, res) => {
+  const userId = await db.resolveSettingsToken(String(req.query.t || '')).catch(() => null);
+  if (!userId) {
+    return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
+  }
+  const profile = (await db.getProfile(userId).catch(() => null)) || {};
+  res.json({
+    sponsorName: profile.sponsorName || '',
+    sponsorVoice: profile.sponsorVoice || '',
+    voices: voices.VOICES,
+    defaultVoice: voices.DEFAULT_VOICE,
+  });
+});
+
+app.post('/api/sponsor-settings', async (req, res) => {
+  const b = req.body || {};
+  const userId = await db.resolveSettingsToken(String(b.t || '')).catch(() => null);
+  if (!userId) {
+    return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
+  }
+
+  // Same 30-char cap the registration field enforces, and the voice goes through
+  // the same allow-list as everywhere else.
+  const sponsorName = String(b.sponsorName || '').trim().slice(0, 30);
+  const sponsorVoice = voices.VOICES.includes(b.sponsorVoice) ? b.sponsorVoice : '';
+  if (!sponsorName && !sponsorVoice) {
+    return res.status(400).json({ error: 'Nothing to change' });
+  }
+
+  const patch = {};
+  if (sponsorName) patch.sponsorName = sponsorName;
+  if (sponsorVoice) patch.sponsorVoice = sponsorVoice;
+
+  try {
+    await db.saveProfile(userId, patch);
+  } catch (err) {
+    console.error('[settings] saveProfile failed:', err.message);
+    return res.status(500).json({ error: 'Could not save that. Please try again.' });
+  }
+
+  /* Drop the RAM copy or the change would not show up until the next restart:
+     loadSession() reads userProfiles first and only falls back to the DB. */
+  userProfiles.delete(userId);
+
+  res.json({ success: true, sponsorName, sponsorVoice });
+  console.log(`[settings] ${userId} updated ${Object.keys(patch).join(' + ')}`);
+
+  /* Answer on WhatsApp in the new voice. Hearing it is the whole point: a
+     confirmation screen proves nothing, the voice note is the change. Read the
+     merged profile back rather than trusting the patch, so someone who only
+     renamed still hears their own chosen voice and not the default. */
+  if (whatsapp && userId.startsWith('wa-')) {
+    (async () => {
+      const merged = (await db.getProfile(userId).catch(() => null)) || {};
+      const name = merged.sponsorName || '';
+      const line = (name ? `It's ${name}. ` : '') +
+        "This is how I sound now. I'm right here whenever you need me.";
+      await whatsapp.sendVoiceNote('whatsapp:' + userId.slice(3), line, merged.sponsorVoice, app);
+    })().catch((e) => console.error('[settings] confirmation voice note failed:', e.message));
   }
 });
 

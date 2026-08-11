@@ -118,6 +118,23 @@ async function init() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `);
+  /* Links that let someone change their sponsor's name or voice from WhatsApp.
+     The token stands in for their identity so the URL never has to carry their
+     phone number: WhatsApp renders link previews, other people see their phone,
+     and URLs end up in history and logs. On a recovery product that matters.
+
+     In Postgres rather than memory on purpose. This backend sleeps on Render's
+     free tier, and a link the sponsor sent an hour ago has to still work when
+     the instance wakes up. */
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sponsor_tokens (
+      token      TEXT PRIMARY KEY,
+      user_id    TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      expires_at TIMESTAMPTZ NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS sponsor_tokens_user_idx ON sponsor_tokens (user_id);
+  `);
   console.log('DB connected — users + activity_days tables ready.');
 }
 
@@ -254,6 +271,41 @@ async function getProfile(userId) {
   if (!enabled || !userId) return null;
   const r = await pool.query(`SELECT profile FROM profiles WHERE user_id = $1`, [userId]);
   return r.rows[0] ? r.rows[0].profile : null;
+}
+
+/* ─── "Change your sponsor" links ───────────────────────────────────────────
+   One live token per person, reused until it expires, so the sponsor can hand
+   out the same link twice without collecting tokens. 30 days is long enough
+   that a link found later still works, short enough that an old one in someone
+   else's chat history stops being usable. Worst case if a link does leak is a
+   renamed sponsor: no account access, no personal data, nothing to read. */
+const SETTINGS_TOKEN_DAYS = 30;
+
+async function getOrCreateSettingsToken(userId) {
+  if (!enabled || !userId) return null;
+  const existing = await pool.query(
+    `SELECT token FROM sponsor_tokens WHERE user_id = $1 AND expires_at > now()
+     ORDER BY expires_at DESC LIMIT 1`,
+    [userId]
+  );
+  if (existing.rows[0]) return existing.rows[0].token;
+
+  const token = require('crypto').randomBytes(24).toString('base64url');
+  await pool.query(
+    `INSERT INTO sponsor_tokens (token, user_id, expires_at)
+     VALUES ($1, $2, now() + ($3 || ' days')::interval)`,
+    [token, userId, String(SETTINGS_TOKEN_DAYS)]
+  );
+  return token;
+}
+
+async function resolveSettingsToken(token) {
+  if (!enabled || !token) return null;
+  const r = await pool.query(
+    `SELECT user_id FROM sponsor_tokens WHERE token = $1 AND expires_at > now()`,
+    [token]
+  );
+  return r.rows[0] ? r.rows[0].user_id : null;
 }
 
 // Append chat turns. msgs = [{ role, content }, …]
@@ -459,6 +511,7 @@ async function logAdminAccess(route, targetId, success, ip) {
 module.exports = {
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
   saveProfile, getProfile, appendMessages, getHistory,
+  getOrCreateSettingsToken, resolveSettingsToken,
   linkSubscription, findByStripeCustomer, getUser, setAccess,
   getMemory, saveMemory, getAgedOutMessages, redeemBetaCode, logAdminAccess,
 };

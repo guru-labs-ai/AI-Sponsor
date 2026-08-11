@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Sponsor — Change your sponsor</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --blue:#0066B3;--blue-light:#0080D4;--bg:#F4F6F9;--card:#FFFFFF;
+  --text:#212529;--sub:#6C757D;--border:#CED4DA;
+  --error:#C0392B;--success:#1A7A4A;
+  --shadow:0 2px 16px rgba(0,0,0,0.10)
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);min-height:100vh;
+  display:flex;align-items:center;justify-content:center;padding:20px;color:var(--text)}
+.container{width:100%;max-width:520px}
+.brand{text-align:center;margin-bottom:20px}
+.brand-logo{font-size:20px;font-weight:700;color:var(--blue);letter-spacing:.04em}
+.card{background:var(--card);border-radius:4px;padding:32px 28px;
+  box-shadow:var(--shadow);border:1px solid #D0D5DD;border-top:4px solid var(--blue)}
+h1{font-family:'Source Serif 4',Georgia,serif;font-size:24px;font-weight:700;
+  line-height:1.25;margin-bottom:8px;color:var(--blue)}
+p.sub{font-size:15px;color:var(--sub);line-height:1.6;margin-bottom:26px}
+
+.fg{margin-bottom:22px}
+.fg label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+input[type=text]{width:100%;padding:12px 16px;border:1.5px solid var(--border);
+  border-radius:10px;font-size:15px;font-family:inherit;color:var(--text);
+  background:#FAFCFF;transition:border-color .2s,box-shadow .2s;outline:none;-webkit-appearance:none}
+input[type=text]:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
+
+.sec-label{font-size:12px;font-weight:600;color:var(--sub);
+  text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+.voice-note{font-size:12px;color:var(--sub);line-height:1.5;margin-bottom:12px}
+.voice-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:24px}
+.voice-card{border:1.5px solid var(--border);border-radius:12px;padding:11px 6px;cursor:pointer;
+  transition:border-color .15s,background .15s,opacity .15s;user-select:none;background:#FAFCFF;
+  display:flex;flex-direction:column;align-items:center;gap:7px}
+.voice-card:hover{border-color:var(--blue);background:rgba(0,102,179,0.03)}
+.voice-card.sel{border-color:var(--blue);background:rgba(0,102,179,0.06)}
+.voice-card.loading{opacity:.55}
+.voice-card .v-name{font-size:12px;font-weight:700;text-transform:capitalize}
+.voice-card.sel .v-name{color:var(--blue)}
+.v-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:#EAF2FA;color:var(--blue);flex-shrink:0;transition:background .15s,color .15s}
+.voice-card.sel .v-icon{background:var(--blue);color:#fff}
+.voice-card.playing .v-icon{animation:vpulse .8s ease-in-out infinite}
+@keyframes vpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.16)}}
+@media(max-width:420px){.voice-grid{grid-template-columns:1fr 1fr}}
+
+.btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--blue),var(--blue-light));
+  color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;
+  font-family:inherit;cursor:pointer;transition:all .2s;letter-spacing:.01em}
+.btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,102,179,0.3)}
+.btn:disabled{background:#B0C4D8;cursor:not-allowed;transform:none;box-shadow:none}
+
+.msg{font-size:14px;line-height:1.6;padding:14px 16px;border-radius:10px;margin-bottom:20px;display:none}
+.msg.show{display:block}
+.msg.err{background:#FDF0EE;color:var(--error);border:1px solid #F3C9C2}
+.state{text-align:center;padding:12px 0}
+.state .big{font-size:38px;margin-bottom:12px}
+.muted{font-size:13px;color:var(--sub);text-align:center;margin-top:16px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="brand"><div class="brand-logo">AI SPONSOR</div></div>
+  <div class="card">
+
+    <!-- Loading -->
+    <div id="s-load" class="state">
+      <p class="sub" style="margin:0">Loading…</p>
+    </div>
+
+    <!-- Bad or expired link -->
+    <div id="s-bad" class="state" style="display:none">
+      <div class="big">🔗</div>
+      <h1>This link has expired</h1>
+      <p class="sub" style="margin-bottom:0" id="badMsg">Message your sponsor on WhatsApp and ask for a new one.</p>
+    </div>
+
+    <!-- The form -->
+    <div id="s-form" style="display:none">
+      <h1>Change your sponsor</h1>
+      <p class="sub">Rename them, or change how they sound. Both take effect straight away.</p>
+
+      <div class="msg err" id="errBox"></div>
+
+      <div class="fg">
+        <label for="f-name">Their name</label>
+        <input type="text" id="f-name" maxlength="30" placeholder="e.g. Alex, Jordan, Sam…">
+      </div>
+
+      <p class="sec-label">How they sound</p>
+      <p class="voice-note">Tap one to hear it. This is how they'll sound in their WhatsApp voice notes.</p>
+      <div class="voice-grid" id="voiceGrid"></div>
+
+      <button class="btn" id="btn-save" onclick="save()">Save changes</button>
+    </div>
+
+    <!-- Saved -->
+    <div id="s-done" class="state" style="display:none">
+      <div class="big">✅</div>
+      <h1 id="doneTitle">All set</h1>
+      <p class="sub" id="doneMsg" style="margin-bottom:0"></p>
+      <p class="muted" id="doneHint"></p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const BACKEND_URL = 'https://ai-sponsor-f7de.onrender.com';
+
+/* The token stands in for who this is. It is the only thing in the URL on
+   purpose: a phone number here would show up in WhatsApp link previews, on
+   anyone who glances at their screen, and in browser history. */
+const TOKEN = new URLSearchParams(location.search).get('t') || '';
+
+let VOICES = [];
+let selectedVoice = '';
+let voiceAudio = null;
+
+function show(id){
+  ['s-load','s-bad','s-form','s-done'].forEach(s=>{
+    document.getElementById(s).style.display = (s===id) ? (s==='s-form'?'block':'block') : 'none';
+  });
+}
+
+function fail(msg){
+  if(msg) document.getElementById('badMsg').textContent = msg;
+  show('s-bad');
+}
+
+async function load(){
+  if(!TOKEN) return fail('This link is missing its code. Ask your sponsor on WhatsApp for a new one.');
+  try{
+    const res = await fetch(BACKEND_URL + '/api/sponsor-settings?t=' + encodeURIComponent(TOKEN));
+    if(!res.ok){
+      const body = await res.json().catch(()=>({}));
+      return fail(body.error || 'This link has expired. Ask your sponsor for a new one.');
+    }
+    const data = await res.json();
+    VOICES = data.voices || [];
+    selectedVoice = data.sponsorVoice || '';
+    document.getElementById('f-name').value = data.sponsorName || '';
+    renderVoices();
+    show('s-form');
+  }catch(e){
+    /* Render's free tier sleeps, so a cold start can look exactly like a broken
+       link. Say so rather than blaming their link. */
+    fail('Could not reach your sponsor just now. Give it a moment and refresh.');
+  }
+}
+
+function renderVoices(){
+  const grid = document.getElementById('voiceGrid');
+  grid.innerHTML = '';
+  VOICES.forEach(v=>{
+    const card = document.createElement('div');
+    card.className = 'voice-card' + (v===selectedVoice ? ' sel' : '');
+    card.innerHTML =
+      '<div class="v-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg></div>' +
+      '<div class="v-name"></div>';
+    card.querySelector('.v-name').textContent = v;
+    card.onclick = ()=>selVoice(card, v);
+    grid.appendChild(card);
+  });
+}
+
+function selVoice(el, val){
+  document.querySelectorAll('.voice-card').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  selectedVoice = val;
+
+  // One at a time, and never leave a card stuck mid-load if the preview fails.
+  if(voiceAudio){ try{ voiceAudio.pause(); }catch(e){} voiceAudio = null; }
+  document.querySelectorAll('.voice-card').forEach(c=>c.classList.remove('loading','playing'));
+  el.classList.add('loading');
+
+  const a = new Audio(BACKEND_URL + '/api/voice/preview?voice=' + encodeURIComponent(val));
+  voiceAudio = a;
+  const clear = ()=>{ el.classList.remove('loading','playing'); if(voiceAudio===a) voiceAudio=null; };
+  a.onplaying = ()=>{ if(voiceAudio===a){ el.classList.remove('loading'); el.classList.add('playing'); } };
+  a.onended = clear;
+  a.onerror = ()=>{ clear(); console.warn('AI Sponsor — voice preview unavailable:', val); };
+  a.play().catch(()=>clear());
+}
+
+async function save(){
+  const btn = document.getElementById('btn-save');
+  const err = document.getElementById('errBox');
+  const name = document.getElementById('f-name').value.trim();
+
+  err.classList.remove('show');
+  if(!name && !selectedVoice){
+    err.textContent = 'Pick a name or a voice first.';
+    err.classList.add('show');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  try{
+    const res = await fetch(BACKEND_URL + '/api/sponsor-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ t: TOKEN, sponsorName: name, sponsorVoice: selectedVoice })
+    });
+    const body = await res.json().catch(()=>({}));
+    if(!res.ok){
+      err.textContent = body.error || 'Could not save that. Please try again.';
+      err.classList.add('show');
+      btn.disabled = false;
+      btn.textContent = 'Save changes';
+      return;
+    }
+    const who = body.sponsorName || 'Your sponsor';
+    document.getElementById('doneTitle').textContent = 'All set';
+    document.getElementById('doneMsg').textContent =
+      selectedVoice
+        ? who + ' is sending you a voice note now so you can hear it.'
+        : 'They’ll go by ' + who + ' from now on.';
+    document.getElementById('doneHint').textContent = 'Head back to WhatsApp to carry on.';
+    show('s-done');
+  }catch(e){
+    err.textContent = 'Could not reach your sponsor just now. Give it a moment and try again.';
+    err.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = 'Save changes';
+  }
+}
+
+load();
+</script>
+</body>
+</html>
