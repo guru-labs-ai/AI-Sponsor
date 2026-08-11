@@ -20,6 +20,12 @@ body{font-family:'Inter',sans-serif;background:var(--bg);min-height:100vh;
 button,.voice-card{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .container{width:100%;max-width:940px;margin:0 auto}
 .brand{text-align:center;margin:8px 0 20px}
+/* The same mark they were just looking at as the WhatsApp contact, so tapping
+   the link doesn't feel like being handed off somewhere else. Circular for the
+   same reason: that is how WhatsApp crops it. Sized in the layout rather than
+   left to the image, so it can't shift the page while it loads. */
+.brand-mark{display:block;width:52px;height:52px;margin:0 auto 10px;border-radius:50%}
+@media (max-width:560px){.brand-mark{width:44px;height:44px;margin-bottom:8px}}
 .brand-logo{font-size:20px;font-weight:700;color:var(--blue);letter-spacing:.04em}
 
 /* ── Dashboard shell ──────────────────────────────────────────────────────
@@ -150,7 +156,10 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
 </head>
 <body>
 <div class="container">
-  <div class="brand"><div class="brand-logo">AI SPONSOR</div></div>
+  <div class="brand">
+    <img class="brand-mark" src="logo-navy.png" alt="" width="52" height="52">
+    <div class="brand-logo">AI SPONSOR</div>
+  </div>
 
   <!-- Loading -->
   <div id="s-load" class="card"><div class="state"><p class="sub" style="margin:0">Loading…</p></div></div>

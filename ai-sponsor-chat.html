@@ -78,6 +78,12 @@ body{font-family:'Inter',sans-serif;background:var(--bg);min-height:100vh;
   .cicn-btn{width:40px;height:40px}
   .chat-input{padding:10px 14px;font-size:16px}
 }
+
+/* Below 16px iOS Safari zooms the whole page when a field takes focus, and you
+   land zoomed and sideways mid-conversation. The landing and registration pages
+   already carry this guard; the chat bar only raised its size below 480px, so
+   anything between that and 640px still zoomed. */
+@media(max-width:640px){ input,select,textarea{font-size:16px!important} }
 </style>
 </head>
 <body>
