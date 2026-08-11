@@ -303,6 +303,20 @@ async function clearConversation(userId) {
   return r.rowCount || 0;
 }
 
+/* Remove one key from a profile.
+
+   saveProfile merges, so it can set a field but never unset one: writing '' or
+   null just gets stripped as empty and the old value survives. A one-shot flag
+   like programChangedFrom needs actually deleting, or the sponsor would bring
+   the change up in every message forever. */
+async function clearProfileField(userId, key) {
+  if (!enabled || !userId || !key) return;
+  await pool.query(
+    `UPDATE profiles SET profile = profile - $2, updated_at = now() WHERE user_id = $1`,
+    [userId, key]
+  );
+}
+
 /* ─── Deleting someone, properly ─────────────────────────────────────────────
    Every user-scoped table, in one transaction, so a failure halfway cannot
    leave somebody half-deleted.
@@ -777,6 +791,7 @@ module.exports = {
   recordEvent, getEvents, clearConversation, getPersonStats,
   createLinkCode, claimLinkCode,
   purgeUserData, findAllIdentities,
+  clearProfileField,
   getOrCreateSettingsToken, resolveSettingsToken,
   linkSubscription, findByStripeCustomer, getUser, setAccess,
   getMemory, saveMemory, getAgedOutMessages, redeemBetaCode, logAdminAccess,

@@ -408,7 +408,30 @@ function buildUserContextBlock(profile) {
   if (profile.sponsorName) lines.push(`- They named you (their sponsor) "${profile.sponsorName}". Introduce yourself by that name and use it when signing off, naturally.`);
   if (profile.sponsorStyle) lines.push(`- Preferred sponsor style: ${profile.sponsorStyle}. Lean your tone this way.`);
 
+  /* They changed which programme they are in and have not been spoken to since.
+     Left alone, the sponsor quietly switches to the new language while still
+     recalling everything from the old one, and never mentions it. A person would
+     say something: moving from AA to NA, or picking up Al-Anon alongside, is
+     rarely an administrative act. Cleared after one reply so it is acknowledged
+     once and then left alone. */
   return lines.join('\n');
+}
+
+/* A programme change gets its own block rather than another bullet in the list
+   above. As a bullet it was simply not acted on: the reply came back "Hey.
+   What's going on with you today?" as if nothing had happened, because one line
+   among eight cannot compete with a system prompt that has strong opinions
+   about how to open. Its own block, pushed last, with one instruction in it. */
+function buildProgramChangeBlock(profile) {
+  if (!profile || !profile.programChangedFrom || !profile.program) return '';
+  return [
+    '## THEY HAVE JUST CHANGED PROGRAMME',
+    `From ${profile.programChangedFrom} to ${profile.program}. They changed it themselves and have not spoken to you since.`,
+    'Say something about it in this reply. Not tacked on at the end: it should be part of how you open.',
+    'Ask what moved. Do not congratulate them, do not treat it as a milestone, and do not assume it is bad news either.',
+    'It might be a fresh start, a relapse, a second programme alongside the first, or just fixing something they picked wrong the first time. You do not know which, so ask instead of guessing.',
+    "Use the new programme's language from here on. Say it once, then follow them.",
+  ].join('\n');
 }
 
 /* ─── Undo the sponsor's own false denials ───────────────────────────────────
@@ -533,6 +556,9 @@ async function getSponsorReply(userId, message, context) {
   if (memoryBlock) systemBlocks.push({ type: 'text', text: memoryBlock });
   if (settingsBlock) systemBlocks.push({ type: 'text', text: settingsBlock });
 
+  const programChangeBlock = buildProgramChangeBlock(profile);
+  if (programChangeBlock) systemBlocks.push({ type: 'text', text: programChangeBlock });
+
   /* Tell it where it is. Without this it insists it "can't hear audio" and
      "can't send voice messages" to people who just sent it a voice note and are
      about to get one back, which reads as the product being broken. It has both
@@ -568,6 +594,16 @@ async function getSponsorReply(userId, message, context) {
     .filter((block) => block.type === 'text')
     .map((block) => block.text)
     .join('');
+
+  /* The programme change has now been put in front of them once, which is all
+     it was for. Clear the flag or the sponsor reopens it in every message from
+     here on, which would be worse than never mentioning it. Needs an actual
+     delete: saveProfile merges and cannot unset a key. */
+  if (profile && profile.programChangedFrom) {
+    db.clearProfileField(userId, 'programChangedFrom')
+      .then(() => { userProfiles.delete(userId); })
+      .catch((e) => console.error('[DB] clearProfileField failed:', e.message));
+  }
 
   updatedHistory.push({ role: 'assistant', content: replyText });
   persistExchange(userId, updatedHistory, [
@@ -1037,6 +1073,20 @@ app.post('/register', async (req, res) => {
       attribution: b.attribution, // how they found us (first touch, from the browser)
     }).catch((e) => console.error('[DB] upsertUser failed:', e.message));
 
+    /* Did they just move programme? Has to be read BEFORE the profile below
+       overwrites it, and only counts as a change when there was a previous one
+       and it actually differs. Recorded, and flagged on the profile so the
+       sponsor mentions it next time they speak rather than switching language
+       silently. */
+    const prevProfile = (await db.getProfile(userId).catch(() => null)) || {};
+    const newProgram = b.program || '';
+    const programChanged = !!(prevProfile.program && newProgram && prevProfile.program !== newProgram);
+    if (programChanged) {
+      console.log(`[register] programme change: ${prevProfile.program} -> ${newProgram}`);
+      db.recordEvent(userId, 'program_changed',
+        { from: prevProfile.program, to: newProgram }, 'registration').catch(() => {});
+    }
+
     /* Their profile belongs on their own identity too, not only on the WhatsApp
        mirror. Without this the reg- row carries no profile at all until the
        browser happens to call /api/session, so anyone who registers and goes
@@ -1051,6 +1101,7 @@ app.post('/register', async (req, res) => {
       sponsorName: b.sponsorName || '',
       sponsorStyle: b.sponsorStyle || '',
       sponsorVoice: b.sponsorVoice || '',
+      ...(programChanged ? { programChangedFrom: prevProfile.program } : {}),
     }).catch((e) => console.error('[DB] saveProfile failed:', e.message));
 
     // Mirror them onto their WhatsApp identity too.
@@ -1109,7 +1160,17 @@ app.post('/register', async (req, res) => {
         sponsorName: b.sponsorName || '',
         sponsorStyle: b.sponsorStyle || '',
         sponsorVoice: b.sponsorVoice || '',
+        /* The flag has to be on THIS profile, not just the web one. WhatsApp
+           reads the wa- key, so a change flagged only on the reg- side is
+           invisible to the sponsor they actually talk to. */
+        ...(programChanged ? { programChangedFrom: prevProfile.program } : {}),
       }).catch((e) => console.error('[DB] saveProfile (wa) failed:', e.message));
+
+      /* And drop the RAM copy of the mirrored profile. loadSession reads that
+         cache before the database, so without this the sponsor keeps answering
+         from the profile it had before they re-registered and never sees any of
+         it, the programme change included. */
+      userProfiles.delete(waId);
 
         console.log(`[register] mirrored ${userId} onto ${waId} for WhatsApp`);
       }
