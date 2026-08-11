@@ -398,24 +398,41 @@ async function getHistory(userId, limit = 40) {
   return decryptRows(r.rows);
 }
 
+/* One person can hold several rows in `users`, for two separate reasons, and
+   counting rows therefore overstates how many people exist.
+
+   Registering twice makes a second row. The browser mints a fresh reg-<uuid>
+   per visit and /register keys on it, so nothing recognises a returning person
+   even when the email matches exactly. Matt alone is three rows.
+
+   And every web registrant with a phone number is deliberately written twice:
+   once as reg-<uuid> and once as wa-<E.164>, so their sponsor knows them when
+   they message WhatsApp. That mirror is doing its job, but it is not a second
+   person.
+
+   PERSON_KEY collapses both: email first because it survives someone changing
+   their number, then phone, and only then the row id for the WhatsApp walk-ups
+   who have neither. Used for every count that answers "how many people". */
+const PERSON_KEY = `LOWER(COALESCE(NULLIF(email, ''), NULLIF(phone, ''), user_id))`;
+
 // North-star + usage aggregates for /api/metrics/northstar.
 async function getMetrics() {
   if (!enabled) return null;
   const [users, activity, byDay] = await Promise.all([
     pool.query(`
-      SELECT COUNT(*)::int AS registered,
-             COUNT(*) FILTER (WHERE access = 'Paid')::int AS paid,
+      SELECT COUNT(DISTINCT ${PERSON_KEY})::int AS registered,
+             COUNT(DISTINCT ${PERSON_KEY}) FILTER (WHERE access = 'Paid')::int AS paid,
              COALESCE(SUM(GREATEST(0, (now()::date - signup_date::date))), 0)::int AS cumulative_days,
-             COUNT(*) FILTER (WHERE last_active > now() - interval '7 days')::int AS active_last_7d
+             COUNT(DISTINCT ${PERSON_KEY}) FILTER (WHERE last_active > now() - interval '7 days')::int AS active_last_7d
       FROM users`),
     pool.query(`
       SELECT COUNT(*)::int AS total_active_days,
-             COUNT(DISTINCT a.user_id)::int AS users_who_chatted,
+             COUNT(DISTINCT LOWER(COALESCE(NULLIF(u.email, ''), NULLIF(u.phone, ''), u.user_id)))::int AS users_who_chatted,
              COALESCE(SUM(a.messages), 0)::int AS total_messages
       FROM activity_days a
       JOIN users u ON u.user_id = a.user_id`),
     pool.query(`
-      SELECT signup_date::date AS day, COUNT(*)::int AS n
+      SELECT signup_date::date AS day, COUNT(DISTINCT ${PERSON_KEY})::int AS n
       FROM users GROUP BY 1 ORDER BY 1`),
   ]);
   const signupsByDay = {};
