@@ -159,7 +159,10 @@ async function transcribeAudio(filePath) {
    anyone who never picked one. */
 async function synthesizeSpeech(text, voice) {
   const buffer = await voices.synthesize(text, voice);
-  const tmpPath = path.join(os.tmpdir(), `wa-reply-${Date.now()}.mp3`);
+  // .ogg, not .mp3. WhatsApp only draws the voice-note bubble for OGG/Opus;
+  // an MP3 lands as a generic audio attachment, which is half of why these
+  // sounded like recordings rather than messages.
+  const tmpPath = path.join(os.tmpdir(), `wa-reply-${Date.now()}.${voices.FILE_EXT}`);
   fs.writeFileSync(tmpPath, buffer);
   return tmpPath;
 }
@@ -177,10 +180,14 @@ async function sendFirstVoiceNote(fromPhone, profile, expressApp) {
   const sponsorName = (profile && profile.sponsorName) || '';
   const theirName = String((profile && profile.name) || '').trim().split(/\s+/)[0];
 
+  /* Written to be spoken, not read. The tags are xAI's inline direction: a
+     breath before the reassurance and a softer, slower close, so this lands as
+     somebody talking rather than a paragraph being narrated. */
   const hello =
     (theirName ? `Hi ${theirName}. ` : 'Hi. ') +
     (sponsorName ? `It's ${sponsorName}. ` : '') +
-    "It's really good to hear from you. I'm here whenever you need me, day or night. Take your time.";
+    "[breath] It's really good to hear from you. " +
+    "<soft>I'm here whenever you need me, day or night. [pause] Take your time.</soft>";
 
   const audioPath = await synthesizeSpeech(hello, profile && profile.sponsorVoice);
   await sendAudioReply(fromPhone, audioPath, expressApp);
@@ -219,8 +226,13 @@ async function sendTextReply(toPhone, text) {
 async function sendAudioReply(toPhone, audioFilePath, expressApp) {
   const filename = path.basename(audioFilePath);
   
-  // Register a one-time route on the Express app to serve this specific file
+  // Register a one-time route on the Express app to serve this specific file.
+  // The Content-Type is set explicitly: Twilio passes it through to WhatsApp,
+  // and WhatsApp decides between a voice-note bubble and a file attachment on
+  // what it is told the media is. Guessing from the extension is not worth the
+  // risk of it arriving as an attachment again.
   expressApp.get(`/media/${filename}`, (req, res) => {
+    res.type(voices.CONTENT_TYPE);
     res.sendFile(audioFilePath, () => {
       // Delete after serving
       fs.unlink(audioFilePath, () => {});

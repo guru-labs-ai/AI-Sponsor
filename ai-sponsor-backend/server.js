@@ -669,7 +669,7 @@ app.get('/api/voice/preview', async (req, res) => {
   }
   try {
     const buffer = await voices.preview(voice);
-    res.set('Content-Type', 'audio/mpeg');
+    res.set('Content-Type', voices.CONTENT_TYPE);
     res.set('Cache-Control', 'public, max-age=86400');
     res.send(buffer);
   } catch (err) {
@@ -742,8 +742,10 @@ app.post('/api/sponsor-settings', async (req, res) => {
     (async () => {
       const merged = (await db.getProfile(userId).catch(() => null)) || {};
       const name = merged.sponsorName || '';
+      // Tagged, like the spoken hello: this is the first thing they hear in the
+      // voice they just chose, so it should sound like a person trying it out.
       const line = (name ? `It's ${name}. ` : '') +
-        "This is how I sound now. I'm right here whenever you need me.";
+        "[breath] This is how I sound now. <soft>I'm right here whenever you need me.</soft>";
       await whatsapp.sendVoiceNote('whatsapp:' + userId.slice(3), line, merged.sponsorVoice, app);
     })().catch((e) => console.error('[settings] confirmation voice note failed:', e.message));
   }
