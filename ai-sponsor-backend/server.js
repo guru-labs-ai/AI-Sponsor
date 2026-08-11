@@ -764,9 +764,8 @@ app.get('/api/sponsor-settings', async (req, res) => {
   }
   const profile = (await db.getProfile(userId).catch(() => null)) || {};
   const user = (await db.getUser(userId).catch(() => null)) || {};
-  const days = user.signup_date
-    ? Math.max(1, Math.floor((Date.now() - new Date(user.signup_date).getTime()) / 86400000) + 1)
-    : null;
+  const stats = (await db.getPersonStats(userId).catch(() => null)) || {};
+  const days = stats.daysHere || null;
   res.json({
     sponsorName: profile.sponsorName || '',
     sponsorVoice: profile.sponsorVoice || '',
@@ -780,6 +779,14 @@ app.get('/api/sponsor-settings', async (req, res) => {
       stage: profile.stage || user.stage || '',
       days,
       hasEmail: !!(user.email && user.email.trim()),
+    },
+    // Their own numbers, for the overview. Counts only, never content.
+    stats: {
+      daysHere: stats.daysHere || null,
+      joined: stats.joined || null,
+      messages: stats.messages || 0,
+      activeDays: stats.activeDays || 0,
+      lastActive: stats.lastActive || null,
     },
   });
 });

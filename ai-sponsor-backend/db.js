@@ -243,6 +243,35 @@ async function findByStripeCustomer(customerId) {
   return r.rows[0] || null;
 }
 
+/* One person's own numbers, for the overview on their settings page.
+
+   Deliberately separate from getMetrics(), which answers "how is the product
+   doing" for the team. This answers "how am I doing" for the person, and it is
+   the only place their own figures are ever assembled. Counts only: no message
+   content leaves the database here either. */
+async function getPersonStats(userId) {
+  if (!enabled || !userId) return null;
+  const [msgs, days, user] = await Promise.all([
+    pool.query(`SELECT COUNT(*)::int n FROM messages WHERE user_id = $1`, [userId]),
+    pool.query(
+      `SELECT COUNT(*)::int AS active_days,
+              MAX(day)::text AS last_day,
+              COALESCE(SUM(messages), 0)::int AS counted_messages
+         FROM activity_days WHERE user_id = $1`, [userId]),
+    pool.query(`SELECT signup_date, last_active FROM users WHERE user_id = $1`, [userId]),
+  ]);
+  const u = user.rows[0] || {};
+  const since = u.signup_date ? new Date(u.signup_date) : null;
+  return {
+    // Day 1 is the day they joined, not day 0.
+    daysHere: since ? Math.max(1, Math.floor((Date.now() - since.getTime()) / 86400000) + 1) : null,
+    joined: since ? since.toISOString().slice(0, 10) : null,
+    messages: msgs.rows[0].n,
+    activeDays: days.rows[0].active_days,
+    lastActive: days.rows[0].last_day || (u.last_active ? new Date(u.last_active).toISOString().slice(0,10) : null),
+  };
+}
+
 /* Wipe the conversation and start clean, keeping the account.
 
    The rolling memory digest goes with it. Leaving it would mean the sponsor
@@ -619,7 +648,7 @@ async function logAdminAccess(route, targetId, success, ip) {
 module.exports = {
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
   saveProfile, getProfile, appendMessages, getHistory, findPersonId,
-  recordEvent, getEvents, clearConversation,
+  recordEvent, getEvents, clearConversation, getPersonStats,
   getOrCreateSettingsToken, resolveSettingsToken,
   linkSubscription, findByStripeCustomer, getUser, setAccess,
   getMemory, saveMemory, getAgedOutMessages, redeemBetaCode, logAdminAccess,
