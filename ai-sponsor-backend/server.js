@@ -410,6 +410,48 @@ function buildUserContextBlock(profile) {
   return lines.join('\n');
 }
 
+/* ─── Undo the sponsor's own false denials ───────────────────────────────────
+   While the voice notes were broken, the sponsor had no idea which channel it
+   was on and told people it could not hear audio or send voice messages. Those
+   replies are now sitting in their history as its own words, and a model weighs
+   what it has already said far more heavily than an instruction. Told to stop,
+   it reads that as pressure to pretend and digs in harder: "I'm not going to
+   keep saying yes to something I can't do." Which is the right instinct working
+   from wrong facts.
+
+   So the false turns are neutralised before they go back to the model, rather
+   than being handed over as ground truth. Nothing is deleted from the database:
+   this only affects the copy sent for this one request.
+
+   Rewritten in place and never dropped, because removing an assistant turn
+   would leave two user turns next to each other and the API requires them to
+   alternate.
+
+   Only applied on WhatsApp. In the web chat there is no voice, so the same
+   sentence is true and must be left alone. The pattern is deliberately narrow,
+   but it can still catch a line like "I can't hear the strain in your voice";
+   replacing one old turn with a correction note is a far smaller cost than the
+   sponsor arguing with someone about what it can do. */
+const FALSE_VOICE_CLAIM =
+  /(?:can'?t|cannot|can not|unable to|not able to)\s+(?:send|hear|receive|play|do)\b[^.!?]{0,40}(?:voice|audio)/i;
+
+const VOICE_CLAIM_CORRECTION =
+  '[An earlier reply here wrongly said I could not hear voice notes or send them. ' +
+  'That was a fault in the product, now fixed. I can do both.]';
+
+function correctFalseVoiceClaims(history) {
+  let changed = 0;
+  const out = history.map((m) => {
+    if (m.role === 'assistant' && typeof m.content === 'string' && FALSE_VOICE_CLAIM.test(m.content)) {
+      changed++;
+      return { ...m, content: VOICE_CLAIM_CORRECTION };
+    }
+    return m;
+  });
+  if (changed) console.log(`[Voice] corrected ${changed} false "no voice" turn(s) before replying`);
+  return out;
+}
+
 /* Lets the sponsor hand out a link for changing its own name or voice.
 
    Injected per-reply rather than written into MASTER_SYSTEM_PROMPT because the
@@ -496,12 +538,17 @@ async function getSponsorReply(userId, message, context) {
         ? 'They sent you a voice note. It was transcribed for you, and your reply is being spoken back to them as a voice note in the voice they chose for you. So you CAN hear them and you DO speak.'
         : 'They sent you a text message and your reply goes back as text. If they send you a voice note you will hear it, and you will answer with one.',
       'Never tell them you cannot hear audio or cannot send voice messages. Both are untrue here.',
-      'IMPORTANT: earlier in this same conversation you may have told them you cannot do either. That was wrong, caused by a fault that has since been fixed, and it is still sitting in the history above. Do not stay consistent with it. If they point at it, say plainly that you were wrong and that you can hear them and send voice notes.',
+      'If they point at a moment where you said otherwise, say plainly that you were wrong about it, and move on without making a meal of it.',
       'Write to be heard as much as read: short sentences, contractions, no bullet points, headings or markdown, and nothing that only works on a screen.',
     ].join('\n') });
   }
 
-  const updatedHistory = [...history, { role: 'user', content: message }];
+  // On WhatsApp, neutralise the sponsor's own earlier "I can't send voice"
+  // replies before handing the history back to it. See correctFalseVoiceClaims.
+  const usableHistory =
+    context && context.channel === 'whatsapp' ? correctFalseVoiceClaims(history) : history;
+
+  const updatedHistory = [...usableHistory, { role: 'user', content: message }];
 
   const response = await client.messages.create({
     model: 'claude-opus-4-8',
