@@ -514,7 +514,6 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 .modal-box h2{font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px}
 .modal-box .modal-sub{font-size:14px;color:var(--sub);margin-bottom:20px}
 .modal-close{position:absolute;top:16px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--sub);line-height:1}
-.modal-checks{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
 .modal-check-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;transition:border-color .15s,background .15s}
 @media (hover:hover){.modal-check-row:hover{border-color:var(--blue);background:rgba(0,102,179,0.03)}}
 .modal-check-row input[type=checkbox]{width:17px;height:17px;accent-color:var(--blue);cursor:pointer;flex-shrink:0}
@@ -1437,9 +1436,22 @@ function onOtherProg(val){
   updateProgCount();
 }
 
-function closeOtherModal(){
-  const el=document.getElementById('otherModal');
-  if(el) el.classList.remove('open');
+/* Every programme they told us: the twelve cards, plus anything typed into "in
+   a program not listed". That free text used to travel as its own otherProgram
+   field that nothing on the backend ever read. And because Continue unlocks on
+   the text alone (see the line above), somebody whose fellowship is not one of
+   the cards went through with program empty: no programme on their user row, no
+   programme in the profile their sponsor reads, none on their GHL contact. The
+   person who had to write theirs in was the one we then knew least about.
+
+   Deliberately NOT merged into D.program itself. That array is what the cards
+   toggle and restore against, so it stays the cards only and the join happens
+   here, on the way out. */
+function programList(){
+  const cards = Array.isArray(D.program) ? D.program.slice() : (D.program ? [D.program] : []);
+  const other = (D.otherProgram || '').trim();
+  if (other && !cards.includes(other)) cards.push(other);
+  return cards;
 }
 
 function toggleAffordApply(){
@@ -1464,23 +1476,13 @@ function confirmAmends(){
   go(11);
 }
 
-function confirmOtherModal(){
-  const checked=[...document.querySelectorAll('#otherModal .modal-checks input:checked')].map(i=>i.value);
-  const custom=document.getElementById('otherProgramInput').value.trim();
-  if(!checked.length&&!custom){ alert('Please select or enter at least one program.'); return; }
-  const parts=[...checked];
-  if(custom)parts.push(custom);
-  D.program=parts.join(', ');
-  document.querySelectorAll('.prog-card').forEach(c=>c.classList.remove('sel'));
-  document.querySelector('.prog-card input[value="Other"]').closest('.prog-card').classList.add('sel');
-  document.getElementById('btn-prog').disabled=false;
-  closeOtherModal();
-}
-
-// Close modal on overlay click
-document.addEventListener('click', e=>{
-  if(e.target.id==='otherModal') closeOtherModal();
-});
+/* The #otherModal cluster that used to live here is gone. It read the custom
+   programme out of a modal and folded it into D.program correctly, which is the
+   behaviour programList() now restores, but the modal itself had already been
+   replaced by the inline "write it in" box on screen 2. Nothing in the markup
+   defined #otherModal, #otherProgramInput or a prog-card valued "Other" any
+   more, so confirmOtherModal() would have thrown on its second line if anything
+   had ever called it, and nothing did. */
 
 function selStage(el){
   document.querySelectorAll('#s3 .opt-row').forEach(o=>o.classList.remove('sel'));
@@ -1714,7 +1716,7 @@ async function registerUser(paymentStatus) {
     phone:       D.phone        || '',
     country:     D.country      || '',
     state:       D.state        || '',
-    program:     Array.isArray(D.program) ? D.program.join(', ') : (D.program || ''),
+    program:     programList().join(', '),
     otherProgram: D.otherProgram || '',
     stage:       D.stage        || '',
     why:         D.why          || '',
@@ -1740,7 +1742,7 @@ async function registerUser(paymentStatus) {
       name: D.name || '',
       sponsorName: D.sponsorName || '',
       sponsorStyle: D.sponsorStyle || '',
-      program: Array.isArray(D.program) && D.program.length ? D.program.join(' and ') : (D.program || ''),
+      program: programList().join(' and '),
       stage: D.stage || '',
       signupDate: new Date().toISOString(),
       access: paymentStatus || 'Unpaid'
@@ -2156,7 +2158,7 @@ async function initSession() {
         userId: chatUserId,
         profile: {
           name: D.name || '',
-          program: Array.isArray(D.program) && D.program.length ? D.program.join(' and ') : (D.program || ''),
+          program: programList().join(' and '),
           stage: D.stage || '',
           whatBroughtYouHere: D.why || '',
           goals: Array.isArray(D.goals) ? D.goals : [],

@@ -84,11 +84,19 @@ function splitName(name) {
   return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
 }
 
+/* Known options only. This feeds a CHECKBOX custom field, so the only values
+   worth sending are the ones that field actually offers; anything else is at
+   best ignored and at worst rejects the whole contact write. Since registration
+   started folding "in a program not listed" free text into program, that text
+   now arrives here too, and it must not be handed to a checkbox. It is not lost:
+   it goes to our own users row and to the profile the sponsor reads, which is
+   the copy that matters for knowing the person. Previously this passed unknown
+   codes straight through (PROGRAM_MAP[c] || c). */
 function mapPrograms(program) {
   const codes = Array.isArray(program)
     ? program
     : String(program || '').split(',').map((s) => s.trim()).filter(Boolean);
-  return codes.map((c) => PROGRAM_MAP[c] || c).filter(Boolean);
+  return codes.map((c) => PROGRAM_MAP[c]).filter(Boolean);
 }
 
 // Build the GHL contact body from the registration payload.
