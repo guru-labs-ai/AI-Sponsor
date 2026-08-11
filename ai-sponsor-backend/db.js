@@ -135,6 +135,28 @@ async function init() {
     );
     CREATE INDEX IF NOT EXISTS sponsor_tokens_user_idx ON sponsor_tokens (user_id);
   `);
+  /* An append-only record of what people change about their own account.
+
+     `profiles` only ever holds the current state, so a rename overwrites the old
+     name and nothing anywhere knows it happened. A console line on Render is not
+     a record either; it scrolls away. Support cannot answer "my sponsor's name
+     changed and I didn't do it", nobody can see whether the picker is actually
+     used, and a deactivation would leave no trace at all.
+
+     Facts about the account only: what changed, from what, to what, when, and
+     which door it came through. Never conversation content. */
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS account_events (
+      id         BIGSERIAL PRIMARY KEY,
+      user_id    TEXT NOT NULL,
+      event      TEXT NOT NULL,
+      detail     JSONB NOT NULL DEFAULT '{}',
+      source     TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS account_events_user_idx ON account_events (user_id, id DESC);
+    CREATE INDEX IF NOT EXISTS account_events_time_idx ON account_events (created_at DESC);
+  `);
   console.log('DB connected — users + activity_days tables ready.');
 }
 
@@ -219,6 +241,30 @@ async function findByStripeCustomer(customerId) {
   if (!enabled || !customerId) return null;
   const r = await pool.query(`SELECT * FROM users WHERE stripe_customer_id = $1 LIMIT 1`, [customerId]);
   return r.rows[0] || null;
+}
+
+/* ─── Account change log ────────────────────────────────────────────────────
+   Append-only. Written whenever someone changes something about their own
+   account, so the change survives beyond a log line and can be answered for
+   later. Fire-and-forget at every call site: failing to record a rename must
+   never be the reason the rename itself fails. */
+async function recordEvent(userId, event, detail, source) {
+  if (!enabled || !userId || !event) return;
+  await pool.query(
+    `INSERT INTO account_events (user_id, event, detail, source)
+     VALUES ($1, $2, $3::jsonb, $4)`,
+    [userId, event, JSON.stringify(detail || {}), source || null]
+  );
+}
+
+async function getEvents(userId, limit = 50) {
+  if (!enabled || !userId) return [];
+  const r = await pool.query(
+    `SELECT event, detail, source, created_at FROM account_events
+      WHERE user_id = $1 ORDER BY id DESC LIMIT $2`,
+    [userId, limit]
+  );
+  return r.rows;
 }
 
 /* Has this person been here before?
@@ -555,6 +601,7 @@ async function logAdminAccess(route, targetId, success, ip) {
 module.exports = {
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
   saveProfile, getProfile, appendMessages, getHistory, findPersonId,
+  recordEvent, getEvents,
   getOrCreateSettingsToken, resolveSettingsToken,
   linkSubscription, findByStripeCustomer, getUser, setAccess,
   getMemory, saveMemory, getAgedOutMessages, redeemBetaCode, logAdminAccess,

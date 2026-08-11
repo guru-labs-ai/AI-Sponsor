@@ -780,6 +780,10 @@ app.post('/api/sponsor-settings', async (req, res) => {
     return res.status(400).json({ error: 'Nothing to change' });
   }
 
+  /* Read the current values first. saveProfile merges, so once it has run the
+     old name is gone and there is nothing left to record it against. */
+  const before = (await db.getProfile(userId).catch(() => null)) || {};
+
   const patch = {};
   if (sponsorName) patch.sponsorName = sponsorName;
   if (sponsorVoice) patch.sponsorVoice = sponsorVoice;
@@ -797,6 +801,21 @@ app.post('/api/sponsor-settings', async (req, res) => {
 
   res.json({ success: true, sponsorName, sponsorVoice });
   console.log(`[settings] ${userId} updated ${Object.keys(patch).join(' + ')}`);
+
+  /* Durable record of what actually changed. Only fields that really moved get
+     an event, so re-saving the same name does not create noise. Never awaited
+     into the response: the change has already been made and confirmed, and a
+     bookkeeping failure must not be reported to them as a failed save. */
+  if (sponsorName && sponsorName !== before.sponsorName) {
+    db.recordEvent(userId, 'sponsor_renamed',
+      { from: before.sponsorName || null, to: sponsorName }, 'settings-link')
+      .catch((e) => console.error('[settings] recordEvent failed:', e.message));
+  }
+  if (sponsorVoice && sponsorVoice !== before.sponsorVoice) {
+    db.recordEvent(userId, 'voice_changed',
+      { from: before.sponsorVoice || null, to: sponsorVoice }, 'settings-link')
+      .catch((e) => console.error('[settings] recordEvent failed:', e.message));
+  }
 
   /* Answer on WhatsApp in the new voice. Hearing it is the whole point: a
      confirmation screen proves nothing, the voice note is the change. Read the
@@ -835,9 +854,19 @@ app.post('/register', async (req, res) => {
        browser can carry on as who it already was. */
     const existingId = await db.findPersonId({ email: b.email, phone: b.phone }).catch(() => null);
     const userId = existingId || b.chatUserId;
-    if (existingId && existingId !== b.chatUserId) {
+    const returning = !!(existingId && existingId !== b.chatUserId);
+    if (returning) {
       console.log(`[register] returning person: reusing ${existingId} instead of ${b.chatUserId}`);
     }
+
+    // Durable record that this happened, and whether we recognised them. Without
+    // it, a second registration leaves nothing behind saying it was a second.
+    db.recordEvent(userId, returning ? 're_registered' : 'registered', {
+      access: b.paymentStatus || 'Unpaid',
+      sponsorName: b.sponsorName || null,
+      sponsorVoice: b.sponsorVoice || null,
+      discardedId: returning ? b.chatUserId : undefined,
+    }, 'registration').catch((e) => console.error('[register] recordEvent failed:', e.message));
 
     db.upsertUser({
       userId,
