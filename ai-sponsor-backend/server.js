@@ -441,6 +441,37 @@ function buildUserContextBlock(profile) {
   return lines.join('\n');
 }
 
+/* Early on, name what it still does not know about their recovery.
+
+   A beta user asked for this: "I think it might be good if it started asking
+   about your background and where you are in steps etc to make you feel more
+   connected and involved." Putting it in the master prompt was not enough. Five
+   exchanges in it had asked warmly about meetings and feelings, and never once
+   about which step they were on, because the rest of that prompt pulls hard
+   toward staying with the emotion in front of it, which is usually right.
+
+   So the gap is named per reply instead, while the relationship is new. The
+   conversation so far is already in context, so it can see what it has asked
+   before and will not repeat itself; this only stops the subject being dropped
+   altogether. Fades out once there is real history, because by then either it
+   knows or the person did not want to say. */
+const GETTING_TO_KNOW_UNTIL_MESSAGES = 30;
+
+function buildGettingToKnowBlock(profile, historyLength) {
+  if (!profile || historyLength > GETTING_TO_KNOW_UNTIL_MESSAGES) return '';
+  return [
+    '## THINGS YOU STILL DO NOT KNOW ABOUT THEIR RECOVERY',
+    'You are early with this person. Onboarding told you their programme and roughly how long, and nothing else. You have not been told:',
+    '- which step they are on, or whether they have started the steps',
+    '- whether they have a home group, and which meetings they go to',
+    '- whether they also have a human sponsor, and how that is going',
+    '- what their recovery looked like before this stretch',
+    'Work one of these into the conversation when it fits what they have just said. One per message at the very most, never a list, and never at the cost of what they actually came to talk about.',
+    'Look at what you have already asked before choosing: do not ask the same thing twice, and if they sidestepped something, leave it.',
+    'This is not admin. It is the difference between a sponsor who knows you and a stranger being kind to you, and they will feel which one you are.',
+  ].join('\n');
+}
+
 /* A programme change gets its own block rather than another bullet in the list
    above. As a bullet it was simply not acted on: the reply came back "Hey.
    What's going on with you today?" as if nothing had happened, because one line
@@ -579,6 +610,9 @@ async function getSponsorReply(userId, message, context) {
   if (userContext) systemBlocks.push({ type: 'text', text: userContext });
   if (memoryBlock) systemBlocks.push({ type: 'text', text: memoryBlock });
   if (settingsBlock) systemBlocks.push({ type: 'text', text: settingsBlock });
+
+  const gettingToKnowBlock = buildGettingToKnowBlock(profile, history.length);
+  if (gettingToKnowBlock) systemBlocks.push({ type: 'text', text: gettingToKnowBlock });
 
   const programChangeBlock = buildProgramChangeBlock(profile);
   if (programChangeBlock) systemBlocks.push({ type: 'text', text: programChangeBlock });
