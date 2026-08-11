@@ -1340,7 +1340,7 @@ function validate(n){
       const ePhone=document.getElementById('e-phone');
       const cc=phoneCC();
       const national=phoneNational(phone,cc);
-      const junk=/^(\d)+$/.test(national) || '01234567890123'.includes(national) || '09876543210987'.includes(national);
+      const junk=/^(\d)\1+$/.test(national) || '01234567890123'.includes(national) || '09876543210987'.includes(national);
       const invalid = national.length<6 || (cc.length+national.length)>15 || junk;
       phoneWrap.classList.toggle('bad',invalid);
       ePhone.classList.toggle('show',invalid);
