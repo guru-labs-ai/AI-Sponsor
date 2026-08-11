@@ -659,6 +659,7 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
       <button class="back" onclick="go(1)">← Back</button>
       <h1 class="heading">Which programs are you in?</h1>
       <p class="sub">Select all that apply.</p>
+      <p class="goal-count" id="pcount">0 selected</p>
       <div class="prog-grid">
         <div class="prog-card" onclick="selProg(this)">
           <input type="checkbox" name="prog" value="DA">
@@ -1165,6 +1166,7 @@ function restoreState(){
     if(fop&&D.otherProgram)fop.value=D.otherProgram;
     const btnProg=document.getElementById('btn-prog');
     if((D.program.length>0||D.otherProgram)&&btnProg)btnProg.disabled=false;
+    updateProgCount();
 
     // Restore the chosen voice. It is saved the moment it's tapped (unlike the
     // sponsor name and style, which are only read when the button is pressed),
@@ -1401,10 +1403,22 @@ function selProg(el){
     D.program=D.program.filter(v=>v!==val);
   }
   document.getElementById('btn-prog').disabled=(D.program.length===0 && !D.otherProgram);
+  updateProgCount();
 }
+
+// This screen is multi-select, so tapping a chosen card again removes it. With
+// no running count someone can drop their only pick without noticing and then
+// press a Continue that silently does nothing, because a disabled button gives
+// no feedback at all. Screen 5 already shows a count for the same reason.
+function updateProgCount(){
+  const el=document.getElementById('pcount');
+  if(el) el.textContent=(D.program.length+(D.otherProgram?1:0))+' selected';
+}
+
 function onOtherProg(val){
   D.otherProgram=val.trim();
   document.getElementById('btn-prog').disabled=(D.program.length===0 && !D.otherProgram);
+  updateProgCount();
 }
 
 function closeOtherModal(){
