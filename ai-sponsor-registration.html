@@ -2048,7 +2048,14 @@ function setupSuccessActions(){
   const sponsor = (D.sponsorName || '').trim();
   let hello = sponsor ? 'Hi ' + sponsor : 'Hi';
   if (who) hello += ", it's " + who;
-  if (linkCode) hello += ' (' + linkCode + ')';
+  /* No verification code in here. It used to ride along in brackets, and the
+     very first thing anybody ever sent their sponsor read "Hi Mimi, it's Mariam
+     (764764)", which is a machine's idea of hello. The code only ever earned
+     its place when somebody mistyped their number, and the field now checks the
+     length, rejects filler like 1111111111, and reads the full number back
+     before they continue. Putting a serial number in front of every person to
+     catch that is the wrong trade. Codes still exist and support can send one
+     to relink someone by hand. */
   wa.href = 'https://wa.me/13073234467?text=' + encodeURIComponent(hello);
   /* If they asked for WhatsApp, WhatsApp is the whole ending. Offering web chat
      alongside it just pulls them back off the channel they picked, which is the
