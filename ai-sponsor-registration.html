@@ -51,7 +51,7 @@
   head.appendChild(script);
 </script>
 
-<!-- Meta Pixel — AI Sponsor's own, NOT DRM's. The Purchase event fires from
+<!-- Meta Pixel — AI Sponsor's own. The Purchase event fires from
      handlePaymentReturn() further down, on the real return from Stripe. -->
 <script>
   !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -65,10 +65,10 @@
 <noscript><img height="1" width="1" style="display:none"
   src="https://www.facebook.com/tr?id=1018553221183175&ev=PageView&noscript=1"/></noscript>
 
-<!-- OpenAI Ads measurement pixel (ChatGPT ads). Setup posted by Matt Aug 5.
-     ⚠️ NOT WIRED UP YET — needs AI Sponsor's own pixelId. confirm whether his
-     OpenAI ads account uses one pixel across products or one per product
-     before this goes live. subscription_created / trial_started fire from
+<!-- OpenAI Ads measurement pixel (ChatGPT ads).
+     ⚠️ NOT WIRED UP YET — needs AI Sponsor's own pixelId. Confirm the ads
+     account issues one per product rather than one shared across several
+     before switching it on. subscription_created / trial_started fire from
      handlePaymentReturn() further down, same split as the Meta events. -->
 <script>
   (function(w,d,s,u){if(w.oaiq)return;var q=function(){q.q.push(arguments)};
@@ -76,9 +76,9 @@
   var f=d.getElementsByTagName(s)[0];f.parentNode.insertBefore(js,f)})
   (window,document,"script","https://bzrcdn.openai.com/sdk/oaiq.min.js");
   var AI_SPONSOR_OAI_PIXEL = ""; // AI Sponsor's OWN pixelId. EMPTY ON PURPOSE.
-  // Matt's id from #drm-ai was NOT used — if it is DRM's, AI Sponsor
-  // conversions would land in DRM's data. Create AI Sponsor's own in the
-  // OpenAI Ads conversions tab, put it here, and the pixel goes live.
+  // Create it in the OpenAI Ads conversions tab and paste it here, then
+  // the pixel goes live. Never reuse another product's id, or its
+  // conversions and ours end up filed together.
   if (AI_SPONSOR_OAI_PIXEL) {
     oaiq("init", { pixelId: AI_SPONSOR_OAI_PIXEL });
     oaiq("measure", "page_viewed");
@@ -2061,8 +2061,8 @@ function handlePaymentReturn(){
     showSuccess(pending.plan === 'annual' ? 'annual subscription' : '30-day free trial');
     registerUser('Paid'); // fire-and-forget — save to GHL as a paid/trial user
 
-    /* Tell Meta a real buyer came back from Stripe. This is the event Matt wants
-       feeding Andromeda so it learns who our actual payers look like.
+    /* Tell Meta a real buyer came back from Stripe. This is the event that
+       feeds Andromeda, so it learns who our actual payers look like.
        The two plans are DELIBERATELY different events: annual takes $49 at
        checkout, monthly takes nothing until day 31. Firing Purchase on a free
        trial would report revenue that hasn't happened and teach Meta to hunt
@@ -2076,10 +2076,9 @@ function handlePaymentReturn(){
       }
     } catch(e) { console.warn('[AI Sponsor] Meta pixel not available:', e); }
 
-    /* Same event to OpenAI's ads pixel, using their standard event names.
-       Matt wants ChatGPT ads experiments running, and they need conversions
-       coming back the same way Meta's do. Same annual/trial split and the
-       same reason for it. */
+    /* Same event to OpenAI's ads pixel, using their standard event names, so
+       ChatGPT ads experiments get conversions back the same way Meta's do.
+       Same annual/trial split and the same reason for it. */
     try {
       if (pending.plan === 'annual') {
         oaiq('measure', 'subscription_created', { type: 'plan_enrollment' });

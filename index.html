@@ -24,7 +24,7 @@
     head.appendChild(script);
   </script>
 
-  <!-- Meta Pixel — AI Sponsor's own, NOT DRM's. Its conversions have to stay
+  <!-- Meta Pixel — AI Sponsor's own. Its conversions have to stay
        separate or Meta optimises one product's ads on the other's signups. -->
   <script>
     !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -38,21 +38,21 @@
   <noscript><img height="1" width="1" style="display:none"
     src="https://www.facebook.com/tr?id=1018553221183175&ev=PageView&noscript=1"/></noscript>
 
-  <!-- OpenAI Ads measurement pixel (ChatGPT ads). Setup posted by Matt Aug 5.
-       ⚠️ NOT WIRED UP YET — needs AI Sponsor's OWN pixelId. OpenAI creates a
-       pixelId per advertiser account in the conversions tab, so this may be
-       shared across his products or may be DRM's alone. CONFIRM before this
-       goes live — if it's DRM's, AI Sponsor's conversions land in DRM's data,
-       which is exactly the mix-up the separate Meta pixel exists to avoid. -->
+  <!-- OpenAI Ads measurement pixel (ChatGPT ads).
+       ⚠️ NOT WIRED UP YET — needs AI Sponsor's own pixelId. OpenAI issues one
+       per advertiser account in the conversions tab, so confirm ours belongs
+       to this product before switching it on: a shared id would file AI
+       Sponsor's conversions under whatever else uses it, which is the mix-up
+       the separate Meta pixel exists to avoid. -->
   <script>
     (function(w,d,s,u){if(w.oaiq)return;var q=function(){q.q.push(arguments)};
     q.q=[];w.oaiq=q;var js=d.createElement(s);js.async=true;js.src=u;
     var f=d.getElementsByTagName(s)[0];f.parentNode.insertBefore(js,f)})
     (window,document,"script","https://bzrcdn.openai.com/sdk/oaiq.min.js");
     var AI_SPONSOR_OAI_PIXEL = ""; // AI Sponsor's OWN pixelId. EMPTY ON PURPOSE.
-    // Matt's id from #drm-ai was NOT used — if it is DRM's, AI Sponsor
-    // conversions would land in DRM's data. Create AI Sponsor's own in the
-    // OpenAI Ads conversions tab, put it here, and the pixel goes live.
+    // Create it in the OpenAI Ads conversions tab and paste it here, then
+    // the pixel goes live. Never reuse another product's id, or its
+    // conversions and ours end up filed together.
     if (AI_SPONSOR_OAI_PIXEL) {
       oaiq("init", { pixelId: AI_SPONSOR_OAI_PIXEL });
       oaiq("measure", "page_viewed");

@@ -24,7 +24,7 @@
   head.appendChild(script);
 </script>
 
-<!-- Meta Pixel — AI Sponsor's own, NOT DRM's. -->
+<!-- Meta Pixel — AI Sponsor's own. -->
 <script>
   !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
   n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
@@ -44,9 +44,9 @@
   var f=d.getElementsByTagName(s)[0];f.parentNode.insertBefore(js,f)})
   (window,document,"script","https://bzrcdn.openai.com/sdk/oaiq.min.js");
   var AI_SPONSOR_OAI_PIXEL = ""; // AI Sponsor's OWN pixelId. EMPTY ON PURPOSE.
-  // Matt's id from #drm-ai was NOT used — if it is DRM's, AI Sponsor
-  // conversions would land in DRM's data. Create AI Sponsor's own in the
-  // OpenAI Ads conversions tab, put it here, and the pixel goes live.
+  // Create it in the OpenAI Ads conversions tab and paste it here, then
+  // the pixel goes live. Never reuse another product's id, or its
+  // conversions and ours end up filed together.
   if (AI_SPONSOR_OAI_PIXEL) {
     oaiq("init", { pixelId: AI_SPONSOR_OAI_PIXEL });
     oaiq("measure", "page_viewed");
