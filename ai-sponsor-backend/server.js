@@ -1036,6 +1036,22 @@ app.post('/register', async (req, res) => {
       attribution: b.attribution, // how they found us (first touch, from the browser)
     }).catch((e) => console.error('[DB] upsertUser failed:', e.message));
 
+    /* Their profile belongs on their own identity too, not only on the WhatsApp
+       mirror. Without this the reg- row carries no profile at all until the
+       browser happens to call /api/session, so anyone who registers and goes
+       straight to WhatsApp leaves nothing for the link code to carry across. */
+    db.saveProfile(userId, {
+      name: b.name || '',
+      program: b.program || '',
+      stage: b.stage || '',
+      whatBroughtYouHere: b.why || '',
+      goals: Array.isArray(b.goals) ? b.goals : [],
+      deliveryMethod: b.delivery || '',
+      sponsorName: b.sponsorName || '',
+      sponsorStyle: b.sponsorStyle || '',
+      sponsorVoice: b.sponsorVoice || '',
+    }).catch((e) => console.error('[DB] saveProfile failed:', e.message));
+
     // Mirror them onto their WhatsApp identity too.
     //
     // Registration keys people as `reg-<uuid>` (a browser id), but WhatsApp can
@@ -1102,10 +1118,19 @@ app.post('/register', async (req, res) => {
        was, instead of chatting into a brand-new identity. Still a success even
        when the CRM refused us: the person is registered here, which is what
        decides whether their sponsor knows them. */
+    /* A one-time code they carry into WhatsApp. The number they typed is only a
+       guess until a message actually arrives from it; claiming this code is what
+       makes it a fact. See db.createLinkCode. */
+    const linkCode = await db.createLinkCode(userId).catch((e) => {
+      console.error('[register] createLinkCode failed:', e.message);
+      return null;
+    });
+
     res.json({
       success: true,
       contactId: result.contactId,
       userId,
+      linkCode,
       crmSynced: !ghlError,
     });
   } catch (err) {

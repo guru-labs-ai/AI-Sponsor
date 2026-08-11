@@ -157,6 +157,19 @@ async function init() {
     CREATE INDEX IF NOT EXISTS account_events_user_idx ON account_events (user_id, id DESC);
     CREATE INDEX IF NOT EXISTS account_events_time_idx ON account_events (created_at DESC);
   `);
+  /* One-time codes that bind a registration to the number a WhatsApp message
+     genuinely arrives from. See createLinkCode. */
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS link_codes (
+      code          TEXT PRIMARY KEY,
+      user_id       TEXT NOT NULL,
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+      expires_at    TIMESTAMPTZ NOT NULL,
+      used_at       TIMESTAMPTZ,
+      used_by_phone TEXT
+    );
+    CREATE INDEX IF NOT EXISTS link_codes_user_idx ON link_codes (user_id);
+  `);
   console.log('DB connected — users + activity_days tables ready.');
 }
 
@@ -288,6 +301,51 @@ async function clearConversation(userId) {
     [userId]
   );
   return r.rowCount || 0;
+}
+
+/* ─── Proving a phone number really belongs to them ─────────────────────────
+   A number typed into a form is a claim. The number a WhatsApp message arrives
+   from is a fact: Twilio reports the real sender, and nobody can forge it by
+   mistyping a digit.
+
+   So the code travels OUTWARD. It is generated at the end of registration,
+   carried in the prefilled message on the wa.me link, and comes back to us on
+   their first message. Claiming it binds that registration to the number the
+   message actually came from, whatever they typed earlier.
+
+   Sending a code TO the number was the obvious design and does not work here:
+   WhatsApp cannot message anyone cold without an approved template, and the
+   sponsor's own number has a REJECTED A2P campaign, so a US verification SMS
+   from it would be filtered. The only SMS-capable number is a different one
+   entirely, which would deliver a code from a stranger.
+
+   Ambiguous characters left out so nobody has to squint at O against 0. */
+const LINK_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const LINK_CODE_HOURS = 72;
+
+async function createLinkCode(userId) {
+  if (!enabled || !userId) return null;
+  const bytes = require('crypto').randomBytes(6);
+  const code = [...bytes].map((b) => LINK_CODE_ALPHABET[b % LINK_CODE_ALPHABET.length]).join('');
+  await pool.query(
+    `INSERT INTO link_codes (code, user_id, expires_at)
+     VALUES ($1, $2, now() + ($3 || ' hours')::interval)`,
+    [code, userId, String(LINK_CODE_HOURS)]
+  );
+  return code;
+}
+
+/* Single use, and the claim is the write: an UPDATE with used_at IS NULL in the
+   WHERE means two messages arriving at once cannot both claim the same code. */
+async function claimLinkCode(code, phone) {
+  if (!enabled || !code || !phone) return null;
+  const r = await pool.query(
+    `UPDATE link_codes SET used_at = now(), used_by_phone = $2
+      WHERE code = $1 AND used_at IS NULL AND expires_at > now()
+      RETURNING user_id`,
+    [String(code).toUpperCase(), phone]
+  );
+  return r.rows[0] ? r.rows[0].user_id : null;
 }
 
 /* ─── Account change log ────────────────────────────────────────────────────
@@ -653,6 +711,7 @@ module.exports = {
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
   saveProfile, getProfile, appendMessages, getHistory, findPersonId,
   recordEvent, getEvents, clearConversation, getPersonStats,
+  createLinkCode, claimLinkCode,
   getOrCreateSettingsToken, resolveSettingsToken,
   linkSubscription, findByStripeCustomer, getUser, setAccess,
   getMemory, saveMemory, getAgedOutMessages, redeemBetaCode, logAdminAccess,

@@ -1680,6 +1680,11 @@ const REGISTER_ENDPOINT = 'https://ai-sponsor-f7de.onrender.com/register';
    identity this person already had. */
 let registrationInFlight = null;
 
+/* One-time code from /register. It rides along in the prefilled WhatsApp
+   message, and their sending it back is what verifies the number, since Twilio
+   reports the real sender and a typo cannot fake that. */
+let linkCode = '';
+
 async function registerUser(paymentStatus) {
   const payload = {
     name:        D.name         || '',
@@ -1738,6 +1743,15 @@ async function registerUser(paymentStatus) {
        it, or they carry on chatting as a stranger and their history splits away
        from everything they did last time. */
     const data = await res.json().catch(() => ({}));
+    // Carried into the prefilled WhatsApp message so their first message proves
+    // the number is theirs. See buildWaLink.
+    if (data && data.linkCode) {
+      linkCode = data.linkCode;
+      /* The success screen is drawn before this response arrives, so the
+         WhatsApp link was already built without the code. Rebuild it now, or
+         their first message carries no proof of the number at all. */
+      try { setupSuccessActions(); } catch(e) {}
+    }
     if (data && data.userId && data.userId !== chatUserId) {
       console.log('[AI Sponsor] welcome back — resuming existing profile');
       chatUserId = data.userId;
@@ -2034,6 +2048,7 @@ function setupSuccessActions(){
   const sponsor = (D.sponsorName || '').trim();
   let hello = sponsor ? 'Hi ' + sponsor : 'Hi';
   if (who) hello += ", it's " + who;
+  if (linkCode) hello += ' (' + linkCode + ')';
   wa.href = 'https://wa.me/13073234467?text=' + encodeURIComponent(hello);
   /* If they asked for WhatsApp, WhatsApp is the whole ending. Offering web chat
      alongside it just pulls them back off the channel they picked, which is the

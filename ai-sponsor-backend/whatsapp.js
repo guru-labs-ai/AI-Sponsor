@@ -98,6 +98,55 @@ async function captureWhatsAppUser(userId, phone) {
   }
 }
 
+/* ── Bind a registration to the number it actually messaged from ─────────────
+   The prefilled wa.me message carries a one-time code. Twilio tells us the real
+   sending number, which no typo can fake, so claiming that code is what turns a
+   number somebody typed into a number we know is theirs.
+
+   Copies their registration profile onto the wa- identity and corrects the
+   phone on the registration row to the real one. Deliberately does NOT touch an
+   existing wa- profile's own fields beyond the merge: saveProfile merges, so
+   someone re-linking cannot blank what is already there.
+
+   Silent when there is no code, which is every ordinary message. */
+/* Parenthesised, because that is exactly how the prefill writes it and a bare
+   six-character token is not distinctive enough: THANKS, SUNDAY and BETTER all
+   fit this alphabet. A stray word colliding with somebody else's live code
+   would bind a stranger's registration to this phone, which is precisely the
+   harm the codes exist to prevent. */
+const LINK_CODE_RE = /\(([ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6})\)/;
+
+async function bindLinkCode(text, waUserIdValue, realPhone) {
+  if (!text) return;
+  const m = LINK_CODE_RE.exec(String(text).toUpperCase());
+  if (!m) return;
+
+  const regUserId = await db.claimLinkCode(m[1], realPhone).catch(() => null);
+  if (!regUserId) return; // not a real code, already used, or expired
+
+  try {
+    const profile = (await db.getProfile(regUserId)) || {};
+    const reg = (await db.getUser(regUserId)) || {};
+    // Nothing to carry across means something upstream failed to store it, and
+    // writing an empty profile over theirs would make it worse, not better.
+    if (Object.keys(profile).length) await db.saveProfile(waUserIdValue, profile);
+    await db.upsertUser({
+      userId: waUserIdValue,
+      name: reg.name, email: reg.email, phone: realPhone,
+      ghlContactId: reg.ghl_contact_id,
+      sponsorName: reg.sponsor_name, sponsorStyle: reg.sponsor_style,
+      program: reg.program, stage: reg.stage, access: reg.access,
+    });
+    // The number they typed may have been wrong; this one is not.
+    await db.upsertUser({ userId: regUserId, phone: realPhone });
+    db.recordEvent(regUserId, 'phone_verified',
+      { phone: realPhone, boundTo: waUserIdValue }, 'whatsapp-link-code').catch(() => {});
+    console.log(`[WhatsApp] link code claimed: ${regUserId} verified as ${realPhone}`);
+  } catch (e) {
+    console.error('[WhatsApp] link code binding failed:', e.message);
+  }
+}
+
 /* ── Security: Validate the request is genuinely from Twilio ─────────────────
    Twilio signs every webhook with X-Twilio-Signature using your Auth Token.
    Without this, anyone who discovers your webhook URL could spam it.
@@ -324,6 +373,12 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
 
       // Record them in GHL + the DB (Phase 5). Not awaited: the reply must never
       // wait on the CRM, and must still go out if the CRM is down.
+      /* Does this message carry a link code from a registration? If so, the
+         number it arrived from is proof, and it beats whatever they typed into
+         the form. Bind before anything else, so the reply that follows already
+         comes from the sponsor they built rather than a stranger. */
+      await bindLinkCode(userMessageText, userId, fromPhone.replace('whatsapp:', ''));
+
       captureWhatsAppUser(userId, fromPhone.replace('whatsapp:', '')).catch(() => {});
 
       /* Is this the first thing they have ever said to us? Must be asked BEFORE
