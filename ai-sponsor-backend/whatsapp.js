@@ -219,32 +219,56 @@ async function sendTextReply(toPhone, text) {
 }
 
 /* ── Send audio reply via Twilio REST API ────────────────────────────────────
-   Twilio needs a public URL to fetch the MP3 from.
-   We temporarily serve the file via our own Express server at /media/:filename,
-   then Twilio fetches it and delivers it as a WhatsApp voice note.
-   The file is deleted after Twilio fetches it (or after 5 minutes as fallback). */
+   Twilio needs a public URL to fetch the audio from. We serve it from our own
+   Express server at /media/:filename, Twilio fetches it, WhatsApp delivers it.
+
+   The file used to be deleted the moment it had been served once. That is a
+   race: Twilio does not necessarily fetch a URL exactly once, and sendFile's
+   callback fires on a mid-stream error as well as on success, so a retry could
+   arrive to find nothing there and report 63019, "media failed to download".
+   Cleanup is now left entirely to the timer below. A few audio files living in
+   the container's temp directory for five minutes costs nothing; a voice note
+   that never arrives costs somebody their reply. */
 async function sendAudioReply(toPhone, audioFilePath, expressApp) {
   const filename = path.basename(audioFilePath);
-  
-  // Register a one-time route on the Express app to serve this specific file.
+
   // The Content-Type is set explicitly: Twilio passes it through to WhatsApp,
   // and WhatsApp decides between a voice-note bubble and a file attachment on
-  // what it is told the media is. Guessing from the extension is not worth the
-  // risk of it arriving as an attachment again.
+  // what it is told the media is.
   expressApp.get(`/media/${filename}`, (req, res) => {
+    const size = fs.existsSync(audioFilePath) ? fs.statSync(audioFilePath).size : 0;
+    console.log(`[WhatsApp] media fetch: ${filename} (${size} bytes) by "${req.get('user-agent') || 'unknown'}"`);
+    if (!size) {
+      console.error(`[WhatsApp] media MISSING or empty: ${filename}`);
+      return res.status(404).end();
+    }
     res.type(voices.CONTENT_TYPE);
-    res.sendFile(audioFilePath, () => {
-      // Delete after serving
-      fs.unlink(audioFilePath, () => {});
-      // Remove this route (Express doesn't support this natively, but the
-      // file deletion means subsequent requests will 404, which is fine)
+    res.sendFile(audioFilePath, (err) => {
+      if (err) console.error(`[WhatsApp] media send failed for ${filename}:`, err.message);
     });
   });
 
-  // Also set a 5-minute cleanup fallback in case Twilio never fetches it
+  // Sole cleanup path, five minutes after the message goes out.
   setTimeout(() => fs.unlink(audioFilePath, () => {}), 5 * 60 * 1000);
 
+  /* Fetch our own URL from the public internet before handing it to Twilio.
+     Twilio reports a failed media download as 63019 asynchronously, long after
+     messages.create() has resolved, so by the time it is known the reply is
+     already lost and there is nothing left to fall back to. This does the same
+     round trip Twilio is about to do, through the same proxy, and turns a
+     silent delivery failure into an ordinary error we can still recover from. */
   const publicAudioUrl = `${process.env.RENDER_EXTERNAL_URL}/media/${filename}`;
+
+  const probe = await fetch(publicAudioUrl, { method: 'GET' })
+    .then(async (r) => ({ status: r.status, type: r.headers.get('content-type'), bytes: (await r.arrayBuffer()).byteLength }))
+    .catch((e) => ({ status: 0, type: null, bytes: 0, error: e.message }));
+
+  if (probe.status !== 200 || !probe.bytes) {
+    throw new Error(
+      `media URL not fetchable (status=${probe.status} bytes=${probe.bytes} type=${probe.type}${probe.error ? ' err=' + probe.error : ''})`
+    );
+  }
+  console.log(`[WhatsApp] media reachable: ${probe.bytes} bytes as ${probe.type}`);
 
   return twilioClient.messages.create({
     from: TWILIO_WHATSAPP_NUMBER,
@@ -321,14 +345,25 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
          is met by the sponsor they set up rather than a stock one. */
       const profile = await db.getProfile(userId).catch(() => null);
 
-      const replyText = await getSponsorReply(userId, userMessageText);
+      const replyText = await getSponsorReply(userId, userMessageText, { channel: 'whatsapp', viaVoice: isAudio });
       console.log(`[WhatsApp] Claude reply to ${fromPhone}: "${replyText.substring(0, 80)}..."`);
 
       // ── 6/7. Reply in the same medium the person used ────────────────────
       // Voice in, voice back. Text in, text back. No longer sends both.
       if (isAudio) {
-        const audioPath = await synthesizeSpeech(replyText, profile && profile.sponsorVoice);
-        await sendAudioReply(fromPhone, audioPath, expressApp);
+        /* Voice back, but never at the cost of the reply itself. Synthesis or
+           media delivery can fail (a provider blip, Twilio failing to fetch the
+           file), and until now that meant somebody who reached out got complete
+           silence. On this product that is the worst failure available: the
+           person assumes they were ignored. If the voice note cannot be sent,
+           the words still go. */
+        try {
+          const audioPath = await synthesizeSpeech(replyText, profile && profile.sponsorVoice);
+          await sendAudioReply(fromPhone, audioPath, expressApp);
+        } catch (voiceErr) {
+          console.error('[WhatsApp] voice reply failed, falling back to text:', voiceErr.message);
+          await sendTextReply(fromPhone, replyText);
+        }
       } else {
         await sendTextReply(fromPhone, replyText);
 

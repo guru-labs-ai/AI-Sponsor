@@ -471,7 +471,7 @@ function persistExchange(userId, updatedHistory, newTurns) {
    Used by channels that can't consume a stream (e.g. WhatsApp). The /api/chat
    route keeps streaming for the web UI; both share MASTER_SYSTEM_PROMPT +
    conversation history, so the sponsor behaves identically across web + WhatsApp. */
-async function getSponsorReply(userId, message) {
+async function getSponsorReply(userId, message, context) {
   const { profile, history, memory } = await loadSession(userId);
 
   const userContext = buildUserContextBlock(profile);
@@ -483,6 +483,22 @@ async function getSponsorReply(userId, message) {
   if (userContext) systemBlocks.push({ type: 'text', text: userContext });
   if (memoryBlock) systemBlocks.push({ type: 'text', text: memoryBlock });
   if (settingsBlock) systemBlocks.push({ type: 'text', text: settingsBlock });
+
+  /* Tell it where it is. Without this it insists it "can't hear audio" and
+     "can't send voice messages" to people who just sent it a voice note and are
+     about to get one back, which reads as the product being broken. It has both
+     of those abilities on WhatsApp; it simply had no way of knowing. */
+  if (context && context.channel === 'whatsapp') {
+    systemBlocks.push({ type: 'text', text: [
+      '## WHERE THIS CONVERSATION IS HAPPENING',
+      'You are on WhatsApp, not a web chat.',
+      context.viaVoice
+        ? 'They sent you a voice note. It was transcribed for you, and your reply is being spoken back to them as a voice note in the voice they chose for you. So you CAN hear them and you DO speak.'
+        : 'They sent you a text message and your reply goes back as text. If they send you a voice note you will hear it, and you will answer with one.',
+      'Never tell them you cannot hear audio or cannot send voice messages. Both are untrue here.',
+      'Write to be heard as much as read: short sentences, contractions, no bullet points, headings or markdown, and nothing that only works on a screen.',
+    ].join('\n') });
+  }
 
   const updatedHistory = [...history, { role: 'user', content: message }];
 
