@@ -23,6 +23,41 @@
     script.src = "https://215466.t.hyros.com/v1/lst/universal-script?ph=395a23f1c62bf26a497b91f272b6fc6b27906736d5a140cd7a9e220d722c2456&tag=!ai_sponsor&ref_url=" + encodeURI(document.URL);
     head.appendChild(script);
   </script>
+
+  <!-- Meta Pixel — AI Sponsor's own, NOT DRM's. Its conversions have to stay
+       separate or Meta optimises one product's ads on the other's signups. -->
+  <script>
+    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+    n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+    document,'script','https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '1018553221183175');
+    fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=1018553221183175&ev=PageView&noscript=1"/></noscript>
+
+  <!-- OpenAI Ads measurement pixel (ChatGPT ads). Setup posted by Matt Aug 5.
+       ⚠️ NOT WIRED UP YET — needs AI Sponsor's OWN pixelId. OpenAI creates a
+       pixelId per advertiser account in the conversions tab, so this may be
+       shared across his products or may be DRM's alone. CONFIRM before this
+       goes live — if it's DRM's, AI Sponsor's conversions land in DRM's data,
+       which is exactly the mix-up the separate Meta pixel exists to avoid. -->
+  <script>
+    (function(w,d,s,u){if(w.oaiq)return;var q=function(){q.q.push(arguments)};
+    q.q=[];w.oaiq=q;var js=d.createElement(s);js.async=true;js.src=u;
+    var f=d.getElementsByTagName(s)[0];f.parentNode.insertBefore(js,f)})
+    (window,document,"script","https://bzrcdn.openai.com/sdk/oaiq.min.js");
+    var AI_SPONSOR_OAI_PIXEL = ""; // AI Sponsor's OWN pixelId. EMPTY ON PURPOSE.
+    // Matt's id from #drm-ai was NOT used — if it is DRM's, AI Sponsor
+    // conversions would land in DRM's data. Create AI Sponsor's own in the
+    // OpenAI Ads conversions tab, put it here, and the pixel goes live.
+    if (AI_SPONSOR_OAI_PIXEL) {
+      oaiq("init", { pixelId: AI_SPONSOR_OAI_PIXEL });
+      oaiq("measure", "page_viewed");
+    }
+  </script>
   <!-- ── Attribution: remember how they found us ───────────────────────────────
        FIRST TOUCH WINS. Someone can land from an ad, browse, leave, come back
        direct, and only then register — last-touch would credit "Direct" and the
@@ -1542,9 +1577,6 @@
     btn.disabled = true;
     btn.textContent = 'Sending…';
 
-    // Send the ticket to our backend, which saves it to GHL (tagged
-    // ai-sponsor-support) and pings the support team in Slack. The GHL token
-    // stays server-side — no longer exposed in this page.
     const payload = {
       name:    document.getElementById('cf-name').value.trim(),
       email:   document.getElementById('cf-email').value.trim(),

@@ -50,6 +50,40 @@
   script.src = "https://215466.t.hyros.com/v1/lst/universal-script?ph=395a23f1c62bf26a497b91f272b6fc6b27906736d5a140cd7a9e220d722c2456&tag=!ai_sponsor&ref_url=" + encodeURI(document.URL);
   head.appendChild(script);
 </script>
+
+<!-- Meta Pixel — AI Sponsor's own, NOT DRM's. The Purchase event fires from
+     handlePaymentReturn() further down, on the real return from Stripe. -->
+<script>
+  !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+  n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+  document,'script','https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '1018553221183175');
+  fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=1018553221183175&ev=PageView&noscript=1"/></noscript>
+
+<!-- OpenAI Ads measurement pixel (ChatGPT ads). Setup posted by Matt Aug 5.
+     ⚠️ NOT WIRED UP YET — needs AI Sponsor's own pixelId. confirm whether his
+     OpenAI ads account uses one pixel across products or one per product
+     before this goes live. subscription_created / trial_started fire from
+     handlePaymentReturn() further down, same split as the Meta events. -->
+<script>
+  (function(w,d,s,u){if(w.oaiq)return;var q=function(){q.q.push(arguments)};
+  q.q=[];w.oaiq=q;var js=d.createElement(s);js.async=true;js.src=u;
+  var f=d.getElementsByTagName(s)[0];f.parentNode.insertBefore(js,f)})
+  (window,document,"script","https://bzrcdn.openai.com/sdk/oaiq.min.js");
+  var AI_SPONSOR_OAI_PIXEL = ""; // AI Sponsor's OWN pixelId. EMPTY ON PURPOSE.
+  // Matt's id from #drm-ai was NOT used — if it is DRM's, AI Sponsor
+  // conversions would land in DRM's data. Create AI Sponsor's own in the
+  // OpenAI Ads conversions tab, put it here, and the pixel goes live.
+  if (AI_SPONSOR_OAI_PIXEL) {
+    oaiq("init", { pixelId: AI_SPONSOR_OAI_PIXEL });
+    oaiq("measure", "page_viewed");
+  }
+</script>
 <link rel="icon" type="image/png" href="favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -2026,6 +2060,33 @@ function handlePaymentReturn(){
     if (pending.uid) chatUserId = pending.uid;
     showSuccess(pending.plan === 'annual' ? 'annual subscription' : '30-day free trial');
     registerUser('Paid'); // fire-and-forget — save to GHL as a paid/trial user
+
+    /* Tell Meta a real buyer came back from Stripe. This is the event Matt wants
+       feeding Andromeda so it learns who our actual payers look like.
+       The two plans are DELIBERATELY different events: annual takes $49 at
+       checkout, monthly takes nothing until day 31. Firing Purchase on a free
+       trial would report revenue that hasn't happened and teach Meta to hunt
+       trial-starters instead of payers. Wrapped so a blocked pixel can never
+       break someone's signup. */
+    try {
+      if (pending.plan === 'annual') {
+        fbq('track', 'Purchase', { value: 49.00, currency: 'USD', content_name: 'AI Sponsor Annual' });
+      } else {
+        fbq('track', 'StartTrial', { value: 0.00, currency: 'USD', predicted_ltv: 60.00, content_name: 'AI Sponsor Monthly' });
+      }
+    } catch(e) { console.warn('[AI Sponsor] Meta pixel not available:', e); }
+
+    /* Same event to OpenAI's ads pixel, using their standard event names.
+       Matt wants ChatGPT ads experiments running, and they need conversions
+       coming back the same way Meta's do. Same annual/trial split and the
+       same reason for it. */
+    try {
+      if (pending.plan === 'annual') {
+        oaiq('measure', 'subscription_created', { type: 'plan_enrollment' });
+      } else {
+        oaiq('measure', 'trial_started', { type: 'plan_enrollment' });
+      }
+    } catch(e) { console.warn('[AI Sponsor] OpenAI pixel not available:', e); }
     try { localStorage.removeItem('ais_pending'); } catch(e){}
     clearState();
   } else if (status === 'cancelled') {
