@@ -610,6 +610,7 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
             <option value="NZ">New Zealand</option>
             <option value="ZA">South Africa</option>
             <option value="IN">India</option>
+            <option value="PK">Pakistan</option>
             <option value="DE">Germany</option>
             <option value="FR">France</option>
             <option value="ES">Spain</option>
@@ -1337,8 +1338,8 @@ function validate(n){
       const phone=document.getElementById('f-phone').value.replace(/\D/g,'');
       const phoneWrap=document.getElementById('phoneWrap');
       const ePhone=document.getElementById('e-phone');
-      const cc=(document.getElementById('selCode').textContent||'+1').replace(/\D/g,'');
-      const national=(phone.startsWith(cc)&&phone.length>cc.length+6)?phone.slice(cc.length):phone;
+      const cc=phoneCC();
+      const national=phoneNational(phone,cc);
       const junk=/^(\d)+$/.test(national) || '01234567890123'.includes(national) || '09876543210987'.includes(national);
       const invalid = national.length<6 || (cc.length+national.length)>15 || junk;
       phoneWrap.classList.toggle('bad',invalid);
@@ -1386,9 +1387,8 @@ function collect(n){
     const inp=document.getElementById('f-phone');
     const digits=inp?inp.value.replace(/\D/g,''):'';
     if(digits){
-      const cc=(document.getElementById('selCode').textContent||'+1').replace(/\D/g,'');
-      // Tolerate someone typing their own country code into the field as well.
-      const national=(digits.startsWith(cc)&&digits.length>cc.length+6)?digits.slice(cc.length):digits;
+      const cc=phoneCC();
+      const national=phoneNational(digits,cc);
       D.phone='+'+cc+national;
       D.phoneLocal=inp.value.trim();   // what they typed, so a resumed form looks right
       D.phoneCC=cc;
@@ -1603,6 +1603,28 @@ function selStyle(el, val){
   if(!isOther) onSponsorInput();
 }
 
+/* The national number as WhatsApp will see it. Three things can be sitting in
+   front of it and all have to come off before the dial code goes on:
+     00   international access prefix, if they typed the number in full
+     0    national trunk prefix. Most of the world writes numbers this way:
+          Pakistan 0300 1234567, UK 07700 900123. Leaving it on produces
+          +9203001234567, which never matches the wa-+92300… identity their
+          WhatsApp messages actually arrive as, so the sponsor meets a stranger.
+     cc   the dial code itself, if they typed that too as well as picking it.
+   Safe for +1: no North American number starts with 0. Safe for mobiles
+   generally, which is what this product needs, since mobile numbers do not keep
+   a leading zero the way some European landlines do.
+   One definition, used by the validator, the collector and the echo below, so
+   the number we check is always the number we store and the number we show. */
+function phoneNational(digits, cc){
+  let n = String(digits || '').replace(/\D/g, '').replace(/^00/, '').replace(/^0/, '');
+  if (n.startsWith(cc) && n.length > cc.length + 6) n = n.slice(cc.length).replace(/^0/, '');
+  return n;
+}
+function phoneCC(){
+  return (document.getElementById('selCode').textContent || '+1').replace(/\D/g, '');
+}
+
 /* Show them the exact number we will use, in the exact form WhatsApp will see
    it. They are far more likely to spot a wrong digit reading it back than while
    typing it. */
@@ -1610,8 +1632,8 @@ function echoPhone(){
   const el=document.getElementById('phoneEcho'); if(!el) return;
   const inp=document.getElementById('f-phone');
   const digits=inp?inp.value.replace(/\D/g,''):'';
-  const cc=(document.getElementById('selCode').textContent||'+1').replace(/\D/g,'');
-  const national=(digits.startsWith(cc)&&digits.length>cc.length+6)?digits.slice(cc.length):digits;
+  const cc=phoneCC();
+  const national=phoneNational(digits,cc);
   if(national.length<6){ el.classList.remove('show'); return; }
   el.innerHTML = 'Your sponsor will message you on <strong>+'+cc+' '+national+'</strong>. Check it carefully.';
   el.classList.add('show');
@@ -1854,6 +1876,7 @@ const DIAL = [
   {f:'🇳🇿',n:'New Zealand',c:'+64'},
   {f:'🇿🇦',n:'South Africa',c:'+27'},
   {f:'🇮🇳',n:'India',c:'+91'},
+  {f:'🇵🇰',n:'Pakistan',c:'+92'},
   {f:'🇩🇪',n:'Germany',c:'+49'},
   {f:'🇫🇷',n:'France',c:'+33'},
   {f:'🇪🇸',n:'Spain',c:'+34'},
