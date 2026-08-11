@@ -16,7 +16,8 @@
   --shadow:0 2px 16px rgba(0,0,0,0.10)
 }
 body{font-family:'Inter',sans-serif;background:var(--bg);min-height:100vh;
-  padding:20px;color:var(--text)}
+  padding:20px;color:var(--text);-webkit-text-size-adjust:100%}
+button,.voice-card{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .container{width:100%;max-width:940px;margin:0 auto}
 .brand{text-align:center;margin:8px 0 20px}
 .brand-logo{font-size:20px;font-weight:700;color:var(--blue);letter-spacing:.04em}
@@ -40,9 +41,14 @@ body{font-family:'Inter',sans-serif;background:var(--bg);min-height:100vh;
 .pane.on{display:block}
 @media(max-width:760px){
   .shell{grid-template-columns:1fr;gap:14px}
-  .nav{position:static;display:flex;gap:6px;overflow-x:auto;padding:8px;-webkit-overflow-scrolling:touch}
-  .nav button{width:auto;padding:9px 13px;font-size:13.5px}
+  .nav{position:static;display:flex;gap:6px;overflow-x:auto;padding:8px;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none}
+  .nav::-webkit-scrollbar{display:none}
+  /* 44px minimum, because these are pressed with a thumb. */
+  .nav button{width:auto;padding:12px 14px;font-size:14px;min-height:44px}
   .nav button .ico{display:none}
+  /* Clear of the iPhone home indicator. */
+  body{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
 }
 
 /* ── Overview ── */
@@ -75,8 +81,11 @@ p.note{font-size:13px;color:var(--sub);line-height:1.6;margin-bottom:16px}
 
 .fg{margin-bottom:20px}
 .fg label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+/* 16px is not a style choice. iOS Safari zooms the whole page in when you focus
+   a field smaller than that, and you land zoomed and sideways on a form you were
+   halfway through. */
 input[type=text],textarea{width:100%;padding:12px 16px;border:1.5px solid var(--border);
-  border-radius:10px;font-size:15px;font-family:inherit;color:var(--text);
+  border-radius:10px;font-size:16px;font-family:inherit;color:var(--text);
   background:#FAFCFF;transition:border-color .2s,box-shadow .2s;outline:none;-webkit-appearance:none}
 textarea{min-height:110px;resize:vertical;line-height:1.6}
 input[type=text]:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
