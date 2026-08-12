@@ -181,9 +181,14 @@ p.sub{font-size:15px;color:var(--sub);line-height:1.65;margin-bottom:28px}
 .fg{margin-bottom:18px}
 .fg label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
 .fg label .opt{font-weight:400;color:var(--sub);font-size:12px}
+/* 16px is not a style choice. iOS Safari zooms the whole page in when you focus
+   any field under 16px, so on an iPhone the name, email, password and phone
+   fields all threw you into a zoomed sideways view of a form you were partway
+   through. This page is the one everybody uses; the settings page was fixed
+   earlier and this one was missed. */
 input[type=text],input[type=email],input[type=password],input[type=tel],select,textarea{
   width:100%;padding:12px 16px;border:1.5px solid var(--border);border-radius:10px;
-  font-size:15px;font-family:inherit;color:var(--text);background:#FAFCFF;
+  font-size:16px;font-family:inherit;color:var(--text);background:#FAFCFF;
   transition:border-color .2s,box-shadow .2s;outline:none;-webkit-appearance:none;appearance:none}
 input:focus,select:focus,textarea:focus{
   border-color:var(--blue);box-shadow:0 0 0 3px rgba(27,94,138,0.12)}
@@ -282,11 +287,22 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 .code-chevron{font-size:9px;color:var(--sub);margin-left:2px}
 .phone-input-wrap input[type=tel]{border:none!important;border-radius:0 10px 10px 0!important;
   box-shadow:none!important;background:transparent!important;flex:1;min-width:0}
+.code-search{width:calc(100% - 16px);margin:8px;padding:9px 11px;border:1.5px solid var(--border);
+  border-radius:8px;font-size:16px;font-family:inherit;outline:none;background:#FAFCFF;box-sizing:border-box}
+.code-search:focus{border-color:var(--blue)}
+.code-list{max-height:210px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.code-empty{padding:12px;font-size:13px;color:var(--sub);text-align:center}
 .code-dropdown{position:absolute;top:calc(100% + 6px);left:0;width:240px;
   background:#fff;border:1.5px solid var(--border);border-radius:14px;
   box-shadow:0 8px 32px rgba(0,0,0,0.13);z-index:200;
-  max-height:260px;overflow-y:auto;display:none;
+  /* The list inside does the scrolling now, not this. If this scrolled, the
+     search box would slide out of view the moment anybody used it. */
+  overflow:hidden;display:none;
   scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.code-list{scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.code-list::-webkit-scrollbar{width:4px}
+.code-list::-webkit-scrollbar-track{background:transparent}
+.code-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 .code-dropdown::-webkit-scrollbar{width:4px}
 .code-dropdown::-webkit-scrollbar-track{background:transparent}
 .code-dropdown::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
@@ -1903,64 +1919,86 @@ function sendScholarship(){
 }
 
 // ─── Phone country codes ─────────────────────────────────────────────────────
-const DIAL = [
-  {f:'🇺🇸',n:'United States',c:'+1'},
-  {f:'🇬🇧',n:'United Kingdom',c:'+44'},
-  {f:'🇨🇦',n:'Canada',c:'+1'},
-  {f:'🇦🇺',n:'Australia',c:'+61'},
-  {f:'🇮🇪',n:'Ireland',c:'+353'},
-  {f:'🇳🇿',n:'New Zealand',c:'+64'},
-  {f:'🇿🇦',n:'South Africa',c:'+27'},
-  {f:'🇮🇳',n:'India',c:'+91'},
-  {f:'🇵🇰',n:'Pakistan',c:'+92'},
-  {f:'🇩🇪',n:'Germany',c:'+49'},
-  {f:'🇫🇷',n:'France',c:'+33'},
-  {f:'🇪🇸',n:'Spain',c:'+34'},
-  {f:'🇮🇹',n:'Italy',c:'+39'},
-  {f:'🇳🇱',n:'Netherlands',c:'+31'},
-  {f:'🇸🇪',n:'Sweden',c:'+46'},
-  {f:'🇳🇴',n:'Norway',c:'+47'},
-  {f:'🇩🇰',n:'Denmark',c:'+45'},
-  {f:'🇫🇮',n:'Finland',c:'+358'},
-  {f:'🇵🇹',n:'Portugal',c:'+351'},
-  {f:'🇨🇭',n:'Switzerland',c:'+41'},
-  {f:'🇦🇹',n:'Austria',c:'+43'},
-  {f:'🇧🇪',n:'Belgium',c:'+32'},
-  {f:'🇵🇱',n:'Poland',c:'+48'},
-  {f:'🇬🇷',n:'Greece',c:'+30'},
-  {f:'🇧🇷',n:'Brazil',c:'+55'},
-  {f:'🇲🇽',n:'Mexico',c:'+52'},
-  {f:'🇦🇷',n:'Argentina',c:'+54'},
-  {f:'🇨🇴',n:'Colombia',c:'+57'},
-  {f:'🇨🇱',n:'Chile',c:'+56'},
-  {f:'🇯🇵',n:'Japan',c:'+81'},
-  {f:'🇰🇷',n:'South Korea',c:'+82'},
-  {f:'🇸🇬',n:'Singapore',c:'+65'},
-  {f:'🇦🇪',n:'UAE',c:'+971'},
-  {f:'🇹🇷',n:'Turkey',c:'+90'},
-  {f:'🇬🇪',n:'Georgia',c:'+995'},
-  {f:'🇮🇱',n:'Israel',c:'+972'},
-  {f:'🇵🇭',n:'Philippines',c:'+63'},
-  {f:'🇳🇬',n:'Nigeria',c:'+234'},
-  {f:'🇰🇪',n:'Kenya',c:'+254'},
-];
+/* Every country, not a shortlist.
+
+   This was 39 hand-picked ones written the day the page was built, back when
+   the phone number was optional because WhatsApp was one delivery choice among
+   four. WhatsApp is now the only one that is not "Coming soon", so that
+   convenience list had quietly become a hard gate on who is allowed to sign up
+   at all. Indonesia, Egypt, Morocco and most of Africa could not register, and
+   we would never have heard about it, because somebody who cannot finish
+   registering never becomes a user who can tell you.
+
+   Stored as ISO:name:code and the flag is derived from the ISO letters, since
+   224 hand-typed flag emoji is 224 chances to paste the wrong country. */
+const DIAL = "AF:Afghanistan:+93,AX:Åland Islands:+358,AL:Albania:+355,DZ:Algeria:+213,AS:American Samoa:+1684,AD:Andorra:+376,AO:Angola:+244,AI:Anguilla:+1264,AG:Antigua and Barbuda:+1268,AR:Argentina:+54,AM:Armenia:+374,AW:Aruba:+297,AU:Australia:+61,AT:Austria:+43,AZ:Azerbaijan:+994,BS:Bahamas:+1242,BH:Bahrain:+973,BD:Bangladesh:+880,BB:Barbados:+1246,BY:Belarus:+375,BE:Belgium:+32,BZ:Belize:+501,BJ:Benin:+229,BM:Bermuda:+1441,BT:Bhutan:+975,BO:Bolivia:+591,BA:Bosnia and Herzegovina:+387,BW:Botswana:+267,BR:Brazil:+55,BN:Brunei:+673,BG:Bulgaria:+359,BF:Burkina Faso:+226,BI:Burundi:+257,KH:Cambodia:+855,CM:Cameroon:+237,CA:Canada:+1,CV:Cape Verde:+238,KY:Cayman Islands:+1345,CF:Central African Republic:+236,TD:Chad:+235,CL:Chile:+56,CN:China:+86,CO:Colombia:+57,KM:Comoros:+269,CG:Congo:+242,CD:Congo (DRC):+243,CK:Cook Islands:+682,CR:Costa Rica:+506,CI:Côte d'Ivoire:+225,HR:Croatia:+385,CU:Cuba:+53,CW:Curaçao:+599,CY:Cyprus:+357,CZ:Czechia:+420,DK:Denmark:+45,DJ:Djibouti:+253,DM:Dominica:+1767,DO:Dominican Republic:+1809,EC:Ecuador:+593,EG:Egypt:+20,SV:El Salvador:+503,GQ:Equatorial Guinea:+240,ER:Eritrea:+291,EE:Estonia:+372,SZ:Eswatini:+268,ET:Ethiopia:+251,FO:Faroe Islands:+298,FJ:Fiji:+679,FI:Finland:+358,FR:France:+33,GF:French Guiana:+594,PF:French Polynesia:+689,GA:Gabon:+241,GM:Gambia:+220,GE:Georgia:+995,DE:Germany:+49,GH:Ghana:+233,GI:Gibraltar:+350,GR:Greece:+30,GL:Greenland:+299,GD:Grenada:+1473,GP:Guadeloupe:+590,GU:Guam:+1671,GT:Guatemala:+502,GG:Guernsey:+44,GN:Guinea:+224,GW:Guinea-Bissau:+245,GY:Guyana:+592,HT:Haiti:+509,HN:Honduras:+504,HK:Hong Kong:+852,HU:Hungary:+36,IS:Iceland:+354,IN:India:+91,ID:Indonesia:+62,IR:Iran:+98,IQ:Iraq:+964,IE:Ireland:+353,IM:Isle of Man:+44,IL:Israel:+972,IT:Italy:+39,JM:Jamaica:+1876,JP:Japan:+81,JE:Jersey:+44,JO:Jordan:+962,KZ:Kazakhstan:+7,KE:Kenya:+254,KI:Kiribati:+686,KW:Kuwait:+965,KG:Kyrgyzstan:+996,LA:Laos:+856,LV:Latvia:+371,LB:Lebanon:+961,LS:Lesotho:+266,LR:Liberia:+231,LY:Libya:+218,LI:Liechtenstein:+423,LT:Lithuania:+370,LU:Luxembourg:+352,MO:Macau:+853,MG:Madagascar:+261,MW:Malawi:+265,MY:Malaysia:+60,MV:Maldives:+960,ML:Mali:+223,MT:Malta:+356,MH:Marshall Islands:+692,MQ:Martinique:+596,MR:Mauritania:+222,MU:Mauritius:+230,MX:Mexico:+52,FM:Micronesia:+691,MD:Moldova:+373,MC:Monaco:+377,MN:Mongolia:+976,ME:Montenegro:+382,MS:Montserrat:+1664,MA:Morocco:+212,MZ:Mozambique:+258,MM:Myanmar:+95,NA:Namibia:+264,NR:Nauru:+674,NP:Nepal:+977,NL:Netherlands:+31,NC:New Caledonia:+687,NZ:New Zealand:+64,NI:Nicaragua:+505,NE:Niger:+227,NG:Nigeria:+234,MK:North Macedonia:+389,NO:Norway:+47,OM:Oman:+968,PK:Pakistan:+92,PW:Palau:+680,PS:Palestine:+970,PA:Panama:+507,PG:Papua New Guinea:+675,PY:Paraguay:+595,PE:Peru:+51,PH:Philippines:+63,PL:Poland:+48,PT:Portugal:+351,PR:Puerto Rico:+1787,QA:Qatar:+974,RE:Réunion:+262,RO:Romania:+40,RU:Russia:+7,RW:Rwanda:+250,KN:Saint Kitts and Nevis:+1869,LC:Saint Lucia:+1758,VC:Saint Vincent and the Grenadines:+1784,WS:Samoa:+685,SM:San Marino:+378,ST:São Tomé and Príncipe:+239,SA:Saudi Arabia:+966,SN:Senegal:+221,RS:Serbia:+381,SC:Seychelles:+248,SL:Sierra Leone:+232,SG:Singapore:+65,SX:Sint Maarten:+1721,SK:Slovakia:+421,SI:Slovenia:+386,SB:Solomon Islands:+677,SO:Somalia:+252,ZA:South Africa:+27,KR:South Korea:+82,SS:South Sudan:+211,ES:Spain:+34,LK:Sri Lanka:+94,SD:Sudan:+249,SR:Suriname:+597,SE:Sweden:+46,CH:Switzerland:+41,SY:Syria:+963,TW:Taiwan:+886,TJ:Tajikistan:+992,TZ:Tanzania:+255,TH:Thailand:+66,TL:Timor-Leste:+670,TG:Togo:+228,TO:Tonga:+676,TT:Trinidad and Tobago:+1868,TN:Tunisia:+216,TR:Turkey:+90,TM:Turkmenistan:+993,TC:Turks and Caicos Islands:+1649,TV:Tuvalu:+688,UG:Uganda:+256,UA:Ukraine:+380,AE:United Arab Emirates:+971,GB:United Kingdom:+44,US:United States:+1,UY:Uruguay:+598,UZ:Uzbekistan:+998,VU:Vanuatu:+678,VA:Vatican City:+379,VE:Venezuela:+58,VN:Vietnam:+84,VG:Virgin Islands (British):+1284,VI:Virgin Islands (US):+1340,YE:Yemen:+967,ZM:Zambia:+260,ZW:Zimbabwe:+263".split(",").map(function(r){
+  var p = r.split(':');
+  var flag = p[0].replace(/./g, function(c){ return String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65); });
+  return { f: flag, n: p[1], c: p[2] };
+});
 
 document.addEventListener('DOMContentLoaded', ()=>{ setupValidation(); restoreState(); });
 
+/* 224 countries cannot be scrolled, so the list gets a search box. Matches on
+   country name or dial code, so "morocco", "ma" and "212" all find the same
+   row, and somebody who only knows their code does not have to know what the
+   country is called in English. */
 (function buildDialDD(){
   const dd=document.getElementById('codeDD');
-  DIAL.forEach(d=>{
+
+  const search=document.createElement('input');
+  search.type='text';
+  search.className='code-search';
+  search.placeholder='Search country or code';
+  search.autocomplete='off';
+  // Typing in here must not close the dropdown or submit anything.
+  search.onclick=(e)=>e.stopPropagation();
+  search.onkeydown=(e)=>{ e.stopPropagation(); if(e.key==='Enter') e.preventDefault(); };
+  dd.appendChild(search);
+
+  const list=document.createElement('div');
+  list.className='code-list';
+  dd.appendChild(list);
+
+  const rows=DIAL.map(d=>{
     const el=document.createElement('div');
     el.className='code-opt';
     el.innerHTML=`<span class="cf">${d.f}</span><span class="cn">${d.n}</span><span class="cd">${d.c}</span>`;
     el.onclick=()=>selectDialCode(d.f,d.c);
-    dd.appendChild(el);
+    list.appendChild(el);
+    return { el, hay:(d.n+' '+d.c).toLowerCase() };
   });
+
+  const empty=document.createElement('div');
+  empty.className='code-empty';
+  empty.textContent='No country matches that.';
+  empty.style.display='none';
+  list.appendChild(empty);
+
+  search.oninput=()=>{
+    const q=search.value.trim().toLowerCase().replace(/^\+/,'');
+    let shown=0;
+    rows.forEach(r=>{
+      const hit = !q || r.hay.replace(/\+/g,'').indexOf(q)>-1;
+      r.el.style.display = hit ? '' : 'none';
+      if(hit) shown++;
+    });
+    empty.style.display = shown ? 'none' : '';
+  };
+
+  // Clear and focus each time it opens, so it never reopens mid-filter.
+  window.__resetDialSearch = () => {
+    search.value=''; search.oninput();
+    list.scrollTop=0;
+    setTimeout(()=>{ try{ search.focus({preventScroll:true}); }catch(e){} }, 30);
+  };
 })();
 
 function toggleCodeDD(e){
   e.stopPropagation();
-  document.getElementById('codeDD').classList.toggle('open');
+  const dd=document.getElementById('codeDD');
+  dd.classList.toggle('open');
+  if(dd.classList.contains('open') && window.__resetDialSearch) window.__resetDialSearch();
 }
 
 function selectDialCode(flag,code){
