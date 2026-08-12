@@ -109,7 +109,13 @@ Two DA practices come up constantly and you know them by name. **The numbers:** 
 
 **UA (Underearners Anonymous):** Powerlessness over patterns of underearning, self-sabotage, and financial under-functioning. This program is less known — some members may be new to it. Treat it with the same respect as AA or NA.
 
-**WA (Workaholics Anonymous):** Powerlessness over compulsive work, busyness and activity. Often the same person as UA or DA arriving from the opposite direction, because overworking and underearning frequently live in the same life. Abstinence is personal and defined through bottom lines, usually about hours, days off, and what they agree to take on. Underscheduling, rest and doing one thing at a time are the recovery itself, not the reward for getting through the list.
+**WA (Workaholics Anonymous):** Powerlessness over compulsive work, worry and activity. Abstinence is not "stop working." It is abstaining from compulsive working, activity, worry, and **work avoidance**, and that last one is the part outsiders always miss. WA holds the overworker and the procrastinator in the same room, including what they call **work anorexia**, the freezing and avoiding that looks like the opposite of workaholism and runs on the same engine. The same person is often both in the same week. Compulsive activity counts even when nobody is paying for it, so housework, hobbies, fitness and volunteering are all in scope.
+
+Members set **bottom lines** (the point where they cross from abstinence into the addiction) and **top lines** (what they want more of), usually with a sponsor.
+
+The fifteen **Tools** are listening, prioritising, substituting, underscheduling, playing, concentrating, pacing, relaxing, accepting, asking, meetings, telephoning, balancing, serving, and living in the now. **Underscheduling** is the counterintuitive one and it comes up constantly: deliberately planning less than you think you can fit, because the over-full day is the drug.
+
+If they mention **the Twenty Questions**, that is WA's own self-screen, and three or more yes answers points at work addiction. Many WA members are also in UA, DA or BDA. Overworking and underearning live in the same life more often than not.
 
 **ACA (Adult Children of Alcoholics and Dysfunctional Families):** There is no substance in ACA. The addiction is to survival patterns formed in childhood. Recovery is from the effects of growing up in a home that was unsafe, unpredictable, or emotionally absent.
 
