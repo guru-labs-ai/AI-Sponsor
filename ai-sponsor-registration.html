@@ -650,42 +650,12 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
       </div>
 
       <div class="row">
-        <div class="fg" id="fg-country">
-          <label>Country <span class="req-star">*</span></label>
-          <select id="f-country" onchange="onCountry()">
-            <option value="" disabled selected>Select...</option>
-            <!-- Filled from DIAL at load, the same 224-country list the phone
-                 dropdown uses. This select had its own hand-written 24 and was
-                 missing Morocco, Indonesia and Egypt, so someone could pass the
-                 phone step and still not find their country here. One list now. -->
-            <option value="Other">Other</option>
-          </select>
-          <span class="err-msg" id="e-country">Please select your country</span>
-        </div>
-        <div class="fg" id="fg-state" style="display:none">
-          <label>State <span class="req-star">*</span></label>
-          <select id="f-state">
-            <option value="" disabled selected>Select...</option>
-            <option>Alabama</option><option>Alaska</option><option>Arizona</option>
-            <option>Arkansas</option><option>California</option><option>Colorado</option>
-            <option>Connecticut</option><option>Delaware</option><option>Florida</option>
-            <option>Georgia</option><option>Hawaii</option><option>Idaho</option>
-            <option>Illinois</option><option>Indiana</option><option>Iowa</option>
-            <option>Kansas</option><option>Kentucky</option><option>Louisiana</option>
-            <option>Maine</option><option>Maryland</option><option>Massachusetts</option>
-            <option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
-            <option>Missouri</option><option>Montana</option><option>Nebraska</option>
-            <option>Nevada</option><option>New Hampshire</option><option>New Jersey</option>
-            <option>New Mexico</option><option>New York</option><option>North Carolina</option>
-            <option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
-            <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option>
-            <option>South Carolina</option><option>South Dakota</option><option>Tennessee</option>
-            <option>Texas</option><option>Utah</option><option>Vermont</option>
-            <option>Virginia</option><option>Washington</option><option>West Virginia</option>
-            <option>Wisconsin</option><option>Wyoming</option>
-          </select>
-          <span class="err-msg" id="e-state">Please select your state</span>
-        </div>
+        <!-- Country and US state used to sit here, both required. They were
+             collected, validated, sent, and then dropped: no column in the
+             database, no mapping in the CRM, never shown to the sponsor. Two
+             mandatory questions on the first screen that produced nothing.
+             Removed. If localised crisis resources ever need a country, this
+             comes back deliberately and gets stored. -->
       </div>
 
       <button class="btn" onclick="go(2)">Continue</button>
@@ -1194,9 +1164,7 @@ function restoreState(){
     const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
     set('f-name',D.name);set('f-email',D.email);
     if(D.pwSet){ const n=document.getElementById('pwSetNote'); if(n) n.classList.add('show'); }
-    set('f-gender',D.gender);set('f-country',D.country);
-    const fgState=document.getElementById('fg-state');
-    if(D.country==='US'&&fgState){fgState.style.display='block';set('f-state',D.state);}
+    set('f-gender',D.gender);
     set('f-why',D.why);
 
     // Restore program cards (multi-select)
@@ -1387,19 +1355,15 @@ function validate(n){
   const name=document.getElementById('f-name').value.trim();
   const email=document.getElementById('f-email').value.trim();
   const pw=document.getElementById('f-pw').value;
-  const country=document.getElementById('f-country').value;
   const setE=(fg,e,v)=>{
     document.getElementById(fg).classList.toggle('bad',v);
     document.getElementById(e).classList.toggle('show',v);
     if(v)ok=false;
   };
-  const state=document.getElementById('f-state').value;
   setE('fg-name','e-name',!name);
   setE('fg-email','e-email',!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
   // Valid if they typed one now, or set one earlier and left the box alone.
   setE('fg-pw','e-pw', !(pw.length>=8 || (D.pwSet && !pw)));
-  setE('fg-country','e-country',!country);
-  if(country==='US') setE('fg-state','e-state',!state);
   return ok;
 }
 
@@ -1416,8 +1380,6 @@ function collect(n){
     D.name=document.getElementById('f-name').value.trim();
     D.email=document.getElementById('f-email').value.trim();
     D.gender=document.getElementById('f-gender').value;
-    D.country=document.getElementById('f-country').value;
-    D.state=document.getElementById('f-state').value;
   }
   if(n===4)D.why=document.getElementById('f-why').value.trim();
   if(n===6){
@@ -1447,10 +1409,6 @@ function collect(n){
   }
 }
 
-function onCountry(){
-  const v=document.getElementById('f-country').value;
-  document.getElementById('fg-state').style.display=v==='US'?'block':'none';
-}
 
 function selProg(el){
   if(!Array.isArray(D.program)) D.program=[];
@@ -1758,8 +1716,6 @@ async function registerUser(paymentStatus) {
     name:        D.name         || '',
     email:       D.email        || '',
     phone:       D.phone        || '',
-    country:     D.country      || '',
-    state:       D.state        || '',
     program:     programList().join(', '),
     otherProgram: D.otherProgram || '',
     stage:       D.stage        || '',
@@ -1937,21 +1893,6 @@ document.addEventListener('DOMContentLoaded', ()=>{ setupValidation(); restoreSt
    country name or dial code, so "morocco", "ma" and "212" all find the same
    row, and somebody who only knows their code does not have to know what the
    country is called in English. */
-/* Screen 1's country select comes from the same source as the phone codes.
-   Two separately maintained country lists is how one of them ends up missing
-   half of Africa without anybody noticing. */
-(function buildCountrySelect(){
-  const sel=document.getElementById('f-country');
-  if(!sel) return;
-  const other=sel.querySelector('option[value="Other"]');
-  DIAL.forEach(d=>{
-    const iso=d.n; // name; the ISO code is the key we store
-    const o=document.createElement('option');
-    o.value=d.iso; o.textContent=d.n;
-    sel.insertBefore(o, other);
-  });
-})();
-
 (function buildDialDD(){
   const dd=document.getElementById('codeDD');
 
