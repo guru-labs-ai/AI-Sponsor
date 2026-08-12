@@ -1767,6 +1767,43 @@ async function registerUser(paymentStatus) {
        it, or they carry on chatting as a stranger and their history splits away
        from everything they did last time. */
     const data = await res.json().catch(() => ({}));
+
+    /* Tell the ad networks a registration completed. This is the event a
+       prospecting campaign has to optimise towards: at $5 a month with a 30-day
+       trial there are nowhere near enough purchases for the algorithm to learn
+       from, and a beta signup never reaches Stripe at all, so without this the
+       pixel only ever sees page views and Meta has nothing to aim at.
+
+       Fires for BOTH paths, the paid trial and the beta code, because both are
+       a real person finishing registration. It sits alongside StartTrial and
+       Purchase rather than replacing them: registration and payment are
+       different funnel steps and Meta expects to see both.
+
+       Guarded three ways so the count cannot inflate: only on a successful
+       response, only once per browser, and never for someone the backend
+       recognised as already registered (it answers with their existing id,
+       which is the same signal the adoption block below uses). Read that flag
+       BEFORE the block below reassigns chatUserId. */
+    const alreadyRegistered = !!(data && data.userId && data.userId !== chatUserId);
+    try {
+      if (res.ok && !alreadyRegistered && localStorage.getItem('ais_reg_reported') !== '1') {
+        try {
+          fbq('track', 'CompleteRegistration', {
+            content_name: 'AI Sponsor Registration',
+            status: paymentStatus || 'Unpaid'
+          });
+        } catch(e) { console.warn('[AI Sponsor] Meta pixel not available:', e); }
+
+        /* Same event to OpenAI's ads pixel, using their standard event name, so
+           ChatGPT ads experiments get registrations back the same way Meta's do. */
+        try {
+          oaiq('measure', 'sign_up', { type: 'account_creation' });
+        } catch(e) { console.warn('[AI Sponsor] OpenAI pixel not available:', e); }
+
+        localStorage.setItem('ais_reg_reported', '1');
+      }
+    } catch(e) { console.warn('[AI Sponsor] registration event not reported:', e); }
+
     // Carried into the prefilled WhatsApp message so their first message proves
     // the number is theirs. See buildWaLink.
     if (data && data.linkCode) {
