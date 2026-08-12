@@ -164,6 +164,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);min-height:100vh;
 @media (hover:hover){.pw-toggle:hover{color:var(--blue)}}
 .pw-toggle:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
 .pw-toggle svg{display:block}
+.pw-set-note{font-size:12.5px;color:var(--sub);margin-top:6px;line-height:1.5;display:none}
+.pw-set-note.show{display:block}
 .pw-toggle .icon-hide{display:none}
 .pw-toggle.revealed .icon-show{display:none}
 .pw-toggle.revealed .icon-hide{display:block}
@@ -634,6 +636,7 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
         <label>Password <span class="req-star">*</span></label>
         <div class="input-wrap pw-wrap"><input type="password" id="f-pw" placeholder="At least 8 characters" autocomplete="new-password"><span class="fok" id="ok-pw">✓</span><button type="button" class="pw-toggle" id="pw-toggle" onclick="togglePw(this)" aria-label="Show password" aria-pressed="false" title="Show password"><svg class="icon-show" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><svg class="icon-hide" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></button></div>
         <span class="err-msg" id="e-pw">Password must be at least 8 characters</span>
+        <p class="pw-set-note" id="pwSetNote">You already set a password. Leave this blank to keep it.</p>
       </div>
 
 
@@ -651,29 +654,10 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
           <label>Country <span class="req-star">*</span></label>
           <select id="f-country" onchange="onCountry()">
             <option value="" disabled selected>Select...</option>
-            <option value="US">United States</option>
-            <option value="GB">United Kingdom</option>
-            <option value="CA">Canada</option>
-            <option value="AU">Australia</option>
-            <option value="IE">Ireland</option>
-            <option value="NZ">New Zealand</option>
-            <option value="ZA">South Africa</option>
-            <option value="IN">India</option>
-            <option value="PK">Pakistan</option>
-            <option value="DE">Germany</option>
-            <option value="FR">France</option>
-            <option value="ES">Spain</option>
-            <option value="IT">Italy</option>
-            <option value="NL">Netherlands</option>
-            <option value="SE">Sweden</option>
-            <option value="NO">Norway</option>
-            <option value="BR">Brazil</option>
-            <option value="MX">Mexico</option>
-            <option value="AR">Argentina</option>
-            <option value="CO">Colombia</option>
-            <option value="JP">Japan</option>
-            <option value="GE">Georgia</option>
-            <option value="TR">Turkey</option>
+            <!-- Filled from DIAL at load, the same 224-country list the phone
+                 dropdown uses. This select had its own hand-written 24 and was
+                 missing Morocco, Indonesia and Egypt, so someone could pass the
+                 phone step and still not find their country here. One list now. -->
             <option value="Other">Other</option>
           </select>
           <span class="err-msg" id="e-country">Please select your country</span>
@@ -1208,7 +1192,8 @@ function restoreState(){
 
     // Restore visible field values
     const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
-    set('f-name',D.name);set('f-email',D.email);set('f-pw',D.pw);
+    set('f-name',D.name);set('f-email',D.email);
+    if(D.pwSet){ const n=document.getElementById('pwSetNote'); if(n) n.classList.add('show'); }
     set('f-gender',D.gender);set('f-country',D.country);
     const fgState=document.getElementById('fg-state');
     if(D.country==='US'&&fgState){fgState.style.display='block';set('f-state',D.state);}
@@ -1411,7 +1396,8 @@ function validate(n){
   const state=document.getElementById('f-state').value;
   setE('fg-name','e-name',!name);
   setE('fg-email','e-email',!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
-  setE('fg-pw','e-pw',!pw||pw.length<8);
+  // Valid if they typed one now, or set one earlier and left the box alone.
+  setE('fg-pw','e-pw', !(pw.length>=8 || (D.pwSet && !pw)));
   setE('fg-country','e-country',!country);
   if(country==='US') setE('fg-state','e-state',!state);
   return ok;
@@ -1419,6 +1405,14 @@ function validate(n){
 
 function collect(n){
   if(n===1){
+    /* Remember that they set one, never what it was. The password is
+       deliberately not stored anywhere, so after a reload the field comes back
+       blank while every other field is restored. Someone stepping back to
+       screen 1 then hit "Password must be at least 8 characters" on a box that
+       looks exactly the same full or empty, with no way to know why they were
+       stuck. A boolean is enough to stop that without keeping a password in
+       localStorage, which we are never doing. */
+    if(document.getElementById('f-pw').value.length>=8) D.pwSet=true;
     D.name=document.getElementById('f-name').value.trim();
     D.email=document.getElementById('f-email').value.trim();
     D.gender=document.getElementById('f-gender').value;
@@ -1934,7 +1928,7 @@ function sendScholarship(){
 const DIAL = "AF:Afghanistan:+93,AX:Åland Islands:+358,AL:Albania:+355,DZ:Algeria:+213,AS:American Samoa:+1684,AD:Andorra:+376,AO:Angola:+244,AI:Anguilla:+1264,AG:Antigua and Barbuda:+1268,AR:Argentina:+54,AM:Armenia:+374,AW:Aruba:+297,AU:Australia:+61,AT:Austria:+43,AZ:Azerbaijan:+994,BS:Bahamas:+1242,BH:Bahrain:+973,BD:Bangladesh:+880,BB:Barbados:+1246,BY:Belarus:+375,BE:Belgium:+32,BZ:Belize:+501,BJ:Benin:+229,BM:Bermuda:+1441,BT:Bhutan:+975,BO:Bolivia:+591,BA:Bosnia and Herzegovina:+387,BW:Botswana:+267,BR:Brazil:+55,BN:Brunei:+673,BG:Bulgaria:+359,BF:Burkina Faso:+226,BI:Burundi:+257,KH:Cambodia:+855,CM:Cameroon:+237,CA:Canada:+1,CV:Cape Verde:+238,KY:Cayman Islands:+1345,CF:Central African Republic:+236,TD:Chad:+235,CL:Chile:+56,CN:China:+86,CO:Colombia:+57,KM:Comoros:+269,CG:Congo:+242,CD:Congo (DRC):+243,CK:Cook Islands:+682,CR:Costa Rica:+506,CI:Côte d'Ivoire:+225,HR:Croatia:+385,CU:Cuba:+53,CW:Curaçao:+599,CY:Cyprus:+357,CZ:Czechia:+420,DK:Denmark:+45,DJ:Djibouti:+253,DM:Dominica:+1767,DO:Dominican Republic:+1809,EC:Ecuador:+593,EG:Egypt:+20,SV:El Salvador:+503,GQ:Equatorial Guinea:+240,ER:Eritrea:+291,EE:Estonia:+372,SZ:Eswatini:+268,ET:Ethiopia:+251,FO:Faroe Islands:+298,FJ:Fiji:+679,FI:Finland:+358,FR:France:+33,GF:French Guiana:+594,PF:French Polynesia:+689,GA:Gabon:+241,GM:Gambia:+220,GE:Georgia:+995,DE:Germany:+49,GH:Ghana:+233,GI:Gibraltar:+350,GR:Greece:+30,GL:Greenland:+299,GD:Grenada:+1473,GP:Guadeloupe:+590,GU:Guam:+1671,GT:Guatemala:+502,GG:Guernsey:+44,GN:Guinea:+224,GW:Guinea-Bissau:+245,GY:Guyana:+592,HT:Haiti:+509,HN:Honduras:+504,HK:Hong Kong:+852,HU:Hungary:+36,IS:Iceland:+354,IN:India:+91,ID:Indonesia:+62,IR:Iran:+98,IQ:Iraq:+964,IE:Ireland:+353,IM:Isle of Man:+44,IL:Israel:+972,IT:Italy:+39,JM:Jamaica:+1876,JP:Japan:+81,JE:Jersey:+44,JO:Jordan:+962,KZ:Kazakhstan:+7,KE:Kenya:+254,KI:Kiribati:+686,KW:Kuwait:+965,KG:Kyrgyzstan:+996,LA:Laos:+856,LV:Latvia:+371,LB:Lebanon:+961,LS:Lesotho:+266,LR:Liberia:+231,LY:Libya:+218,LI:Liechtenstein:+423,LT:Lithuania:+370,LU:Luxembourg:+352,MO:Macau:+853,MG:Madagascar:+261,MW:Malawi:+265,MY:Malaysia:+60,MV:Maldives:+960,ML:Mali:+223,MT:Malta:+356,MH:Marshall Islands:+692,MQ:Martinique:+596,MR:Mauritania:+222,MU:Mauritius:+230,MX:Mexico:+52,FM:Micronesia:+691,MD:Moldova:+373,MC:Monaco:+377,MN:Mongolia:+976,ME:Montenegro:+382,MS:Montserrat:+1664,MA:Morocco:+212,MZ:Mozambique:+258,MM:Myanmar:+95,NA:Namibia:+264,NR:Nauru:+674,NP:Nepal:+977,NL:Netherlands:+31,NC:New Caledonia:+687,NZ:New Zealand:+64,NI:Nicaragua:+505,NE:Niger:+227,NG:Nigeria:+234,MK:North Macedonia:+389,NO:Norway:+47,OM:Oman:+968,PK:Pakistan:+92,PW:Palau:+680,PS:Palestine:+970,PA:Panama:+507,PG:Papua New Guinea:+675,PY:Paraguay:+595,PE:Peru:+51,PH:Philippines:+63,PL:Poland:+48,PT:Portugal:+351,PR:Puerto Rico:+1787,QA:Qatar:+974,RE:Réunion:+262,RO:Romania:+40,RU:Russia:+7,RW:Rwanda:+250,KN:Saint Kitts and Nevis:+1869,LC:Saint Lucia:+1758,VC:Saint Vincent and the Grenadines:+1784,WS:Samoa:+685,SM:San Marino:+378,ST:São Tomé and Príncipe:+239,SA:Saudi Arabia:+966,SN:Senegal:+221,RS:Serbia:+381,SC:Seychelles:+248,SL:Sierra Leone:+232,SG:Singapore:+65,SX:Sint Maarten:+1721,SK:Slovakia:+421,SI:Slovenia:+386,SB:Solomon Islands:+677,SO:Somalia:+252,ZA:South Africa:+27,KR:South Korea:+82,SS:South Sudan:+211,ES:Spain:+34,LK:Sri Lanka:+94,SD:Sudan:+249,SR:Suriname:+597,SE:Sweden:+46,CH:Switzerland:+41,SY:Syria:+963,TW:Taiwan:+886,TJ:Tajikistan:+992,TZ:Tanzania:+255,TH:Thailand:+66,TL:Timor-Leste:+670,TG:Togo:+228,TO:Tonga:+676,TT:Trinidad and Tobago:+1868,TN:Tunisia:+216,TR:Turkey:+90,TM:Turkmenistan:+993,TC:Turks and Caicos Islands:+1649,TV:Tuvalu:+688,UG:Uganda:+256,UA:Ukraine:+380,AE:United Arab Emirates:+971,GB:United Kingdom:+44,US:United States:+1,UY:Uruguay:+598,UZ:Uzbekistan:+998,VU:Vanuatu:+678,VA:Vatican City:+379,VE:Venezuela:+58,VN:Vietnam:+84,VG:Virgin Islands (British):+1284,VI:Virgin Islands (US):+1340,YE:Yemen:+967,ZM:Zambia:+260,ZW:Zimbabwe:+263".split(",").map(function(r){
   var p = r.split(':');
   var flag = p[0].replace(/./g, function(c){ return String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65); });
-  return { f: flag, n: p[1], c: p[2] };
+  return { f: flag, n: p[1], c: p[2], iso: p[0] };
 });
 
 document.addEventListener('DOMContentLoaded', ()=>{ setupValidation(); restoreState(); });
@@ -1943,6 +1937,21 @@ document.addEventListener('DOMContentLoaded', ()=>{ setupValidation(); restoreSt
    country name or dial code, so "morocco", "ma" and "212" all find the same
    row, and somebody who only knows their code does not have to know what the
    country is called in English. */
+/* Screen 1's country select comes from the same source as the phone codes.
+   Two separately maintained country lists is how one of them ends up missing
+   half of Africa without anybody noticing. */
+(function buildCountrySelect(){
+  const sel=document.getElementById('f-country');
+  if(!sel) return;
+  const other=sel.querySelector('option[value="Other"]');
+  DIAL.forEach(d=>{
+    const iso=d.n; // name; the ISO code is the key we store
+    const o=document.createElement('option');
+    o.value=d.iso; o.textContent=d.n;
+    sel.insertBefore(o, other);
+  });
+})();
+
 (function buildDialDD(){
   const dd=document.getElementById('codeDD');
 
