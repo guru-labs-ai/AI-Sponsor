@@ -979,13 +979,23 @@ app.post('/api/sponsor-settings/restart', async (req, res) => {
   const userId = await db.resolveSettingsToken(String((req.body || {}).t || '')).catch(() => null);
   if (!userId) return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
   try {
-    const removed = await db.clearConversation(userId);
-    userProfiles.delete(userId);
-    conversations.delete(userId);
-    userMemory.delete(userId);
-    db.recordEvent(userId, 'conversation_restarted', { messagesRemoved: removed }, 'settings-link')
+    /* A person is routinely two rows (reg-<uuid> + wa-<phone>), mirrored at
+       registration so their sponsor knows them on either channel. Clearing only
+       the identity the settings link happened to resolve to would leave the
+       other one's history untouched — the opposite of what "start over" means
+       to someone asking for a clean slate. Same pattern deletion.js already
+       uses for this exact problem. */
+    const identities = await db.findAllIdentities(userId);
+    let removed = 0;
+    for (const id of identities) {
+      removed += await db.clearConversation(id);
+      userProfiles.delete(id);
+      conversations.delete(id);
+      userMemory.delete(id);
+    }
+    db.recordEvent(userId, 'conversation_restarted', { messagesRemoved: removed, identities }, 'settings-link')
       .catch((e) => console.error('[settings] recordEvent failed:', e.message));
-    console.log(`[settings] ${userId} restarted their conversation (${removed} messages)`);
+    console.log(`[settings] ${userId} restarted their conversation across ${identities.length} identit${identities.length === 1 ? 'y' : 'ies'} (${removed} messages)`);
     res.json({ success: true, messagesRemoved: removed });
   } catch (err) {
     console.error('[settings] restart failed:', err.message);
@@ -1048,15 +1058,18 @@ app.post('/api/sponsor-settings/support', async (req, res) => {
 
 /* Deactivation is REQUESTED here, not executed.
 
-   The full delete is a real piece of work that already exists, unmerged, on
-   feature/forget-me-deletion-path: it cancels any live Stripe subscription and
-   confirms the cancellation before purging, wipes the DB rows, and removes or
-   untags the GHL contact. Wiring a button straight to an unreviewed branch that
-   cancels billing and destroys recovery data is not something to do quickly.
+   deleteUserIdentity (deletion.js) is merged and live, wired into
+   /api/admin/delete-user — cancels any live Stripe subscription and confirms
+   the cancellation before purging, wipes the DB rows, and removes or untags
+   the GHL contact. This endpoint still doesn't call it directly, and won't:
+   the only thing authenticating this request is a settings-link token, there's
+   no password behind it, and there's no undo on either the Stripe cancellation
+   or the purge. Someone can press this in a bad hour. A human confirming the
+   request is the safeguard here, not a missing feature.
 
    So this files the request, tells the team immediately, and records it. The
-   person gets a definite answer instead of a dead button, and when that branch
-   lands this endpoint calls it directly. */
+   person gets a definite answer instead of a dead button, and a human runs
+   /api/admin/delete-user once they've confirmed it's really what's wanted. */
 app.post('/api/sponsor-settings/deactivate', async (req, res) => {
   const b = req.body || {};
   const userId = await db.resolveSettingsToken(String(b.t || '')).catch(() => null);
@@ -1113,19 +1126,29 @@ app.post('/api/sponsor-settings', async (req, res) => {
   if (sponsorName) patch.sponsorName = sponsorName;
   if (sponsorVoice) patch.sponsorVoice = sponsorVoice;
 
+  /* Apply to every identity this person holds, not just the one the link
+     resolved to. Same reg-/wa- mirroring problem as restart: without this, a
+     rename made from WhatsApp leaves the mirrored web identity with the old
+     name and voice, and the two quietly drift apart the moment someone uses
+     both channels. */
+  const identities = await db.findAllIdentities(userId);
+
   try {
-    await db.saveProfile(userId, patch);
+    for (const id of identities) {
+      await db.saveProfile(id, patch);
+    }
   } catch (err) {
     console.error('[settings] saveProfile failed:', err.message);
     return res.status(500).json({ error: 'Could not save that. Please try again.' });
   }
 
-  /* Drop the RAM copy or the change would not show up until the next restart:
-     loadSession() reads userProfiles first and only falls back to the DB. */
-  userProfiles.delete(userId);
+  /* Drop the RAM copy for every identity or the change would not show up until
+     the next restart: loadSession() reads userProfiles first and only falls
+     back to the DB. */
+  for (const id of identities) userProfiles.delete(id);
 
   res.json({ success: true, sponsorName, sponsorVoice });
-  console.log(`[settings] ${userId} updated ${Object.keys(patch).join(' + ')}`);
+  console.log(`[settings] ${userId} updated ${Object.keys(patch).join(' + ')} across ${identities.length} identit${identities.length === 1 ? 'y' : 'ies'}`);
 
   /* Durable record of what actually changed. Only fields that really moved get
      an event, so re-saving the same name does not create noise. Never awaited
@@ -1133,12 +1156,12 @@ app.post('/api/sponsor-settings', async (req, res) => {
      bookkeeping failure must not be reported to them as a failed save. */
   if (sponsorName && sponsorName !== before.sponsorName) {
     db.recordEvent(userId, 'sponsor_renamed',
-      { from: before.sponsorName || null, to: sponsorName }, 'settings-link')
+      { from: before.sponsorName || null, to: sponsorName, identities }, 'settings-link')
       .catch((e) => console.error('[settings] recordEvent failed:', e.message));
   }
   if (sponsorVoice && sponsorVoice !== before.sponsorVoice) {
     db.recordEvent(userId, 'voice_changed',
-      { from: before.sponsorVoice || null, to: sponsorVoice }, 'settings-link')
+      { from: before.sponsorVoice || null, to: sponsorVoice, identities }, 'settings-link')
       .catch((e) => console.error('[settings] recordEvent failed:', e.message));
   }
 
@@ -1443,13 +1466,17 @@ app.post('/support', async (req, res) => {
   }
 });
 
-// Admin-only key check. Same pattern as /api/admin/delete-user (feature/forget-me-deletion-path):
-// a shared secret rather than real auth, since the login work a real user-facing
-// check would depend on hasn't landed yet.
+// Admin-only key check. Same pattern as /api/admin/delete-user: a shared secret
+// rather than real auth, since the login work a real user-facing check would
+// depend on hasn't landed yet. Deletion merged as 38b5f2e.
 function requireAdminKey(req, res, next) {
   const key = req.headers['x-admin-key'];
   const ok = !!process.env.ADMIN_API_KEY && key === process.env.ADMIN_API_KEY;
-  db.logAdminAccess(req.path, req.params.userId, ok, req.ip).catch(() => {});
+  // /api/history/:userId carries the target as a route param; /api/admin/delete-user
+  // carries it in the body instead, so the param alone left every delete attempt
+  // logging target_id: null — the one route where the audit trail matters most.
+  const targetId = req.params.userId || (req.body && req.body.userId);
+  db.logAdminAccess(req.path, targetId, ok, req.ip).catch(() => {});
   if (!ok) {
     return res.status(401).json({ error: 'unauthorized' });
   }
