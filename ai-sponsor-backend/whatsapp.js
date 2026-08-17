@@ -255,6 +255,49 @@ function asksForVoice(text) {
   return VOICE_REQUEST.test(text);
 }
 
+/* ── What can never be said out loud ─────────────────────────────────────────
+   The crisis protocol hands out 988, 741741 and 1-800-662-4357. Somebody in
+   crisis cannot dial a number they heard. They cannot tap it, screenshot it,
+   or scroll back for it while panicking, and a voice note is the one format
+   you cannot copy anything out of. The same goes for the settings link, which
+   is the only route to renaming, starting over, or deleting an account.
+
+   So this overrules everything: the sponsor's own choice to speak, and a
+   direct request for a voice note. If a reply carries something a person needs
+   to act on, it goes as text, whatever anyone wanted.
+
+   Deliberately in code rather than in the prompt. A prompt instruction is a
+   preference the model weighs against everything else it has been told, and
+   this morning's bug was the whole lesson in what that is worth. This has to
+   be a guarantee, and only the routing layer can guarantee anything.
+
+   Errs toward text throughout. A false positive costs a voice note nobody
+   noticed was missing. A false negative costs somebody a crisis number they
+   cannot use. */
+const CRISIS_RESOURCE =
+  /\b(?:988|741741|1[\s.-]?800[\s.-]?662[\s.-]?4357|crisis (?:text )?line|crisis lifeline|samhsa|helpline)\b/i;
+const HAS_LINK = /https?:\/\/|\bwww\.|\b[a-z0-9-]{2,}\.(?:com|org|net|io|app|health|co)\b/i;
+const HAS_PHONE = /\+?\d[\d\s().-]{7,}\d/;
+
+function textOnlyReason(text) {
+  if (typeof text !== 'string') return null;
+  if (CRISIS_RESOURCE.test(text)) return 'crisis resources must stay tappable';
+  if (HAS_LINK.test(text)) return 'contains a link';
+  if (HAS_PHONE.test(text)) return 'contains a number to dial';
+  return null;
+}
+
+/* ── Not twice in a row ──────────────────────────────────────────────────────
+   An unprompted voice note is worth something because it is unusual. Two in a
+   row and it is just the new default, which is the thing the prompt spends a
+   whole section warning against.
+
+   RAM only, and deliberately so. Losing it on deploy makes the next reply text
+   rather than voice, which is the harmless direction to fail in, and it is not
+   worth a database round trip to save one voice note. Only unprompted sends
+   count: if they keep sending voice notes, they keep getting them back. */
+const lastReplyWasUnpromptedVoice = new Map();
+
 /* ── The spoken hello ────────────────────────────────────────────────────────
    Sent once, alongside the first text reply, so someone hears the sponsor they
    built in the voice they chose.
@@ -535,19 +578,42 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
          is met by the sponsor they set up rather than a stock one. */
       const profile = await db.getProfile(userId).catch(() => null);
 
-      /* Voice in, voice back. Text in, text back. And now: asked for, voice
-         back. The model is told which of these is happening so it never
-         describes the channel wrongly to the person using it. */
+      /* Voice in, voice back. Asked for, voice back. Otherwise text, unless the
+         sponsor itself decides this one is worth speaking. The model is told
+         which of these is happening so it never describes the channel wrongly
+         to the person using it. */
       const askedForVoice = !isAudio && asksForVoice(userMessageText);
       if (askedForVoice) console.log(`[WhatsApp] ${fromPhone} asked for a voice note in text`);
-      const replyAsVoice = isAudio || askedForVoice;
+      const requestedVoice = isAudio || askedForVoice;
 
-      const replyText = await getSponsorReply(userId, userMessageText, {
-        channel: 'whatsapp',
-        viaVoice: isAudio,
-        replyIsSpoken: replyAsVoice,
-      });
+      /* Passed in and read back out afterwards: getSponsorReply sets
+         modelWantsVoice on this object when the reply came back marked. */
+      const ctx = { channel: 'whatsapp', viaVoice: isAudio, replyIsSpoken: requestedVoice };
+      const replyText = await getSponsorReply(userId, userMessageText, ctx);
       console.log(`[WhatsApp] Claude reply to ${fromPhone}: "${replyText.substring(0, 80)}..."`);
+
+      /* Work out what medium this actually goes in, in the order that matters:
+         the safety guard wins over everyone, then what they asked for, then
+         what the sponsor chose, then restraint. */
+      let replyAsVoice;
+      const blocked = textOnlyReason(replyText);
+      if (blocked) {
+        replyAsVoice = false;
+        console.log(`[WhatsApp] forcing text to ${fromPhone}: ${blocked}`);
+      } else if (requestedVoice) {
+        replyAsVoice = true;
+      } else if (ctx.modelWantsVoice && lastReplyWasUnpromptedVoice.get(userId)) {
+        replyAsVoice = false;
+        console.log(`[WhatsApp] sponsor chose voice for ${fromPhone}, held back: not twice in a row`);
+      } else if (ctx.modelWantsVoice) {
+        replyAsVoice = true;
+        console.log(`[WhatsApp] sponsor chose to speak to ${fromPhone}`);
+      } else {
+        replyAsVoice = false;
+      }
+
+      // Only an UNPROMPTED voice note arms the not-twice-in-a-row rule.
+      lastReplyWasUnpromptedVoice.set(userId, replyAsVoice && !requestedVoice);
 
       // ── 6/7. Reply in the medium they used, or the one they asked for ────
       if (replyAsVoice) {
@@ -611,6 +677,10 @@ async function sendVoiceNote(toPhone, text, voice, expressApp) {
    captureWhatsAppUser until the next deploy. */
 function clearCapturedNumber(userId) {
   capturedNumbers.delete(userId);
+  // Someone who deletes and comes back is a clean slate, including the
+  // not-twice-in-a-row guard. Otherwise their first reply back could be held
+  // to text because of a voice note sent to the person they used to be.
+  lastReplyWasUnpromptedVoice.delete(userId);
 }
 
 module.exports = {

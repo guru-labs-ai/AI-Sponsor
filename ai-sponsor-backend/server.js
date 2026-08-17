@@ -630,6 +630,31 @@ function correctFalseVoiceClaims(history) {
   return out;
 }
 
+/* ─── Letting the sponsor choose to speak ────────────────────────────────────
+   Until now the medium was decided entirely by the person: voice in, voice
+   back, or ask and get one. But a real sponsor sometimes just sends a voice
+   note, and always answering in the medium you were addressed in is its own
+   kind of template. The prompt already argues at length that sameness is what
+   gives a machine away.
+
+   So the sponsor can ask to be spoken. It writes [[voice]] anywhere in a reply
+   and WhatsApp sends that reply as a voice note instead of text.
+
+   Stripped here, before the reply is persisted, for two reasons. The marker
+   must never reach a human, and it must never enter the conversation history:
+   a model that sees [[voice]] in its own past turns starts treating it as part
+   of how it writes, and it would eventually leak into a message.
+
+   The decision is only a REQUEST. whatsapp.js can overrule it and does, for
+   anything carrying a phone number or a link. See textOnlyReason() there. This
+   function only reports what was asked for; it never decides anything. */
+const VOICE_MARKER = /\[\[\s*voice\s*\]\]/gi;
+
+function stripVoiceMarker(raw) {
+  const text = String(raw).replace(VOICE_MARKER, '').trim();
+  return { wanted: text !== String(raw).trim(), text };
+}
+
 /* Lets the sponsor hand out a link for changing its own name or voice.
 
    Injected per-reply rather than written into MASTER_SYSTEM_PROMPT because the
@@ -745,6 +770,29 @@ async function getSponsorReply(userId, message, context) {
       'If they point at a moment where you said otherwise, say plainly that you were wrong about it, and move on without making a meal of it.',
       'Write to be heard as much as read: short sentences, contractions, no bullet points, headings or markdown, and nothing that only works on a screen.',
     ].join('\n') });
+
+    /* Only offered when this reply is not already going out as a voice note.
+       Telling it how to ask for something it is about to get anyway is noise,
+       and worse, invites it to explain the mechanism to the person.
+
+       Lives here rather than in MASTER_SYSTEM_PROMPT on purpose: the master
+       prompt is shared with the web chat, which has no voice at all, and a web
+       reply that opens with [[voice]] would be a visible bug. */
+    if (!context.replyIsSpoken) {
+      systemBlocks.push({ type: 'text', text: [
+        '## YOU CAN CHOOSE TO SPEAK INSTEAD OF TYPE',
+        'If a reply would land better heard than read, write [[voice]] at the very start of it. That reply then goes to them as a voice note in your voice rather than as text. Write the message exactly as you otherwise would: the marker is stripped before anyone sees it, and it is the only thing that changes.',
+        'The rest of this prompt tells you not to send every message in the same shape, because sameness is what makes something feel automated. Always typing is a shape too.',
+        'Speak when the moment earns it, not to be interesting:',
+        '- when what you have to say is long enough that no real person would sit and type it',
+        '- when it is heavy, and your tone carries something the words on their own do not',
+        '- when it is warmth or pride that reads flat typed',
+        '- when it is the middle of their night and being heard matters more than being read',
+        'Stay with text for a quick back and forth, for a short acknowledgement, and for anything they need to keep, tap, or act on.',
+        'Never two voice notes in a row unless they asked for them. This is worth something because it is rare. If you reach for it every time, it stops meaning anything and becomes the new template.',
+        'Never mention the marker, never describe how any of this works, and never ask their permission to send one. A sponsor who narrates their own delivery mechanism is not a sponsor.',
+      ].join('\n') });
+    }
   }
 
   // On WhatsApp, neutralise the sponsor's own earlier "I can't send voice"
@@ -761,10 +809,19 @@ async function getSponsorReply(userId, message, context) {
     messages: updatedHistory.slice(-RECENT_TURNS), // recent window; older turns live in the digest + DB
   });
 
-  const replyText = response.content
+  const rawReply = response.content
     .filter((block) => block.type === 'text')
     .map((block) => block.text)
     .join('');
+
+  /* Pull the sponsor's request to be spoken off the front of the reply, and
+     report it back through the context object the caller passed in. Done this
+     way so getSponsorReply still returns a plain string: every other caller,
+     including the web chat, is untouched and never learns this exists.
+     Stripping runs on every channel, so a stray marker can never reach anyone
+     even if the model produces one where it was never told about it. */
+  const { wanted: modelWantsVoice, text: replyText } = stripVoiceMarker(rawReply);
+  if (context && modelWantsVoice) context.modelWantsVoice = true;
 
   /* The programme change has now been put in front of them once, which is all
      it was for. Clear the flag or the sponsor reopens it in every message from
