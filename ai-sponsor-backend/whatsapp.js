@@ -216,6 +216,45 @@ async function synthesizeSpeech(text, voice) {
   return tmpPath;
 }
 
+/* ── Did they ask, in words, to be sent a voice note? ────────────────────────
+   The rule everywhere else in this file is voice in, voice back. That rule on
+   its own left no way to simply ask: a text saying "send me an audio message
+   again" went down the text pipe like any other, and the sponsor answered that
+   it could not send voice notes. True of the routing, and completely wrong as
+   an answer, because it can.
+
+   Deliberately narrow, for the same reason the first voice note is: an
+   unexpected voice note is worse than a missing one. This matches a request
+   aimed at the sponsor and nothing else. Someone reporting "I just sent you a
+   voice note", or asking it to stop, has to fall through to text.
+
+   Read off the incoming message before the model ever sees it, because this
+   decides which pipe the reply goes down, not what the reply says. */
+const VOICE_REQUEST = new RegExp([
+  // "send me a voice note", "record an audio message", "reply with a voice memo"
+  /(?:send|record|leave|reply|respond|answer|give|do)\b[^.!?]{0,30}\b(?:voice|audio)\s?(?:note|message|memo|clip|reply)/,
+  // "say that out loud", "read it out loud"
+  /(?:say|read|tell|repeat)\b[^.!?]{0,30}\bout loud\b/,
+  // "let me hear your voice", "can I hear you say it"
+  /\b(?:hear|listen to)\b[^.!?]{0,20}\b(?:your voice|you speak|you say)/,
+  /\bspeak to me\b/,
+  // the whole message is just "voice note please" / "audio message again"
+  /^\s*(?:a\s+)?(?:voice|audio)\s?(?:note|message|memo)\s*(?:please|pls|again)?\s*[?.!]*\s*$/,
+].map((r) => r.source).join('|'), 'i');
+
+/* Things that look like a request to a regex but are the opposite: someone
+   telling us they sent one, or asking us to stop. Kept tight on purpose, so it
+   does not swallow a real request phrased around a negative ("I don't want to
+   type, send me a voice note"). */
+const NOT_A_VOICE_REQUEST =
+  /\b(?:i (?:just )?sent|i'?ve sent|already sent|stop sending|no more|don'?t send|do not send|can'?t (?:hear|listen|play))\b/i;
+
+function asksForVoice(text) {
+  if (typeof text !== 'string' || !text.trim()) return false;
+  if (NOT_A_VOICE_REQUEST.test(text)) return false;
+  return VOICE_REQUEST.test(text);
+}
+
 /* ── The spoken hello ────────────────────────────────────────────────────────
    Sent once, alongside the first text reply, so someone hears the sponsor they
    built in the voice they chose.
@@ -441,12 +480,22 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
          is met by the sponsor they set up rather than a stock one. */
       const profile = await db.getProfile(userId).catch(() => null);
 
-      const replyText = await getSponsorReply(userId, userMessageText, { channel: 'whatsapp', viaVoice: isAudio });
+      /* Voice in, voice back. Text in, text back. And now: asked for, voice
+         back. The model is told which of these is happening so it never
+         describes the channel wrongly to the person using it. */
+      const askedForVoice = !isAudio && asksForVoice(userMessageText);
+      if (askedForVoice) console.log(`[WhatsApp] ${fromPhone} asked for a voice note in text`);
+      const replyAsVoice = isAudio || askedForVoice;
+
+      const replyText = await getSponsorReply(userId, userMessageText, {
+        channel: 'whatsapp',
+        viaVoice: isAudio,
+        replyIsSpoken: replyAsVoice,
+      });
       console.log(`[WhatsApp] Claude reply to ${fromPhone}: "${replyText.substring(0, 80)}..."`);
 
-      // ── 6/7. Reply in the same medium the person used ────────────────────
-      // Voice in, voice back. Text in, text back. No longer sends both.
-      if (isAudio) {
+      // ── 6/7. Reply in the medium they used, or the one they asked for ────
+      if (replyAsVoice) {
         /* Voice back, but never at the cost of the reply itself. Synthesis or
            media delivery can fail (a provider blip, Twilio failing to fetch the
            file), and until now that meant somebody who reached out got complete

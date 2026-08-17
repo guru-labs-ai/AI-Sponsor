@@ -596,12 +596,26 @@ function buildProgramChangeBlock(profile) {
    but it can still catch a line like "I can't hear the strain in your voice";
    replacing one old turn with a correction note is a far smaller cost than the
    sponsor arguing with someone about what it can do. */
-const FALSE_VOICE_CLAIM =
-  /(?:can'?t|cannot|can not|unable to|not able to)\s+(?:send|hear|receive|play|do)\b[^.!?]{0,40}(?:voice|audio)/i;
+/* The denial does not always name what it is denying. Asked for a voice note in
+   text, the sponsor answered "I can't, Matt. It's text between us, that's all
+   I've got." Not one of those clauses puts "can't" next to "voice", so the
+   original single pattern let it straight through, and it stayed in the history
+   as the sponsor's own settled position on itself. Hence the second and third
+   shapes below: the refusal that never says the word. */
+const FALSE_VOICE_CLAIM = new RegExp([
+  // "I can't send voice notes", "unable to hear audio"
+  /(?:can'?t|cannot|can not|unable to|not able to)\s+(?:send|hear|receive|play|do|record)\b[^.!?]{0,40}(?:voice|audio)/,
+  // "voice notes aren't something I can do"
+  /(?:voice|audio)[^.!?]{0,40}(?:isn'?t|aren'?t|is not|are not)\b[^.!?]{0,25}\bi can\b/,
+  // "it's text between us, that's all I've got" / "text is all I have"
+  /\btext\b[^.!?]{0,30}(?:between us|only|all i(?:'ve| have)? got|is all i)/,
+  /\ball i(?:'ve| have)? got\b[^.!?]{0,20}\btext\b/,
+].map((r) => r.source).join('|'), 'i');
 
 const VOICE_CLAIM_CORRECTION =
   '[An earlier reply here wrongly said I could not hear voice notes or send them. ' +
-  'That was a fault in the product, now fixed. I can do both.]';
+  'That was a fault in the product, now fixed. I can do both: I send one back ' +
+  'whenever they send me one, and whenever they ask me for one.]';
 
 function correctFalseVoiceClaims(history) {
   let changed = 0;
@@ -705,15 +719,29 @@ async function getSponsorReply(userId, message, context) {
   /* Tell it where it is. Without this it insists it "can't hear audio" and
      "can't send voice messages" to people who just sent it a voice note and are
      about to get one back, which reads as the product being broken. It has both
-     of those abilities on WhatsApp; it simply had no way of knowing. */
+     of those abilities on WhatsApp; it simply had no way of knowing.
+
+     Two separate facts, and the earlier version of this block ran them together
+     into a contradiction. What medium THIS reply goes out in is a routing
+     decision already made by the time we get here. What the sponsor is CAPABLE
+     of is a fixed truth. Telling it "your reply goes back as text" in the same
+     breath as "never say you cannot send voice messages" left it no honest way
+     to answer someone typing "send me a voice note": it apologised for a
+     capability it does have. So the capability is stated once and never
+     qualified, the routing is stated as a fact about this one message, and the
+     rule connecting them is spelled out so it can repeat it if asked. */
   if (context && context.channel === 'whatsapp') {
     systemBlocks.push({ type: 'text', text: [
       '## WHERE THIS CONVERSATION IS HAPPENING',
-      'You are on WhatsApp, not a web chat.',
+      'You are on WhatsApp, not a web chat. You can hear voice notes, and you can send them. Both are true of you always.',
       context.viaVoice
-        ? 'They sent you a voice note. It was transcribed for you, and your reply is being spoken back to them as a voice note in the voice they chose for you. So you CAN hear them and you DO speak.'
-        : 'They sent you a text message and your reply goes back as text. If they send you a voice note you will hear it, and you will answer with one.',
-      'Never tell them you cannot hear audio or cannot send voice messages. Both are untrue here.',
+        ? 'They sent you a voice note, and it was transcribed for you.'
+        : 'They sent you a text message.',
+      context.replyIsSpoken
+        ? 'This reply is being spoken back to them as a voice note, in the voice they chose for you. Write it to be listened to.'
+        : 'This particular reply goes back as text, because they wrote to you and did not ask to hear you.',
+      'The rule, if it ever comes up: you send a voice note whenever they send you one, and whenever they ask you for one. Asking is enough, in any words they like. If they want to hear you more often, tell them that plainly.',
+      'Never tell them you cannot hear audio or cannot send voice messages. Never say that text is all you have. All of that is untrue.',
       'If they point at a moment where you said otherwise, say plainly that you were wrong about it, and move on without making a meal of it.',
       'Write to be heard as much as read: short sentences, contractions, no bullet points, headings or markdown, and nothing that only works on a screen.',
     ].join('\n') });
