@@ -406,6 +406,52 @@ async function sendAudioReply(toPhone, audioFilePath, expressApp) {
   });
 }
 
+/* ── Blue ticks ──────────────────────────────────────────────────────────────
+   Two grey ticks mean "a server took this". Two blue ticks mean "somebody read
+   it". For a sponsor, that difference is the whole point: the person on the
+   other end needs to know they were heard, and they need to know it straight
+   away, not whenever we finish thinking.
+
+   Twilio has no standalone mark-as-read call for inbound WhatsApp. It marks the
+   message read as a side effect of the typing indicator, so that is what this
+   sends, and the typing bubble that comes with it is a bonus rather than the
+   goal. It matters most on voice notes: download, transcribe, think, synthesise
+   and upload is a long silence to sit in front of.
+
+   Public Beta at Twilio, explicitly outside their SLA, so it is treated as
+   something that may vanish without notice. Never awaited, short timeout, and
+   every failure is swallowed after logging. A read receipt must never be able
+   to slow down or take out an actual reply.
+
+   The 25-second cap Twilio documents applies to the typing bubble only. The
+   blue ticks stay. */
+const TYPING_INDICATOR_URL = 'https://messaging.twilio.com/v3/Indicators/Typing.json';
+
+async function markAsRead(messageSid) {
+  if (!messageSid) {
+    console.warn('[WhatsApp] no MessageSid on webhook — cannot mark as read');
+    return;
+  }
+  /* Twilio documents this field as needing an SM or MM SID. Checked rather than
+     assumed, so that if the prefix ever changes the log says why the ticks went
+     grey instead of leaving somebody to guess. */
+  if (!/^(SM|MM)/.test(messageSid)) {
+    console.warn(`[WhatsApp] unexpected MessageSid shape "${messageSid}" — skipping read receipt`);
+    return;
+  }
+  await axios.post(
+    TYPING_INDICATOR_URL,
+    { channel: 'WHATSAPP', messageId: messageSid },
+    {
+      auth: {
+        username: process.env.TWILIO_ACCOUNT_SID,
+        password: process.env.TWILIO_AUTH_TOKEN,
+      },
+      timeout: 5000,
+    }
+  );
+}
+
 /* ── Main entry point: handle one incoming Twilio WhatsApp webhook ────────────
    Called from server.js POST /api/whatsapp/webhook.
    `getSponsorReply`  = the shared Claude function from server.js
@@ -423,11 +469,20 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
   // ── 2. Parse Twilio's payload ──────────────────────────────────────────────
   const fromPhone = req.body.From;    // "whatsapp:+923001234567"
   const messageBody = req.body.Body || '';
+  const messageSid = req.body.MessageSid;  // "SM..." / "MM..." — what we mark read
   const numMedia = parseInt(req.body.NumMedia || '0', 10);
   const mediaUrl = req.body.MediaUrl0;
   const mediaType = req.body.MediaContentType0 || '';
   const isAudio = numMedia > 0 && mediaType.startsWith('audio/');
   const isText = numMedia === 0 && messageBody.trim().length > 0;
+
+  /* Turn the ticks blue, first thing, for every message that reaches us. Before
+     the transcription, before Claude, before anything that takes time, and
+     without waiting for the result. Whatever they sent and whatever we end up
+     saying back, being read is not conditional on any of it. */
+  markAsRead(messageSid).catch((e) =>
+    console.error('[WhatsApp] read receipt failed:',
+      (e.response && e.response.status) || '', e.message));
 
   // ── 3. Respond to Twilio immediately with empty TwiML ─────────────────────
   // This prevents Twilio's 15-second timeout while Claude thinks.
