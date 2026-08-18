@@ -170,6 +170,36 @@ async function init() {
     );
     CREATE INDEX IF NOT EXISTS link_codes_user_idx ON link_codes (user_id);
   `);
+  /* One end-of-week note per person per week. See weekly.js for why this is a
+     row rather than a scheduled job.
+
+     The UNIQUE below is the entire concurrency design. This backend is woken by
+     four independent triggers that can all decide the same week is due at the
+     same moment, and rather than coordinate them, the database is allowed to
+     settle it: the second writer gets ON CONFLICT DO NOTHING, is told it wrote
+     nothing, and therefore knows not to send a second WhatsApp message.
+
+     summary is encrypted — it is derived from conversation content and deserves
+     exactly what the messages themselves get. stats is not: it holds counts
+     only, and leaving it readable means a broken or rotated key still lets
+     somebody answer "did this week generate at all". delivered_at is separate
+     from created_at so a crash between writing and sending loses neither. */
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS weekly_summaries (
+      id           BIGSERIAL PRIMARY KEY,
+      user_id      TEXT NOT NULL,
+      week_start   DATE NOT NULL,
+      week_end     DATE NOT NULL,
+      summary      TEXT NOT NULL,
+      stats        JSONB NOT NULL DEFAULT '{}',
+      tone         TEXT,
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+      delivered_at TIMESTAMPTZ,
+      delivery_note TEXT,
+      UNIQUE (user_id, week_start)
+    );
+    CREATE INDEX IF NOT EXISTS weekly_user_idx ON weekly_summaries (user_id, week_start DESC);
+  `);
   console.log('DB connected — users + activity_days tables ready.');
 }
 
@@ -292,10 +322,17 @@ async function getPersonStats(userId) {
    worse than not offering the option at all: someone asking for a clean slate
    is usually asking to not be reminded.
 
+   The weekly reviews go too, by exactly the same argument. They are written
+   accounts of the conversation being erased, and leaving them would mean
+   somebody who asked for a clean slate opens their dashboard to find last week
+   narrated back at them in their sponsor's voice. That is the precise thing
+   they just asked not to happen.
+
    Returns how many messages were removed, so it can be recorded and shown. */
 async function clearConversation(userId) {
   if (!enabled || !userId) return 0;
   const r = await pool.query('DELETE FROM messages WHERE user_id = $1', [userId]);
+  await pool.query('DELETE FROM weekly_summaries WHERE user_id = $1', [userId]);
   await pool.query(
     `UPDATE users SET memory_digest = NULL, memory_digest_upto = 0 WHERE user_id = $1`,
     [userId]
@@ -322,10 +359,12 @@ async function clearProfileField(userId, key) {
    leave somebody half-deleted.
 
    The list below is the whole point of this comment. When this was written the
-   product had four user-scoped tables; it now has seven, and the three added
-   since (sponsor_tokens, link_codes, account_events) all hold something real.
-   A surviving sponsor_token still opens their settings page. account_events
-   still holds their sponsor's name and every voice they picked. If you add
+   product had four user-scoped tables; it now has eight, and the four added
+   since (sponsor_tokens, link_codes, account_events, weekly_summaries) all hold
+   something real. A surviving sponsor_token still opens their settings page.
+   account_events still holds their sponsor's name and every voice they picked.
+   A surviving weekly_summaries row is the worst of them: it is an LLM's written
+   account of what somebody said in the week they asked us to forget. If you add
    another table keyed on user_id, add it here in the same commit. */
 async function purgeUserData(userId) {
   if (!enabled || !userId) return;
@@ -333,6 +372,7 @@ async function purgeUserData(userId) {
   try {
     await client.query('BEGIN');
     await client.query('DELETE FROM messages WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM weekly_summaries WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM profiles WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM activity_days WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM sponsor_tokens WHERE user_id = $1', [userId]);
@@ -785,6 +825,148 @@ async function logAdminAccess(route, targetId, success, ip) {
   }
 }
 
+/* ─── Weekly review ─────────────────────────────────────────────────────────
+   Storage for the end-of-week note. The logic lives in weekly.js; this is only
+   the reading and writing.
+
+   Every window here is [start, end] INCLUSIVE of both days, expressed as
+   `< end + 1 day` so a message sent at 23:50 on the Sunday belongs to the week
+   it was actually sent in. An exclusive end date would silently drop the last
+   day of every week, which is the day most worth having. */
+
+// The week's turns, oldest first, for the model to read.
+async function getWeekMessages(userId, startDay, endDay, limit = 500) {
+  if (!enabled || !userId) return [];
+  const r = await pool.query(
+    `SELECT id, role, content, created_at FROM messages
+      WHERE user_id = $1
+        AND created_at >= $2::date
+        AND created_at <  ($3::date + INTERVAL '1 day')
+      ORDER BY id ASC LIMIT $4`,
+    [userId, startDay, endDay, limit]
+  );
+  return decryptRows(r.rows);
+}
+
+/* Counts for the week, plus the per-day shape the page draws as seven dots.
+   Every day in the window is returned, including the zeros: the gaps are the
+   informative part, and letting the front end infer them from missing keys is
+   how a week with no Wednesday quietly becomes a six-day week. */
+async function getWeekActivity(userId, startDay, endDay) {
+  if (!enabled || !userId) return { messages: 0, activeDays: 0, days: [] };
+  const r = await pool.query(
+    `SELECT day::text AS day, messages FROM activity_days
+      WHERE user_id = $1 AND day >= $2::date AND day <= $3::date
+      ORDER BY day ASC`,
+    [userId, startDay, endDay]
+  );
+  const got = Object.fromEntries(r.rows.map((x) => [x.day, x.messages]));
+  const days = [];
+  const start = new Date(startDay + 'T00:00:00Z');
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start.getTime() + i * 86400000).toISOString().slice(0, 10);
+    days.push({ day: d, messages: got[d] || 0 });
+  }
+  return {
+    messages: days.reduce((a, b) => a + b.messages, 0),
+    activeDays: days.filter((d) => d.messages > 0).length,
+    days,
+  };
+}
+
+/* Returns true if THIS call created the row, false if somebody else already
+   had, null on a real error. The caller uses that three-way answer to decide
+   whether it owns delivery — see the UNIQUE note on the table. */
+async function saveWeeklySummary(userId, weekStart, weekEnd, payload, stats) {
+  if (!enabled || !userId) return null;
+  const r = await pool.query(
+    `INSERT INTO weekly_summaries (user_id, week_start, week_end, summary, stats, tone)
+     VALUES ($1, $2, $3, $4, $5::jsonb, $6)
+     ON CONFLICT (user_id, week_start) DO NOTHING
+     RETURNING id`,
+    [userId, weekStart, weekEnd, fc.encrypt(JSON.stringify(payload)),
+     JSON.stringify(stats || {}), payload.tone || null]
+  );
+  return r.rowCount > 0;
+}
+
+function hydrateWeekly(row) {
+  if (!row) return null;
+  const plain = fc.decrypt(row.summary);
+  // An unreadable summary is treated as absent, exactly as getMemory does: the
+  // pane shows "not yet", which is survivable. Handing the page ciphertext is not.
+  if (plain === null) return null;
+  let payload;
+  try { payload = JSON.parse(plain); } catch (e) { return null; }
+  return {
+    ...payload,
+    weekStart: row.week_start instanceof Date ? row.week_start.toISOString().slice(0, 10) : String(row.week_start),
+    weekEnd: row.week_end instanceof Date ? row.week_end.toISOString().slice(0, 10) : String(row.week_end),
+    stats: row.stats || {},
+    createdAt: row.created_at,
+    delivered: !!row.delivered_at,
+  };
+}
+
+// weekStart omitted = their most recent one, which is what the page opens on.
+async function getWeeklySummary(userId, weekStart) {
+  if (!enabled || !userId) return null;
+  const r = weekStart
+    ? await pool.query(
+        `SELECT * FROM weekly_summaries WHERE user_id = $1 AND week_start = $2::date`,
+        [userId, weekStart])
+    : await pool.query(
+        `SELECT * FROM weekly_summaries WHERE user_id = $1 ORDER BY week_start DESC LIMIT 1`,
+        [userId]);
+  return hydrateWeekly(r.rows[0]);
+}
+
+// Just the dates, for the "earlier weeks" picker. Never decrypts anything.
+async function listWeeklySummaries(userId, limit = 12) {
+  if (!enabled || !userId) return [];
+  const r = await pool.query(
+    `SELECT week_start::text AS start, week_end::text AS "end", tone
+       FROM weekly_summaries WHERE user_id = $1
+      ORDER BY week_start DESC LIMIT $2`,
+    [userId, limit]
+  );
+  return r.rows;
+}
+
+async function markWeeklyDelivered(userId, weekStart, ok, note) {
+  if (!enabled || !userId) return;
+  await pool.query(
+    `UPDATE weekly_summaries
+        SET delivered_at = CASE WHEN $3 THEN now() ELSE delivered_at END,
+            delivery_note = $4
+      WHERE user_id = $1 AND week_start = $2::date`,
+    [userId, weekStart, !!ok, note || null]
+  );
+}
+
+/* Everyone who spoke during the closed week and has no row for it yet.
+
+   Driven off `messages` rather than `users` on purpose: the question is who had
+   a week worth reviewing, not who exists. Somebody who registered and never
+   said anything is correctly absent from this, and so costs nothing. */
+async function usersDueForWeekly(weekStart, weekEnd, limit = 25) {
+  if (!enabled) return [];
+  const r = await pool.query(
+    `SELECT m.user_id
+       FROM messages m
+       LEFT JOIN weekly_summaries w
+         ON w.user_id = m.user_id AND w.week_start = $1::date
+      WHERE m.created_at >= $1::date
+        AND m.created_at <  ($2::date + INTERVAL '1 day')
+        AND w.id IS NULL
+      GROUP BY m.user_id
+      ORDER BY COUNT(*) DESC
+      LIMIT $3`,
+    [weekStart, weekEnd, limit]
+  );
+  return r.rows.map((x) => x.user_id);
+}
+
 module.exports = {
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
   saveProfile, getProfile, appendMessages, getHistory, findPersonId,
@@ -795,4 +977,6 @@ module.exports = {
   getOrCreateSettingsToken, resolveSettingsToken,
   linkSubscription, findByStripeCustomer, getUser, setAccess,
   getMemory, saveMemory, getAgedOutMessages, redeemBetaCode, logAdminAccess,
+  getWeekMessages, getWeekActivity, saveWeeklySummary, getWeeklySummary,
+  listWeeklySummaries, markWeeklyDelivered, usersDueForWeekly,
 };

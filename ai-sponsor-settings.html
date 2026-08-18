@@ -152,6 +152,67 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
 .confirm{display:none;margin-top:12px}
 .confirm.show{display:block}
 .footer{text-align:center;font-size:12.5px;color:var(--sub);margin:6px 0 30px;line-height:1.6}
+
+/* ── Your week ─────────────────────────────────────────────────────────────
+   Reads as a note somebody wrote, not a report a system generated. The note is
+   set in the serif at reading size and comes FIRST, above any number, because
+   the numbers are not the point and putting them on top would make this a
+   scorecard. Which is the one thing it must never be. */
+.wk-note{font-family:'Source Serif 4',Georgia,serif;font-size:17px;line-height:1.62;
+  color:var(--text);border-left:3px solid var(--blue);padding:2px 0 2px 16px;margin-bottom:22px;
+  white-space:pre-wrap}
+/* Tone is chosen by the model and changes how this looks, not just what it says.
+   A week holding a relapse must not arrive dressed in the same confident blue as
+   a good one, and must never be red: red is how this page marks danger and
+   deleting your account, and somebody's hard week is neither. */
+.wk-note.hard{border-left-color:#8A7A66}
+.wk-note.quiet{border-left-color:#B6BEC8}
+.wk-sec{margin-bottom:20px}
+.wk-list{list-style:none;margin:0;padding:0}
+.wk-list li{font-size:14.5px;line-height:1.55;color:var(--text);padding:9px 0 9px 24px;position:relative;
+  border-bottom:1px solid #EEF1F5}
+.wk-list li:last-child{border-bottom:none}
+.wk-list li::before{content:'';position:absolute;left:6px;top:16px;width:6px;height:6px;
+  border-radius:50%;background:var(--blue);opacity:.5}
+/* Things they said they would do get a hollow mark, not a tick. Nothing here
+   knows whether they did any of it, and a filled checkbox would be the page
+   claiming otherwise. */
+.wk-list.said li::before{width:9px;height:9px;border-radius:50%;background:none;
+  border:1.5px solid var(--blue);opacity:.55;top:14px;left:4px}
+.wk-chips{display:flex;flex-wrap:wrap;gap:7px}
+.wk-carried{font-size:14.5px;line-height:1.6;color:var(--text);background:#FAFCFF;
+  border:1px solid #E3EAF2;border-radius:12px;padding:14px 16px}
+.wk-next{background:linear-gradient(135deg,rgba(0,102,179,.07),rgba(0,128,212,.05));
+  border:1px solid #D6E5F2;border-radius:12px;padding:16px 18px;margin-top:4px}
+.wk-next .lbl{font-size:12px;font-weight:600;color:var(--blue);text-transform:uppercase;
+  letter-spacing:.07em;margin-bottom:6px}
+.wk-next .txt{font-size:15px;line-height:1.55;color:var(--text)}
+.wk-mile{display:flex;align-items:center;gap:10px;background:#FFF9EC;border:1px solid #F0E2C0;
+  border-radius:12px;padding:13px 15px;font-size:14.5px;line-height:1.5;margin-bottom:20px}
+
+/* The seven days. Every day is drawn, including the ones they missed: the gaps
+   are the honest part, and a strip that only showed the days they turned up
+   would quietly redraw the week as a better one. */
+.wk-dots{display:flex;gap:6px;margin-bottom:6px}
+.wk-day{flex:1;text-align:center}
+.wk-day .dot{height:34px;border-radius:9px;background:#EDF1F6;display:flex;align-items:center;
+  justify-content:center;font-size:12px;font-weight:600;color:#9AA5B1}
+.wk-day.on .dot{background:rgba(0,102,179,.13);color:var(--blue)}
+.wk-day .d{font-size:10.5px;color:var(--sub);margin-top:5px;text-transform:uppercase;letter-spacing:.04em}
+
+.wk-picker{border-top:1px solid #EEF1F5;padding-top:18px;margin-top:6px}
+.wk-chip{font-size:12.5px;background:#EEF4FA;color:var(--blue);border-radius:999px;padding:6px 13px;
+  font-weight:600;border:1px solid transparent;cursor:pointer;font-family:inherit}
+.wk-chip:hover{border-color:var(--blue)}
+.wk-chip.on{background:var(--blue);color:#fff}
+.wk-chip.static{cursor:default}
+.wk-chip.static:hover{border-color:transparent}
+.wk-empty{text-align:center;padding:22px 6px;color:var(--sub);font-size:14.5px;line-height:1.65}
+.wk-empty .big{font-size:32px;margin-bottom:12px}
+@media(max-width:420px){
+  .wk-note{font-size:16px;padding-left:13px}
+  .wk-day .dot{height:30px}
+}
 </style>
 </head>
 <body>
@@ -178,6 +239,7 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
    <div class="shell">
     <nav class="nav" id="nav">
       <button class="on" data-pane="overview"><span class="ico">📊</span>Overview</button>
+      <button data-pane="week"><span class="ico">🗓️</span>Your week</button>
       <button data-pane="sponsor"><span class="ico">💬</span>Your sponsor</button>
       <button data-pane="help"><span class="ico">🤝</span>Need a hand?</button>
       <button data-pane="restart"><span class="ico">↺</span>Start over</button>
@@ -196,6 +258,19 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
         <div class="stat"><div class="n" id="statMsgs">—</div><div class="l">messages between you</div></div>
       </div>
       <p class="since" id="sinceLine"></p>
+    </div>
+    </div>
+
+    <!-- Your week -->
+    <div class="pane" id="pane-week">
+    <div class="card" id="weekCard">
+      <h2 id="weekTitle">Your week</h2>
+      <p class="sub" id="weekRange" style="margin-bottom:18px">A look back at the week just gone, written by your sponsor.</p>
+      <div id="weekBody"></div>
+      <div id="weekPicker" class="wk-picker" style="display:none">
+        <div class="sec-label">Earlier weeks</div>
+        <div class="wk-chips" id="weekChips"></div>
+      </div>
     </div>
     </div>
 
@@ -318,7 +393,7 @@ function show(id){ ['s-load','s-bad','s-dash'].forEach(s => $(s).style.display =
 /* Nav. The pane is in the URL hash so a reload, or a link someone sent
    themselves, comes back to the same place instead of the overview. */
 function openPane(name, push){
-  const panes = ['overview','sponsor','help','restart','danger'];
+  const panes = ['overview','week','sponsor','help','restart','danger'];
   if (!panes.includes(name)) name = 'overview';
   panes.forEach(p => $('pane-' + p).classList.toggle('on', p === name));
   [...document.querySelectorAll('#nav button')].forEach(b => b.classList.toggle('on', b.dataset.pane === name));
@@ -386,6 +461,8 @@ async function load(){
         d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) + '.';
     }
 
+    renderWeek(data.week, data.weeks, data.weekPending);
+
     renderVoices();
     show('s-dash');
     openPane((location.hash || '').replace('#',''), false);
@@ -393,6 +470,141 @@ async function load(){
     /* Render's free tier sleeps, so a cold start looks exactly like a broken
        link. Say so rather than blaming their link. */
     fail('Could not reach your sponsor just now. Give it a moment and refresh.');
+  }
+}
+
+/* ── Your week ──────────────────────────────────────────────────────────────
+   Everything below is written by a model from their own conversation, so all of
+   it is escaped before it goes near innerHTML. It is their own words coming
+   back to them, which is exactly the content most likely to contain the
+   characters that would break out of the markup. */
+const escHTML = (s) => String(s == null ? '' : s)
+  .replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+
+let WEEKS = [], CURRENT_WEEK = '';
+
+function weekLabel(startISO, endISO){
+  const a = new Date(startISO + 'T00:00:00Z'), b = new Date(endISO + 'T00:00:00Z');
+  const o = { day:'numeric', month:'long', timeZone:'UTC' };
+  const sameMonth = a.getUTCMonth() === b.getUTCMonth();
+  return (sameMonth ? a.toLocaleDateString(undefined,{day:'numeric',timeZone:'UTC'})
+                    : a.toLocaleDateString(undefined,o))
+    + ' to ' + b.toLocaleDateString(undefined,o);
+}
+
+function dayStrip(days){
+  if(!days || !days.length) return '';
+  const L = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  return '<div class="wk-dots">' + days.map((d,i) =>
+    '<div class="wk-day' + (d.messages > 0 ? ' on' : '') + '">' +
+      '<div class="dot">' + (d.messages > 0 ? '●' : '') + '</div>' +
+      '<div class="d">' + L[i] + '</div>' +
+    '</div>').join('') + '</div>';
+}
+
+function section(label, inner){
+  return '<div class="wk-sec"><div class="sec-label">' + label + '</div>' + inner + '</div>';
+}
+
+function renderWeek(week, weeks, pending){
+  WEEKS = weeks || [];
+  const body = $('weekBody');
+
+  if(!week){
+    /* Two different nothings, and they must not read the same. One is "we are
+       writing it right now", the other is "you have not had a full week yet". */
+    $('weekRange').textContent = pending
+      ? 'Putting the week just gone together for you now.'
+      : 'A look back at the week just gone, written by your sponsor.';
+    body.innerHTML = pending
+      ? '<div class="wk-empty"><div class="big">✍️</div>Your sponsor is writing this one up.<br>It takes a few seconds. This page will fill in on its own.</div>'
+      : '<div class="wk-empty"><div class="big">🗓️</div>Your first weekly note lands after your first full week together.<br>Nothing to do, it will just be here.</div>';
+    renderWeekPicker();
+    if(pending) fetchWeek();
+    return;
+  }
+
+  CURRENT_WEEK = week.weekStart || '';
+  $('weekRange').textContent = weekLabel(week.weekStart, week.weekEnd);
+
+  const st = week.stats || {};
+  const tone = ['steady','hard','quiet'].includes(week.tone) ? week.tone : 'steady';
+  let html = '<div class="wk-note ' + tone + '">' + escHTML(week.note) + '</div>';
+
+  if(week.milestone) html += '<div class="wk-mile"><span>🌟</span><span>' + escHTML(week.milestone) + '</span></div>';
+
+  if(st.days && st.days.length){
+    html += section('How the week went',
+      dayStrip(st.days) +
+      '<p class="note" style="margin:10px 0 0">' +
+        escHTML(st.activeDays === 0 ? 'No days together this week.'
+          : 'You showed up on ' + st.activeDays + ' of 7 days, ' + st.messages +
+            ' message' + (st.messages === 1 ? '' : 's') + ' between you.') +
+      '</p>');
+  }
+
+  if(week.themes && week.themes.length){
+    html += section('What the week kept coming back to',
+      '<div class="wk-chips">' + week.themes.map(t => '<span class="wk-chip static">' + escHTML(t) + '</span>').join('') + '</div>');
+  }
+  if(week.carried) html += section('What you were carrying', '<div class="wk-carried">' + escHTML(week.carried) + '</div>');
+  if(week.helped && week.helped.length){
+    html += section('What helped', '<ul class="wk-list">' + week.helped.map(h => '<li>' + escHTML(h) + '</li>').join('') + '</ul>');
+  }
+  if(week.commitments && week.commitments.length){
+    html += section('What you said you would do',
+      '<ul class="wk-list said">' + week.commitments.map(c => '<li>' + escHTML(c) + '</li>').join('') + '</ul>');
+  }
+  if(week.nextWeek){
+    html += '<div class="wk-next"><div class="lbl">One thing for this week</div><div class="txt">' +
+      escHTML(week.nextWeek) + '</div></div>';
+  }
+
+  body.innerHTML = html;
+  renderWeekPicker();
+}
+
+function renderWeekPicker(){
+  // One week is not a history, so the picker stays hidden until there is a
+  // genuine choice to make.
+  const wrap = $('weekPicker');
+  if(WEEKS.length < 2){ wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  const chips = $('weekChips');
+  chips.innerHTML = WEEKS.map(w =>
+    '<button class="wk-chip' + (w.start === CURRENT_WEEK ? ' on' : '') + '" data-week="' +
+    escHTML(w.start) + '">' + escHTML(weekLabel(w.start, w.end)) + '</button>').join('');
+}
+
+$('weekChips').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-week]');
+  if(b && b.dataset.week !== CURRENT_WEEK) fetchWeek(b.dataset.week);
+});
+
+/* Fetches one week. With no date it also GENERATES the last closed one, which
+   is why it is a separate call from the main dashboard load: that request has
+   to come back instantly, and this one is allowed to sit there for as long as
+   the model takes. */
+async function fetchWeek(start){
+  try{
+    const q = '/api/sponsor-settings/week?t=' + encodeURIComponent(TOKEN) +
+      (start ? '&start=' + encodeURIComponent(start) : '');
+    const res = await fetch(BACKEND_URL + q);
+    if(!res.ok) throw new Error('failed');
+    const data = await res.json();
+    if(!data.week && !start){
+      // Generated nothing because there was nothing to generate from.
+      $('weekRange').textContent = 'A look back at the week just gone, written by your sponsor.';
+      $('weekBody').innerHTML = '<div class="wk-empty"><div class="big">🗓️</div>' +
+        'You and your sponsor did not talk last week, so there is nothing to look back on.<br>' +
+        'Message them any time and next week will be here.</div>';
+      WEEKS = data.weeks || WEEKS; renderWeekPicker();
+      return;
+    }
+    renderWeek(data.week, data.weeks || WEEKS, false);
+  }catch(e){
+    $('weekBody').innerHTML = '<div class="wk-empty"><div class="big">🌐</div>' +
+      'Could not put your week together just now.<br>Give it a moment and refresh.</div>';
   }
 }
 

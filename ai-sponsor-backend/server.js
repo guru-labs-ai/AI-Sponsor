@@ -33,6 +33,9 @@ const scoreboard = require('./scoreboard');
 const db = require('./db');
 db.init().catch((e) => console.error('[DB] init failed:', e.message));
 
+// The end-of-week note. Reads from the same DB; inert without one.
+const weekly = require('./weekly');
+
 const app = express();
 app.use(cors());
 
@@ -701,6 +704,7 @@ async function buildSettingsBlock(userId) {
     '- start over, wipe the conversation, have you forget everything and begin again',
     '- deactivate, close their account, delete their data, leave',
     '- speak to a real person, get help with something you cannot help with, report a problem',
+    `- look back at their week, see what you and they talked about, how many days they showed up, what they said they would do. That one opens straight onto it: ${SITE_URL}/ai-sponsor-settings.html?t=${token}#week`,
     'Hand over the link plainly and warmly, say in one line what they will find there, and let them go do it.',
     'Never paste this link unprompted and never offer it as a suggestion. If they are talking about anything else, it does not exist.',
     'Someone saying they want to start over or delete everything is telling you something, so ask what is behind it if it feels right. But ask it in the SAME message as the link, never instead of the link and never before handing it over. They asked you for something; holding it back until they explain themselves is not care, it is a toll gate.',
@@ -750,6 +754,12 @@ function persistExchange(userId, updatedHistory, newTurns) {
    route keeps streaming for the web UI; both share MASTER_SYSTEM_PROMPT +
    conversation history, so the sponsor behaves identically across web + WhatsApp. */
 async function getSponsorReply(userId, message, context) {
+  /* Trigger 3: anybody talking to the sponsor has just woken this instance, and
+     on a free tier that is the most dependable scheduler the product has.
+     Fire-and-forget and throttled to once an hour inside weekly.js, so it can
+     never sit between somebody's message and their reply. */
+  weekly.maybeSweep(whatsapp);
+
   const { profile, history, memory } = await loadSession(userId);
 
   const userContext = buildUserContextBlock(profile);
@@ -1076,6 +1086,17 @@ app.get('/api/sponsor-settings', async (req, res) => {
   const user = (await db.getUser(userId).catch(() => null)) || {};
   const stats = (await db.getPersonStats(userId).catch(() => null)) || {};
   const days = stats.daysHere || null;
+
+  /* Read-only, and fast. If the last closed week has no summary yet we say so
+     and let the page fetch it from the endpoint that is allowed to take its
+     time, rather than making everybody wait on a model call. */
+  const lastWeek = weekly.lastCompletedWeek();
+  const [latestWeek, weeks] = await Promise.all([
+    db.getWeeklySummary(userId).catch(() => null),
+    db.listWeeklySummaries(userId).catch(() => []),
+  ]);
+  const weekPending = !(weeks || []).some((w) => w.start === lastWeek.start);
+
   res.json({
     sponsorName: profile.sponsorName || '',
     sponsorVoice: profile.sponsorVoice || '',
@@ -1098,7 +1119,83 @@ app.get('/api/sponsor-settings', async (req, res) => {
       activeDays: stats.activeDays || 0,
       lastActive: stats.lastActive || null,
     },
+    /* The weekly review, if one has been written. Deliberately only READ here:
+       generating it means an Opus call taking several seconds, and blocking the
+       whole dashboard behind it would mean somebody who came to change their
+       sponsor's voice waits on a summary they did not ask for. So the page
+       loads with whatever exists, and weekPending tells it to poll the endpoint
+       below, which is allowed to be slow because that is all it does. */
+    week: latestWeek,
+    weeks,
+    weekPending,
   });
+});
+
+/* The weekly review on its own, and the one place it is generated on demand.
+
+   Trigger 2 of the four in weekly.js: somebody opening their own dashboard is
+   the most reliable wake-up this product gets, because it is the only one that
+   coincides with a person actually wanting the thing. */
+app.get('/api/sponsor-settings/week', async (req, res) => {
+  const userId = await db.resolveSettingsToken(String(req.query.t || '')).catch(() => null);
+  if (!userId) {
+    return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
+  }
+  const start = String(req.query.start || '').trim();
+
+  // An explicit week is a lookup, never a generation — the picker must not be
+  // able to make us write anything.
+  if (start) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(start)) return res.status(400).json({ error: 'Bad week' });
+    const one = await db.getWeeklySummary(userId, start).catch(() => null);
+    return res.json({ week: one, weeks: await db.listWeeklySummaries(userId).catch(() => []) });
+  }
+
+  try {
+    const r = await weekly.ensureWeeklySummary(userId);
+    const week = (r.summary && r.status !== 'skipped')
+      ? await db.getWeeklySummary(userId, r.week.start).catch(() => null)
+      : await db.getWeeklySummary(userId).catch(() => null);
+    res.json({
+      week,
+      weeks: await db.listWeeklySummaries(userId).catch(() => []),
+      // 'skipped' with no-activity is not an error: it is a week they did not
+      // speak in, and the page says so rather than spinning forever.
+      status: r.status,
+    });
+  } catch (err) {
+    console.error('[weekly] on-demand failed:', err.message);
+    res.status(500).json({ error: 'Could not put your week together just now. Try again in a moment.' });
+  }
+});
+
+/* Trigger 1: the external scheduler. This exists because the instance sleeps —
+   anything hitting this URL both wakes it and tells it to catch up, which is
+   the only combination that works on a free tier.
+
+   Secret in a header, not the query string, so it does not end up in Render's
+   request logs. Unset CRON_SECRET disables the route entirely rather than
+   leaving it open: an unauthenticated endpoint that spends Opus tokens per call
+   is a bill somebody else can run up. */
+app.post('/api/cron/weekly-summaries', async (req, res) => {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return res.status(404).json({ error: 'Not enabled' });
+  const given = String(req.get('x-cron-secret') || '');
+  // Length-independent compare, so a wrong-length guess fails the same way.
+  const ok = given.length === secret.length &&
+    require('crypto').timingSafeEqual(Buffer.from(given), Buffer.from(secret));
+  if (!ok) return res.status(403).json({ error: 'Forbidden' });
+
+  try {
+    const result = await weekly.runSweep({
+      limit: Math.min(parseInt(req.query.limit, 10) || 25, 100),
+      whatsapp,
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('[weekly] cron sweep failed:', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /* Start the conversation over, keeping the account. Deliberately separate from
@@ -1938,3 +2035,8 @@ const server = app.listen(PORT, () => {
 });
 
 voiceCompare.attach(server, MASTER_SYSTEM_PROMPT);
+
+/* Trigger 4, and the weakest one on purpose. On the free tier this only ever
+   fires during the minutes somebody else is already using the product, which is
+   exactly why it is the last line of defence and not the design. */
+weekly.startInterval(whatsapp);
