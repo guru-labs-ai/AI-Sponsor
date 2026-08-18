@@ -113,6 +113,38 @@ check('whitespace-only note is rejected',
 check('markup is passed through untouched for the page to escape',
   w._coerce({ note: '<img src=x onerror=alert(1)>' }).note, '<img src=x onerror=alert(1)>');
 
+/* ── Which path a week takes ──────────────────────────────────────────────────
+   This shipped wrong once and is the regression that matters most.
+
+   activity_days records that somebody turned up and clearConversation
+   deliberately does not clear it, so after a "start over" the activity count
+   still says 15 while the messages themselves are gone. The first version gated
+   on that number and sent a model off to find themes in a week it could open
+   two messages of. Found on real production data: a user with 15 logged and 2
+   readable got a narrative written about a conversation that no longer existed. */
+check('15 turned up but only 2 readable is a QUIET week, not a narrative',
+  w._planWeek({ messages: 15, readable: 2, activeDays: 2 }), 'quiet');
+
+check('a fully wiped week is skipped, not written about',
+  w._planWeek({ messages: 52, readable: 0, activeDays: 5 }), 'skip');
+
+check('a genuine busy week still gets the narrative',
+  w._planWeek({ messages: 106, readable: 106, activeDays: 6 }), 'narrative');
+
+check('exactly at the threshold is a narrative',
+  w._planWeek({ messages: 4, readable: 4, activeDays: 1 }), 'narrative');
+check('one under the threshold is quiet',
+  w._planWeek({ messages: 3, readable: 3, activeDays: 1 }), 'quiet');
+
+// The activity count must not be able to influence this at all, in either
+// direction, so a missing or absurd `messages` changes nothing.
+check('a huge activity count cannot promote a thin week',
+  w._planWeek({ messages: 9999, readable: 1 }), 'quiet');
+check('a missing activity count cannot demote a real week',
+  w._planWeek({ readable: 40 }), 'narrative');
+check('missing readable is treated as nothing to say',
+  w._planWeek({ messages: 20 }), 'skip');
+
 /* ── The quiet week ───────────────────────────────────────────────────────── */
 const silent = w._quietWeekCard({ sponsorName: 'Sam', messages: 0, activeDays: 0 });
 check('a silent week is tone quiet', silent.tone, 'quiet');

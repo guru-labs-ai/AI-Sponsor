@@ -851,16 +851,38 @@ async function getWeekMessages(userId, startDay, endDay, limit = 500) {
 /* Counts for the week, plus the per-day shape the page draws as seven dots.
    Every day in the window is returned, including the zeros: the gaps are the
    informative part, and letting the front end infer them from missing keys is
-   how a week with no Wednesday quietly becomes a six-day week. */
+   how a week with no Wednesday quietly becomes a six-day week.
+
+   TWO DIFFERENT COUNTS, and conflating them is a real bug that shipped once.
+
+   activity_days is the record of turning up, and clearConversation deliberately
+   leaves it alone: somebody wiping the conversation should not also erase the
+   fact that they showed up, which the north-star numbers are built on. So after
+   a "start over" activity_days still says 15 messages while the messages table
+   holds none of them.
+
+   `readable` is the only honest answer to "how much can actually be summarised",
+   because it counts the rows a summariser can still open. Gate on `readable`;
+   the first version gated on the activity count and therefore sent a model off
+   to find themes in a week it could only read two messages of, which is the
+   exact fabrication the threshold exists to stop. `activeDays` stays from
+   activity_days, because they really were there. */
 async function getWeekActivity(userId, startDay, endDay) {
-  if (!enabled || !userId) return { messages: 0, activeDays: 0, days: [] };
-  const r = await pool.query(
-    `SELECT day::text AS day, messages FROM activity_days
-      WHERE user_id = $1 AND day >= $2::date AND day <= $3::date
-      ORDER BY day ASC`,
-    [userId, startDay, endDay]
-  );
-  const got = Object.fromEntries(r.rows.map((x) => [x.day, x.messages]));
+  if (!enabled || !userId) return { messages: 0, readable: 0, activeDays: 0, days: [] };
+  const [act, msg] = await Promise.all([
+    pool.query(
+      `SELECT day::text AS day, messages FROM activity_days
+        WHERE user_id = $1 AND day >= $2::date AND day <= $3::date
+        ORDER BY day ASC`,
+      [userId, startDay, endDay]),
+    pool.query(
+      `SELECT COUNT(*)::int AS n FROM messages
+        WHERE user_id = $1
+          AND created_at >= $2::date
+          AND created_at <  ($3::date + INTERVAL '1 day')`,
+      [userId, startDay, endDay]),
+  ]);
+  const got = Object.fromEntries(act.rows.map((x) => [x.day, x.messages]));
   const days = [];
   const start = new Date(startDay + 'T00:00:00Z');
   for (let i = 0; i < 7; i++) {
@@ -868,7 +890,8 @@ async function getWeekActivity(userId, startDay, endDay) {
     days.push({ day: d, messages: got[d] || 0 });
   }
   return {
-    messages: days.reduce((a, b) => a + b.messages, 0),
+    messages: days.reduce((a, b) => a + b.messages, 0), // turned up, historical
+    readable: msg.rows[0].n,                            // still summarisable
     activeDays: days.filter((d) => d.messages > 0).length,
     days,
   };

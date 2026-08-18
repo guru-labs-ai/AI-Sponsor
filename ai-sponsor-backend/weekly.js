@@ -195,6 +195,19 @@ function quietWeekCard({ sponsorName, messages, activeDays }) {
   };
 }
 
+/* Which of the three things to do with a week, given its counts.
+
+   A named function purely so it can be tested, because the one bug this file
+   has actually shipped was reading the wrong field here. `messages` is how many
+   times they turned up; `readable` is how many of those we can still open. Only
+   the second can be summarised, and passing stats where the two disagree is the
+   regression test. */
+function planWeek(stats) {
+  const have = Number(stats && stats.readable) || 0;
+  if (!have) return 'skip';
+  return have < MIN_FOR_NARRATIVE ? 'quiet' : 'narrative';
+}
+
 /* ── Generate one person's week ─────────────────────────────────────────────
    Idempotent by construction. Returns what happened so the caller can tell the
    difference between "wrote a new one" and "somebody else already had", which
@@ -210,13 +223,23 @@ async function ensureWeeklySummary(userId, opts = {}) {
   if (existing) return { status: 'exists', week, summary: existing };
 
   const activity = await db.getWeekActivity(userId, week.start, week.end).catch(() => null);
-  const stats = activity || { messages: 0, activeDays: 0, days: [] };
+  const stats = activity || { messages: 0, readable: 0, activeDays: 0, days: [] };
+
+  /* Everything below counts `readable`, never `messages`. See getWeekActivity:
+     after somebody uses "start over", activity_days still remembers a busy week
+     whose messages are gone, and deciding anything on that number means writing
+     about a conversation nobody can read. */
+  const have = stats.readable;
+  const plan = planWeek(stats);
 
   /* Nobody who said nothing all week gets a row. A summary of silence is not
      worth a model call, and a nudge about it would land as a product noticing
      they went quiet, which is not the same thing as their sponsor noticing and
-     is worse than saying nothing. */
-  if (!stats.messages) return { status: 'skipped', reason: 'no-activity', week };
+     is worse than saying nothing.
+
+     This also covers the wiped week: they turned up, but they asked us to
+     forget what was said, so there is correctly nothing to look back on. */
+  if (plan === 'skip') return { status: 'skipped', reason: 'no-readable-messages', week };
 
   const profile = (await db.getProfile(userId).catch(() => null)) || {};
   const user = (await db.getUser(userId).catch(() => null)) || {};
@@ -224,8 +247,8 @@ async function ensureWeeklySummary(userId, opts = {}) {
   const theirName = String(profile.name || user.name || '').trim().split(/\s+/)[0] || '';
 
   let payload;
-  if (stats.messages < MIN_FOR_NARRATIVE) {
-    payload = quietWeekCard({ sponsorName, messages: stats.messages, activeDays: stats.activeDays });
+  if (plan === 'quiet') {
+    payload = quietWeekCard({ sponsorName, messages: have, activeDays: stats.activeDays });
   } else {
     payload = await writeNarrative({ userId, week, stats, sponsorName, theirName }).catch((e) => {
       console.error('[weekly] model call failed:', e.message);
@@ -237,8 +260,12 @@ async function ensureWeeklySummary(userId, opts = {}) {
     if (!payload) return { status: 'failed', reason: 'model', week };
   }
 
+  /* The count shown on the card is `readable` too, so the number and the note
+     can never disagree. Displaying the historical 15 next to a note written
+     from 2 surviving messages tells somebody their sponsor read things it
+     could not read. */
   const written = await db.saveWeeklySummary(userId, week.start, week.end, payload, {
-    messages: stats.messages,
+    messages: have,
     activeDays: stats.activeDays,
     days: stats.days,
   }).catch((e) => {
@@ -255,7 +282,7 @@ async function ensureWeeklySummary(userId, opts = {}) {
     return { status: 'exists', week, summary: theirs };
   }
 
-  console.log(`[weekly] wrote ${userId} for ${week.start}..${week.end} (${stats.messages} msgs, tone ${payload.tone})`);
+  console.log(`[weekly] wrote ${userId} for ${week.start}..${week.end} (${have} readable of ${stats.messages} logged, tone ${payload.tone})`);
   return { status: 'created', week, summary: { ...payload, week_start: week.start, week_end: week.end, stats } };
 }
 
@@ -430,5 +457,6 @@ module.exports = {
   // Exported for test-weekly.js. These are where a bad model response turns
   // into something the page renders, so they are the parts worth pinning down.
   _parseModelJSON: parseModelJSON, _coerce: coerce, _quietWeekCard: quietWeekCard,
+  _planWeek: planWeek,
   _SYSTEM_PROMPT: SYSTEM_PROMPT, _WEEKLY_MODEL: WEEKLY_MODEL,
 };
