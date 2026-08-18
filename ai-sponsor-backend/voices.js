@@ -42,18 +42,45 @@ const TTS_URL = 'https://api.x.ai/v1/tts';
    voice note instead of a file. Also about a third the size of the MP3, which
    matters on a phone on mobile data.
 
-   bit_rate is here for a reason that is easy to miss. WhatsApp only draws the
-   play button on an audio file of 512KB or less; above that it swaps in a
-   download icon, which is exactly the "this arrived as a file" complaint we
-   were trying to fix in the first place. Left to itself this endpoint returns
-   about 108kbps, so a voice note crossed 512KB at around 39 seconds, and the
-   sponsor is told to speak precisely when a reply is too long to type. At
-   32000 the ceiling moves out past 95 seconds and speech at this bitrate is
-   indistinguishable by ear. xAI's docs say bit_rate is MP3 only; the live API
-   honours it for opus, measured at 43kbps against 108 without it. */
+   bit_rate is pinned because this endpoint returns about 108kbps left to
+   itself, which is three times what mono speech needs. At 32000 it comes back
+   at 43kbps, indistinguishable by ear, on a phone that somebody may well be
+   holding on mobile data at 3am. xAI's docs say bit_rate is MP3 only; the live
+   API honours it for opus, measured.
+
+   It also matters for a thing that has not happened yet. Meta documents a
+   512KB ceiling above which a NATIVE voice message loses its play button, and
+   at 108kbps a reply crossed that at around 39 seconds. That rule does not
+   currently bite us, because what we send is not a native voice message: a
+   71-second 934KB reply on Aug 18 still played inline in Matt's chat. It
+   starts biting the moment the voice flag below works, and the sponsor is told
+   to speak precisely when a reply is too long to type. */
 const OUTPUT = { codec: 'opus', bit_rate: 32000 };
 const CONTENT_TYPE = 'audio/ogg';
 const FILE_EXT = 'ogg';
+
+/* ── The voice flag, and why these still arrive as files ─────────────────
+   Confirmed Aug 18 from Matt's own screen, with one of his voice notes sitting
+   directly above one of ours. His draws a waveform and his face with a mic.
+   Ours draws a flat seek line and a generic icon. They are two different
+   message types on Meta's side, not two renderings of the same one.
+
+   Meta's Cloud API takes a boolean `voice: true` on the audio object, and says
+   that without it "the message will be delivered as a standard audio message",
+   which is exactly what we are looking at. **Twilio's API exposes no way to set
+   it.** Checked four ways: the Message resource reference, the create options
+   in the installed SDK (5.13.1), the Content Template type list (there is no
+   audio or voice type at all), and Twilio's own WhatsApp media docs, which no
+   longer mention voice notes in any form. Twilio also normalises media content
+   types to a bare `audio/ogg` in both directions, so `codecs=opus` is not a
+   lever we can reach either. An inbound voice note from a real person arrives
+   reported the same way as an ordinary audio file.
+
+   So this is not fixable from this file. Do not spend another evening on the
+   encoder: the audio has been correct since Aug 11. It needs Twilio to expose
+   the flag, or the sender to move off Twilio onto a WABA we control. Until one
+   of those happens, everything below is about how it SOUNDS, which is the half
+   we can still do something about. */
 
 /* ── Speech tags ────────────────────────────────────────────────────────────
    The reason for being on xAI at all, and until now the only things that ever
