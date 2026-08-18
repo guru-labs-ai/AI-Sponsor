@@ -430,4 +430,5 @@ module.exports = {
   // Exported for test-weekly.js. These are where a bad model response turns
   // into something the page renders, so they are the parts worth pinning down.
   _parseModelJSON: parseModelJSON, _coerce: coerce, _quietWeekCard: quietWeekCard,
+  _SYSTEM_PROMPT: SYSTEM_PROMPT, _WEEKLY_MODEL: WEEKLY_MODEL,
 };
