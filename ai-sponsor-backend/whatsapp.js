@@ -36,6 +36,7 @@ const path = require('path');
 const ghl = require('./ghl'); // safe to require unconfigured — throws only when called
 const db = require('./db');   // no-ops without DATABASE_URL
 const voices = require('./voices'); // the shared voice allow-list + TTS
+const metacloud = require('./metacloud'); // voice notes straight to Meta; inert unless configured
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -422,6 +423,31 @@ async function sendAudioReply(toPhone, audioFilePath, expressApp) {
   // once served": Twilio does not promise to fetch a URL exactly once, and a
   // retry finding nothing there is 63019 all over again.
   setTimeout(() => fs.unlink(audioFilePath, () => {}), 5 * 60 * 1000);
+
+  /* Meta first, when it is configured, because it is the only route that can
+     produce an actual WhatsApp voice note. Twilio has no way to set `voice:
+     true`, so everything sent through it arrives as an audio file: a flat seek
+     line instead of a waveform, which is the one thing Matt says is still off
+     about the product.
+
+     Everything below stays as the fallback rather than being replaced. If Meta
+     is not configured, or the token expires, or the call fails for any reason
+     at all, the voice note still goes out the way it does today. The failure
+     mode of this block is "no change", which is the only acceptable one on a
+     path where the alternative is somebody hearing nothing back.
+
+     Note what is NOT needed here: no public URL, no reachability probe, no
+     waiting for Twilio to come and fetch the file. Meta takes the bytes
+     directly. */
+  if (metacloud.enabled) {
+    try {
+      const sent = await metacloud.sendVoiceNote(toPhone, fs.readFileSync(audioFilePath));
+      console.log(`[WhatsApp] voice note via Meta (${sent.messageId})`);
+      return sent;
+    } catch (metaErr) {
+      console.error('[WhatsApp] Meta voice note failed, falling back to Twilio:', metaErr.message);
+    }
+  }
 
   /* Fetch our own URL from the public internet before handing it to Twilio.
      Twilio reports a failed media download as 63019 asynchronously, long after
