@@ -170,20 +170,63 @@ function validateTwilioSignature(req) {
 
 /* ── Download incoming voice note from Twilio's media URL ────────────────────
    Twilio requires HTTP Basic Auth (Account SID + Auth Token) to download media.
-   Voice notes from WhatsApp arrive as audio/ogg files. */
-async function downloadAudio(mediaUrl) {
-  const response = await axios.get(mediaUrl, {
-    responseType: 'arraybuffer',
-    auth: {
-      username: process.env.TWILIO_ACCOUNT_SID,
-      password: process.env.TWILIO_AUTH_TOKEN,
-    },
-  });
+   Voice notes from WhatsApp arrive as audio/ogg files.
 
-  // Save as .ogg — that's what WhatsApp voice notes are
-  const tmpPath = path.join(os.tmpdir(), `wa-incoming-${Date.now()}.ogg`);
-  fs.writeFileSync(tmpPath, response.data);
-  return tmpPath;
+   ⛔ THE RETRY IS THE POINT OF THIS FUNCTION, not a nicety. Twilio posts the
+   webhook and makes the media fetchable as two separate events, and they are
+   not ordered. Aug 18 19:46:46: somebody sent a voice note, this returned 404
+   in the same second the message arrived, the whole handler threw, and she got
+   "I'm having a moment" instead of a reply. The media was fine. Fetching the
+   exact same URL afterwards returns 200 and 16676 bytes of audio. We asked too
+   early, once, and gave up.
+
+   That is the worst failure this product has. Someone reached out with their
+   voice and was told the machine was struggling. Two voice notes from the same
+   person earlier the same hour went through, which is what a race looks like:
+   it works until it doesn't, so it never gets found by testing.
+
+   Retries only on 404 and on 5xx/network, never on 401 or 403. A credentials
+   problem is not going to fix itself in 400ms and hammering it is how you get
+   an account flagged. Six seconds of budget in total, spent while the typing
+   indicator is already showing, so the person sees someone composing rather
+   than silence. */
+const MEDIA_RETRY_DELAYS = [400, 800, 1600, 3200];
+
+function worthRetrying(err) {
+  const status = err && err.response && err.response.status;
+  if (status === undefined) return true;      // network blip, no response at all
+  if (status === 404) return true;            // the race: media not published yet
+  return status >= 500;                        // Twilio having a bad minute
+}
+
+async function downloadAudio(mediaUrl) {
+  let lastErr;
+  for (let attempt = 0; attempt <= MEDIA_RETRY_DELAYS.length; attempt++) {
+    try {
+      const response = await axios.get(mediaUrl, {
+        responseType: 'arraybuffer',
+        auth: {
+          username: process.env.TWILIO_ACCOUNT_SID,
+          password: process.env.TWILIO_AUTH_TOKEN,
+        },
+      });
+
+      if (attempt > 0) console.log(`[WhatsApp] media downloaded on attempt ${attempt + 1}`);
+
+      // Save as .ogg — that's what WhatsApp voice notes are
+      const tmpPath = path.join(os.tmpdir(), `wa-incoming-${Date.now()}.ogg`);
+      fs.writeFileSync(tmpPath, response.data);
+      return tmpPath;
+    } catch (err) {
+      lastErr = err;
+      const delay = MEDIA_RETRY_DELAYS[attempt];
+      if (delay === undefined || !worthRetrying(err)) break;
+      const status = (err.response && err.response.status) || 'no response';
+      console.warn(`[WhatsApp] media not ready (${status}), retrying in ${delay}ms`);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw lastErr;
 }
 
 /* ── Speech-to-text via OpenAI Whisper ───────────────────────────────────────
