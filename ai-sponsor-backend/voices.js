@@ -40,10 +40,90 @@ const TTS_URL = 'https://api.x.ai/v1/tts';
 
 /* Ogg/Opus is not a preference, it is the thing that makes WhatsApp show a
    voice note instead of a file. Also about a third the size of the MP3, which
-   matters on a phone on mobile data. */
-const OUTPUT = { codec: 'opus' };
+   matters on a phone on mobile data.
+
+   bit_rate is here for a reason that is easy to miss. WhatsApp only draws the
+   play button on an audio file of 512KB or less; above that it swaps in a
+   download icon, which is exactly the "this arrived as a file" complaint we
+   were trying to fix in the first place. Left to itself this endpoint returns
+   about 108kbps, so a voice note crossed 512KB at around 39 seconds, and the
+   sponsor is told to speak precisely when a reply is too long to type. At
+   32000 the ceiling moves out past 95 seconds and speech at this bitrate is
+   indistinguishable by ear. xAI's docs say bit_rate is MP3 only; the live API
+   honours it for opus, measured at 43kbps against 108 without it. */
+const OUTPUT = { codec: 'opus', bit_rate: 32000 };
 const CONTENT_TYPE = 'audio/ogg';
 const FILE_EXT = 'ogg';
+
+/* ── Speech tags ────────────────────────────────────────────────────────────
+   The reason for being on xAI at all, and until now the only things that ever
+   carried one were three hard-coded lines: the preview, the spoken hello, and
+   the voice-change confirmation. Every actual reply went to the voice engine as
+   flat text, which is why Matt could hear the difference between the greeting
+   and the conversation.
+
+   Verified against the live endpoint, every tag in this list: each one changes
+   the audio (a [long-pause] adds nearly three seconds of real silence) and none
+   of them is read out. Whisper transcribes the tagged and untagged lines to the
+   same words.
+
+   The list is an allow-list for the same reason the voice list is one. A tag
+   the model invents is not silently performed, it is read aloud in the middle
+   of a sentence, so nothing unverified reaches the provider. */
+const INLINE_TAGS = ['pause', 'long-pause', 'breath', 'sigh', 'laugh'];
+const WRAPPING_TAGS = ['soft', 'slow', 'whisper', 'loud'];
+
+/* Anything shaped like a stage direction: [word], [two words], <word>, </word>.
+   Deliberately narrow. Ordinary replies from this sponsor do not contain square
+   or angle brackets, and a rule that ate real punctuation would be worse than
+   the problem.
+
+   Spaces are inside the pattern rather than outside it because a model asked
+   for [long-pause] writes [long pause] and [LONG PAUSE] soon enough, and the
+   cost of not matching those is the worst outcome available here: the words
+   "long pause" said out loud, in the middle of a sentence, to somebody who
+   reached out at 3am. Matched, they are canonicalised to the form that was
+   actually verified rather than thrown away. */
+const ANY_DIRECTION = /\[([a-z][a-z -]{0,20})\]|<\/?([a-z][a-z -]{0,20})>/gi;
+
+const canonical = (name) => String(name).trim().toLowerCase().replace(/[\s-]+/g, '-');
+
+const allowed = (name) =>
+  INLINE_TAGS.includes(canonical(name)) || WRAPPING_TAGS.includes(canonical(name));
+
+/* Tidies up after a tag is removed, so nothing gives away that one was there:
+   no double space, no space in front of a full stop, no line that now starts
+   with the gap the tag used to sit in. */
+const tidy = (text) =>
+  text
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/ +([,.!?;:])/g, '$1')
+    .replace(/^[ \t]+/gm, '')
+    .replace(/[ \t]+$/gm, '')
+    .trim();
+
+/* For the voice engine: keep what we have verified, in the form we verified it
+   in, and drop anything else. */
+function forSpeech(text) {
+  return tidy(String(text).replace(ANY_DIRECTION, (m, inline, wrapping) => {
+    const name = inline !== undefined ? inline : wrapping;
+    if (!allowed(name)) return '';
+    if (inline !== undefined) return `[${canonical(name)}]`;
+    return m.startsWith('</') ? `</${canonical(name)}>` : `<${canonical(name)}>`;
+  }));
+}
+
+/* For every pair of eyes: no tags at all.
+
+   This runs on the copy that is persisted, shown in the web chat, and sent as
+   text when the safety guard overrules a voice note. A tag is invisible when it
+   is spoken and glaring when it is read, and history is shared across channels,
+   so one leaking into a stored turn teaches the model to write them everywhere.
+   Same reasoning as stripping [[voice]] in server.js, and the same place in the
+   pipeline. */
+function stripSpeechTags(text) {
+  return tidy(String(text).replace(ANY_DIRECTION, ''));
+}
 
 /* Short on purpose: every preview plays this line, so it should be quick to
    audition and cheap to generate. Tagged, because the point of the preview is
@@ -66,7 +146,7 @@ async function synthesize(text, voice) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      text,
+      text: forSpeech(text),
       voice_id: resolve(voice),
       language: 'en',
       output_format: OUTPUT,
@@ -101,5 +181,6 @@ function preview(voice) {
 
 module.exports = {
   VOICES, DEFAULT_VOICE, PREVIEW_LINE, CONTENT_TYPE, FILE_EXT,
-  enabled, resolve, synthesize, preview,
+  INLINE_TAGS, WRAPPING_TAGS,
+  enabled, resolve, synthesize, preview, forSpeech, stripSpeechTags,
 };

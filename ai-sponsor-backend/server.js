@@ -655,6 +655,33 @@ function stripVoiceMarker(raw) {
   return { wanted: text !== String(raw).trim(), text };
 }
 
+/* ─── Directing how a spoken reply sounds ────────────────────────────────
+   The whole case for xAI over OpenAI is that the direction can sit inside the
+   words: a breath on this word, a beat after that question, this line said
+   softly. Nobody had ever told the sponsor that. The tags appeared in exactly
+   three hard-coded strings, the preview, the spoken hello and the voice-change
+   confirmation, so the greeting sounded like a person and every real reply
+   after it sounded like a recording. That is the difference Matt could hear.
+
+   Pushed in two places, because a reply becomes spoken in two ways: we already
+   know it is going out as voice, or the sponsor asks for voice itself with
+   [[voice]] and only finds out afterwards. Both need this, neither needs it
+   twice.
+
+   Never reaches the web chat, for the same reason the [[voice]] marker does
+   not, and anything tagged is cleaned before it can be read rather than heard.
+   See voices.stripSpeechTags. */
+const SPEAKING_DIRECTION = [
+  '## HOW TO DIRECT THE WAY YOU SOUND',
+  'When a reply of yours is spoken, you are not handing over words to be read out. You are directing how they land. Put a tag exactly where the thing should happen.',
+  'On their own: [breath] a breath in, [pause] a beat, [long-pause] a real silence of a couple of seconds, [sigh], [laugh].',
+  'Around a phrase, to change how it is said: <soft>like this</soft>, and the same with <slow>, <whisper> and <loud>.',
+  'They are performed, never read out. They are most of the difference between a recording and somebody actually talking to you.',
+  'Use them the way you would speak: a breath before the hard thing, a beat after a question so it has room, softer on the tender line, slower on the one that matters most.',
+  'Two or three in a short message. Not one per sentence. A reply covered in them sounds like a performance, which is its own kind of fake, and the rest of this prompt already says why sameness is what gives a machine away.',
+  'Nothing outside that list. Anything else in square or angle brackets is thrown away before it reaches the voice, so it buys you nothing.',
+].join('\n');
+
 /* Lets the sponsor hand out a link for changing its own name or voice.
 
    Injected per-reply rather than written into MASTER_SYSTEM_PROMPT because the
@@ -771,6 +798,8 @@ async function getSponsorReply(userId, message, context) {
       'Write to be heard as much as read: short sentences, contractions, no bullet points, headings or markdown, and nothing that only works on a screen.',
     ].join('\n') });
 
+    if (context.replyIsSpoken) systemBlocks.push({ type: 'text', text: SPEAKING_DIRECTION });
+
     /* Only offered when this reply is not already going out as a voice note.
        Telling it how to ask for something it is about to get anyway is noise,
        and worse, invites it to explain the mechanism to the person.
@@ -792,6 +821,7 @@ async function getSponsorReply(userId, message, context) {
         'Never two voice notes in a row unless they asked for them. This is worth something because it is rare. If you reach for it every time, it stops meaning anything and becomes the new template.',
         'Never mention the marker, never describe how any of this works, and never ask their permission to send one. A sponsor who narrates their own delivery mechanism is not a sponsor.',
       ].join('\n') });
+      systemBlocks.push({ type: 'text', text: SPEAKING_DIRECTION });
     }
   }
 
@@ -820,8 +850,23 @@ async function getSponsorReply(userId, message, context) {
      including the web chat, is untouched and never learns this exists.
      Stripping runs on every channel, so a stray marker can never reach anyone
      even if the model produces one where it was never told about it. */
-  const { wanted: modelWantsVoice, text: replyText } = stripVoiceMarker(rawReply);
+  const { wanted: modelWantsVoice, text: markerFree } = stripVoiceMarker(rawReply);
   if (context && modelWantsVoice) context.modelWantsVoice = true;
+
+  /* From here the reply exists in two forms, and only one of them is ever seen.
+     The spoken copy keeps its direction tags and goes to the voice engine. The
+     read copy has none, and is what gets returned, persisted and sent as text.
+
+     They are split here rather than at the send because the medium is not
+     settled yet: whatsapp.js still overrules a voice note for anything carrying
+     a crisis number or a link, and falls back to text if synthesis fails. Every
+     one of those paths would otherwise put "[breath]" in front of somebody in
+     the worst possible moment. Persisting the clean copy matters as much:
+     history is shared with the web chat, and a model that sees its own tags in
+     its past turns starts writing them where there is no voice at all. Same
+     reasoning, and the same place in the pipeline, as [[voice]]. */
+  if (context) context.spokenText = voices.forSpeech(markerFree);
+  const replyText = voices.stripSpeechTags(markerFree);
 
   /* The programme change has now been put in front of them once, which is all
      it was for. Clear the flag or the sponsor reopens it in every message from

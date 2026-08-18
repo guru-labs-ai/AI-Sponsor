@@ -624,7 +624,14 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
            person assumes they were ignored. If the voice note cannot be sent,
            the words still go. */
         try {
-          const audioPath = await synthesizeSpeech(replyText, profile && profile.sponsorVoice);
+          /* The spoken copy, not the one that came back. getSponsorReply returns
+             the reply with its direction tags already taken out, because every
+             other path from here ends up in front of somebody's eyes. ctx holds
+             the version that still carries them, and this is the only place it
+             is used. Falls back to the plain text if the split ever stops
+             happening, which costs a flat-sounding voice note rather than a
+             missing one. */
+          const audioPath = await synthesizeSpeech(ctx.spokenText || replyText, profile && profile.sponsorVoice);
           await sendAudioReply(fromPhone, audioPath, expressApp);
         } catch (voiceErr) {
           console.error('[WhatsApp] voice reply failed, falling back to text:', voiceErr.message);
