@@ -722,11 +722,26 @@ async function getMetrics() {
     pool.query(`
       SELECT COUNT(DISTINCT ${PERSON_KEY})::int AS registered,
              COUNT(DISTINCT ${PERSON_KEY}) FILTER (WHERE access = 'Paid')::int AS paid,
-             COALESCE(SUM(GREATEST(0, (now()::date - signup_date::date))), 0)::int AS cumulative_days,
+             COALESCE((
+               /* One row per PERSON, not per row in users. Registration mirrors
+                  people onto reg- and wa- ids, so somebody with three rows was
+                  contributing three lifetimes to this total every single day.
+                  Measured Aug 19: 192 the old way against 119 the honest way,
+                  a 38% overstatement, on the number printed on the front of
+                  getaisponsor.com. MIN(signup_date) because the honest answer
+                  to "how long have they been here" is the first time they
+                  arrived, not the last time a duplicate row was written. */
+               SELECT SUM(GREATEST(0, (now()::date - first_signup::date)))
+               FROM (SELECT ${PERSON_KEY} AS person, MIN(signup_date) AS first_signup
+                     FROM users GROUP BY 1) people
+             ), 0)::int AS cumulative_days,
              COUNT(DISTINCT ${PERSON_KEY}) FILTER (WHERE last_active > now() - interval '7 days')::int AS active_last_7d
       FROM users`),
     pool.query(`
-      SELECT COUNT(*)::int AS total_active_days,
+      /* Same double count, quieter: activity_days is keyed by user_id, so one
+         person turning up on one day under two mirrored ids counted twice. A
+         day somebody showed up is one day, however many rows they own. */
+      SELECT COUNT(DISTINCT (LOWER(COALESCE(NULLIF(u.email, ''), NULLIF(u.phone, ''), u.user_id)), a.day))::int AS total_active_days,
              COUNT(DISTINCT LOWER(COALESCE(NULLIF(u.email, ''), NULLIF(u.phone, ''), u.user_id)))::int AS users_who_chatted,
              COALESCE(SUM(a.messages), 0)::int AS total_messages
       FROM activity_days a
