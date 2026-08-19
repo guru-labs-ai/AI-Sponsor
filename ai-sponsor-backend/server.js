@@ -999,6 +999,20 @@ app.get('/api/metrics/northstar', async (req, res) => {
             totalMessages: usage.total_messages,
           }
         : null,
+
+      /* The last 7 days on its own. Everything else here is cumulative, and a
+         total that only ever rises cannot answer "was this week any good",
+         which is the whole question a weekly check exists to ask. Kept as its
+         own block so nobody has to subtract two cumulative figures and get it
+         subtly wrong. */
+      thisWeek: usage
+        ? {
+            daysPeopleShowedUp: usage.active_days_7d,
+            peopleWhoShowedUp: usage.people_who_showed_7d,
+            messages: usage.messages_7d,
+            newSignups: usage.signups_7d,
+          }
+        : null,
       billing: {
         stripeConfigured: subs.length > 0 || !!process.env.STRIPE_SECRET_KEY,
         activeSubscriptions: subs.filter((s) => s.status === 'active' || s.status === 'trialing').length,

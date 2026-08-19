@@ -750,11 +750,34 @@ async function getMetrics() {
       SELECT signup_date::date AS day, COUNT(DISTINCT ${PERSON_KEY})::int AS n
       FROM users GROUP BY 1 ORDER BY 1`),
   ]);
+  /* ── What actually happened in the last 7 days ──────────────────────────
+     Everything above is cumulative, which is exactly the complaint: a total
+     that only ever rises cannot tell you whether this week was good. Matt's
+     ask was week on week movement, so the window is computed here rather than
+     inferred by whoever is rendering it. Same de-duplication as the totals:
+     one person turning up under two mirrored ids is one person, one day. */
+  const week = await pool.query(`
+    SELECT
+      (SELECT COUNT(*)::int FROM (
+         SELECT DISTINCT LOWER(COALESCE(NULLIF(u.email, ''), NULLIF(u.phone, ''), u.user_id)) AS person, a.day
+         FROM activity_days a JOIN users u ON u.user_id = a.user_id
+         WHERE a.day > now()::date - 7) d)                              AS active_days_7d,
+      (SELECT COUNT(DISTINCT LOWER(COALESCE(NULLIF(u.email, ''), NULLIF(u.phone, ''), u.user_id)))::int
+         FROM activity_days a JOIN users u ON u.user_id = a.user_id
+         WHERE a.day > now()::date - 7)                                 AS people_who_showed_7d,
+      (SELECT COALESCE(SUM(a.messages), 0)::int
+         FROM activity_days a JOIN users u ON u.user_id = a.user_id
+         WHERE a.day > now()::date - 7)                                 AS messages_7d,
+      (SELECT COUNT(*)::int FROM (
+         SELECT ${PERSON_KEY} AS person, MIN(signup_date) AS first_signup
+         FROM users GROUP BY 1) p
+       WHERE p.first_signup > now() - interval '7 days')                AS signups_7d`);
+
   const signupsByDay = {};
   byDay.rows.forEach((r) => {
     signupsByDay[new Date(r.day).toISOString().slice(0, 10)] = r.n;
   });
-  return { ...users.rows[0], ...activity.rows[0], signupsByDay };
+  return { ...users.rows[0], ...activity.rows[0], ...week.rows[0], signupsByDay };
 }
 
 /* ─── Who they are / what they're doing ─────────────────────────────────────
