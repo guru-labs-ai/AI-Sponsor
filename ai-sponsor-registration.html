@@ -1971,27 +1971,23 @@ function selectPlan(plan){
   renderPlanBox();
 }
 
-/* Only the monthly plan carries the 30-day trial — annual is charged in full
-   on day one (see subscription_data in the backend's createCheckoutSession).
-   The panel has to say which one is happening or we'd promise a free month
-   and then take $49 immediately. */
+/* Both plans carry the same 30-day trial (see subscription_data in the
+   backend's createCheckoutSession). The only thing the plan changes is what
+   gets charged on day 31, so that is the only line that switches. */
 let planCountTimer = null;
 function renderPlanBox(){
   const annual = selectedPlan === 'annual';
-  const num = document.getElementById('trialNum');
-  // Both plans draw into #trialNum — one as an animated day count, one as a
-  // flat price — so kill any in-flight count before drawing the other.
+  // Kill any in-flight count before starting another one.
   if (planCountTimer) { clearInterval(planCountTimer); planCountTimer = null; }
-  document.getElementById('trialLabel').textContent = annual ? 'today' : 'days free';
+  document.getElementById('trialLabel').textContent = 'days free';
   document.getElementById('trialThen').textContent = annual
     ? 'then $49 / year, cancel anytime'
     : 'then $5 / month, cancel anytime';
-  document.getElementById('stripeNote').textContent = annual
-    ? "You'll pay on Stripe's secure checkout. $49 covers your first full year."
-    : "You'll add your card on Stripe's secure checkout. Nothing is charged until day 31.";
+  document.getElementById('stripeNote').textContent =
+    "You'll add your card on Stripe's secure checkout. Nothing is charged until day 31.";
   const btn = document.getElementById('payBtn');
-  if (btn) btn.textContent = annual ? 'Subscribe for $49 / year →' : 'Start my free 30 days →';
-  if (annual) { num.textContent = '$49'; } else { planCountTimer = countUp('trialNum', 30, 800); }
+  if (btn) btn.textContent = 'Start my free 30 days →';
+  planCountTimer = countUp('trialNum', 30, 800);
 }
 
 /* ── Real Stripe Checkout ───────────────────────────────────────────────────
@@ -2049,16 +2045,15 @@ function handlePaymentReturn(){
     showSuccess(pending.plan === 'annual' ? 'annual subscription' : '30-day free trial');
     registerUser('Paid'); // fire-and-forget — save to GHL as a paid/trial user
 
-    /* Tell Meta a real buyer came back from Stripe. This is the event that
-       feeds Andromeda, so it learns who our actual payers look like.
-       The two plans are DELIBERATELY different events: annual takes $49 at
-       checkout, monthly takes nothing until day 31. Firing Purchase on a free
-       trial would report revenue that hasn't happened and teach Meta to hunt
-       trial-starters instead of payers. Wrapped so a blocked pixel can never
+    /* Tell Meta someone came back from Stripe with a card saved. Both plans
+       are a free trial now, so both fire StartTrial and NEITHER fires
+       Purchase: no money moves until day 31, and reporting revenue that
+       hasn't happened would teach Meta to hunt the wrong people. The plans
+       differ only in predicted_ltv. Wrapped so a blocked pixel can never
        break someone's signup. */
     try {
       if (pending.plan === 'annual') {
-        fbq('track', 'Purchase', { value: 49.00, currency: 'USD', content_name: 'AI Sponsor Annual' });
+        fbq('track', 'StartTrial', { value: 0.00, currency: 'USD', predicted_ltv: 49.00, content_name: 'AI Sponsor Annual' });
       } else {
         fbq('track', 'StartTrial', { value: 0.00, currency: 'USD', predicted_ltv: 60.00, content_name: 'AI Sponsor Monthly' });
       }
@@ -2066,13 +2061,9 @@ function handlePaymentReturn(){
 
     /* Same event to OpenAI's ads pixel, using their standard event names, so
        ChatGPT ads experiments get conversions back the same way Meta's do.
-       Same annual/trial split and the same reason for it. */
+       Both plans are a trial, so both report trial_started. */
     try {
-      if (pending.plan === 'annual') {
-        oaiq('measure', 'subscription_created', { type: 'plan_enrollment' });
-      } else {
-        oaiq('measure', 'trial_started', { type: 'plan_enrollment' });
-      }
+      oaiq('measure', 'trial_started', { type: 'plan_enrollment' });
     } catch(e) { console.warn('[AI Sponsor] OpenAI pixel not available:', e); }
     try { localStorage.removeItem('ais_pending'); } catch(e){}
     clearState();

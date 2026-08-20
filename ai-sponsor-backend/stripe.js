@@ -58,11 +58,9 @@ async function createCheckoutSession({ plan, email, userId, successUrl, cancelUr
     metadata: { userId: userId || '', plan },
   };
 
-  // Only the monthly plan gets the 30-day free trial (per the ClickUp task).
-  // The annual plan is a straight $49/yr charge with no trial.
-  if (plan === 'monthly') {
-    subscriptionData.trial_period_days = TRIAL_DAYS;
-  }
+  // Both plans get the same 30-day free trial. Whichever plan they picked,
+  // the card is saved now and nothing is charged until day 31.
+  subscriptionData.trial_period_days = TRIAL_DAYS;
 
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
