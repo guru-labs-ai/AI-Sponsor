@@ -1965,6 +1965,49 @@ async function syncStripeToGhl(result) {
       return;
     }
 
+    /* Real money, for the first time in the funnel. Everything before this
+       point is a trial: checkout takes $0 on both plans, so "ai-sponsor-paid"
+       is really "gave us a card". This tag is the one that means paid, and it
+       is deliberately a different tag so the two can never be confused in a
+       GHL filter or a report. */
+    case 'payment_succeeded': {
+      const contactId = await ghl.upsertStripeContact({ email: result.email, userId: result.userId });
+      await ghl.addTags(contactId, ['ai-sponsor', 'ai-sponsor-paying']);
+      // Money arriving makes every earlier warning state stale.
+      await ghl.removeTags(contactId, ['ai-sponsor-cancelled', 'ai-sponsor-payment-failed', 'ai-sponsor-trial-ending']);
+
+      if (result.userId) {
+        await db.upsertUser({
+          userId: result.userId,
+          email: result.email || '',
+          access: 'Paid',
+          ghlContactId: contactId,
+        });
+        // Append-only, so the first real charge is answerable later without
+        // going to Stripe. invoiceId is carried so a webhook retry is
+        // recognisable as the same payment rather than a second one.
+        db.recordEvent(result.userId, 'payment_succeeded', {
+          invoiceId: result.invoiceId,
+          amount: result.amount,
+          currency: result.currency,
+          plan: result.plan || null,
+          billingReason: result.billingReason || null,
+        }, 'stripe-webhook').catch((e) =>
+          console.error('[Stripe→GHL] recordEvent failed:', e.message));
+      }
+
+      const money = `${(result.amount / 100).toFixed(2)} ${String(result.currency || 'usd').toUpperCase()}`;
+      console.log(`[Stripe→GHL] PAID ${money}: ${result.email || result.customerId} (${result.plan || 'plan unknown'}) invoice ${result.invoiceId}`);
+      return;
+    }
+
+    /* The $0 invoice Stripe raises when a trial opens. Nothing has been paid,
+       so it is logged and dropped rather than treated as a sale. */
+    case 'trial_invoice_no_charge': {
+      console.log(`[Stripe→GHL] trial opened, no charge (invoice ${result.invoiceId})`);
+      return;
+    }
+
     case 'payment_failed': {
       const user = await findUser(result);
       if (!user || !user.ghl_contact_id) {

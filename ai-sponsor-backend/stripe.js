@@ -15,6 +15,7 @@
         - customer.subscription.trial_will_end
         - customer.subscription.deleted
         - invoice.payment_failed
+        - invoice.payment_succeeded   <- the only event where money moves
       Copy the webhook signing secret into STRIPE_WEBHOOK_SECRET in .env.
    ───────────────────────────────────────────────────────────────────────── */
 
@@ -158,6 +159,44 @@ async function handleWebhookEvent(event) {
         type: 'payment_failed',
         customerId: invoice.customer,
         attemptCount: invoice.attempt_count,
+      };
+    }
+
+    /* The day-31 charge, and the only event in the entire funnel where money
+       actually moves. Both plans now open with a 30-day trial, so checkout
+       takes $0 and reports no revenue anywhere. Without this event a paying
+       customer is invisible to us, to GHL and to every ad platform.
+
+       Stripe also sends this for the $0 invoice that OPENS a trial, which is
+       why the amount is checked. Treating that as a sale would report revenue
+       that has not happened, which is the same mistake as firing a Purchase
+       pixel event on a free trial. */
+    case 'invoice.payment_succeeded': {
+      const invoice = event.data.object;
+      const amountPaid = invoice.amount_paid ?? 0;
+
+      if (amountPaid <= 0) {
+        return { type: 'trial_invoice_no_charge', invoiceId: invoice.id };
+      }
+
+      return {
+        type: 'payment_succeeded',
+        // On an invoice the plan metadata lives under subscription_details,
+        // not on the invoice itself. Both are read so this keeps working if
+        // Stripe ever moves it.
+        userId: invoice.subscription_details?.metadata?.userId
+          || invoice.metadata?.userId,
+        plan: invoice.subscription_details?.metadata?.plan
+          || invoice.metadata?.plan,
+        email: invoice.customer_email,
+        customerId: invoice.customer,
+        subscriptionId: invoice.subscription,
+        invoiceId: invoice.id,
+        amount: amountPaid,          // cents
+        currency: invoice.currency,
+        // "subscription_cycle" is a trial converting or a renewal.
+        // "subscription_create" would be a plan bought with no trial at all.
+        billingReason: invoice.billing_reason,
       };
     }
 
