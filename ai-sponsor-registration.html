@@ -21,6 +21,13 @@
       utmSource:   p.get('utm_source')   || '',
       utmMedium:   p.get('utm_medium')   || '',
       utmCampaign: p.get('utm_campaign') || '',
+      utmContent:  p.get('utm_content')  || '',
+      utmTerm:     p.get('utm_term')     || '',
+      // Ad-click ids. These only ever appear in the URL on the very first hit
+      // from an ad, so they have to be kept here or they are gone. fbclid is
+      // what Meta matches a later purchase back to a specific ad.
+      fbclid:      p.get('fbclid')       || '',
+      gclid:       p.get('gclid')        || '',
       referrer:    refHost,
       landing:     location.pathname,
       at:          new Date().toISOString()
@@ -1997,6 +2004,32 @@ function renderPlanBox(){
    handlePaymentReturn() below picks them up. GHL registration deliberately
    fires only on the way back, so an abandoned checkout writes nothing.
 ──────────────────────────────────────────────────────────────────────────── */
+/* Everything we know about where this person came from, assembled at the
+   moment they leave for Stripe.
+
+   Two different sources, deliberately:
+   - ais_attr is first-touch, written once on the landing hit above, because
+     utm/fbclid only exist in the URL on that first visit.
+   - _fbp / _fbc are cookies the Meta pixel writes, read live here rather than
+     at landing because the pixel initialises further down the page and the
+     cookies do not exist yet when that first script runs.
+
+   Meta needs _fbp/_fbc to match a purchase back to an ad. Without them a
+   day-31 conversion can only be matched on email, which is far weaker. */
+function collectAttribution(){
+  var out = {};
+  try { out = JSON.parse(localStorage.getItem('ais_attr') || '{}') || {}; } catch(e){}
+  function cookie(name){
+    try {
+      var m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+      return m ? m.pop() : '';
+    } catch(e){ return ''; }
+  }
+  out.fbp = cookie('_fbp');
+  out.fbc = cookie('_fbc');
+  return out;
+}
+
 async function startCheckout(){
   const btn = document.getElementById('payBtn');
   const err = document.getElementById('e-pay');
@@ -2012,7 +2045,7 @@ async function startCheckout(){
     const res = await fetch(BACKEND_URL + '/api/stripe/create-checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan: selectedPlan, email: D.email || '', userId: chatUserId })
+      body: JSON.stringify({ plan: selectedPlan, email: D.email || '', userId: chatUserId, attribution: collectAttribution() })
     });
     const data = await res.json().catch(()=>({}));
     if (!res.ok || !data.checkoutUrl) throw new Error(data.error || ('HTTP ' + res.status));

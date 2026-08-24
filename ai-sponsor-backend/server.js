@@ -1854,7 +1854,7 @@ app.post('/api/chat', async (req, res) => {
 // Create a Checkout Session for either the monthly or annual plan.
 // Frontend calls this, then redirects the browser to the returned checkoutUrl.
 app.post('/api/stripe/create-checkout', async (req, res) => {
-  const { plan, email, userId } = req.body;
+  const { plan, email, userId, attribution } = req.body;
   if (!plan || !email) {
     return res.status(400).json({ error: 'plan and email are required' });
   }
@@ -1864,6 +1864,7 @@ app.post('/api/stripe/create-checkout', async (req, res) => {
       plan,
       email,
       userId,
+      attribution,
     });
     res.json({ checkoutUrl, sessionId });
   } catch (err) {

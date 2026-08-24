@@ -37,12 +37,51 @@ const PRICE_IDS = {
 
 const TRIAL_DAYS = 30;
 
+/* ── Ad attribution -> Stripe metadata ──────────────────────────────────────
+   Both plans open with a 30-day trial, so checkout takes $0 and the only
+   moment real money moves is the day-31 invoice. By then the browser is long
+   gone: no pixel, no cookies, no page to fire an event from. Anything we want
+   to know about which ad produced that customer has to be written down NOW and
+   carried by Stripe itself.
+
+   These go on subscription_data.metadata specifically, not just the session,
+   because Stripe mirrors subscription metadata onto every future invoice as
+   subscription_details.metadata. That is what makes the day-31 payment
+   traceable back to the ad click, without depending on any third party.
+
+   Stripe caps metadata at 50 keys and 500 chars per value, so each field is
+   trimmed and blanks are dropped rather than stored as empty strings. ────── */
+function attributionMetadata(attribution) {
+  if (!attribution || typeof attribution !== 'object') return {};
+  const fields = {
+    utm_source: attribution.utmSource,
+    utm_medium: attribution.utmMedium,
+    utm_campaign: attribution.utmCampaign,
+    utm_content: attribution.utmContent,
+    utm_term: attribution.utmTerm,
+    fbclid: attribution.fbclid,
+    gclid: attribution.gclid,
+    fbp: attribution.fbp,
+    fbc: attribution.fbc,
+    referrer: attribution.referrer,
+    landing: attribution.landing,
+    first_seen: attribution.at,
+  };
+  const out = {};
+  Object.entries(fields).forEach(([key, value]) => {
+    if (typeof value !== 'string') return;
+    const trimmed = value.trim().slice(0, 500);
+    if (trimmed) out[key] = trimmed;
+  });
+  return out;
+}
+
 /* ── Create a Stripe Checkout Session ───────────────────────────────────────
    Frontend redirects the user to the returned `url`. Stripe hosts the actual
    payment form, so we never touch raw card numbers on our server — this is
    the safest and fastest way to integrate (no PCI compliance burden on us).
 ─────────────────────────────────────────────────────────────────────────── */
-async function createCheckoutSession({ plan, email, userId, successUrl, cancelUrl }) {
+async function createCheckoutSession({ plan, email, userId, successUrl, cancelUrl, attribution }) {
   if (!stripe) throw new Error('Stripe is not configured (STRIPE_SECRET_KEY missing).');
   if (!['monthly', 'annual'].includes(plan)) {
     throw new Error(`Invalid plan "${plan}". Must be "monthly" or "annual".`);
@@ -55,8 +94,10 @@ async function createCheckoutSession({ plan, email, userId, successUrl, cancelUr
     );
   }
 
+  const attrMeta = attributionMetadata(attribution);
+
   const subscriptionData = {
-    metadata: { userId: userId || '', plan },
+    metadata: { userId: userId || '', plan, ...attrMeta },
   };
 
   // Both plans get the same 30-day free trial. Whichever plan they picked,
@@ -71,7 +112,7 @@ async function createCheckoutSession({ plan, email, userId, successUrl, cancelUr
     subscription_data: subscriptionData,
     success_url: successUrl || `${process.env.FRONTEND_URL}/ai-sponsor-registration.html?payment=success`,
     cancel_url: cancelUrl || `${process.env.FRONTEND_URL}/ai-sponsor-registration.html?payment=cancelled`,
-    metadata: { userId: userId || '', plan },
+    metadata: { userId: userId || '', plan, ...attrMeta },
   });
 
   return { checkoutUrl: session.url, sessionId: session.id };
@@ -85,6 +126,19 @@ function constructWebhookEvent(rawBody, signature) {
     signature,
     process.env.STRIPE_WEBHOOK_SECRET
   );
+}
+
+/* Where an invoice keeps its parent subscription's metadata depends on the
+   Stripe API version, and it moved without ceremony:
+     2024-12-18.acacia (what this file pins) -> invoice.subscription_details
+     2025-03-31.basil and later              -> invoice.parent.subscription_details
+   Verified against a real invoice by requesting the same object under both
+   versions. Reading both means bumping apiVersion later degrades nothing here
+   instead of silently returning an empty object. */
+function subscriptionMetadata(invoice) {
+  return invoice?.subscription_details?.metadata
+    || invoice?.parent?.subscription_details?.metadata
+    || {};
 }
 
 /* ── Guard: this Stripe account is shared with other products (DRM, GHL
@@ -197,6 +251,12 @@ async function handleWebhookEvent(event) {
         // "subscription_cycle" is a trial converting or a renewal.
         // "subscription_create" would be a plan bought with no trial at all.
         billingReason: invoice.billing_reason,
+        // The ad click that produced this customer, written at checkout 30+
+        // days ago and carried here by Stripe. This is the only place it is
+        // still available: the browser session that had the cookies is long
+        // over. Whatever reports this sale onward (GHL, Meta CAPI) needs it
+        // from here or the sale attributes to nothing.
+        attribution: subscriptionMetadata(invoice),
       };
     }
 
