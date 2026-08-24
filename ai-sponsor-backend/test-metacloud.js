@@ -110,7 +110,11 @@ const src = (f) => fs.readFileSync(path.resolve(__dirname, f), 'utf8');
   group('whatsapp.js actually calls it, and falls back if it fails');
   const wa = src('whatsapp.js');
   check('requires the module', wa.includes("require('./metacloud')"), true);
-  check('guarded on enabled', wa.includes('if (metacloud.enabled)'), true);
+  check('guarded on outbound, not merely configured', wa.includes('if (metacloud.outbound)'), true);
+  /* Credentials exist long before the number moves, because the inbound routes
+     need them to mount. Gating the send on `enabled` would make every voice
+     note upload to Meta, wait for the (#200) and only then fall back. */
+  check('NOT gated on enabled', /if \(metacloud\.enabled\)/.test(wa), false);
   check('calls sendVoiceNote', wa.includes('metacloud.sendVoiceNote(toPhone'), true);
   check('a failure is caught, not thrown', /catch \(metaErr\)[\s\S]{0,240}falling back to Twilio/.test(wa), true);
   check('Meta is tried before the Twilio media URL is built',

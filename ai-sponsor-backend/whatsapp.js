@@ -520,7 +520,15 @@ async function sendAudioReply(toPhone, audioFilePath, expressApp) {
      Note what is NOT needed here: no public URL, no reachability probe, no
      waiting for Twilio to come and fetch the file. Meta takes the bytes
      directly. */
-  if (metacloud.enabled) {
+  /* ⚠️ `outbound`, NOT `enabled`. `enabled` only means the credentials exist,
+     and they have to exist well before the number moves: the inbound routes
+     cannot mount without them, and the webhook has to be verifiable days early.
+     While the number is still Twilio's, Meta refuses every send, so gating on
+     `enabled` would mean each voice note uploads the audio to Meta, waits for
+     the (#200), and only then falls back. Seconds of extra silence on a person
+     who is waiting for their sponsor, on every single voice note, in exchange
+     for nothing. */
+  if (metacloud.outbound) {
     try {
       const sent = await metacloud.sendVoiceNote(toPhone, fs.readFileSync(audioFilePath));
       console.log(`[WhatsApp] voice note via Meta (${sent.messageId})`);
