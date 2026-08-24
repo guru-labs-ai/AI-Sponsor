@@ -40,11 +40,27 @@ const metacloud = require('./metacloud'); // voice notes straight to Meta; inert
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// Twilio client for sending outbound messages (replies)
-const twilioClient = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
+/* Twilio client for sending outbound messages (replies).
+
+   CONSTRUCTED ONLY IF THERE ARE CREDENTIALS. twilio(undefined, undefined)
+   throws at require time, and after the Cloud API migration this module is
+   loaded on a host that deliberately has no Twilio variables left. An unguarded
+   constructor here would take the entire server down on boot, web chat included,
+   the first time somebody removed a variable they no longer needed. */
+const twilioClient = process.env.TWILIO_ACCOUNT_SID
+  ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+  : null;
+
+/* Reaching a Twilio send with no Twilio client means the routing decided this
+   message should go out a door that is not there any more. Said plainly rather
+   than as "cannot read properties of null", because the fix is a flag, not a
+   bug hunt. */
+function requireTwilio() {
+  if (!twilioClient) {
+    throw new Error('Twilio is not configured on this host (META_WA_INBOUND path should have been used)');
+  }
+  return twilioClient;
+}
 
 // Your Wyoming (307) Twilio WhatsApp number — set in .env once purchased
 const TWILIO_WHATSAPP_NUMBER = process.env.TWILIO_WHATSAPP_NUMBER; // e.g. "whatsapp:+13071234567"
@@ -432,7 +448,29 @@ async function sendTextReply(toPhone, text) {
   let last;
   for (const body of parts) {
     // Sequentially, so they arrive in the order they were written.
-    last = await twilioClient.messages.create({
+
+    /* Once the number is registered to our own Meta app, Twilio cannot send on
+       it at all, so this is not a preference between two working routes: it is
+       the only one left. META_WA_INBOUND is the flag for "the number has moved",
+       which is why text switches on it rather than on metacloud.enabled. A
+       token being present is not the same as the number being ours.
+
+       ⚠️ AND IT IS DELIBERATELY NOT THE SAME FLAG THAT MOUNTS THE INBOUND
+       WEBHOOK. The routes have to be mountable days early so Meta's dashboard
+       can verify the callback URL, and if that same switch also moved replies
+       to Meta, verifying the webhook would mean breaking every text reply on a
+       live product first. Listening and speaking are separate switches.
+
+       No fallback to Twilio here, deliberately. After the migration a Twilio
+       send does not fail loudly, it fails as an error on a number Twilio no
+       longer owns, and dressing that up as a retry would just delay the real
+       error and confuse whoever reads the log. */
+    if (metacloud.outbound) {
+      last = await metacloud.sendText(toPhone, body);
+      continue;
+    }
+
+    last = await requireTwilio().messages.create({
       from: TWILIO_WHATSAPP_NUMBER,
       to: toPhone, // already has "whatsapp:" prefix from Twilio's incoming payload
       body,
@@ -511,7 +549,7 @@ async function sendAudioReply(toPhone, audioFilePath, expressApp) {
   }
   console.log(`[WhatsApp] media reachable: ${probe.bytes} bytes as ${probe.type}`);
 
-  return twilioClient.messages.create({
+  return requireTwilio().messages.create({
     from: TWILIO_WHATSAPP_NUMBER,
     to: toPhone,
     mediaUrl: [publicAudioUrl],
@@ -544,6 +582,21 @@ async function markAsRead(messageSid) {
     console.warn('[WhatsApp] no MessageSid on webhook — cannot mark as read');
     return;
   }
+
+  /* A Meta id means the message came in through the Cloud API webhook, so the
+     read receipt has to go back the same way. Routed on the SHAPE of the id
+     rather than on a flag, because the id is the thing that actually decides
+     which API can accept it, and during a switchover both shapes can be in
+     flight at once.
+
+     ⭐ Worth noting what changes here: Twilio has no standalone mark-as-read
+     call at all, so on that path the blue ticks are a side effect of the typing
+     indicator. Meta has a real one and takes the typing indicator in the same
+     call, so after the migration we get on purpose what we were getting by
+     accident. */
+  if (/^wamid\./i.test(messageSid)) {
+    return metacloud.markRead(messageSid);
+  }
   /* Twilio documents this field as needing an SM or MM SID. Checked rather than
      assumed, so that if the prefix ever changes the log says why the ticks went
      grey instead of leaving somebody to guess. */
@@ -572,21 +625,39 @@ async function markAsRead(messageSid) {
    Returns TwiML string that server.js must send back to Twilio immediately.
    Claude's reply is sent async via REST API after returning the TwiML. */
 async function handleIncomingMessage(req, getSponsorReply, expressApp) {
+  /* One message, already parsed and already signature-checked, handed over by
+     the Meta webhook route in server.js. Everything from step 4 down is about
+     the person and the conversation rather than the carrier, so the two paths
+     join here rather than being written twice: the whole point is that a
+     migration must not fork the reply logic, because the second copy is the one
+     that quietly stops matching. */
+  const viaMeta = !!req.metaMessage;
+  const meta = req.metaMessage || null;
+
   // ── 1. Security check ──────────────────────────────────────────────────────
-  if (!validateTwilioSignature(req)) {
+  /* Meta signs with the app secret over the raw body, which server.js has
+     already verified before calling us. Running Twilio's validator over a Meta
+     request would fail every time and reject a legitimate message. */
+  if (!viaMeta && !validateTwilioSignature(req)) {
     console.warn('[WhatsApp] Invalid Twilio signature — request rejected');
     return { twiml: '<Response></Response>', rejected: true };
   }
 
-  // ── 2. Parse Twilio's payload ──────────────────────────────────────────────
-  const fromPhone = req.body.From;    // "whatsapp:+923001234567"
-  const messageBody = req.body.Body || '';
-  const messageSid = req.body.MessageSid;  // "SM..." / "MM..." — what we mark read
-  const numMedia = parseInt(req.body.NumMedia || '0', 10);
-  const mediaUrl = req.body.MediaUrl0;
-  const mediaType = req.body.MediaContentType0 || '';
-  const isAudio = numMedia > 0 && mediaType.startsWith('audio/');
-  const isText = numMedia === 0 && messageBody.trim().length > 0;
+  // ── 2. Parse the payload ───────────────────────────────────────────────────
+  const fromPhone = viaMeta ? meta.fromPhone : req.body.From;    // "whatsapp:+923001234567"
+  const messageBody = viaMeta ? (meta.text || '') : (req.body.Body || '');
+  /* Twilio's "SM…"/"MM…" or Meta's "wamid.…". markAsRead routes on the shape. */
+  const messageSid = viaMeta ? meta.wamid : req.body.MessageSid;
+  const numMedia = viaMeta ? (meta.isAudio ? 1 : 0) : parseInt(req.body.NumMedia || '0', 10);
+  /* Twilio gives a URL to fetch; Meta gives an id to look up. Only one of these
+     is ever set, and the download step below picks on that basis. */
+  const mediaUrl = viaMeta ? null : req.body.MediaUrl0;
+  const mediaId = viaMeta ? meta.mediaId : null;
+  const mediaType = viaMeta ? (meta.mediaType || '') : (req.body.MediaContentType0 || '');
+  const isAudio = viaMeta ? !!meta.isAudio : (numMedia > 0 && mediaType.startsWith('audio/'));
+  const isText = viaMeta
+    ? (!meta.isAudio && messageBody.trim().length > 0)
+    : (numMedia === 0 && messageBody.trim().length > 0);
 
   /* Turn the ticks blue, first thing, for every message that reaches us. Before
      the transcription, before Claude, before anything that takes time, and
@@ -606,9 +677,23 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
     try {
       let userMessageText;
 
-      if (isAudio && mediaUrl) {
+      if (isAudio && (mediaUrl || mediaId)) {
         console.log(`[WhatsApp] Voice note from ${fromPhone} — transcribing...`);
-        const audioPath = await downloadAudio(mediaUrl);
+
+        /* Two carriers, two ways to get the bytes, one file path out. Whisper
+           wants something on disk, so the Meta branch writes what it fetched to
+           the same temp directory the Twilio branch downloads into, and
+           everything after this line is identical for both. */
+        let audioPath;
+        if (mediaId) {
+          const got = await metacloud.downloadMedia(mediaId);
+          audioPath = path.join(os.tmpdir(), `wa-incoming-${Date.now()}.ogg`);
+          fs.writeFileSync(audioPath, got.buffer);
+          console.log(`[WhatsApp] voice note via Meta: ${got.bytes} bytes as ${got.mimeType}`);
+        } else {
+          audioPath = await downloadAudio(mediaUrl);
+        }
+
         userMessageText = await transcribeAudio(audioPath);
         console.log(`[WhatsApp] Transcribed: "${userMessageText}"`);
       } else if (isText) {

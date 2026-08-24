@@ -13,8 +13,13 @@ const ghl = require('./ghl');
 // so requiring it without those env vars would crash the whole server at boot
 // and take the live web chat down with it. Guarding the require keeps chat safe
 // until WhatsApp is actually wired up (TWILIO_ACCOUNT_SID set on the host).
+/* META_WA_INBOUND belongs in this condition, not just TWILIO_ACCOUNT_SID.
+   The end state of the Cloud API migration is a host with no Twilio credentials
+   at all, and gating the module on Twilio alone would mean the WhatsApp surface
+   silently stops existing on the day the last Twilio variable is removed: no
+   error, no route, just a number nobody is listening on. */
 let whatsapp = null;
-if (process.env.TWILIO_ACCOUNT_SID) {
+if (process.env.TWILIO_ACCOUNT_SID || process.env.META_WA_INBOUND === '1') {
   whatsapp = require('./whatsapp');
 }
 
@@ -43,7 +48,17 @@ app.use(cors());
 // must be registered BEFORE the global express.json() parser below.
 app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
 
-app.use(express.json());
+/* The verify hook keeps the raw bytes alongside the parsed body, because Meta
+   signs the bytes it sent and a re-serialised object will not match: key order
+   or a single space is enough to fail every delivery, which reads exactly like
+   a wrong app secret.
+
+   It has to live HERE rather than on the Meta route itself. This parser runs
+   first and consumes the stream, so a second express.json() further down sees
+   the body already parsed and skips, taking its verify hook with it. That is
+   the same trap the Stripe webhook above sidesteps by being registered earlier,
+   and it cost a live test to find. */
+app.use(express.json({ verify: (req, _res, buf) => { req.rawBody = buf; } }));
 
 // Shared team KPI scoreboard (see scoreboard.js) — used by the GitHub Pages
 // dashboard weekly-scoreboard.html, not by the AI Sponsor product itself.
@@ -2074,9 +2089,86 @@ if (whatsapp) {
     res.type(voices.CONTENT_TYPE);
     res.sendFile(filePath);
   });
-  console.log('WhatsApp (Twilio) routes mounted.');
+  /* Says which carrier can actually send, not just which routes exist. After
+     the migration this module is still loaded (Meta needs it) but the Twilio
+     client is null, and a log line reading "Twilio routes mounted" on a host
+     with no Twilio credentials is exactly the kind of thing that sends somebody
+     looking in the wrong place at the worst moment. */
+  console.log(process.env.TWILIO_ACCOUNT_SID
+    ? 'WhatsApp (Twilio) routes mounted.'
+    : 'WhatsApp Twilio routes mounted but INERT — no Twilio credentials on this host.');
 } else {
   console.log('WhatsApp routes NOT mounted (TWILIO_ACCOUNT_SID not set) — web chat unaffected.');
+}
+
+/* ─── WhatsApp (Meta Cloud API) inbound — mounted ONLY when META_WA_INBOUND=1 ──
+
+   The other half of the migration off Twilio. Aug 24: with our own Meta app and
+   a permanent system user token, Meta accepts media uploads on our number and
+   refuses every send with (#200), because Twilio registered the number and the
+   messaging right goes with the registration. The fix is to register the number
+   to our own app, and the moment that happens Twilio's webhook stops firing.
+   This is what has to be listening when it does.
+
+   ⚠️ ORDER MATTERS ON THE DAY. Deploy this, set META_WA_INBOUND=1 and confirm
+   the routes are mounted BEFORE registering the number. The other order leaves
+   a window where nobody is listening, and on this product that window is people
+   in recovery messaging their sponsor and getting silence.
+
+   Mounted independently of the Twilio block on purpose: during the switchover
+   both can be live at once, and afterwards Twilio's can be removed without
+   touching this. */
+if (whatsapp && process.env.META_WA_INBOUND === '1') {
+  const metawebhook = require('./metawebhook');
+
+  /* Meta's verification handshake. A GET, not a POST, fired when the callback
+     URL is saved in the app dashboard and on every later edit. */
+  app.get('/api/whatsapp/meta-webhook', (req, res) => {
+    const { status, body } = metawebhook.handleVerification(req);
+    res.status(status).send(body);
+  });
+
+  /* No body parser here on purpose. The global express.json() above has already
+     run and already captured req.rawBody through its verify hook; adding a
+     second parser at this route would be skipped silently, which is precisely
+     the bug that made every correctly signed delivery return 403 the first time
+     this was tested end to end. */
+  app.post('/api/whatsapp/meta-webhook',
+    async (req, res) => {
+      if (!metawebhook.validateSignature(req)) {
+        console.warn('[Meta] webhook signature rejected');
+        return res.status(403).send('Forbidden');
+      }
+
+      /* 200 first, always. Meta retries a delivery it does not see acknowledged
+         quickly, and a retry here means the sponsor answers the same message
+         twice. Everything below this line runs after the response has gone. */
+      res.status(200).send('EVENT_RECEIVED');
+
+      let messages = [];
+      try {
+        messages = metawebhook.normalise(req.body);
+      } catch (err) {
+        console.error('[Meta] could not read webhook payload:', err.message);
+        return;
+      }
+      if (!messages.length) return; // status callbacks and other noise
+
+      for (const metaMessage of messages) {
+        /* handleIncomingMessage owns the whole conversation flow and is shared
+           with the Twilio path deliberately, so a migration cannot fork the
+           reply logic. It reads req.metaMessage and skips Twilio's signature
+           check when it is present. The TwiML it returns is meaningless here
+           and is discarded; Meta was already answered above. */
+        whatsapp
+          .handleIncomingMessage({ metaMessage }, getSponsorReply, app)
+          .catch((err) => console.error('[Meta] handler error:', err.message));
+      }
+    }
+  );
+  console.log('WhatsApp (Meta Cloud API) inbound routes mounted.');
+} else if (whatsapp) {
+  console.log('WhatsApp Meta inbound NOT mounted (META_WA_INBOUND != 1) — Twilio still owns inbound.');
 }
 
 // ─── Start ────────────────────────────────────────────────────────────────────
