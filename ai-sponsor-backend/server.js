@@ -845,6 +845,11 @@ async function getSponsorReply(userId, message, context) {
      contact. Never allowed to block a reply: if the database is unreachable the
      sponsor simply goes back to not knowing the date, which is where it was. */
   const lastAt = await db.getLastMessageAt(userId).catch(() => null);
+  /* Handed back to the caller the same way modelWantsVoice is. WhatsApp uses it
+     to decide whether to quote the message it is answering: worth doing when
+     time has passed and the reply would otherwise land under an old
+     conversation, pointless when they are mid-exchange and it is obvious. */
+  if (context) context.lastMessageAt = lastAt;
   const systemBlocks = [
     { type: 'text', text: MASTER_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
   ];

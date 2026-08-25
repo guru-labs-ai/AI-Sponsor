@@ -229,7 +229,7 @@ const delivery = (messages, extra) => ({
   check('read receipts route on the id shape', /\/\^wamid\\\./.test(wa) && wa.includes('metacloud.markRead'), true);
   check('inbound audio is fetched by media id', wa.includes('metacloud.downloadMedia(mediaId)'), true);
   check('text goes through Meta once the number has moved',
-    wa.includes('if (metacloud.outbound)') && wa.includes('metacloud.sendText(toPhone, body)'), true);
+    wa.includes('if (metacloud.outbound)') && wa.includes('metacloud.sendText(toPhone, body'), true);
   /* Listening and sending MUST be separate switches. If mounting the webhook
      also flipped replies to Meta, the only way to let Meta verify the callback
      URL would be to break every text reply on a live product first. */

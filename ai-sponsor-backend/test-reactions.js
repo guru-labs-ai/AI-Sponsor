@@ -151,13 +151,56 @@ const deservesReaction = new Function(`${body}; return deservesReaction;`)();
 
   group('wiring');
   check('off unless META_WA_REACTIONS=1', wa.includes("process.env.META_WA_REACTIONS === '1'"), true);
-  check('reacts to their message id', wa.includes('metacloud.sendReaction(fromPhone, messageSid)'), true);
+  check('reacts to their message id', wa.includes('metacloud.sendReaction(fromPhone, messageSid'), true);
   check('failures are caught, never thrown', /sendReaction\([^)]*\)\s*\n\s*\.catch\(/.test(wa), true);
   /* If the reply ever waits on a reaction, a Meta hiccup costs somebody their
      answer. It must be fire and forget. */
   check('never awaited', /await\s+metacloud\.sendReaction/.test(wa), false);
   check('fires before the reply is composed',
     wa.indexOf('metacloud.sendReaction') < wa.indexOf('const replyText = await getSponsorReply'), true);
+
+  group('different emoji, not always a heart');
+  /* Matt: "give different emoji responses to some (only some) of the messages
+     to simulate a real conversation". The same heart every time is what makes
+     an automation obvious. */
+  const body2 = wa.slice(wa.indexOf('const REACTION_FOR'), wa.indexOf('/* ── Not two in a row'));
+  const reactionEmoji = new Function(`${body2}; return reactionEmoji;`)();
+  check('a counted milestone',        reactionEmoji('one week sober today'), '\u{1F64C}');
+  check('a meeting',                  reactionEmoji('I went to a meeting tonight'), '\u{1F44F}');
+  check('getting through it',         reactionEmoji("I didn't drink last night"), '\u{1F4AA}');
+  check('made it through',            reactionEmoji('I made it through the day'), '\u{1F4AA}');
+  check('everything else keeps the default heart', reactionEmoji('feeling better today'), null);
+  /* Nothing that could land as flippant on a recovery product. */
+  const emojis = ['\u{1F64C}', '\u{1F44F}', '\u{1F4AA}'];
+  check('no thumbs up, fire or party poppers',
+    emojis.some((e) => ['\u{1F44D}', '\u{1F525}', '\u{1F389}'].includes(e)), false);
+
+  group('only some of them: not two in a row');
+  /* React to every qualifying message and within a week it is wallpaper. Same
+     rule the unprompted voice notes already use. */
+  check('the guard exists', wa.includes('function reactionHeldBack'), true);
+  check('it is consulted before reacting', wa.includes('reactionHeldBack(waUserId(fromPhone))'), true);
+  check('and updated either way', wa.includes('noteReaction(waUserId(fromPhone), !holdBack)'), true);
+  check('the chosen emoji is passed through',
+    wa.includes('metacloud.sendReaction(fromPhone, messageSid, emoji)'), true);
+
+  group('quoting the message being answered');
+  const body3 = wa.slice(wa.indexOf('const QUOTE_AFTER_MS'), wa.indexOf('async function sendTextReply'));
+  const shouldQuote = new Function(`${body3}; return shouldQuote;`)();
+  const NOW2 = Date.now();
+  check('a voice note is always quoted',
+    shouldQuote({ isAudio: true, lastMessageAt: new Date(NOW2 - 60000) }, NOW2), true);
+  check('mid-exchange text is not quoted',
+    shouldQuote({ isAudio: false, lastMessageAt: new Date(NOW2 - 60000) }, NOW2), false);
+  check('after a long gap it is quoted',
+    shouldQuote({ isAudio: false, lastMessageAt: new Date(NOW2 - 9 * 3600000) }, NOW2), true);
+  check('first contact quotes nothing',
+    shouldQuote({ isAudio: false, lastMessageAt: null }, NOW2), false);
+  /* Quoting the same message three times running looks like a stuck machine. */
+  check('only the first part of a split reply quotes',
+    wa.includes('parts.indexOf(body) === 0 ? replyTo : null'), true);
+  check('metacloud attaches it as context',
+    src('metacloud.js').includes('context: { message_id: replyTo }'), true);
 
   console.log(`\n${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);

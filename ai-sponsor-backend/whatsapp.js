@@ -398,6 +398,45 @@ function deservesReaction(text) {
   return !NOT_A_CELEBRATION.test(forVeto);
 }
 
+/* ── Which emoji ─────────────────────────────────────────────────────────────
+   Matt, Aug 25: "give different emoji responses to some (only some) of the
+   messages to simulate a real conversation".
+
+   The same heart every time is what makes an automation obvious. A person
+   reacts differently to "one week sober" than to "today was alright", and the
+   difference is most of what makes it read as somebody paying attention.
+
+   Deliberately a small set. Four warm, unambiguous emoji, chosen by what the
+   message actually said. Nothing clever, nothing that could land as flippant
+   on a recovery product: no thumbs up, no fire, no party poppers on somebody's
+   fourth day sober. */
+const REACTION_FOR = [
+  // A counted milestone. The biggest thing anyone reports.
+  [/\b(?:\d+|a|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirty|sixty|ninety)\s*(?:day|days|week|weeks|month|months|year|years)\s+(?:sober|clean|free|without|in)\b/i, '\u{1F64C}'],
+  // Showing up: a meeting, getting through a day, not drinking.
+  [/\bmeeting\b/i, '\u{1F44F}'],
+  [/\b(?:made it|stayed|did\s?n[o']?t|didnt|have\s?n[o']?t|havent)\b/i, '\u{1F4AA}'],
+];
+
+function reactionEmoji(text) {
+  for (const [re, emoji] of REACTION_FOR) if (re.test(text)) return emoji;
+  return null;   // null = metacloud's default heart
+}
+
+/* ── Not two in a row ────────────────────────────────────────────────────────
+   "Only some", again. A reaction is worth something because it is not
+   automatic; react to every qualifying message and within a week it is
+   wallpaper. Same reasoning, and the same shape, as the not-twice-in-a-row rule
+   the unprompted voice notes already use. */
+const lastReacted = new Map();
+
+function reactionHeldBack(userId) {
+  return lastReacted.get(userId) === true;
+}
+function noteReaction(userId, reacted) {
+  lastReacted.set(userId, reacted);
+}
+
 /* ── What can never be said out loud ─────────────────────────────────────────
    The crisis protocol hands out 988, 741741 and 1-800-662-4357. Somebody in
    crisis cannot dial a number they heard. They cannot tap it, screenshot it,
@@ -518,7 +557,30 @@ function splitForWhatsApp(text) {
   return parts.filter(Boolean);
 }
 
-async function sendTextReply(toPhone, text) {
+/* ── When to quote the message being answered ────────────────────────────────
+   Matt, Aug 25: "a few occasional ones of these too, since this is what would
+   happen in a normal convo".
+
+   Occasional is the whole point. Quoting every reply is not human, it is a
+   ticketing system. A person quotes when the thing they are answering is not
+   the last thing on screen, so the rule follows that rather than a coin toss:
+
+     - they sent a voice note, so it is clear which one was listened to
+     - or hours have passed, and the reply would otherwise land underneath an
+       old conversation with nothing to anchor it
+
+   Mid-exchange, when they messaged a minute ago, it quotes nothing, because
+   there is nothing to disambiguate. */
+const QUOTE_AFTER_MS = 4 * 60 * 60 * 1000;
+
+function shouldQuote({ isAudio, lastMessageAt }, now = Date.now()) {
+  if (isAudio) return true;
+  if (!lastMessageAt) return false;               // first contact: nothing to quote against
+  const gap = now - new Date(lastMessageAt).getTime();
+  return gap > QUOTE_AFTER_MS;
+}
+
+async function sendTextReply(toPhone, text, replyTo = null) {
   // Twilio rejects an empty body, and there is nothing to say anyway.
   const parts = splitForWhatsApp(text).filter((p) => p.length);
   if (!parts.length) {
@@ -549,7 +611,10 @@ async function sendTextReply(toPhone, text) {
        longer owns, and dressing that up as a retry would just delay the real
        error and confuse whoever reads the log. */
     if (metacloud.outbound) {
-      last = await metacloud.sendText(toPhone, body);
+      /* Only the FIRST part quotes. A long reply is split into several
+         messages, and quoting the same message three times running looks like
+         a stuck machine rather than someone with a lot to say. */
+      last = await metacloud.sendText(toPhone, body, parts.indexOf(body) === 0 ? replyTo : null);
       continue;
     }
 
@@ -573,7 +638,7 @@ async function sendTextReply(toPhone, text) {
    Cleanup is now left entirely to the timer below. A few audio files living in
    the container's temp directory for five minutes costs nothing; a voice note
    that never arrives costs somebody their reply. */
-async function sendAudioReply(toPhone, audioFilePath, expressApp) {
+async function sendAudioReply(toPhone, audioFilePath, expressApp, replyTo = null) {
   const filename = path.basename(audioFilePath);
 
   /* No route is registered here on purpose. server.js mounts /media/:filename
@@ -613,7 +678,7 @@ async function sendAudioReply(toPhone, audioFilePath, expressApp) {
      for nothing. */
   if (metacloud.outbound) {
     try {
-      const sent = await metacloud.sendVoiceNote(toPhone, fs.readFileSync(audioFilePath));
+      const sent = await metacloud.sendVoiceNote(toPhone, fs.readFileSync(audioFilePath), replyTo);
       console.log(`[WhatsApp] voice note via Meta (${sent.messageId})`);
       return sent;
     } catch (metaErr) {
@@ -807,9 +872,16 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
          it ships dark and Matt sees it when he is ready rather than when it
          happens to be deployed. */
       if (process.env.META_WA_REACTIONS === '1' && messageSid && deservesReaction(userMessageText)) {
-        console.log(`[WhatsApp] reacting to ${fromPhone}: "${String(userMessageText).slice(0, 60)}"`);
-        metacloud.sendReaction(fromPhone, messageSid)
-          .catch((e) => console.error('[WhatsApp] reaction failed:', e.message));
+        const holdBack = reactionHeldBack(waUserId(fromPhone));
+        noteReaction(waUserId(fromPhone), !holdBack);
+        if (holdBack) {
+          console.log(`[WhatsApp] reaction held back for ${fromPhone}: not two in a row`);
+        } else {
+          const emoji = reactionEmoji(userMessageText);
+          console.log(`[WhatsApp] reacting ${emoji || 'default'} to ${fromPhone}: "${String(userMessageText).slice(0, 60)}"`);
+          metacloud.sendReaction(fromPhone, messageSid, emoji)
+            .catch((e) => console.error('[WhatsApp] reaction failed:', e.message));
+        }
       }
 
       // ── 5. Get Claude's reply ────────────────────────────────────────────
@@ -853,6 +925,15 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
       const replyText = await getSponsorReply(userId, userMessageText, ctx);
       console.log(`[WhatsApp] Claude reply to ${fromPhone}: "${replyText.substring(0, 80)}..."`);
 
+      /* Quote their message when the reply would otherwise land under an old
+         conversation, or when they sent a voice note and it should be obvious
+         which one was listened to. Meta-only: quoting needs WhatsApp's own
+         message id, which the Twilio path never gave us. */
+      const quoteId = (metacloud.outbound && messageSid &&
+                       shouldQuote({ isAudio, lastMessageAt: ctx.lastMessageAt }))
+        ? messageSid : null;
+      if (quoteId) console.log(`[WhatsApp] quoting their message in the reply to ${fromPhone}`);
+
       /* Work out what medium this actually goes in, in the order that matters:
          the safety guard wins over everyone, then what they asked for, then
          what the sponsor chose, then restraint. */
@@ -893,13 +974,13 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
              happening, which costs a flat-sounding voice note rather than a
              missing one. */
           const audioPath = await synthesizeSpeech(ctx.spokenText || replyText, profile && profile.sponsorVoice);
-          await sendAudioReply(fromPhone, audioPath, expressApp);
+          await sendAudioReply(fromPhone, audioPath, expressApp, quoteId);
         } catch (voiceErr) {
           console.error('[WhatsApp] voice reply failed, falling back to text:', voiceErr.message);
-          await sendTextReply(fromPhone, replyText);
+          await sendTextReply(fromPhone, replyText, quoteId);
         }
       } else {
-        await sendTextReply(fromPhone, replyText);
+        await sendTextReply(fromPhone, replyText, quoteId);
 
         /* The one deliberate exception to text-in-text-back: the spoken hello.
            People choose their sponsor's voice on the last screen of registration

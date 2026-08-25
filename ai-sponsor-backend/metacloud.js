@@ -97,7 +97,7 @@ async function uploadAudio(buffer) {
 /* The whole point of the file: `voice: true`. Without it Meta's own docs say
    the message "will be delivered as a standard audio message", which is exactly
    what we have been sending. */
-async function sendVoiceNote(toPhone, buffer) {
+async function sendVoiceNote(toPhone, buffer, replyTo = null) {
   if (!enabled) throw new Error('META_WA_TOKEN / META_WA_PHONE_NUMBER_ID not configured');
 
   const mediaId = await uploadAudio(buffer);
@@ -110,6 +110,7 @@ async function sendVoiceNote(toPhone, buffer) {
       to: toE164(toPhone),
       type: 'audio',
       audio: { id: mediaId, voice: true },
+      ...(replyTo && /^wamid\./i.test(replyTo) ? { context: { message_id: replyTo } } : {}),
     }),
   });
 
@@ -199,7 +200,10 @@ const APP_SECRET = process.env.META_APP_SECRET;
    than the primary guard. */
 const MAX_BODY = 4096;
 
-async function sendText(toPhone, body) {
+/* `replyTo` quotes one of their messages, the way a person does when they are
+   answering something specific rather than just talking next. Optional
+   everywhere: passing nothing sends an ordinary message. */
+async function sendText(toPhone, body, replyTo = null) {
   if (!enabled) throw new Error('META_WA_TOKEN / META_WA_PHONE_NUMBER_ID not configured');
   const text = String(body || '').slice(0, MAX_BODY);
   if (!text.trim()) throw new Error('refusing to send an empty message');
@@ -213,6 +217,7 @@ async function sendText(toPhone, body) {
       to: toE164(toPhone),
       type: 'text',
       text: { body: text, preview_url: true },
+      ...(replyTo && /^wamid\./i.test(replyTo) ? { context: { message_id: replyTo } } : {}),
     }),
   });
   return { messageId: (res.messages && res.messages[0] && res.messages[0].id) || null };
