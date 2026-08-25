@@ -708,8 +708,13 @@ async function getHistory(userId, limit = 40) {
    you" and "it's been a couple of weeks, how have you been". */
 async function getLastMessageAt(userId) {
   if (!enabled || !userId) return null;
+  /* role = 'user' ONLY. The messages table holds both sides, so without this
+     filter the "last message" is usually the sponsor's own reply, and the
+     answer to "when did this person last write to me" is wrong in both places
+     that ask it: the gap shown to the model, and the burst detection that
+     decides whether to quote. */
   const r = await pool.query(
-    'SELECT created_at FROM messages WHERE user_id = $1 ORDER BY id DESC LIMIT 1',
+    "SELECT created_at FROM messages WHERE user_id = $1 AND role = 'user' ORDER BY id DESC LIMIT 1",
     [userId]
   );
   return (r.rows[0] && r.rows[0].created_at) || null;

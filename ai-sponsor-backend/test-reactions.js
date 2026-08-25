@@ -185,20 +185,30 @@ const deservesReaction = new Function(`${body}; return deservesReaction;`)();
     wa.includes('metacloud.sendReaction(fromPhone, messageSid, emoji)'), true);
 
   group('quoting the message being answered');
-  const body3 = wa.slice(wa.indexOf('const QUOTE_AFTER_MS'), wa.indexOf('async function sendTextReply'));
+  /* Rewritten after Mariam tested it: quoting every message reads as a machine.
+     A person quotes to disambiguate, so the only trigger is a burst. */
+  const body3 = wa.slice(wa.indexOf('const BURST_WINDOW_MS'), wa.indexOf('async function sendTextReply'));
   const shouldQuote = new Function(`${body3}; return shouldQuote;`)();
   const NOW2 = Date.now();
-  check('a voice note is always quoted',
-    shouldQuote({ isAudio: true, lastMessageAt: new Date(NOW2 - 60000) }, NOW2), true);
-  check('mid-exchange text is not quoted',
-    shouldQuote({ isAudio: false, lastMessageAt: new Date(NOW2 - 60000) }, NOW2), false);
-  check('after a long gap it is quoted',
-    shouldQuote({ isAudio: false, lastMessageAt: new Date(NOW2 - 9 * 3600000) }, NOW2), true);
+  check('a burst is quoted: their last message seconds ago',
+    shouldQuote({ lastMessageAt: new Date(NOW2 - 20000) }, NOW2), true);
+  check('a single message is NOT quoted',
+    shouldQuote({ lastMessageAt: new Date(NOW2 - 10 * 60000) }, NOW2), false);
+  check('a long gap is NOT quoted either',
+    shouldQuote({ lastMessageAt: new Date(NOW2 - 9 * 3600000) }, NOW2), false);
   check('first contact quotes nothing',
-    shouldQuote({ isAudio: false, lastMessageAt: null }, NOW2), false);
-  /* Quoting the same message three times running looks like a stuck machine. */
+    shouldQuote({ lastMessageAt: null }, NOW2), false);
+  check('clock skew cannot force a quote',
+    shouldQuote({ lastMessageAt: new Date(NOW2 + 60000) }, NOW2), false);
+  /* A voice note on its own is still just one message. */
+  check('audio no longer forces a quote',
+    /isAudio/.test(body3), false);
   check('only the first part of a split reply quotes',
     wa.includes('parts.indexOf(body) === 0 ? replyTo : null'), true);
+  /* Without the role filter the "last message" is the sponsor's own reply and
+     a burst can never be detected. */
+  check('the gap measures THEIR messages, not ours',
+    src('db.js').includes("role = 'user' ORDER BY id DESC"), true);
   check('metacloud attaches it as context',
     src('metacloud.js').includes('context: { message_id: replyTo }'), true);
 

@@ -561,23 +561,31 @@ function splitForWhatsApp(text) {
    Matt, Aug 25: "a few occasional ones of these too, since this is what would
    happen in a normal convo".
 
-   Occasional is the whole point. Quoting every reply is not human, it is a
-   ticketing system. A person quotes when the thing they are answering is not
-   the last thing on screen, so the rule follows that rather than a coin toss:
+   ⚠️ REWRITTEN AFTER TESTING IT. The first version quoted every voice note and
+   anything after a four-hour gap, and Mariam was right that it reads as a
+   machine: "it does contextual replies on all my messages, it should only do
+   sometimes and if I send double message or something. On one it doesn't make
+   sense, would only make sense if it would reply with an emoji."
 
-     - they sent a voice note, so it is clear which one was listened to
-     - or hours have passed, and the reply would otherwise land underneath an
-       old conversation with nothing to anchor it
+   That is exactly the right instinct, and it is what people actually do. You
+   quote when there is something to disambiguate. If somebody sends one message
+   and you answer it, quoting it is absurd, the reply is already directly
+   underneath. If they fire off three and you answer the second, you quote.
 
-   Mid-exchange, when they messaged a minute ago, it quotes nothing, because
-   there is nothing to disambiguate. */
-const QUOTE_AFTER_MS = 4 * 60 * 60 * 1000;
+   So the only trigger is a BURST: their previous message arrived moments ago,
+   which means several are stacked up and the reply needs to say which one it
+   is answering. A single message gets a plain reply, and a warm one gets a
+   reaction instead, which is the thing that does make sense on its own.
 
-function shouldQuote({ isAudio, lastMessageAt }, now = Date.now()) {
-  if (isAudio) return true;
+   Depends on getLastMessageAt reading role='user' only. Before that fix the
+   "last message" was usually the sponsor's own reply, so this could never have
+   detected a burst. */
+const BURST_WINDOW_MS = 90 * 1000;
+
+function shouldQuote({ lastMessageAt }, now = Date.now()) {
   if (!lastMessageAt) return false;               // first contact: nothing to quote against
   const gap = now - new Date(lastMessageAt).getTime();
-  return gap > QUOTE_AFTER_MS;
+  return gap >= 0 && gap < BURST_WINDOW_MS;
 }
 
 async function sendTextReply(toPhone, text, replyTo = null) {
@@ -930,7 +938,7 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
          which one was listened to. Meta-only: quoting needs WhatsApp's own
          message id, which the Twilio path never gave us. */
       const quoteId = (metacloud.outbound && messageSid &&
-                       shouldQuote({ isAudio, lastMessageAt: ctx.lastMessageAt }))
+                       shouldQuote({ lastMessageAt: ctx.lastMessageAt }))
         ? messageSid : null;
       if (quoteId) console.log(`[WhatsApp] quoting their message in the reply to ${fromPhone}`);
 
