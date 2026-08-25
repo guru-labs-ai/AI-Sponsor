@@ -151,7 +151,7 @@ const deservesReaction = new Function(`${body}; return deservesReaction;`)();
 
   group('wiring');
   check('off unless META_WA_REACTIONS=1', wa.includes("process.env.META_WA_REACTIONS === '1'"), true);
-  check('reacts to their message id', wa.includes('metacloud.sendReaction(fromPhone, messageSid'), true);
+  check('reacts to their message id', wa.includes('metacloud.sendReaction(fromPhone, replyToId'), true);
   check('failures are caught, never thrown', /sendReaction\([^)]*\)\s*\n\s*\.catch\(/.test(wa), true);
   /* If the reply ever waits on a reaction, a Meta hiccup costs somebody their
      answer. It must be fire and forget. */
@@ -182,31 +182,41 @@ const deservesReaction = new Function(`${body}; return deservesReaction;`)();
   check('it is consulted before reacting', wa.includes('reactionHeldBack(waUserId(fromPhone))'), true);
   check('and updated either way', wa.includes('noteReaction(waUserId(fromPhone), !holdBack)'), true);
   check('the chosen emoji is passed through',
-    wa.includes('metacloud.sendReaction(fromPhone, messageSid, emoji)'), true);
+    wa.includes('metacloud.sendReaction(fromPhone, replyToId, emoji)'), true);
+
+  group('waiting for them to finish');
+  /* Mariam: "it's a bit too fast, before I send a second message it sends a
+     reply already. A human maybe would wait for me to finish?" Answering the
+     first of three messages is not fast, it is interrupting. */
+  check('an arriving message no longer replies immediately',
+    wa.includes('await waitForThemToFinish(userId'), true);
+  check('a later message takes over and the earlier call steps aside',
+    /if \(!settled\)[\s\S]{0,200}return;/.test(wa), true);
+  check('their messages are answered as one',
+    wa.includes("texts.join("), true);
+  check('a voice note anywhere in the burst still gets voice back',
+    wa.includes('anyAudio: now.anyAudio') && wa.includes('const requestedVoice = cameByVoice || askedForVoice'), true);
+  /* One person typing continuously must still get an answer. */
+  check('there is a hard cap on how long it waits',
+    wa.includes('SETTLE_MAX_MS'), true);
+  check('the wait is tunable without a deploy',
+    wa.includes('process.env.WA_SETTLE_MS'), true);
+  /* The buffer is in memory on a host that sleeps, so it has to stay short. */
+  check('the default wait is seconds, not minutes',
+    parseInt((wa.match(/WA_SETTLE_MS \|\| '(\d+)'/) || [])[1] || '0', 10) <= 15000, true);
 
   group('quoting the message being answered');
-  /* Rewritten after Mariam tested it: quoting every message reads as a machine.
-     A person quotes to disambiguate, so the only trigger is a burst. */
-  const body3 = wa.slice(wa.indexOf('const BURST_WINDOW_MS'), wa.indexOf('async function sendTextReply'));
-  const shouldQuote = new Function(`${body3}; return shouldQuote;`)();
-  const NOW2 = Date.now();
-  check('a burst is quoted: their last message seconds ago',
-    shouldQuote({ lastMessageAt: new Date(NOW2 - 20000) }, NOW2), true);
-  check('a single message is NOT quoted',
-    shouldQuote({ lastMessageAt: new Date(NOW2 - 10 * 60000) }, NOW2), false);
-  check('a long gap is NOT quoted either',
-    shouldQuote({ lastMessageAt: new Date(NOW2 - 9 * 3600000) }, NOW2), false);
-  check('first contact quotes nothing',
-    shouldQuote({ lastMessageAt: null }, NOW2), false);
-  check('clock skew cannot force a quote',
-    shouldQuote({ lastMessageAt: new Date(NOW2 + 60000) }, NOW2), false);
-  /* A voice note on its own is still just one message. */
-  check('audio no longer forces a quote',
-    /isAudio/.test(body3), false);
+  /* Now exact rather than inferred: we know how many messages they sent. */
+  const shouldQuote = new Function(
+    wa.slice(wa.indexOf('function shouldQuote'), wa.indexOf('/* ── Letting them finish')) +
+    '; return shouldQuote;')();
+  check('one message is not quoted', shouldQuote({ messageCount: 1 }), false);
+  check('two are', shouldQuote({ messageCount: 2 }), true);
+  check('three are', shouldQuote({ messageCount: 3 }), true);
+  check('it reacts once to the whole burst, after the wait',
+    wa.indexOf('const settled = await waitForThemToFinish') < wa.indexOf('metacloud.sendReaction'), true);
   check('only the first part of a split reply quotes',
     wa.includes('parts.indexOf(body) === 0 ? replyTo : null'), true);
-  /* Without the role filter the "last message" is the sponsor's own reply and
-     a burst can never be detected. */
   check('the gap measures THEIR messages, not ours',
     src('db.js').includes("role = 'user' ORDER BY id DESC"), true);
   check('metacloud attaches it as context',

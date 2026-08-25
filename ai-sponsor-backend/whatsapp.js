@@ -580,12 +580,64 @@ function splitForWhatsApp(text) {
    Depends on getLastMessageAt reading role='user' only. Before that fix the
    "last message" was usually the sponsor's own reply, so this could never have
    detected a burst. */
-const BURST_WINDOW_MS = 90 * 1000;
+function shouldQuote({ messageCount }) {
+  /* Exact rather than inferred: we now know how many messages they actually
+     sent, because the sponsor waits for them to finish before answering. */
+  return messageCount > 1;
+}
 
-function shouldQuote({ lastMessageAt }, now = Date.now()) {
-  if (!lastMessageAt) return false;               // first contact: nothing to quote against
-  const gap = now - new Date(lastMessageAt).getTime();
-  return gap >= 0 && gap < BURST_WINDOW_MS;
+/* ── Letting them finish ─────────────────────────────────────────────────────
+   Mariam, testing it: "it's a bit too fast, before I send a second message it
+   sends a reply already. A human maybe would wait for me to finish?"
+
+   She is right, and it is the difference between a bot and somebody listening.
+   People send a thought in three messages. Answering the first one before the
+   second arrives is not fast, it is interrupting, and it also meant the burst
+   case could never happen: there was never more than one message outstanding.
+
+   So an arriving message no longer triggers a reply. It joins a small buffer
+   and starts a clock. Anything else they send resets it. When they have been
+   quiet for a moment, the sponsor answers all of it at once, the way a person
+   reads three messages and writes one reply.
+
+   The read receipt and typing indicator still fire the instant a message
+   lands, so the pause reads as somebody reading rather than nothing happening.
+
+   ⚠️ Deliberately in memory and deliberately short. This backend sleeps, so
+   anything buffered is lost if the instance dies, and the cost of that is
+   somebody's message going unanswered. Seconds of exposure is an acceptable
+   price for not interrupting; minutes would not be. */
+const SETTLE_MS = parseInt(process.env.WA_SETTLE_MS || '8000', 10);
+/* However long they keep typing, they get an answer within this. Otherwise one
+   person writing continuously is never replied to at all. */
+const SETTLE_MAX_MS = parseInt(process.env.WA_SETTLE_MAX_MS || '30000', 10);
+
+const settling = new Map();
+
+/* Resolves to the combined message when this call is the one that should
+   answer, or null when a newer message arrived and will answer instead. */
+async function waitForThemToFinish(userId, { text, wamid, isAudio }) {
+  const s = settling.get(userId) || { texts: [], seq: 0, anyAudio: false, firstAt: Date.now() };
+  s.texts.push(text);
+  s.lastWamid = wamid || s.lastWamid;
+  s.anyAudio = s.anyAudio || !!isAudio;
+  s.seq += 1;
+  settling.set(userId, s);
+
+  const mine = s.seq;
+  const elapsed = Date.now() - s.firstAt;
+  const wait = Math.max(0, Math.min(SETTLE_MS, SETTLE_MAX_MS - elapsed));
+  await new Promise((r) => setTimeout(r, wait));
+
+  const now = settling.get(userId);
+  if (!now || now.seq !== mine) return null;   // they carried on; that call answers
+  settling.delete(userId);
+  return {
+    text: now.texts.join('\n'),
+    messageCount: now.texts.length,
+    wamid: now.lastWamid,
+    anyAudio: now.anyAudio,
+  };
 }
 
 async function sendTextReply(toPhone, text, replyTo = null) {
@@ -869,6 +921,25 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
         return;
       }
 
+      const userId = waUserId(fromPhone);
+
+      /* Wait for them to stop typing. Returns null when another message
+         arrived while we waited, in which case that call answers for all of
+         it and this one steps aside. */
+      const settled = await waitForThemToFinish(userId, {
+        text: userMessageText, wamid: messageSid, isAudio,
+      });
+      if (!settled) {
+        console.log(`[WhatsApp] ${fromPhone} is still typing — letting the later message answer`);
+        return;
+      }
+      userMessageText = settled.text;
+      const replyToId = settled.wamid;
+      const cameByVoice = settled.anyAudio;
+      if (settled.messageCount > 1) {
+        console.log(`[WhatsApp] answering ${settled.messageCount} messages from ${fromPhone} together`);
+      }
+
       /* A heart on the message itself, when somebody says they are doing
          better. Sent before the reply so it lands the way a person reacts:
          acknowledgement first, words after.
@@ -879,7 +950,7 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
          Twilio webhook never gave us one. Off unless META_WA_REACTIONS=1, so
          it ships dark and Matt sees it when he is ready rather than when it
          happens to be deployed. */
-      if (process.env.META_WA_REACTIONS === '1' && messageSid && deservesReaction(userMessageText)) {
+      if (process.env.META_WA_REACTIONS === '1' && replyToId && deservesReaction(userMessageText)) {
         const holdBack = reactionHeldBack(waUserId(fromPhone));
         noteReaction(waUserId(fromPhone), !holdBack);
         if (holdBack) {
@@ -887,15 +958,15 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
         } else {
           const emoji = reactionEmoji(userMessageText);
           console.log(`[WhatsApp] reacting ${emoji || 'default'} to ${fromPhone}: "${String(userMessageText).slice(0, 60)}"`);
-          metacloud.sendReaction(fromPhone, messageSid, emoji)
+          metacloud.sendReaction(fromPhone, replyToId, emoji)
             .catch((e) => console.error('[WhatsApp] reaction failed:', e.message));
         }
       }
 
+
       // ── 5. Get Claude's reply ────────────────────────────────────────────
       // Uses the SAME getSponsorReply() function as the web chat —
       // identical AI sponsor behavior, conversation memory, crisis protocol.
-      const userId = waUserId(fromPhone);
 
       // Record them in GHL + the DB (Phase 5). Not awaited: the reply must never
       // wait on the CRM, and must still go out if the CRM is down.
@@ -923,13 +994,13 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
          sponsor itself decides this one is worth speaking. The model is told
          which of these is happening so it never describes the channel wrongly
          to the person using it. */
-      const askedForVoice = !isAudio && asksForVoice(userMessageText);
+      const askedForVoice = !cameByVoice && asksForVoice(userMessageText);
       if (askedForVoice) console.log(`[WhatsApp] ${fromPhone} asked for a voice note in text`);
-      const requestedVoice = isAudio || askedForVoice;
+      const requestedVoice = cameByVoice || askedForVoice;
 
       /* Passed in and read back out afterwards: getSponsorReply sets
          modelWantsVoice on this object when the reply came back marked. */
-      const ctx = { channel: 'whatsapp', viaVoice: isAudio, replyIsSpoken: requestedVoice };
+      const ctx = { channel: 'whatsapp', viaVoice: cameByVoice, replyIsSpoken: requestedVoice };
       const replyText = await getSponsorReply(userId, userMessageText, ctx);
       console.log(`[WhatsApp] Claude reply to ${fromPhone}: "${replyText.substring(0, 80)}..."`);
 
@@ -937,9 +1008,9 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
          conversation, or when they sent a voice note and it should be obvious
          which one was listened to. Meta-only: quoting needs WhatsApp's own
          message id, which the Twilio path never gave us. */
-      const quoteId = (metacloud.outbound && messageSid &&
-                       shouldQuote({ lastMessageAt: ctx.lastMessageAt }))
-        ? messageSid : null;
+      const quoteId = (metacloud.outbound && replyToId &&
+                       shouldQuote({ messageCount: settled.messageCount }))
+        ? replyToId : null;
       if (quoteId) console.log(`[WhatsApp] quoting their message in the reply to ${fromPhone}`);
 
       /* Work out what medium this actually goes in, in the order that matters:
