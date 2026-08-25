@@ -580,10 +580,28 @@ function splitForWhatsApp(text) {
    Depends on getLastMessageAt reading role='user' only. Before that fix the
    "last message" was usually the sponsor's own reply, so this could never have
    detected a burst. */
-function shouldQuote({ messageCount }) {
-  /* Exact rather than inferred: we now know how many messages they actually
-     sent, because the sponsor waits for them to finish before answering. */
-  return messageCount > 1;
+/* ── Whether to quote ────────────────────────────────────────────────────────
+   Mariam: "humans sometimes quote reply one message, and on another just reply
+   with a message, it's random, or they don't quote at all."
+
+   That is the part no rule captures. Every version of this I wrote was
+   deterministic, so it either quoted everything or quoted every burst, and for
+   somebody who double-messages often those are the same thing. People are not
+   consistent about it and there is no reason behind which times they do.
+
+   So: a burst is the only situation where quoting makes sense at all, because
+   there is genuinely something to point at, and within that it is a coin
+   flip. A single message never quotes. Mariam again, on an earlier version:
+   "on one it doesn't make sense, would only make sense if it would reply with
+   an emoji", which is what the reaction is for.
+
+   `roll` is injectable so the behaviour can be tested without the test being
+   at the mercy of a random number. */
+const QUOTE_CHANCE = parseFloat(process.env.WA_QUOTE_CHANCE || '0.5');
+
+function shouldQuote({ messageCount }, roll = Math.random()) {
+  if (!(messageCount > 1)) return false;
+  return roll < QUOTE_CHANCE;
 }
 
 /* ── Letting them finish ─────────────────────────────────────────────────────

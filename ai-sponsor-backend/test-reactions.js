@@ -206,19 +206,35 @@ const deservesReaction = new Function(`${body}; return deservesReaction;`)();
     parseInt((wa.match(/WA_SETTLE_MS \|\| '(\d+)'/) || [])[1] || '0', 10) <= 15000, true);
 
   group('quoting the message being answered');
-  /* Now exact rather than inferred: we know how many messages they sent. */
+  /* Mariam: "humans sometimes quote reply one message, and on another just
+     reply with a message, it's random, or they don't quote at all." Every
+     deterministic version either quoted everything or quoted every burst,
+     which for somebody who double-messages often is the same thing. */
   const shouldQuote = new Function(
-    wa.slice(wa.indexOf('function shouldQuote'), wa.indexOf('/* ── Letting them finish')) +
+    wa.slice(wa.indexOf('const QUOTE_CHANCE'), wa.indexOf('/* ── Letting them finish')) +
     '; return shouldQuote;')();
-  check('one message is not quoted', shouldQuote({ messageCount: 1 }), false);
-  check('two are', shouldQuote({ messageCount: 2 }), true);
-  check('three are', shouldQuote({ messageCount: 3 }), true);
+
+  check('a single message never quotes, whatever the roll',
+    [0, 0.1, 0.49, 0.99].map((r) => shouldQuote({ messageCount: 1 }, r)),
+    [false, false, false, false]);
+  check('a burst quotes on a low roll',  shouldQuote({ messageCount: 2 }, 0.1), true);
+  check('a burst stays quiet on a high roll', shouldQuote({ messageCount: 2 }, 0.9), false);
+  check('three messages behave the same way', shouldQuote({ messageCount: 3 }, 0.1), true);
+  check('zero or missing count never quotes',
+    [shouldQuote({ messageCount: 0 }, 0), shouldQuote({}, 0)], [false, false]);
+
+  /* Roughly a coin flip over many bursts, so it reads as occasional rather
+     than as a habit. Loose bounds: this is testing the shape, not the RNG. */
+  let quoted = 0;
+  for (let i = 0; i < 2000; i++) if (shouldQuote({ messageCount: 2 })) quoted++;
+  check('about half of bursts get quoted', quoted > 700 && quoted < 1300, true);
+
   check('it reacts once to the whole burst, after the wait',
     wa.indexOf('const settled = await waitForThemToFinish') < wa.indexOf('metacloud.sendReaction'), true);
   check('only the first part of a split reply quotes',
     wa.includes('parts.indexOf(body) === 0 ? replyTo : null'), true);
-  check('the gap measures THEIR messages, not ours',
-    src('db.js').includes("role = 'user' ORDER BY id DESC"), true);
+  check('the odds are tunable without a code change',
+    wa.includes('process.env.WA_QUOTE_CHANCE'), true);
   check('metacloud attaches it as context',
     src('metacloud.js').includes('context: { message_id: replyTo }'), true);
 
