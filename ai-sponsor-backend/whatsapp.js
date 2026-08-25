@@ -607,7 +607,16 @@ function shouldQuote({ messageCount }) {
    anything buffered is lost if the instance dies, and the cost of that is
    somebody's message going unanswered. Seconds of exposure is an acceptable
    price for not interrupting; minutes would not be. */
-const SETTLE_MS = parseInt(process.env.WA_SETTLE_MS || '8000', 10);
+/* 15 seconds, and that number came from watching a real conversation rather
+   than from taste. Mariam sent a second message 10.2 seconds after the first;
+   the window was 8, so it had already answered the first one two seconds
+   before she finished her thought. Composing a follow-up runs longer than it
+   feels like it does.
+
+   The pause is not dead air: the read receipt and typing indicator fire the
+   moment the message lands, so what they see is somebody reading and writing,
+   which is what is actually happening. */
+const SETTLE_MS = parseInt(process.env.WA_SETTLE_MS || '15000', 10);
 /* However long they keep typing, they get an answer within this. Otherwise one
    person writing continuously is never replied to at all. */
 const SETTLE_MAX_MS = parseInt(process.env.WA_SETTLE_MAX_MS || '30000', 10);
