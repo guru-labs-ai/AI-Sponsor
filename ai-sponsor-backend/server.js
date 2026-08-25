@@ -751,6 +751,67 @@ async function loadSession(userId) {
   return { profile: profile || {}, history: history || [], memory: memory || null };
 }
 
+/* ── Telling the sponsor what day it is ──────────────────────────────────────
+   It had no idea. Nothing anywhere put a date in front of the model, so the
+   sponsor could not tell three days from three weeks, could not know a
+   milestone was coming, and would greet somebody returning after a fortnight
+   exactly as if they had spoken that morning. On a product where time IS the
+   substance of recovery, that is not a missing nicety.
+
+   Two things go in: today's date, and how long since this person last spoke.
+
+   ⚠️ WHAT IT DELIBERATELY DOES NOT CLAIM: their local time of day. The server
+   is UTC and has no idea where anyone is, and a sponsor confidently saying
+   "tonight" at nine in the morning is worse than one that simply does not
+   mention it. So the block says the date plainly and tells the model to leave
+   time of day alone unless the person raises it first.
+
+   Kept OUT of the cached prefix on purpose. MASTER_SYSTEM_PROMPT carries the
+   ephemeral cache_control; this block changes every day and every conversation,
+   so it is pushed after and never cached. */
+const DAY_MS = 86400000;
+
+function describeGap(lastAt, now) {
+  if (!lastAt) return null;
+  const ms = now.getTime() - new Date(lastAt).getTime();
+  if (ms < 0) return null;
+  const days = Math.floor(ms / DAY_MS);
+  if (ms < 2 * 3600000) return 'a short time ago, in this same conversation';
+  if (days === 0) return 'earlier today';
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days} days ago`;
+  if (days < 14) return 'about a week ago';
+  if (days < 31) return `about ${Math.round(days / 7)} weeks ago`;
+  if (days < 60) return 'over a month ago';
+  return `${Math.round(days / 30)} months ago`;
+}
+
+function buildTimeBlock(lastAt, now = new Date()) {
+  const date = now.toLocaleDateString('en-GB', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+  });
+  const lines = [`Today is ${date}.`];
+
+  const gap = describeGap(lastAt, now);
+  if (!gap) {
+    lines.push('This is the first time this person has spoken to you.');
+  } else {
+    const then = new Date(lastAt).toLocaleDateString('en-GB', {
+      weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC',
+    });
+    lines.push(`They last messaged you ${gap} (${then}).`);
+    /* The whole point. A fortnight's silence is information, and the sponsor
+       should be able to notice it without being told. */
+    const days = Math.floor((now.getTime() - new Date(lastAt).getTime()) / DAY_MS);
+    if (days >= 5) {
+      lines.push('There has been a real gap. You can acknowledge it warmly if it fits, without making them explain themselves.');
+    }
+  }
+
+  lines.push('You do not know their local time of day, only the date. Do not say morning, afternoon or tonight unless they mention it first.');
+  return lines.join('\n');
+}
+
 // Persist a completed exchange: RAM (fast path) + DB (durable), never blocking.
 // Also records the activity-day row here, once, so every caller (web /api/chat,
 // WhatsApp via getSponsorReply) is counted the same way. This used to live only
@@ -780,9 +841,14 @@ async function getSponsorReply(userId, message, context) {
   const userContext = buildUserContextBlock(profile);
   const memoryBlock = buildMemoryBlock(memory);
   const settingsBlock = await buildSettingsBlock(userId);
+  /* Read before persistExchange writes this turn, so it is the PREVIOUS
+     contact. Never allowed to block a reply: if the database is unreachable the
+     sponsor simply goes back to not knowing the date, which is where it was. */
+  const lastAt = await db.getLastMessageAt(userId).catch(() => null);
   const systemBlocks = [
     { type: 'text', text: MASTER_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
   ];
+  systemBlocks.push({ type: 'text', text: buildTimeBlock(lastAt) });
   if (userContext) systemBlocks.push({ type: 'text', text: userContext });
   if (memoryBlock) systemBlocks.push({ type: 'text', text: memoryBlock });
   if (settingsBlock) systemBlocks.push({ type: 'text', text: settingsBlock });

@@ -698,6 +698,23 @@ async function getHistory(userId, limit = 40) {
   return decryptRows(r.rows);
 }
 
+/* When did this person last say anything, before the message being answered
+   right now? getSponsorReply calls this BEFORE persistExchange writes the
+   current turn, so it is genuinely the previous contact and not this one.
+
+   The sponsor had no sense of time at all until this existed. Two weeks could
+   pass and it would carry on as though the conversation had never paused,
+   which on a recovery product is the difference between "good to hear from
+   you" and "it's been a couple of weeks, how have you been". */
+async function getLastMessageAt(userId) {
+  if (!enabled || !userId) return null;
+  const r = await pool.query(
+    'SELECT created_at FROM messages WHERE user_id = $1 ORDER BY id DESC LIMIT 1',
+    [userId]
+  );
+  return (r.rows[0] && r.rows[0].created_at) || null;
+}
+
 /* One person can hold several rows in `users`, for two separate reasons, and
    counting rows therefore overstates how many people exist.
 
@@ -1029,6 +1046,7 @@ async function usersDueForWeekly(weekStart, weekEnd, limit = 25) {
 }
 
 module.exports = {
+  getLastMessageAt,
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
   saveProfile, getProfile, appendMessages, getHistory, findPersonId,
   recordEvent, getEvents, clearConversation, getPersonStats,
