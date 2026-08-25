@@ -334,7 +334,10 @@ const PROGRESS = new RegExp([
   // "I had a better day", "today was good", "feeling better"
   /\b(?:better|good|great|decent|solid|calmer|clearer|lighter)\s+(?:day|week|morning|night)\b/,
   /\bfeel(?:ing)?\s+(?:better|good|great|stronger|proud|hopeful|okay|ok)\b/,
-  /\b(?:today|yesterday|this week)\s+(?:was|has been)\s+(?:better|good|great|okay|ok|alright)\b/,
+  /\b(?:today|tonight|yesterday|this week|this morning|the day)\s+(?:was|is|has been|feels?|felt|went)\s+(?:better|good|great|okay|ok|alright|fine|easier|well)\b/,
+  /\b(?:today|tonight|this week)\s+i\s+(?:feel|felt|am|was)\s+(?:better|good|great|ok|okay|stronger|calm\w*)\b/,
+  // "no cravings today", "zero urges" — negation handled below before the veto
+  /\bno\s+(?:cravings?|urges?|desire)\b/,
   /* "3 days sober", "one week clean", "30 days". Spelled-out numbers matter
      more than they look: people write milestones in words far more often than
      digits, and "one week sober today" is exactly the message this feature
@@ -370,10 +373,29 @@ const NOT_A_CELEBRATION = new RegExp([
   /\?\s*$/,                                              // a question wants an answer, not a heart
 ].map((r) => r.source).join('|'), 'i');
 
+/* ⚠️ THE VETO CANNOT READ NEGATION, AND THAT SILENCED THE BEST MESSAGES.
+   "today I didn't relapse" contains the word "relapse", so an earlier version
+   refused to react to it. Same for "I didn't drink" and "no cravings today",
+   which are precisely the things somebody is proud of and precisely why this
+   feature exists.
+
+   So negated risk words are neutralised before the veto runs, and only for the
+   veto. The un-negated forms still trip it: "I want to drink" is untouched
+   here, and "I didn't drink but I nearly did" still dies on the pivot word.
+   This is not the veto getting softer, it is the veto reading the sentence
+   the way a person would. */
+const NEGATED_RISK = new RegExp(
+  String.raw`\b(?:did\s?n[o']?t|didnt|have\s?n[o']?t|havent|has\s?n[o']?t|hasnt|never|no|zero|without)\s+` +
+  String.raw`(?:any\s+)?(?:drink|drank|drinking|use[d]?|using|relapse[d]?|slip(?:ped)?|craving?s?|urges?)\b`,
+  'gi'
+);
+
 function deservesReaction(text) {
   if (typeof text !== 'string' || !text.trim()) return false;
-  if (NOT_A_CELEBRATION.test(text)) return false;
-  return PROGRESS.test(text);
+  if (!PROGRESS.test(text)) return false;
+  // Only the veto sees the neutralised copy. PROGRESS reads the real message.
+  const forVeto = text.replace(NEGATED_RISK, ' stayed well ');
+  return !NOT_A_CELEBRATION.test(forVeto);
 }
 
 /* ── What can never be said out loud ─────────────────────────────────────────

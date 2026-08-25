@@ -53,6 +53,22 @@ const deservesReaction = new Function(`${body}; return deservesReaction;`)();
     'feeling stronger',
   ].forEach((t) => check(`react: "${t}"`, deservesReaction(t), true));
 
+  group('negated risk words are the whole point, not a veto');
+  /* "I didn't relapse" contains "relapse". An earlier version refused to react
+     to exactly the messages somebody is proudest of. */
+  [
+    "today I didn't relapse",
+    "I didn't relapse this week",
+    "I haven't used in 5 days",
+    'no cravings today',
+    "I didn't drink at the party",
+    'today is good',
+    'today feels better',
+    'today was fine',
+    'today I feel better',
+    'tonight went well',
+  ].forEach((t) => check(`react: "${t}"`, deservesReaction(t), true));
+
   group('distress must never get a heart');
   [
     'I relapsed last night',
@@ -78,6 +94,16 @@ const deservesReaction = new Function(`${body}; return deservesReaction;`)();
     'I went to a meeting but it was really hard',
     'today was good except I keep thinking about using',
     'I stayed clean, however I feel terrible',
+  ].forEach((t) => check(`silent: "${t}"`, deservesReaction(t), false));
+
+  group('negation does NOT soften the veto');
+  /* The un-negated forms and the pivot word still win. */
+  [
+    "I didn't drink but I nearly did",
+    "I didn't relapse though I wanted to",
+    'no cravings today, but yesterday was awful',
+    'I want to drink',
+    'I used again',
   ].forEach((t) => check(`silent: "${t}"`, deservesReaction(t), false));
 
   group('questions want an answer, not an emoji');
