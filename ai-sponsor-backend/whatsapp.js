@@ -315,6 +315,67 @@ function asksForVoice(text) {
   return VOICE_REQUEST.test(text);
 }
 
+/* ── Worth a heart, not words ────────────────────────────────────────────────
+   Mariam, Aug 25: react when somebody says they are improving, had a better
+   day, or similar. Not to everything.
+
+   WHY IT IS IN CODE AND NOT THE PROMPT. Same reasoning as textOnlyReason
+   below. A heart on the wrong message is not a missing feature, it is a person
+   telling their sponsor they are struggling and getting an emoji back. That
+   has to be a guarantee, and only the routing layer can guarantee anything.
+
+   DELIBERATELY NARROW, and it errs toward silence. A false negative costs a
+   small warmth nobody knew to expect. A false positive costs somebody the
+   feeling of being handled by a machine at the exact moment they opened up.
+
+   The reaction goes on THEIR message and never replaces the reply. It is sent
+   alongside it, fire and forget. */
+const PROGRESS = new RegExp([
+  // "I had a better day", "today was good", "feeling better"
+  /\b(?:better|good|great|decent|solid|calmer|clearer|lighter)\s+(?:day|week|morning|night)\b/,
+  /\bfeel(?:ing)?\s+(?:better|good|great|stronger|proud|hopeful|okay|ok)\b/,
+  /\b(?:today|yesterday|this week)\s+(?:was|has been)\s+(?:better|good|great|okay|ok|alright)\b/,
+  /* "3 days sober", "one week clean", "30 days". Spelled-out numbers matter
+     more than they look: people write milestones in words far more often than
+     digits, and "one week sober today" is exactly the message this feature
+     exists for. */
+  /\b(?:\d+|a|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirty|sixty|ninety)\s*(?:day|days|week|weeks|month|months|year|years)\s+(?:sober|clean|free|without|in)\b/,
+  // "I didn't drink", "I stayed clean", "I made it through"
+  /\bi\s+(?:did\s?n[o']?t|didnt|haven'?t|have\s+not)\s+(?:drink|drank|use|used|relapse|slip)\b/,
+  /\bi\s+(?:stayed|kept|remained)\s+(?:sober|clean|strong)\b/,
+  /\bi\s+made\s+it\s+(?:through|to)\b/,
+  // "I went to a meeting", "went to my first meeting"
+  /\bi\s+(?:went|got|made it)\s+to\s+(?:a|my|the)\b[^.!?]{0,20}\bmeeting\b/,
+  // "I'm doing better", "things are improving"
+  /\b(?:i'?m|i am|things are|it'?s)\s+(?:doing\s+)?(?:better|improving|getting better|looking up)\b/,
+  /\bproud of myself\b/,
+].map((r) => r.source).join('|'), 'i');
+
+/* Anything here vetoes it, however positive the rest of the message sounds.
+   "I had a better day but I still want to drink" is not a message to put a
+   heart on. Mixed messages are the common shape of someone testing whether it
+   is safe to say the hard part, so the veto is deliberately broad. */
+const NOT_A_CELEBRATION = new RegExp([
+  /\b(?:but|although|though|however|except)\b/,          // the pivot word
+  /\b(?:relapse[d]?|slip(?:ped)?|drank|used again|struggl\w*|craving|urge)\b/,
+  /\b(?:want to|feel like|thinking about)\s+(?:drink|using|use)\b/,
+  /\b(?:hard|difficult|rough|bad|awful|terrible|worst|hopeless|scared|afraid|anxious|depressed|alone|lonely)\b/,
+  /* Written loosely on purpose. "ending it" got past an earlier version that
+     only matched "end it", and that particular miss puts a heart on somebody
+     describing suicidal thoughts. Every variant that costs a false positive on
+     a cheerful message is worth it against that. */
+  /\b(?:kill|hurt|end(?:ing)?\s+it|die|dying|dead|suicid\w*|self.?harm|harm)\b/,
+  /\b(?:don'?t|do not|didn'?t)\s+want\s+to\s+(?:be here|live|wake up|go on)\b/,
+  /\bgive\s+up\b/,
+  /\?\s*$/,                                              // a question wants an answer, not a heart
+].map((r) => r.source).join('|'), 'i');
+
+function deservesReaction(text) {
+  if (typeof text !== 'string' || !text.trim()) return false;
+  if (NOT_A_CELEBRATION.test(text)) return false;
+  return PROGRESS.test(text);
+}
+
 /* ── What can never be said out loud ─────────────────────────────────────────
    The crisis protocol hands out 988, 741741 and 1-800-662-4357. Somebody in
    crisis cannot dial a number they heard. They cannot tap it, screenshot it,
@@ -711,6 +772,22 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
         console.log(`[WhatsApp] Unsupported message type from ${fromPhone} — skipping`);
         await sendTextReply(fromPhone, "I can receive text and voice messages. Please try sending one of those!");
         return;
+      }
+
+      /* A heart on the message itself, when somebody says they are doing
+         better. Sent before the reply so it lands the way a person reacts:
+         acknowledgement first, words after.
+
+         Not awaited, and every failure is swallowed. This is a grace note and
+         it must never be able to delay or take out the reply. Needs the Meta
+         path, because reacting requires WhatsApp's own message id and the
+         Twilio webhook never gave us one. Off unless META_WA_REACTIONS=1, so
+         it ships dark and Matt sees it when he is ready rather than when it
+         happens to be deployed. */
+      if (process.env.META_WA_REACTIONS === '1' && messageSid && deservesReaction(userMessageText)) {
+        console.log(`[WhatsApp] reacting to ${fromPhone}: "${String(userMessageText).slice(0, 60)}"`);
+        metacloud.sendReaction(fromPhone, messageSid)
+          .catch((e) => console.error('[WhatsApp] reaction failed:', e.message));
       }
 
       // ── 5. Get Claude's reply ────────────────────────────────────────────

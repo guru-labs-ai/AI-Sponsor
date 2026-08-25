@@ -293,6 +293,38 @@ async function downloadMedia(mediaId) {
   throw lastErr;
 }
 
+/* ─── Reactions ──────────────────────────────────────────────────────────────
+   Impossible until Aug 25 2026 and worth saying why. A reaction has to name the
+   message it is reacting to, using WhatsApp's own id (`wamid.…`). Twilio's
+   webhook only ever handed us its own `SM…`/`MM…` SID, so there was literally
+   nothing to point at. Inbound now comes straight from Meta and every message
+   arrives with its wamid, so this became possible the moment the number moved.
+
+   Same discipline as markRead: never awaited by the caller, failures swallowed
+   after logging. A reaction is a grace note. It must never be able to delay or
+   take out the actual reply, which is the thing the person is waiting for. */
+const REACTION_EMOJI = process.env.META_WA_REACTION_EMOJI || '\u2764\uFE0F';
+
+async function sendReaction(toPhone, wamid, emoji) {
+  if (!enabled) return;
+  if (!wamid || !/^wamid\./i.test(wamid)) {
+    console.warn(`[Meta] cannot react without a WhatsApp message id (got "${String(wamid).slice(0, 24)}")`);
+    return;
+  }
+  const res = await graph(`${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: toE164(toPhone),
+      type: 'reaction',
+      reaction: { message_id: wamid, emoji: emoji || REACTION_EMOJI },
+    }),
+  });
+  return { messageId: (res.messages && res.messages[0] && res.messages[0].id) || null };
+}
+
 /* whatsapp.js works in file paths because Twilio needed a file it could serve.
    Nothing on this path does, but the callers still hand us one, so this is the
    adapter rather than a reason to rewrite them. */
@@ -304,5 +336,5 @@ async function sendVoiceNoteFile(toPhone, audioFilePath) {
 module.exports = {
   enabled, inbound, outbound, APP_SECRET, GRAPH_VERSION, AUDIO_MIME, PHONE_NUMBER_ID, WABA_ID,
   toE164, uploadAudio, sendVoiceNote, sendVoiceNoteFile, preflight,
-  sendText, markRead, downloadMedia, graph,
+  sendText, markRead, downloadMedia, sendReaction, REACTION_EMOJI, graph,
 };
