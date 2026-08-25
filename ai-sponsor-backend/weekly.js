@@ -381,12 +381,62 @@ async function deliver(userId, payload, week, whatsapp) {
     await db.markWeeklyDelivered(userId, week.start, true, null).catch(() => {});
     return { sent: true };
   } catch (e) {
-    /* 63016 is the 24-hour window, and it is expected often enough that it must
-       not read as a bug in the logs. */
-    const outside = /63016/.test(e.message || '');
+    /* The 24-hour window. 63016 was Twilio's code for it; 131047 is Meta's.
+       Both are expected often enough that they must not read as a bug. */
+    const outside = /63016|131047/.test(e.message || '');
+
+    /* ⭐ AND THIS IS THE POINT OF THE WHOLE THING. Someone who has not written
+       all week is exactly who a week in review is addressed to, and until the
+       number moved to Meta there was no way to reach them: Twilio had no
+       template support on our account, so the message simply died here.
+
+       Now the warm free-text version goes to anyone still inside the window,
+       and anyone outside it gets the approved template instead. Same link,
+       same three tones, plainer words because Meta reviews every one. */
+    if (outside) {
+      const sent = await deliverTemplate(phone, payload, theirName, token);
+      if (sent) {
+        await db.markWeeklyDelivered(userId, week.start, true, null).catch(() => {});
+        return { sent: true, via: 'template' };
+      }
+    }
+
     console.warn(`[weekly] delivery to ${userId} failed${outside ? ' (outside 24h window)' : ''}: ${e.message}`);
     await db.markWeeklyDelivered(userId, week.start, false, outside ? 'outside-24h' : String(e.message).slice(0, 200)).catch(() => {});
     return { sent: false, reason: outside ? 'outside-24h' : 'send-failed' };
+  }
+}
+
+/* One approved template per tone, mirroring the free-text wording above. The
+   names are fixed because Meta approves them by name; changing one means a new
+   submission and another review. */
+const WEEKLY_TEMPLATES = {
+  hard:  'weekly_review_hard',
+  quiet: 'weekly_review_quiet',
+  good:  'weekly_review',
+};
+
+/* Returns true only if it actually sent. Every failure is swallowed and logged:
+   this is already the fallback path, and there is nothing further to fall back
+   to. A person not receiving a nudge is a missed warmth, not a broken product,
+   and the summary is still waiting on their dashboard either way. */
+async function deliverTemplate(phone, payload, theirName, token) {
+  let metacloud;
+  try { metacloud = require('./metacloud'); } catch { return false; }
+  if (!metacloud.enabled || !metacloud.sendTemplate) return false;
+
+  const name = WEEKLY_TEMPLATES[payload.tone] || WEEKLY_TEMPLATES.good;
+  /* Meta rejects an empty variable, and plenty of people never gave a name, so
+     it falls back to something a sponsor would actually say out loud. */
+  const first = String(theirName || '').trim() || 'there';
+
+  try {
+    await metacloud.sendTemplate(`whatsapp:${phone}`, name, [first], `${token}#week`);
+    console.log(`[weekly] delivered via template ${name}`);
+    return true;
+  } catch (err) {
+    console.warn(`[weekly] template ${name} failed: ${err.message}`);
+    return false;
   }
 }
 

@@ -293,6 +293,50 @@ async function downloadMedia(mediaId) {
   throw lastErr;
 }
 
+/* ─── Templates: the only way to reach someone who has gone quiet ────────────
+   WhatsApp lets a business send freely for 24 hours after the person's last
+   message. Outside that, the only thing that will leave the building is a
+   template Meta approved in advance. That is a platform rule, not ours, and it
+   is why the weekly review could never reach the people it is actually for:
+   someone who has not written all week is precisely who a week in review is
+   addressed to.
+
+   Twilio had no template support on our account at all, so this was flatly
+   impossible until the number moved. */
+async function sendTemplate(toPhone, name, bodyParams = [], urlParam = null) {
+  if (!enabled) throw new Error('META_WA_TOKEN / META_WA_PHONE_NUMBER_ID not configured');
+  if (!name) throw new Error('no template name');
+
+  const components = [];
+  if (bodyParams.length) {
+    components.push({
+      type: 'body',
+      parameters: bodyParams.map((t) => ({ type: 'text', text: String(t) })),
+    });
+  }
+  /* The button carries the person's settings token as a URL suffix, so the link
+     is theirs and expires with the token like every other link we send. */
+  if (urlParam) {
+    components.push({
+      type: 'button', sub_type: 'url', index: '0',
+      parameters: [{ type: 'text', text: String(urlParam) }],
+    });
+  }
+
+  const res = await graph(`${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: toE164(toPhone),
+      type: 'template',
+      template: { name, language: { code: 'en_US' }, components },
+    }),
+  });
+  return { messageId: (res.messages && res.messages[0] && res.messages[0].id) || null };
+}
+
 /* ─── Reactions ──────────────────────────────────────────────────────────────
    Impossible until Aug 25 2026 and worth saying why. A reaction has to name the
    message it is reacting to, using WhatsApp's own id (`wamid.…`). Twilio's
@@ -336,5 +380,5 @@ async function sendVoiceNoteFile(toPhone, audioFilePath) {
 module.exports = {
   enabled, inbound, outbound, APP_SECRET, GRAPH_VERSION, AUDIO_MIME, PHONE_NUMBER_ID, WABA_ID,
   toE164, uploadAudio, sendVoiceNote, sendVoiceNoteFile, preflight,
-  sendText, markRead, downloadMedia, sendReaction, REACTION_EMOJI, graph,
+  sendText, markRead, downloadMedia, sendReaction, REACTION_EMOJI, sendTemplate, graph,
 };

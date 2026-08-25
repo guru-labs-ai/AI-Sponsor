@@ -170,5 +170,38 @@ check('the quiet card never congratulates', praise.test(silent.note + thin.note)
 check('the quiet card only mentions score to disclaim it',
   /keeping score/.test(thin.note) && !/not keeping score/.test(thin.note), false);
 
+/* ── Reaching people who have gone quiet ─────────────────────────────────────
+   The whole reason the weekly review existed and reached nobody. Someone who
+   has not written all week is exactly who a week in review is addressed to,
+   and free text cannot reach them: WhatsApp only allows it within 24 hours of
+   their last message. Twilio had no template support on our account at all, so
+   the message simply died in the catch block. */
+{
+  const rd = (f) => require('fs').readFileSync(require('path').resolve(__dirname, f), 'utf8');
+  const wk = rd('weekly.js');
+  const mc = rd('metacloud.js');
+
+  check("Meta's window error is recognised, not just Twilio's",
+    /63016\|131047/.test(wk), true);
+  check('falls back to a template when outside the window',
+    wk.includes('deliverTemplate(phone, payload, theirName, token)'), true);
+  check('one template per tone, matching the three free-text tones',
+    wk.includes("hard:  'weekly_review_hard'") &&
+    wk.includes("quiet: 'weekly_review_quiet'") &&
+    wk.includes("good:  'weekly_review'"), true);
+  check('a nameless person still gets a greeting Meta will accept',
+    wk.includes("|| 'there'"), true);
+  check('the settings token rides on the button with the week anchor',
+    wk.includes('`${token}#week`'), true);
+  check('a template failure is swallowed, never thrown',
+    /catch \(err\)[\s\S]{0,200}return false;/.test(wk), true);
+  check('delivery is still recorded when the template lands',
+    /via: 'template'/.test(wk), true);
+  check('metacloud can send a template at all',
+    mc.includes('async function sendTemplate'), true);
+  check('sent as type template',
+    /type: 'template'/.test(mc), true);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
