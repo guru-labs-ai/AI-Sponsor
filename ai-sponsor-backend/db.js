@@ -1053,6 +1053,9 @@ async function usersDueForWeekly(weekStart, weekEnd, limit = 25) {
 module.exports = {
   getLastMessageAt,
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
+  // Exported so the Slack alerts label a signup's source with the SAME rule the
+  // dashboard groups on. Two implementations would eventually disagree.
+  resolveSource,
   saveProfile, getProfile, appendMessages, getHistory, findPersonId,
   recordEvent, getEvents, clearConversation, getPersonStats,
   createLinkCode, claimLinkCode,

@@ -31,6 +31,8 @@
    happened. Name and email match what the DRM alerts already show.
 ──────────────────────────────────────────────────────────────────────────── */
 
+const { resolveSource } = require('./db'); // one shared definition of "came from"
+
 const SLACK_POST_MESSAGE = 'https://slack.com/api/chat.postMessage';
 const DEFAULT_CHANNEL = 'C0BQYBMJPP0'; // #ai-sponsor-updates
 
@@ -69,6 +71,59 @@ function who({ name, email }) {
   return n || e || 'unknown person';
 }
 
+/* Where this person came from, in as much detail as we actually hold.
+
+   The headline label is db.resolveSource(), the same rule the dashboard groups
+   on, so a signup and the chart can never tell different stories. Everything
+   under it is the raw first-touch record, printed only when it exists.
+
+   Honesty rule, inherited from resolveSource: no browser data at all means
+   "Unknown", never "Direct". Direct is a claim that they typed us in. Unknown
+   is the truth when a WhatsApp arrival or an import reached us with no page
+   behind it, and quietly upgrading one to the other invents credit we did not
+   earn. Ad clicks matter most here: fbclid or gclid is the only proof a paid
+   click produced this person, and on a 30-day trial it is the only thing that
+   will still be around when the money finally lands. */
+function sourceLines(attribution) {
+  const raw = attribution && typeof attribution === 'object' ? attribution : null;
+  if (!raw || !Object.keys(raw).length) {
+    return ['*Came from:* Unknown (no browser data reached us)'];
+  }
+
+  /* Two shapes reach this function and they are not the same. The browser posts
+     camelCase to /register; Stripe hands back the subscription metadata, which
+     is snake_case because that is how it was written at checkout. Reading only
+     one shape would silently label every paying customer "Unknown", which is
+     the exact failure this alert exists to prevent. */
+  const a = {
+    utmSource: raw.utmSource || raw.utm_source || '',
+    utmMedium: raw.utmMedium || raw.utm_medium || '',
+    utmCampaign: raw.utmCampaign || raw.utm_campaign || '',
+    referrer: raw.referrer || '',
+    landing: raw.landing || '',
+    firstSeen: raw.firstSeen || raw.first_seen || '',
+    fbclid: raw.fbclid || '',
+    gclid: raw.gclid || '',
+  };
+
+  const utms = [
+    a.utmSource ? `source ${a.utmSource}` : null,
+    a.utmMedium ? `medium ${a.utmMedium}` : null,
+    a.utmCampaign ? `campaign ${a.utmCampaign}` : null,
+  ].filter(Boolean);
+
+  const paidClick = a.fbclid ? 'Meta (fbclid)' : a.gclid ? 'Google (gclid)' : null;
+
+  return [
+    `*Came from:* ${resolveSource(a)}`,
+    a.referrer ? `*Referrer:* ${a.referrer}` : null,
+    utms.length ? `*Campaign:* ${utms.join(', ')}` : null,
+    paidClick ? `*Paid click:* ${paidClick}, so this one can be attributed to an ad` : null,
+    a.landing ? `*Landed on:* ${a.landing}` : null,
+    a.firstSeen ? `*First seen:* ${a.firstSeen}` : null,
+  ].filter(Boolean);
+}
+
 async function send(lines) {
   const token = process.env.SLACK_BOT_TOKEN;
   const channel = process.env.SLACK_ALERTS_CHANNEL || DEFAULT_CHANNEL;
@@ -105,35 +160,49 @@ function safe(build) {
 
 /* Someone finished onboarding. The only alert that fires for the founding
    cohort, who pay nothing and so produce no Stripe event whatsoever. */
-const registered = safe(({ name, email, access, sponsorName, delivery, contactId, returning }) => [
+const registered = safe(({
+  name, email, phone, access, sponsorName, delivery, contactId, returning, attribution,
+}) => [
   returning
     ? ':arrows_counterclockwise: *Returning person re-registered*'
     : ':wave: *New AI Sponsor registration*',
   `*Who:* ${who({ name, email })}`,
+  phone ? `*Phone:* ${phone}` : null,
   `*Access:* ${access || 'Unpaid'}${access === 'Beta' ? ' (founding member, free)' : ''}`,
+  ...sourceLines(attribution),
   sponsorName ? `*Sponsor named:* ${sponsorName}` : null,
   delivery ? `*Talking on:* ${delivery}` : null,
-  'No money involved at registration.',
+  access === 'Beta'
+    ? 'Free code redeemed, so no money is involved and Stripe never sees this one.'
+    : 'No money involved at registration.',
   ghlLink(contactId),
 ]);
 
 /* Card accepted, trial open. This is the one the DRM zap gets wrong. */
-const trialStarted = safe(({ name, email, plan, firstChargeAt }) => [
+const trialStarted = safe(({ name, email, plan, firstChargeAt, attribution }) => [
   ':credit_card: *Trial started, card on file*',
   `*Who:* ${who({ name, email })}`,
   `*Plan:* ${plan === 'annual' ? '$49/year' : '$5/month'} after a 30 day free trial`,
   '*Charged today:* $0.00. This is not a sale yet.',
   firstChargeAt ? `*First charge:* ${fmtDate(firstChargeAt)}` : null,
+  ...sourceLines(attribution),
   'Stripe validated the card before the trial opened, so it is real and chargeable.',
 ]);
 
 /* Real money, for the first time in the funnel. */
-const paid = safe(({ name, email, plan, amount, currency, billingReason, invoiceId }) => [
+const paid = safe(({
+  name, email, plan, amount, currency, billingReason, invoiceId, attribution,
+}) => [
   ':moneybag: *PAID. Money actually moved.*',
   MENTIONS,
   `*Who:* ${who({ name, email })}`,
   `*Amount:* ${fmtMoney(amount, currency)}`,
   `*Plan:* ${plan || 'unknown'}`,
+  /* The ad click that produced this customer, written at checkout 30 days ago
+     and carried here by Stripe. Meta's attribution window is 7 days, so by the
+     time this fires the ad platforms have long since stopped claiming it. This
+     line is the only place the connection still exists. */
+  ...sourceLines(attribution),
   billingReason === 'subscription_cycle'
     ? '*What this is:* a 30 day trial converting, or a renewal.'
     : `*What this is:* ${billingReason || 'unknown billing reason'}.`,

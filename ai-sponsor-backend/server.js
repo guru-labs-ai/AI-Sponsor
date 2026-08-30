@@ -1541,9 +1541,11 @@ app.post('/register', async (req, res) => {
     alerts.registered({
       name: b.name,
       email: b.email,
+      phone: b.phone,
       access: b.paymentStatus,
       sponsorName: b.sponsorName,
       delivery: b.delivery, // the browser sends `delivery`; the profile stores it as deliveryMethod
+      attribution: b.attribution, // first touch, straight off the browser
       contactId: result.contactId,
       returning,
     });
@@ -2047,6 +2049,7 @@ async function syncStripeToGhl(result) {
         email: result.email,
         plan: result.plan,
         firstChargeAt: result.firstChargeAt,
+        attribution: result.attribution,
       });
       return;
     }
@@ -2120,6 +2123,7 @@ async function syncStripeToGhl(result) {
         currency: result.currency,
         billingReason: result.billingReason,
         invoiceId: result.invoiceId,
+        attribution: result.attribution, // the ad click, carried 30 days by Stripe
       });
       return;
     }

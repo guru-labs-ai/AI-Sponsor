@@ -81,7 +81,7 @@ test('registration alert marks a founding member as free', async () => {
   });
   const t = lastText();
   assert.ok(t.includes('founding member, free'), 'flags the free cohort');
-  assert.ok(t.includes('No money involved'), 'no revenue implied');
+  assert.ok(/no money is involved/i.test(t), 'no revenue implied');
   assert.ok(t.includes('ghl123'), 'links the GHL contact');
 });
 
@@ -106,6 +106,77 @@ test('payment failed carries the attempt number', async () => {
 test('cancel keeps founding members on their free access', async () => {
   await alerts.cancelled({ email: 'f@example.com', keptAccess: 'Beta' });
   assert.ok(lastText().includes('free access continues'));
+});
+
+/* ── Attribution: "where did they come from" in both shapes ─────────────── */
+
+test('browser camelCase attribution is read (a paid Meta click)', async () => {
+  await alerts.registered({
+    name: 'Ada', email: 'ada@example.com', access: 'Unpaid',
+    attribution: {
+      utmSource: 'facebook', utmMedium: 'paid', utmCampaign: 'ais_launch',
+      referrer: 'facebook.com', landing: '/ai-sponsor-registration.html',
+      fbclid: 'IwAR_abc', firstSeen: '2026-08-30T03:43:20.300Z',
+    },
+  });
+  const t = lastText();
+  assert.ok(t.includes('*Came from:* Facebook'), 'utm_source wins the label');
+  assert.ok(t.includes('source facebook, medium paid, campaign ais_launch'));
+  assert.ok(t.includes('Paid click:* Meta (fbclid)'), 'names the ad click');
+  assert.ok(t.includes('/ai-sponsor-registration.html'));
+});
+
+test("Stripe's snake_case metadata produces the same label, not Unknown", async () => {
+  const camel = { utmSource: 'facebook', referrer: 'facebook.com', landing: '/x' };
+  const snake = { utm_source: 'facebook', referrer: 'facebook.com', landing: '/x' };
+  await alerts.paid({ email: 'a@e.com', amount: 500, currency: 'usd', attribution: camel });
+  const fromCamel = lastText().split('\n').find((l) => l.startsWith('*Came from:*'));
+  await alerts.paid({ email: 'a@e.com', amount: 500, currency: 'usd', attribution: snake });
+  const fromSnake = lastText().split('\n').find((l) => l.startsWith('*Came from:*'));
+  assert.strictEqual(fromCamel, fromSnake, 'both shapes must agree');
+  assert.ok(fromSnake.includes('Facebook'));
+});
+
+test("Lindsay's real 30 Aug metadata reads as Direct, not Unknown", async () => {
+  await alerts.trialStarted({
+    email: 'lsjacobi513@gmail.com', plan: 'monthly',
+    attribution: {
+      fbp: 'fb.1.1788061400192.838791927536416833',
+      first_seen: '2026-08-30T03:43:20.300Z',
+      landing: '/ai-sponsor-registration.html',
+      plan: 'monthly', userId: 'reg-59a034b3-d2e1-4d5d-9f06-8d99def02df1',
+    },
+  });
+  const t = lastText();
+  assert.ok(t.includes('*Came from:* Direct'), 'a real browser visit with no referrer is Direct');
+  assert.ok(t.includes('2026-08-30T03:43:20.300Z'), 'shows first seen');
+  assert.ok(!t.includes('Paid click'), 'no ad click, so it must not claim one');
+});
+
+test('no attribution at all says Unknown, never Direct', async () => {
+  await alerts.registered({ email: 'wa@example.com', access: 'Beta' });
+  assert.ok(lastText().includes('Unknown (no browser data reached us)'));
+  assert.ok(!lastText().includes('Direct'), 'Direct would claim credit we did not earn');
+});
+
+test('a founding member is flagged as invisible to Stripe', async () => {
+  await alerts.registered({ email: 'f@example.com', access: 'Beta' });
+  assert.ok(lastText().includes('Stripe never sees this one'));
+});
+
+test('checkout carries the session metadata through as attribution', async () => {
+  const event = {
+    type: 'checkout.session.completed',
+    data: { object: {
+      created: 1788061726, customer: 'cus_x', customer_email: 'l@e.com',
+      subscription: 'sub_x',
+      metadata: { plan: 'monthly', userId: 'reg-1', utm_source: 'facebook', landing: '/' },
+    } },
+  };
+  const result = await stripeModule.handleWebhookEvent(event);
+  assert.strictEqual(result.attribution.utm_source, 'facebook');
+  await alerts.trialStarted({ email: result.email, plan: result.plan, attribution: result.attribution });
+  assert.ok(lastText().includes('*Came from:* Facebook'));
 });
 
 /* ── Failure behaviour: an alert must never break the caller ─────────────── */

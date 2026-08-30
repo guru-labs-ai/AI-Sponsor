@@ -190,6 +190,10 @@ async function handleWebhookEvent(event) {
            (that lives on the subscription) and every alert about a trial is
            misleading without the date the money actually moves. */
         firstChargeAt: session.created ? session.created + TRIAL_DAYS * 86400 : null,
+        /* First touch, written into the session at checkout by the landing
+           script. Carried out whole rather than picked apart here: the reader
+           takes the fields it knows and new ones cost nothing. */
+        attribution: session.metadata || null,
       };
     }
 
