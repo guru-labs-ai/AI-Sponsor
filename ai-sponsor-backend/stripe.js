@@ -184,6 +184,12 @@ async function handleWebhookEvent(event) {
         email: session.customer_email,
         customerId: session.customer,
         subscriptionId: session.subscription,
+        /* When the first real charge lands. The trial opens the moment this
+           session completes, so it is that timestamp plus the trial length.
+           Carried here because the session object itself has no trial_end
+           (that lives on the subscription) and every alert about a trial is
+           misleading without the date the money actually moves. */
+        firstChargeAt: session.created ? session.created + TRIAL_DAYS * 86400 : null,
       };
     }
 

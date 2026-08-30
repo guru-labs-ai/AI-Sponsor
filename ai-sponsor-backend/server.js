@@ -7,6 +7,7 @@ const path = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
 const stripeModule = require('./stripe');
 const ghl = require('./ghl');
+const alerts = require('./alerts'); // Slack alerts → #ai-sponsor-updates
 
 // WhatsApp (Twilio) module is loaded ONLY when Twilio is configured. Its SDK
 // clients (Twilio + OpenAI) throw at construction when their keys are missing,
@@ -1533,6 +1534,20 @@ app.post('/register', async (req, res) => {
       discardedId: returning ? b.chatUserId : undefined,
     }, 'registration').catch((e) => console.error('[register] recordEvent failed:', e.message));
 
+    /* Tell the team in Slack. This is the only alert the founding cohort ever
+       produces: they redeem a free code, so no Stripe event is raised for them
+       at all and a Stripe-driven alert would show an empty channel through the
+       whole launch. Fire and forget, and never in front of the response. */
+    alerts.registered({
+      name: b.name,
+      email: b.email,
+      access: b.paymentStatus,
+      sponsorName: b.sponsorName,
+      delivery: b.delivery, // the browser sends `delivery`; the profile stores it as deliveryMethod
+      contactId: result.contactId,
+      returning,
+    });
+
     db.upsertUser({
       userId,
       name: b.name, email: b.email, phone: b.phone,
@@ -2023,6 +2038,16 @@ async function syncStripeToGhl(result) {
         });
       }
       console.log(`[Stripe→GHL] paid: ${result.email} (${result.plan}) → contact ${contactId}`);
+      /* Named "paid" in the log above since before both plans became trials.
+         Nothing has been paid at this point: they gave us a card. The alert
+         says so in words, because reading this as a sale is exactly the
+         mistake the DRM Zapier alert makes. */
+      alerts.trialStarted({
+        name: (await db.getUser(result.userId).catch(() => null))?.name,
+        email: result.email,
+        plan: result.plan,
+        firstChargeAt: result.firstChargeAt,
+      });
       return;
     }
 
@@ -2041,6 +2066,7 @@ async function syncStripeToGhl(result) {
       await ghl.removeTags(user.ghl_contact_id, ['ai-sponsor-paid']);
       await db.setAccess(user.user_id, isBeta ? 'Beta' : 'Unpaid');
       console.log(`[Stripe→GHL] cancelled: ${user.email} → ${isBeta ? 'Beta' : 'Unpaid'}`);
+      alerts.cancelled({ name: user.name, email: user.email, keptAccess: isBeta ? 'Beta' : 'Unpaid' });
       return;
     }
 
@@ -2049,6 +2075,7 @@ async function syncStripeToGhl(result) {
       if (!user || !user.ghl_contact_id) return;
       await ghl.addTags(user.ghl_contact_id, ['ai-sponsor-trial-ending']);
       console.log(`[Stripe→GHL] trial ending: ${user.email}`);
+      alerts.trialEnding({ name: user.name, email: user.email, trialEnd: result.trialEnd });
       return;
     }
 
@@ -2085,6 +2112,15 @@ async function syncStripeToGhl(result) {
 
       const money = `${(result.amount / 100).toFixed(2)} ${String(result.currency || 'usd').toUpperCase()}`;
       console.log(`[Stripe→GHL] PAID ${money}: ${result.email || result.customerId} (${result.plan || 'plan unknown'}) invoice ${result.invoiceId}`);
+      alerts.paid({
+        name: (await findUser(result))?.name,
+        email: result.email,
+        plan: result.plan,
+        amount: result.amount,
+        currency: result.currency,
+        billingReason: result.billingReason,
+        invoiceId: result.invoiceId,
+      });
       return;
     }
 
@@ -2103,6 +2139,13 @@ async function syncStripeToGhl(result) {
       }
       await ghl.addTags(user.ghl_contact_id, ['ai-sponsor-payment-failed']);
       console.log(`[Stripe→GHL] payment failed (attempt ${result.attemptCount}): ${user.email}`);
+      alerts.paymentFailed({
+        name: user.name,
+        email: user.email,
+        attemptCount: result.attemptCount,
+        amount: result.amount,
+        currency: result.currency,
+      });
       return;
     }
 
