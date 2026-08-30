@@ -8,6 +8,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const stripeModule = require('./stripe');
 const ghl = require('./ghl');
 const alerts = require('./alerts'); // Slack alerts → #ai-sponsor-updates
+const trialnotice = require('./trialnotice'); // the "your trial ends" WhatsApp notice
 
 // WhatsApp (Twilio) module is loaded ONLY when Twilio is configured. Its SDK
 // clients (Twilio + OpenAI) throw at construction when their keys are missing,
@@ -2075,10 +2076,22 @@ async function syncStripeToGhl(result) {
 
     case 'trial_ending_soon': {
       const user = await findUser(result);
-      if (!user || !user.ghl_contact_id) return;
-      await ghl.addTags(user.ghl_contact_id, ['ai-sponsor-trial-ending']);
+      if (!user) return;
+      /* The tag and the Slack alert are both for us. Deliberately no longer
+         gated on the GHL contact existing: whether our CRM has caught up is
+         not a reason to let somebody be charged without warning. */
+      if (user.ghl_contact_id) {
+        await ghl.addTags(user.ghl_contact_id, ['ai-sponsor-trial-ending']);
+      }
       console.log(`[Stripe→GHL] trial ending: ${user.email}`);
       alerts.trialEnding({ name: user.name, email: user.email, trialEnd: result.trialEnd });
+      /* And this is the half the customer sees. Awaited rather than fired and
+         forgotten, so a failure is recorded against the event that caused it
+         and Stripe's retry gets a chance to deliver what we could not. */
+      const notice = await trialnotice.notifyTrialEnding({
+        user, trialEndUnix: result.trialEnd, db, whatsapp, siteUrl: SITE_URL,
+      });
+      console.log(`[trial-ending] ${user.email}: ${notice.sent ? notice.via : notice.reason}`);
       return;
     }
 
