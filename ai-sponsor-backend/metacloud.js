@@ -374,6 +374,66 @@ async function sendReaction(toPhone, wamid, emoji) {
   return { messageId: (res.messages && res.messages[0] && res.messages[0].id) || null };
 }
 
+/* Our own number, in the shape a contact card wants it. Looked up once from the
+   phone number itself rather than added to the env, because it is already sitting
+   on the node we are configured with and one more variable is one more thing to
+   forget. META_WA_CONTACT_NUMBER overrides it if that assumption ever stops
+   holding. */
+let cachedSelfNumber = null;
+async function selfPhoneNumber() {
+  if (process.env.META_WA_CONTACT_NUMBER) return toE164(process.env.META_WA_CONTACT_NUMBER);
+  if (cachedSelfNumber) return cachedSelfNumber;
+  const res = await graph(`${PHONE_NUMBER_ID}?fields=display_phone_number`, { method: 'GET' });
+  cachedSelfNumber = toE164(res.display_phone_number || '');
+  return cachedSelfNumber;
+}
+
+/* The second line of somebody's WhatsApp header is Meta's approved display name
+   and nothing in this file can touch it. The TOP line is different: it comes from
+   the contact saved in that person's own phone, which is why the same number
+   reads one way on Mariam's phone and another on Matt's. So this is the only
+   lever on what people actually see that does not run through Meta's review
+   queue.
+
+   A card turns "save this number as Jack" from something they have to type into
+   something they tap once, which is the whole difference between an idea and a
+   thing that happens.
+
+   The name is a parameter on purpose. Whether everyone saves the same brand name
+   or the sponsor name they chose for themselves is a product decision, and it
+   belongs to the caller rather than to this file. */
+async function sendContactCard(toPhone, displayName) {
+  if (!enabled) throw new Error('META_WA_TOKEN / META_WA_PHONE_NUMBER_ID not configured');
+  const name = String(displayName || '').trim().slice(0, 60);
+  if (!name) throw new Error('refusing to send a contact card with no name on it');
+
+  const self = await selfPhoneNumber();
+  if (!self) throw new Error('could not work out our own number for the contact card');
+
+  const res = await graph(`${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: toE164(toPhone),
+      type: 'contacts',
+      contacts: [{
+        name: { formatted_name: name, first_name: name },
+        /* The two fields want the number in DIFFERENT shapes and it matters.
+           `wa_id` is bare digits, like everything else Meta takes, and it is what
+           makes the card open a WhatsApp chat rather than a plain phone contact.
+           `phone` is the string that lands in their address book, so it keeps the
+           plus: saved without it, the contact is a bare 11 digits that will not
+           dial from another country. toE164 strips the plus on purpose for the
+           rest of this file, which is why it goes back on here. */
+        phones: [{ phone: `+${self}`, type: 'MAIN', wa_id: self }],
+      }],
+    }),
+  });
+  return { messageId: (res.messages && res.messages[0] && res.messages[0].id) || null };
+}
+
 /* whatsapp.js works in file paths because Twilio needed a file it could serve.
    Nothing on this path does, but the callers still hand us one, so this is the
    adapter rather than a reason to rewrite them. */
@@ -386,4 +446,5 @@ module.exports = {
   enabled, inbound, outbound, APP_SECRET, GRAPH_VERSION, AUDIO_MIME, PHONE_NUMBER_ID, WABA_ID,
   toE164, uploadAudio, sendVoiceNote, sendVoiceNoteFile, preflight,
   sendText, markRead, downloadMedia, sendReaction, REACTION_EMOJI, sendTemplate, graph,
+  sendContactCard, selfPhoneNumber,
 };

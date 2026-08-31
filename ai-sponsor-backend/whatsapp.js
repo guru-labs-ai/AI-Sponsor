@@ -1101,6 +1101,30 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
         }
       }
 
+      /* First contact, once, whichever way we just replied: offer the number as
+         a contact card they can save with one tap. The top line of their header
+         is read from their own address book, so this is the only thing that
+         changes what people see without waiting on Meta's display name review.
+
+         META_WA_CONTACT_CARD_NAME sends the same name to everybody, which is the
+         brand answer. Left unset, each person gets the sponsor name THEY chose,
+         which is the answer Mariam picked on Aug 19. If neither exists we send
+         nothing at all: falling back to a generic name would hand somebody a
+         contact they did not ask for and did not name.
+
+         Off unless META_WA_CONTACT_CARD=1, and never awaited, on the same rule
+         as the spoken hello: a card that fails must not turn a reply that was
+         delivered into an error. */
+      if (isFirstContact && process.env.META_WA_CONTACT_CARD === '1' && metacloud.outbound) {
+        const cardName = String(
+          process.env.META_WA_CONTACT_CARD_NAME || (profile && profile.sponsorName) || ''
+        ).trim();
+        if (cardName) {
+          metacloud.sendContactCard(fromPhone, cardName)
+            .catch((e) => console.error('[WhatsApp] contact card failed:', e.message));
+        }
+      }
+
     } catch (err) {
       console.error('[WhatsApp] Error processing message:', err.message);
       // Send a graceful fallback message to the user so they aren't left hanging
