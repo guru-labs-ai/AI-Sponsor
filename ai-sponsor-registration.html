@@ -813,15 +813,15 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
       <h1 class="heading">How would you like your AI Sponsor to reach you?</h1>
       <p class="sub">Most members use WhatsApp. It's the easiest way to stay connected. You can always change this later.</p>
       <div class="del-opts">
-        <label class="del-opt del-recommended" onclick="selDel(this,true)">
-          <input type="radio" name="del" value="whatsapp">
+        <label class="del-opt del-recommended sel" onclick="selDel(this,true)">
+          <input type="radio" name="del" value="whatsapp" checked>
           <div class="del-icon">💬</div>
           <div class="del-txt"><div class="del-name">WhatsApp</div><div class="del-desc">Text and audio messages via WhatsApp</div></div>
           <div class="del-badge">Recommended</div>
           <div class="del-radio"></div>
         </label>
       </div>
-      <div class="phone-wrap" id="phoneWrap">
+      <div class="phone-wrap show" id="phoneWrap">
         <div class="fg">
           <label>Your phone number <span class="req-star">*</span></label>
           <div class="phone-input-wrap">
@@ -869,7 +869,7 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
           <label class="cs-waitlist"><input type="checkbox" checked> Add me to the waitlist</label>
         </div>
       </div>
-      <button class="btn" id="btn-del" onclick="go(7)" disabled>Continue</button>
+      <button class="btn" id="btn-del" onclick="go(7)">Continue</button>
     </div>
 
     <!-- SCREEN 7 -->
@@ -1145,7 +1145,13 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 const D = {
   name:'',email:'',pw:'',gender:'',country:'',state:'',
   program:[],otherProgram:'',stage:'',why:'',goals:[],
-  delivery:'',phone:'',
+  /* WhatsApp ships pre-selected rather than blank. It is the only delivery
+     method that exists, the line above the card already tells people it is
+     what most members use, and asking somebody to tap the one available
+     answer is a step that can only ever go one way. The markup below is
+     selected to match, and validate(6) still holds the phone number to
+     exactly the same standard, so this removes a tap and not a check. */
+  delivery:'whatsapp',phone:'',
   wellbeing:'',
   wantsVideo:true,wantsIOS:true,
   sponsorName:'',sponsorStyle:'',sponsorVoice:'',
@@ -1165,6 +1171,10 @@ function restoreState(){
   try{
     const parsed=JSON.parse(saved);
     Object.assign(D,parsed);
+    /* A form started before WhatsApp became the default has delivery:'' saved,
+       and Object.assign would lay that empty string back over the default while
+       the card on screen still reads as selected. */
+    if(!D.delivery) D.delivery='whatsapp';
     if(!Array.isArray(D.program)) D.program=[];
 
     // Restore visible field values
