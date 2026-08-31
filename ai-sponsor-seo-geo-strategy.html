@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Sponsor — SEO &amp; GEO/AEO Strategy</title>
+<style>
+  :root{
+    --blue:#1B5E8A; --blue-dark:#0F3D5C; --blue-soft:#E8F1F7;
+    --ink:#0F2233; --body:#3D4F5C; --sub:#6B7C89;
+    --line:#DDE6EC; --bg:#EEF2F6; --card:#ffffff;
+    --green:#0E7C5A; --green-bg:#DCF5EC;
+    --amber:#9A6A00; --amber-bg:#FFF3D6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--ink);
+    -webkit-font-smoothing:antialiased;line-height:1.55;padding:20px 16px 64px;}
+  .wrap{max-width:760px;margin:0 auto;}
+
+  .header{text-align:center;margin:8px 0 24px;}
+  .header .tag{display:inline-block;background:var(--blue-dark);color:#9ED2EF;font-size:10.5px;font-weight:800;
+    padding:5px 15px;border-radius:20px;margin-bottom:14px;letter-spacing:.1em;text-transform:uppercase;}
+  .header h1{font-size:26px;font-weight:900;letter-spacing:-.4px;line-height:1.2;}
+  .header .subtitle{font-size:13.5px;color:var(--sub);margin-top:10px;line-height:1.55;}
+
+  .banner{background:var(--blue-soft);border-left:5px solid var(--blue);border-radius:12px;padding:14px 18px;margin-bottom:10px;}
+  .banner p{font-size:13px;color:var(--blue-dark);line-height:1.6;}
+  .banner a{color:var(--blue);font-weight:700;text-decoration:none;}
+
+  .section-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.1px;color:#90A2AE;
+    margin:32px 0 14px;display:flex;align-items:center;gap:10px;}
+  .section-label::after{content:'';flex:1;height:1px;background:var(--line);}
+
+  .card{background:var(--card);border-radius:14px;padding:18px 20px;box-shadow:0 1px 8px rgba(15,61,92,.07);margin-bottom:12px;}
+  .card h3{font-size:15px;font-weight:800;margin-bottom:7px;color:var(--ink);}
+  .card p{font-size:13px;color:var(--body);line-height:1.65;}
+  .card p + p{margin-top:8px;}
+  .card strong{color:var(--ink);}
+
+  .quote{font-style:italic;color:var(--body);border-left:3px solid var(--line);padding-left:14px;font-size:13px;line-height:1.7;}
+
+  .mod{padding:11px 0;border-bottom:1px solid var(--line);}
+  .mod:last-child{border-bottom:none;padding-bottom:0;}
+  .mod .n{font-size:13.5px;font-weight:800;color:var(--ink);}
+  .mod .d{font-size:12.5px;color:var(--body);line-height:1.6;margin-top:2px;}
+
+  .lane{border-radius:12px;padding:14px 16px;margin-bottom:10px;}
+  .lane.g{background:var(--green-bg);border-left:5px solid var(--green);}
+  .lane.y{background:var(--amber-bg);border-left:5px solid var(--amber);}
+  .lane h4{font-size:13px;font-weight:800;margin-bottom:6px;}
+  .lane.g h4{color:#0a4a35;} .lane.y h4{color:#6e4d00;}
+  .lane ul{list-style:none;}
+  .lane li{font-size:12.5px;line-height:1.55;padding:3px 0 3px 16px;position:relative;}
+  .lane.g li{color:#0a4a35;} .lane.y li{color:#6e4d00;}
+  .lane li::before{content:'•';position:absolute;left:3px;}
+
+  .phase{display:flex;gap:12px;background:var(--card);border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 8px rgba(15,61,92,.07);}
+  .phase .pin{font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;height:fit-content;white-space:nowrap;}
+  .pin.done{background:var(--green-bg);color:var(--green);}
+  .pin.next{background:var(--blue-soft);color:var(--blue);}
+  .pin.budget{background:var(--amber-bg);color:var(--amber);}
+  .phase .pt{font-size:13.5px;font-weight:800;color:var(--ink);margin-bottom:3px;}
+  .phase .pd{font-size:12.5px;color:var(--body);line-height:1.55;}
+
+  .split{display:grid;grid-template-columns:1fr;gap:10px;}
+  .split .b{background:var(--card);border-radius:12px;padding:14px 16px;box-shadow:0 1px 8px rgba(15,61,92,.07);}
+  .split .b h4{font-size:13px;font-weight:800;margin-bottom:6px;color:var(--ink);}
+  .split .b p{font-size:12.5px;color:var(--body);line-height:1.6;}
+
+  .status .row{display:flex;gap:10px;font-size:12.5px;color:var(--body);padding:6px 0;border-bottom:1px solid var(--line);line-height:1.5;}
+  .status .row:last-child{border-bottom:none;}
+  .status .mk{flex-shrink:0;font-weight:800;}
+  .mk.ok{color:var(--green);} .mk.no{color:var(--sub);}
+
+  .foot{text-align:center;font-size:11px;color:#9AAAB5;margin-top:26px;line-height:1.7;}
+  .foot a{color:var(--blue);text-decoration:none;}
+
+  @media (min-width:640px){
+    body{padding:34px 24px 72px;}
+    .header h1{font-size:31px;}
+    .split{grid-template-columns:1fr 1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <span class="tag">AI Sponsor · Game Plan</span>
+    <h1>SEO &amp; GEO/AEO Strategy</h1>
+    <p class="subtitle">Being found on Google <em>and</em> cited inside AI answers (ChatGPT, Gemini, Perplexity, Claude).<br>Owner: Mariam · Built for AI Sponsor first, then replicated across products.</p>
+  </div>
+
+  <div class="banner">
+    <p>🎯 <strong>This is AI Sponsor's GAME PLAN</strong> — what we're actually doing for this product. For the full menu of tactics + the rules on what's safe / risky / illegal, see the <a href="ai-search-marketing-strategy.html">RULEBOOK →</a> (shared across all products).</p>
+  </div>
+
+  <!-- VISION -->
+  <div class="section-label">The play (Matt's vision)</div>
+  <div class="card">
+    <p class="quote">"On the SEO stuff — if that works for AI Sponsor when you build out how she does it, then we could prob just run that same play for the other products too... super interesting for me once you get the AI Sponsor one built!" — Matt</p>
+    <p style="margin-top:12px;">Build the SEO/GEO system for <strong>AI Sponsor first</strong> as the template → then <strong>replicate across DRM, Rekindle</strong> and others (swap domain + Search Console property). Part of the company-wide AEO/GEO initiative — cheaper than blog writers or Meta ads.</p>
+  </div>
+
+  <!-- REFERENCE TOOL -->
+  <div class="section-label">The reference tool — "SEO + GEO Autopilot"</div>
+  <div class="card">
+    <p>A dashboard that runs a continuous loop — <strong>Audit → Diagnose → Strategize → Fix → Re-audit</strong> — across both Google Search and AI engines. Four modules:</p>
+    <div class="mod" style="margin-top:8px;"><div class="n">1 · The Auditor</div><div class="d">Technical crawl + live Google ranking (Search Console) + Core Web Vitals + an AI-search readiness score (0–100); surfaces top 5 problems.</div></div>
+    <div class="mod"><div class="n">2 · The AI-Search Spy</div><div class="d">Tests whether AI engines actually <strong>cite your site</strong>; scores AI-search visibility across 5 platforms; flags reasons for non-inclusion.</div></div>
+    <div class="mod"><div class="n">3 · The Diagnoser</div><div class="d">Finds striking-distance keywords (positions 8–20), maps top questions asked in AI search by intent, highlights content gaps.</div></div>
+    <div class="mod"><div class="n">4 · The Fixer</div><div class="d">Generates deployment-ready code: <strong>FAQ schema (JSON-LD), llms.txt, robots.txt</strong>, rewritten titles, meta, answer blocks.</div></div>
+  </div>
+
+  <!-- DOABLE -->
+  <div class="section-label">Is it doable for us? (Claude's assessment)</div>
+  <div class="lane g">
+    <h4>🟢 Doable now, essentially free (Claude + what we have)</h4>
+    <ul>
+      <li><strong>The Fixer</strong> — JSON-LD FAQ schema, llms.txt, rewritten titles/meta/answer blocks. This IS the on-site AEO foundation.</li>
+      <li><strong>Dashboard shell</strong> — static HTML + charts on GitHub Pages (our standard).</li>
+      <li><strong>Basic audit</strong> — Core Web Vitals via Google's free PageSpeed API; Search Console (getaisponsor.com verified).</li>
+    </ul>
+  </div>
+  <div class="lane y">
+    <h4>🟡 Doable but needs setup + small cost (Matt's call)</h4>
+    <ul>
+      <li><strong>Keyword &amp; search-volume data</strong> → DataForSEO (cheap, &lt;~$1/1,000 lookups) or Semrush/Ahrefs.</li>
+      <li><strong>Search Console at scale</strong> → API + OAuth setup.</li>
+      <li><strong>AI-Search Spy</strong> (do ChatGPT/Perplexity/Gemini cite us?) → hardest piece; needs querying engines via APIs or a paid AI-visibility tool.</li>
+    </ul>
+  </div>
+  <div class="card" style="border-left:5px solid var(--amber);">
+    <h3>⚠️ Reality check</h3>
+    <p>getaisponsor.com is <strong>~1 week old</strong> → right now the Auditor / Spy / Diagnoser would mostly show "no data yet." Those modules get valuable as data accrues over <strong>weeks</strong>. The <strong>Fixer / on-site part pays off immediately.</strong></p>
+  </div>
+
+  <!-- PHASING -->
+  <div class="section-label">Recommended phasing</div>
+  <div class="phase"><span class="pin done">✓ DONE</span><div><div class="pt">Phase 1 — On-site AEO foundation (free)</div><div class="pd">Shipped + verified Jun 17 on getaisponsor.com: <strong>llms.txt</strong>, JSON-LD @graph (Organization, WebSite, Service with $5/mo + $49/yr, FAQPage 8 Q&amp;As), visible FAQ trimmed to 4 non-redundant questions. (Google deprecated FAQ rich snippets in 2023 → schema value now = AI-engine ingestion.)</div></div></div>
+  <div class="phase"><span class="pin next">NEXT</span><div><div class="pt">Phase 2 — Tracker dashboard shell (free)</div><div class="pd">Stand up the dashboard + wire Google Search Console + PageSpeed. Fills in over time (new domain = little data for weeks).</div></div></div>
+  <div class="phase"><span class="pin budget">MATT $</span><div><div class="pt">Phase 3 — Paid data + AI-citation checking</div><div class="pd">Add DataForSEO keyword data + AI-citation checking (does ChatGPT/Gemini/Perplexity cite us). The one decision that's Matt's, not ours.</div></div></div>
+
+  <!-- SEO vs AEO -->
+  <div class="section-label">Keep straight: SEO vs AEO/GEO</div>
+  <div class="split">
+    <div class="b"><h4>SEO (done / in progress)</h4><p>Meta description, Open Graph, canonical, sitemap, robots, favicon, Google Search Console → optimizes the Google blue-link result + link previews.</p></div>
+    <div class="b"><h4>AEO/GEO (this strategy)</h4><p>Being cited <em>inside</em> ChatGPT / Gemini / Claude / Perplexity. Needs JSON-LD, FAQ/Q&amp;A content, llms.txt, off-site presence (Reddit), and Bing Webmaster Tools (Bing index powers ChatGPT search).</p></div>
+  </div>
+
+  <!-- STATUS -->
+  <div class="section-label">Status (as of June 17, 2026)</div>
+  <div class="card status">
+    <div class="row"><span class="mk ok">✓</span><span>Favicon, robots.txt, sitemap.xml — live on getaisponsor.com</span></div>
+    <div class="row"><span class="mk ok">✓</span><span>Google Search Console verified; homepage indexed; sitemap submitted</span></div>
+    <div class="row"><span class="mk ok">✓</span><span>Optimized meta description + Open Graph / Twitter preview tags</span></div>
+    <div class="row"><span class="mk ok">✓</span><span>AEO Phase 1 — JSON-LD + trimmed FAQ + llms.txt</span></div>
+    <div class="row"><span class="mk no">▢</span><span>Phase 2 — tracker dashboard + Search Console / PageSpeed wiring</span></div>
+    <div class="row"><span class="mk no">▢</span><span>Phase 3 — DataForSEO + AI-citation checking (needs Matt budget ok)</span></div>
+    <div class="row"><span class="mk no">▢</span><span>Keyword search-volume research for "ai sponsor"; Bing Webmaster Tools</span></div>
+  </div>
+
+  <div class="foot">
+    ClickUp: Sprint task <strong>86aj3ux45</strong> — "AI Sponsor | AEO/GEO Autopilot — build SEO+GEO system (template for all products)" · in progress<br>
+    Rulebook (tactics + rules, all products): <a href="ai-search-marketing-strategy.html">AI Search Marketing Strategy →</a><br>
+    AI Sponsor · Product · Mariam — updated June 2026
+  </div>
+
+</div>
+</body>
+</html>

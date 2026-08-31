@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Sponsor — Competitive Analysis & Ad Copy</title>
+<style>
+  :root{
+    --blue:#1B5E8A; --blue-dark:#0F3D5C; --blue-soft:#E8F1F7;
+    --ink:#0F2233; --body:#3D4F5C; --sub:#6B7C89;
+    --line:#DDE6EC; --bg:#EEF2F6; --card:#ffffff;
+    --green:#0E7C5A; --green-bg:#DCF5EC;
+    --amber:#9A6A00; --amber-bg:#FFF3D6;
+    --red:#B02A2A; --red-bg:#FCE6E6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--ink);
+    -webkit-font-smoothing:antialiased;line-height:1.5;padding:20px 16px 64px;}
+  .wrap{max-width:760px;margin:0 auto;}
+
+  /* HEADER */
+  .header{text-align:center;margin:8px 0 28px;}
+  .header .tag{display:inline-block;background:var(--blue-dark);color:#9ED2EF;font-size:10.5px;font-weight:800;
+    padding:5px 15px;border-radius:20px;margin-bottom:14px;letter-spacing:.1em;text-transform:uppercase;}
+  .header h1{font-size:26px;font-weight:900;letter-spacing:-.4px;line-height:1.2;}
+  .header .subtitle{font-size:13.5px;color:var(--sub);margin-top:10px;line-height:1.55;}
+
+  /* SECTION LABEL */
+  .section-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.1px;color:#90A2AE;
+    margin:34px 0 14px;display:flex;align-items:center;gap:10px;}
+  .section-label::after{content:'';flex:1;height:1px;background:var(--line);}
+
+  /* CALLOUT */
+  .callout{border-radius:14px;padding:18px 20px;margin-bottom:8px;}
+  .callout.warn{background:var(--amber-bg);border-left:5px solid var(--amber);}
+  .callout h3{font-size:14.5px;font-weight:800;margin-bottom:7px;color:var(--ink);}
+  .callout p{font-size:13px;color:var(--body);line-height:1.65;}
+  .callout p + p{margin-top:8px;}
+  .callout strong{color:var(--ink);}
+
+  /* CARD */
+  .card{background:var(--card);border-radius:14px;padding:18px 20px;box-shadow:0 1px 8px rgba(15,61,92,.07);margin-bottom:12px;}
+  .card h3{font-size:15px;font-weight:800;margin-bottom:4px;color:var(--ink);}
+  .card .role{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--blue);margin-bottom:10px;}
+  .card p{font-size:13px;color:var(--body);line-height:1.65;}
+  .comp{padding:11px 0;border-bottom:1px solid var(--line);}
+  .comp:last-child{border-bottom:none;padding-bottom:0;}
+  .comp .n{font-size:13.5px;font-weight:800;color:var(--ink);}
+  .comp .d{font-size:12.5px;color:var(--body);line-height:1.6;margin-top:2px;}
+
+  .tier-head{display:flex;align-items:center;gap:9px;margin-bottom:4px;}
+  .pill{display:inline-block;font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.05em;}
+  .pill.direct{background:var(--red-bg);color:var(--red);}
+  .pill.indirect{background:var(--blue-soft);color:var(--blue);}
+
+  /* DIFFERENTIATORS */
+  .diff{background:var(--card);border-radius:14px;padding:16px 18px;margin-bottom:12px;box-shadow:0 1px 8px rgba(15,61,92,.07);border-left:5px solid var(--green);}
+  .diff .t{font-size:14px;font-weight:800;color:var(--ink);margin-bottom:5px;}
+  .diff .why{font-size:12.5px;color:var(--body);line-height:1.6;}
+  .diff .who{font-size:11.5px;color:var(--sub);margin-top:6px;font-style:italic;}
+
+  /* POSITIONING */
+  .position{background:var(--blue-dark);color:#fff;border-radius:16px;padding:26px 24px;text-align:center;margin-bottom:8px;}
+  .position .k{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#9ED2EF;margin-bottom:12px;}
+  .position .q{font-size:18px;font-weight:800;line-height:1.45;letter-spacing:-.2px;}
+  .position .q em{color:#9ED2EF;font-style:normal;}
+
+  /* AD CARDS */
+  .ad{background:var(--card);border-radius:14px;padding:18px 20px;margin-bottom:12px;box-shadow:0 1px 8px rgba(15,61,92,.07);
+    border-top:4px solid var(--blue);}
+  .ad .label{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
+  .ad .code{font-size:12px;font-weight:900;color:var(--blue);letter-spacing:.04em;}
+  .ad .angle{font-size:11px;font-weight:700;color:var(--sub);text-align:right;}
+  .ad .copy{font-size:13.5px;color:var(--ink);line-height:1.7;white-space:pre-line;}
+  .ad.best{border-top-color:var(--green);}
+  .ad.best .code{color:var(--green);}
+
+  /* TEST NOTE */
+  .testnote{background:var(--green-bg);border-radius:14px;padding:16px 18px;margin-bottom:8px;}
+  .testnote p{font-size:13px;color:#0a4a35;line-height:1.65;}
+  .testnote strong{font-weight:800;}
+
+  /* HEADLINES + COMPLIANCE */
+  .mini{background:var(--card);border-radius:14px;padding:16px 18px;margin-bottom:12px;box-shadow:0 1px 8px rgba(15,61,92,.07);}
+  .mini h4{font-size:12.5px;font-weight:800;color:var(--ink);margin-bottom:9px;}
+  .mini ul{list-style:none;}
+  .mini li{font-size:12.5px;color:var(--body);padding:5px 0 5px 18px;position:relative;line-height:1.5;}
+  .mini li::before{content:'›';position:absolute;left:4px;color:var(--blue);font-weight:800;}
+
+  /* PRICING TABLE */
+  .ptable{width:100%;border-collapse:collapse;}
+  .ptable th{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--sub);
+    text-align:left;padding:8px 10px;border-bottom:2px solid var(--line);}
+  .ptable td{font-size:12.5px;color:var(--body);padding:10px;border-bottom:1px solid var(--line);}
+  .ptable tr:last-child td{border-bottom:none;}
+  .ptable tr.us{background:var(--blue-soft);}
+  .ptable tr.us td{color:var(--blue-dark);}
+  .pnote{font-size:11px;color:var(--sub);padding:8px 10px 4px;font-style:italic;}
+
+  /* SOURCES */
+  .sources{margin-top:24px;font-size:11.5px;color:var(--sub);line-height:1.8;text-align:center;}
+  .sources a{color:var(--blue);text-decoration:none;}
+  .sources a:hover{text-decoration:underline;}
+
+  .foot{text-align:center;font-size:11px;color:#9AAAB5;margin-top:26px;}
+
+  @media (min-width:640px){
+    body{padding:34px 24px 72px;}
+    .header h1{font-size:32px;}
+    .position .q{font-size:21px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <span class="tag">AI Sponsor · Ad Strategy</span>
+    <h1>Competitive Analysis &amp; Ad Copy</h1>
+    <p class="subtitle">What the recovery-app market actually does, where we genuinely stand out, and the final ad text to test.<br>Real, sourced data · June 2026</p>
+  </div>
+
+  <!-- CORRECTION -->
+  <div class="section-label">Read this first</div>
+  <div class="callout warn">
+    <h3>⚠️ We are not the first "AI sponsor"</h3>
+    <p>Direct AI-sponsor competitors are <strong>already live</strong> — including one literally named <strong>"AI Sobriety Sponsor."</strong> The "AI sponsor" idea alone is no longer a unique selling point.</p>
+    <p>That's not bad news — it means we win on <strong>how</strong> we deliver it (no app, right in WhatsApp), <strong>breadth</strong> (every program), and <strong>mission</strong> (one-for-one), not on being first.</p>
+  </div>
+
+  <!-- LANDSCAPE -->
+  <div class="section-label">The landscape</div>
+
+  <div class="card">
+    <div class="tier-head"><span class="pill direct">Tier 1 · Direct</span></div>
+    <h3>AI sponsors &amp; recovery chatbots</h3>
+    <div class="comp"><div class="n">🌻 Sunflower — AI sponsor "Sam" <span style="color:var(--red);font-weight:800;">(biggest threat)</span></div><div class="d"><strong>VC-backed: YC + a16z speedrun, raised $4.8M.</strong> Grew 200 → 100,000 monthly active users in &lt;6 months. Global &amp; multilingual (EN/ES/JP/KR/PT). Combines an AI sponsor + tracker + CBT; wants to be the "Duolingo of sobriety." Founder ex-Head of Growth at Rupa Health ($5M→$75M).</div></div>
+    <div class="comp"><div class="n">SoberAI — "AI Sobriety Sponsor"</div><div class="d">Multiple AI sponsors with different personalities (compassionate listener, strict motivator, 12-step guide). Closest direct mirror by name.</div></div>
+    <div class="comp"><div class="n">Loosid — SAM™ AI ("Sobriety &amp; Addiction Mentor")</div><div class="d">A "virtual sponsor" with text, voice &amp; video check-ins + craving intervention. Secured AWS funding; going enterprise (EAPs, treatment centers).</div></div>
+    <div class="comp"><div class="n">OpenRecovery — "Kai"</div><div class="d">AI assistant that remembers your sponsor / higher power, with SMART Recovery + CBT exercises. <strong>Also runs a financial-assistance fund</strong> for those who can't afford it.</div></div>
+    <div class="comp"><div class="n">Recomorphosis · Soberfy · Kind Companion</div><div class="d">More 24/7 AI recovery coaches, 12-step-rooted.</div></div>
+  </div>
+
+  <div class="callout warn" style="margin-top:4px;">
+    <h3>📈 The market is heating up — and funded</h3>
+    <p>Real VC money is flowing into "AI sponsor" products: <strong>Sunflower ($4.8M, YC/a16z)</strong> and <strong>Loosid SAM™ (AWS-funded, going enterprise)</strong>. That <strong>validates the market is real</strong> — but it also means we're a bootstrapped product entering a competitive, well-resourced field. Our edge has to be sharp and specific, not "we built an AI sponsor."</p>
+  </div>
+
+  <div class="card">
+    <div class="tier-head"><span class="pill indirect">Tier 2 · Indirect</span></div>
+    <h3>The established apps</h3>
+    <div class="comp"><div class="n">I Am Sober</div><div class="d"><em>Tracker</em> — day counter, daily pledge, money/time saved, milestones, community.</div></div>
+    <div class="comp"><div class="n">Reframe</div><div class="d"><em>Mindful drinking</em> — "drink less &amp; thrive," neuroscience, 160-day program, 3.2M downloads.</div></div>
+    <div class="comp"><div class="n">Monument / Tempest</div><div class="d"><em>Clinical telehealth</em> — therapy + medication + moderated groups (~$25/video appt with insurance).</div></div>
+    <div class="comp"><div class="n">Loosid / Sober Grid</div><div class="d"><em>Sober social networks</em> — community, dating, events.</div></div>
+  </div>
+
+  <!-- PRICING -->
+  <div class="section-label">Pricing — real numbers</div>
+  <div class="card" style="padding:8px 6px;">
+    <table class="ptable">
+      <thead><tr><th>Product</th><th>Price</th><th>Free trial</th></tr></thead>
+      <tbody>
+        <tr class="us"><td><strong>AI Sponsor</strong></td><td><strong>$5/mo · $49/yr</strong></td><td><strong>30 days</strong></td></tr>
+        <tr><td>I Am Sober Plus</td><td>$9.99/mo · $39.99/yr</td><td>7 days</td></tr>
+        <tr><td>OpenRecovery (Kai)</td><td>$10/mo</td><td>14 days</td></tr>
+        <tr><td>Reframe</td><td>$14/mo · $140/yr</td><td>7–30 days</td></tr>
+        <tr><td>Monument (clinical)</td><td>~$25 / video appt*</td><td>—</td></tr>
+        <tr><td>SoberAI · Sunflower</td><td>Not public / freemium</td><td>—</td></tr>
+      </tbody>
+    </table>
+    <p class="pnote">*with insurance. SoberAI &amp; Sunflower pricing not publicly listed — don't claim "cheapest overall."</p>
+  </div>
+  <div class="callout" style="background:var(--green-bg);border-left:5px solid var(--green);">
+    <h3 style="color:#0a4a35;">✅ We undercut every competitor with public pricing</h3>
+    <p style="color:#0a4a35;">At <strong>$5/mo</strong>, AI Sponsor is cheaper than I Am Sober ($9.99), OpenRecovery ($10) and Reframe ($14) — <strong>and has the longest free trial (30 days vs 7–14)</strong>. That's a real, citable advantage. (Just not provable vs SoberAI/Sunflower, whose prices aren't public.)</p>
+  </div>
+
+  <!-- DIFFERENTIATORS -->
+  <div class="section-label">Where we genuinely stand out</div>
+
+  <div class="diff">
+    <div class="t">📱 In WhatsApp — no app to download</div>
+    <div class="why">Every competitor above is a native app (App Store / Play). We live right in the messaging people already use — no download, no new login, no friction.</div>
+    <div class="who">SoberAI, OpenRecovery, Loosid — all app-gated.</div>
+  </div>
+  <div class="diff">
+    <div class="t">🧭 Every program, not just alcohol</div>
+    <div class="why">Deep on AA, NA, Al-Anon, OA, GA, DA, UA, ACA, SLAA, BDA — not only alcohol/substance.</div>
+    <div class="who">Most competitors are alcohol/substance + SMART/CBT only.</div>
+  </div>
+  <div class="diff">
+    <div class="t">💵 Lowest known price + longest trial</div>
+    <div class="why">$5/mo and a 30-day trial undercut every competitor with public pricing (see table above).</div>
+    <div class="who">I Am Sober $9.99 · OpenRecovery $10 · Reframe $14.</div>
+  </div>
+  <div class="diff">
+    <div class="t">🤍 One-for-one give (clean mechanism)</div>
+    <div class="why">Every subscription funds free access for someone who can't afford it.</div>
+    <div class="who">Honest note: OpenRecovery has a hardship fund and Sunflower is accessibility-focused — so "help those who can't afford it" isn't ours alone, but the simple 1-for-1 mechanism is distinctive and brandable.</div>
+  </div>
+  <div class="diff">
+    <div class="t">✦ Powered by Claude (frontier model)</div>
+    <div class="why">Conversation quality. <strong>Claim carefully</strong> — competitors' models are unverified.</div>
+  </div>
+
+  <!-- POSITIONING -->
+  <div class="section-label">Our positioning</div>
+  <div class="position">
+    <div class="k">How we frame it</div>
+    <div class="q">The AI sponsor that's already <em>in your pocket</em> — right in WhatsApp, for <em>every</em> program, that gives one away for every one sold.</div>
+  </div>
+
+  <!-- AD COPY -->
+  <div class="section-label">Final ad text to test</div>
+
+  <div class="ad best">
+    <div class="label"><span class="code">T1</span><span class="angle">No app · in WhatsApp<br>(strongest real edge)</span></div>
+    <div class="copy">No app to download. No new login. AI Sponsor lives right in WhatsApp — a 24/7 companion built on the 12 steps, there the moment you text.
+
+Always available. Completely private. Free for 30 days. 🤍</div>
+  </div>
+
+  <div class="ad">
+    <div class="label"><span class="code">T2</span><span class="angle">Every program</span></div>
+    <div class="copy">AA. NA. Al-Anon. ACA. SLAA. Whatever your program, AI Sponsor knows it — deeply. A 24/7 companion that speaks your fellowship's language, any hour you need it.
+
+Private. Judgment-free. Free for 30 days.</div>
+  </div>
+
+  <div class="ad">
+    <div class="label"><span class="code">T3</span><span class="angle">The mission (1-for-1)</span></div>
+    <div class="copy">Subscribe, and someone who can't afford it gets AI Sponsor free. Because recovery shouldn't cost $5 you don't have.
+
+A 24/7 companion built on the 12 steps — always here, completely private. Your membership passes it on. 🤍 Start free for 30 days.</div>
+  </div>
+
+  <div class="ad best">
+    <div class="label"><span class="code">T4</span><span class="angle">Always there · 3am<br>(proven emotional hook)</span></div>
+    <div class="copy">Recovery doesn't keep office hours. The hardest moments come late — when meetings are over and you don't want to wake anyone.
+
+AI Sponsor is there 24/7, right in your messages. No judgment. Completely anonymous. Free for 30 days.</div>
+  </div>
+
+  <div class="ad">
+    <div class="label"><span class="code">T5</span><span class="angle">Short control</span></div>
+    <div class="copy">A 24/7 recovery companion, right in WhatsApp. Built on the 12 steps, always there, completely private. Free for 30 days.</div>
+  </div>
+
+  <div class="testnote">
+    <p><strong>Test first:</strong> run <strong>T1 (no-app / WhatsApp)</strong> against <strong>T4 (3am emotion)</strong> — that tells us whether <em>differentiation</em> or <em>feeling</em> pulls harder before scaling spend.</p>
+  </div>
+
+  <div class="mini">
+    <h4>Headline options (pair with any text)</h4>
+    <ul>
+      <li>Always here. Day or night.</li>
+      <li>Your 24/7 recovery companion</li>
+      <li>Never walk it alone</li>
+    </ul>
+  </div>
+
+  <div class="mini">
+    <h4>⚠️ Meta compliance — read before entering versions</h4>
+    <ul>
+      <li>Recovery is a Meta "sensitive category."</li>
+      <li>Never write copy that assumes the reader has a condition ("Struggling with addiction?" gets rejected).</li>
+      <li>Describe the help — never label the reader. Every text above invites rather than accuses.</li>
+    </ul>
+  </div>
+
+  <!-- SOURCES -->
+  <div class="section-label">Sources</div>
+  <div class="sources">
+    <a href="https://pitchbook.com/news/articles/sobriety-ai-sponsor-sunflowers-duolingo">Sunflower (PitchBook)</a> ·
+    <a href="https://www.ycombinator.com/companies/sunflower">Sunflower (YC)</a> ·
+    <a href="https://apps.apple.com/us/app/soberai-ai-sobriety-sponsor/id6502186815">SoberAI</a> ·
+    <a href="https://www.openrecovery.com/">OpenRecovery (Kai)</a> ·
+    <a href="https://www.prnewswire.com/news-releases/loosid-secures-funding-from-aws-to-bring-ai-powered-sobriety-support-to-the-workplace-with-launch-of-samai-for-enterprise-302614944.html">Loosid SAM™ (AWS)</a><br>
+    <a href="https://www.choosingtherapy.com/i-am-sober-app-review/">I Am Sober (pricing)</a> ·
+    <a href="https://www.joinreframeapp.com/help/pricing-and-subscription">Reframe (pricing)</a> ·
+    <a href="https://joinmonument.com/">Monument / Tempest</a>
+  </div>
+
+  <div class="foot">AI Sponsor · Product · Mariam — updated June 2026</div>
+
+</div>
+</body>
+</html>
