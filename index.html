@@ -187,12 +187,20 @@
 
     /* ── HERO ── */
     .hero {
-      min-height: 100vh;
+      /* Capped, not a plain 100vh. Centring the content inside a full-viewport
+         box means every pixel the viewport is taller than the content gets
+         split above and below it, so on a tall monitor the hero grew a dead
+         zone underneath: measured 164px of empty navy on a 900px screen, and
+         worse on anything bigger. b1g1 is the same navy, so there was no edge
+         to read it as deliberate. The cap keeps the hero full-screen on normal
+         laptops and stops it stretching past the point where the space starts
+         looking like a mistake. */
+      min-height: min(100vh, 780px);
       background: var(--navy);
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       text-align: center;
-      padding: 120px 24px 48px;
+      padding: 120px 24px 24px;
       position: relative;
       overflow: hidden;
     }
@@ -394,7 +402,7 @@
     .prog-desc { font-size: 13px; color: var(--sub); line-height: 1.55; }
 
     /* ── B1G1 ── */
-    .b1g1 { background: var(--navy); text-align: center; padding-top: 32px; }
+    .b1g1 { background: var(--navy); text-align: center; padding-top: 8px; }
     .b1g1 .section-label { color: #93C5FD; font-size: 20px; letter-spacing: .08em; margin-bottom: 20px; font-weight: 700; }
     .b1g1 .section-title { color: var(--white); max-width: 600px; margin: 0 auto 20px; }
     .b1g1-body {
