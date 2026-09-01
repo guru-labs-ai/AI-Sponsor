@@ -152,6 +152,11 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
 .confirm{display:none;margin-top:12px}
 .confirm.show{display:block}
 .footer{text-align:center;font-size:12.5px;color:var(--sub);margin:6px 0 30px;line-height:1.6}
+/* Sits outside the panes so it is there whichever one somebody opened.
+   The weekly review links straight to #week, so a link buried in one pane
+   would be invisible to most people who arrive here. */
+.footer-legal{text-align:center;font-size:12.5px;margin:-22px 0 30px}
+.footer-legal a{color:var(--sub);text-decoration:underline;margin:0 8px}
 
 /* ── Your week ─────────────────────────────────────────────────────────────
    Reads as a note somebody wrote, not a report a system generated. The note is
@@ -378,6 +383,10 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
     </div>
 
     <p class="footer">You can get back here any time by asking your sponsor on WhatsApp.</p>
+    <p class="footer-legal">
+      <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>
+      <a href="/terms" target="_blank" rel="noopener">Terms</a>
+    </p>
     </div>
    </div>
   </div>
