@@ -8,6 +8,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const stripeModule = require('./stripe');
 const ghl = require('./ghl');
 const alerts = require('./alerts'); // Slack alerts → #ai-sponsor-updates
+const metacapi = require('./metacapi'); // real payments → Meta Conversions API
 const trialnotice = require('./trialnotice'); // the "your trial ends" WhatsApp notice
 
 // WhatsApp (Twilio) module is loaded ONLY when Twilio is configured. Its SDK
@@ -2219,6 +2220,30 @@ async function syncStripeToGhl(result) {
         invoiceId: result.invoiceId,
         attribution: result.attribution, // the ad click, carried 30 days by Stripe
       });
+
+      /* Tell Meta the money landed. Until this existed the ad click captured at
+         registration travelled 30 days through Stripe and then stopped at a
+         Slack message, so Meta only ever saw trials and could not learn which
+         ads produce customers who actually pay. Fire-and-forget for the same
+         reason the alert is: a reporting failure must not make us return
+         non-2xx to Stripe on a payment we have already processed. */
+      metacapi.purchase({
+        email: result.email,
+        amount: result.amount,
+        currency: result.currency,
+        plan: result.plan,
+        invoiceId: result.invoiceId,
+        attribution: result.attribution,
+        siteUrl: SITE_URL,
+      })
+        .then((r) => {
+          if (r.sent) {
+            console.log(`[Meta CAPI] Purchase sent for invoice ${result.invoiceId} (matched on ${r.matched.join(', ')}${r.test ? ', TEST MODE' : ''})`);
+          } else {
+            console.warn(`[Meta CAPI] Purchase NOT sent for invoice ${result.invoiceId}: ${r.reason}`);
+          }
+        })
+        .catch((e) => console.error('[Meta CAPI] Purchase failed:', e.message));
       return;
     }
 
