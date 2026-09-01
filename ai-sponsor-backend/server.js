@@ -32,6 +32,7 @@ if (process.env.TWILIO_ACCOUNT_SID || process.env.META_WA_INBOUND === '1') {
 const voiceCompare = require('./voice-compare');
 const voices = require('./voices'); // sponsor voice allow-list + previews
 const deletion = require('./deletion');
+const checkin = require('./checkin'); // "it has been a few days", gated on its own template
 const { deleteUserIdentity } = deletion;
 // Days between somebody asking to be deleted and it happening. The window is
 // there so they can take it back, not to slow anything down.
@@ -846,6 +847,9 @@ async function getSponsorReply(userId, message, context) {
      somebody is using the product. Throttled and flagged off inside
      deletion.js, so it is a no-op until DELETION_SWEEP is set. */
   deletion.maybeSweep(whatsapp, notifyDeletionOutcome);
+  /* And the quiet check-in. Six-hourly rather than hourly, and inert until the
+     template is approved and QUIET_CHECKIN is set. */
+  checkin.maybeSweep(whatsapp);
 
   const { profile, history, memory } = await loadSession(userId);
 

@@ -540,6 +540,52 @@ async function releaseStaleDeletions(olderThanMinutes = 30) {
   return r.rowCount;
 }
 
+/* Who has gone quiet, and who we have already left alone.
+
+   Every clause here exists to stop this pestering somebody. In order:
+
+   - BETWEEN 5 and 14 days. Someone at 40 days has not gone quiet, they have
+     gone, and a chirpy "how are you" six weeks later is worse than silence.
+   - No check-in since their LAST message. This one clause does two jobs: it
+     stops a second message on day 6, and it means somebody who ignored the
+     first check-in never gets another. Not replying is an answer.
+   - None in 30 days at all, so a person who dips in and out is not checked on
+     every fortnight.
+   - Not mid-deletion. Somebody leaving should not be asked how they are.
+   - They have actually talked before. Never messaging is a different problem
+     and a warm check-in is the wrong tool for it.
+
+   usual_hour is the hour of day THEY normally write, so the message does not
+   arrive at four in the morning. We hold no timezone for anyone, and their own
+   history is a better guess than ours. */
+async function quietCheckinCandidates({ quietDays = 5, giveUpDays = 14, cooloffDays = 30, limit = 5 } = {}) {
+  if (!enabled) return [];
+  const r = await pool.query(
+    `SELECT u.user_id, u.name, u.last_active,
+            (SELECT EXTRACT(HOUR FROM m2.created_at)::int
+               FROM messages m2 WHERE m2.user_id = u.user_id
+              GROUP BY 1 ORDER BY count(*) DESC, 1 LIMIT 1) AS usual_hour
+       FROM users u
+      WHERE u.user_id LIKE 'wa-%'
+        AND u.last_active IS NOT NULL
+        AND u.last_active <  now() - ($1 || ' days')::interval
+        AND u.last_active >  now() - ($2 || ' days')::interval
+        AND EXISTS (SELECT 1 FROM messages m WHERE m.user_id = u.user_id)
+        AND NOT EXISTS (SELECT 1 FROM deletion_requests d
+                         WHERE d.user_id = u.user_id AND d.status IN ('pending','running'))
+        AND NOT EXISTS (SELECT 1 FROM account_events e
+                         WHERE e.user_id = u.user_id AND e.event = 'quiet_checkin'
+                           AND e.created_at > u.last_active)
+        AND NOT EXISTS (SELECT 1 FROM account_events e
+                         WHERE e.user_id = u.user_id AND e.event = 'quiet_checkin'
+                           AND e.created_at > now() - ($3 || ' days')::interval)
+      ORDER BY u.last_active
+      LIMIT $4`,
+    [String(quietDays), String(giveUpDays), String(cooloffDays), limit]
+  );
+  return r.rows;
+}
+
 /* Every identity belonging to the same person.
 
    One human is routinely two rows now: reg-<uuid> from the website and
@@ -1212,6 +1258,7 @@ module.exports = {
   recordEvent, getEvents, clearConversation, getPersonStats,
   createLinkCode, claimLinkCode,
   purgeUserData, findAllIdentities,
+  quietCheckinCandidates,
   requestDeletion, getDeletionRequest, cancelDeletion,
   claimDueDeletion, markDeletionDone, releaseStaleDeletions,
   clearProfileField,
