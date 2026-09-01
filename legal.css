@@ -1,0 +1,62 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   Privacy Policy + Terms of Service
+   Layered on blog.css so the legal pages read as part of the site rather
+   than a pasted document. Mobile first, same as blog.css: the base styles
+   are the phone and the media query scales up.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.legal-hero { background: var(--navy); padding: 72px 20px 40px; text-align: center; }
+.legal-hero h1 { font-family: 'Source Serif 4', Georgia, serif; color: #fff;
+  font-size: 32px; font-weight: 600; line-height: 1.2; }
+.legal-hero .sub { color: rgba(255,255,255,.55); font-size: 14px; margin-top: 10px; }
+
+.legal { max-width: 720px; margin: 0 auto; padding: 40px 20px 72px; }
+.legal h2 { font-family: 'Source Serif 4', Georgia, serif; font-size: 22px;
+  font-weight: 600; margin: 40px 0 12px; line-height: 1.3; }
+.legal h2:first-child { margin-top: 0; }
+.legal h3 { font-size: 15px; font-weight: 600; margin: 22px 0 8px; }
+.legal p { font-size: 15.5px; line-height: 1.7; color: var(--text); margin-bottom: 14px; }
+.legal ul { margin: 0 0 16px 20px; }
+.legal li { font-size: 15.5px; line-height: 1.7; margin-bottom: 8px; }
+.legal a { color: var(--blue); }
+.legal strong { font-weight: 600; }
+
+/* The one thing on either page somebody might need in a hurry. */
+.legal-crisis { background: var(--blue-pale); border-left: 3px solid var(--blue);
+  border-radius: 8px; padding: 16px 18px; margin: 20px 0; }
+.legal-crisis p { margin: 0; font-size: 15px; }
+
+.legal-note { background: var(--bg); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 18px; margin: 18px 0; }
+.legal-note p { margin: 0; font-size: 14.5px; color: var(--sub); }
+
+/* Processors. A table would need sideways scrolling on a phone, so each one
+   is a block that stacks, and becomes a row only when there is room. */
+.proc { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 16px 0; }
+.proc-row { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.proc-row:last-child { border-bottom: 0; }
+.proc-name { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+.proc-what { font-size: 14px; color: var(--sub); line-height: 1.6; }
+.proc-what span { display: block; }
+
+.legal-plans { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 16px 0; }
+.legal-plans div { display: flex; justify-content: space-between; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 15px; }
+.legal-plans div:last-child { border-bottom: 0; }
+.legal-plans b { font-weight: 600; }
+
+/* Anything still awaiting a decision, marked so it cannot be published by
+   accident. Loud on purpose. */
+.legal-todo { background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 6px;
+  padding: 2px 8px; font-weight: 600; color: #92400E;
+  display: inline-block; white-space: nowrap; }
+
+@media (min-width: 700px) {
+  .legal-hero { padding: 96px 24px 52px; }
+  .legal-hero h1 { font-size: 42px; }
+  .legal { padding: 56px 24px 88px; }
+  .legal h2 { font-size: 25px; margin-top: 48px; }
+  .proc-row { display: flex; gap: 20px; align-items: baseline; }
+  .proc-name { flex: 0 0 180px; margin-bottom: 0; }
+  .proc-what { flex: 1; }
+}
