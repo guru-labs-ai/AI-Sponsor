@@ -9,8 +9,13 @@
    What it does NOT do, and nobody should claim it does:
      - It is not end-to-end. The server necessarily sees plaintext: it has to
        send the conversation to Claude to get a reply.
-     - Anthropic still receives every message, Twilio still carries WhatsApp,
-       OpenAI still handles voice. Encrypting our column doesn't change that.
+     - Third parties still receive plaintext, and encrypting our column does
+       not change that. As of 1 Sep 2026 the live chain is: ANTHROPIC writes
+       every reply, META (WhatsApp Cloud API) carries messages both ways,
+       OPENAI transcribes inbound voice notes, XAI speaks outbound ones.
+       Twilio is no longer the carrier: META_WA_INBOUND and META_WA_OUTBOUND
+       are both on. Anyone writing the Privacy Policy needs this list, and
+       needs to check it still matches before publishing.
    The landing page's privacy wording needs to match this reality, not the
    other way round.
 
