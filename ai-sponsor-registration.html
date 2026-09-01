@@ -527,7 +527,7 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
   padding:14px 16px;margin:18px 0 4px;font-size:13px;line-height:1.55;color:#1E3A5F}
 .consent-box h4{font-size:13px;font-weight:700;margin:0 0 6px;color:#0F2942}
 .consent-box p{margin:0 0 6px}
-.consent-tick{display:flex;align-items:flex-start;gap:10px;margin-top:10px;cursor:pointer}
+.consent-tick{display:flex;align-items:flex-start;gap:10px;margin-top:10px;cursor:pointer;min-height:44px;padding:4px 0}
 .consent-tick input{width:18px;height:18px;accent-color:var(--blue);flex-shrink:0;margin-top:1px;cursor:pointer}
 .consent-tick span{font-size:13px;color:#0F2942}
 .consent-tick a{color:var(--blue);text-decoration:underline}
@@ -1089,6 +1089,12 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
         <p>You can delete everything at any time from your settings, and deleting means it is gone.</p>
         <label class="consent-tick">
           <input type="checkbox" id="f-consent" onchange="onConsent()">
+          <!-- The links stay inside the label on purpose. An <a> with an href is
+               interactive content, so the browser skips the label's activation
+               behaviour for clicks on it: tapping through to read the policy
+               does NOT tick the box. Verified at 375px and 305px. Do not drop
+               the href to make one of these a button-like span, that is the one
+               change that would silently turn reading into agreeing. -->
           <span>I agree to the <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="/terms" target="_blank" rel="noopener">Terms</a>.</span>
         </label>
         <span class="err-msg" id="e-consent">Please agree to these before you start.</span>
