@@ -540,6 +540,57 @@ async function releaseStaleDeletions(olderThanMinutes = 30) {
   return r.rowCount;
 }
 
+/* Retention: accounts nobody has touched for the window, that still hold raw
+   messages. The Privacy Policy commits to this in writing, so it has to be a
+   thing the code actually does rather than a thing we mean to do.
+
+   Deliberately NOT the same as deleting somebody. The policy draws the line at
+   the verbatim conversation: raw messages go, the rolling digest on users
+   stays, so a person who comes back after a year is still recognised instead of
+   meeting a stranger. Their profile, streak and account survive too.
+
+   last_active IS NOT NULL because somebody who never spoke has nothing to purge
+   and should not be counted as aged out. */
+async function retentionCandidates({ months = 12, limit = 5 } = {}) {
+  if (!enabled) return [];
+  const r = await pool.query(
+    `SELECT u.user_id, u.last_active
+       FROM users u
+      WHERE u.last_active IS NOT NULL
+        AND u.last_active < now() - ($1 || ' months')::interval
+        AND EXISTS (SELECT 1 FROM messages m WHERE m.user_id = u.user_id)
+        AND NOT EXISTS (SELECT 1 FROM deletion_requests d
+                         WHERE d.user_id = u.user_id AND d.status IN ('pending','running'))
+      ORDER BY u.last_active
+      LIMIT $2`,
+    [String(months), limit]
+  );
+  return r.rows;
+}
+
+/* The verbatim conversation and the week notes derived from it. Everything that
+   makes the person recognisable is left alone on purpose: the users row, the
+   digest it carries, the profile and the activity days.
+
+   Returns how many rows went, so the caller can record a real number rather
+   than "done". */
+async function purgeMessagesOnly(userId) {
+  if (!enabled || !userId) return { messages: 0, weeklies: 0 };
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const m = await client.query('DELETE FROM messages WHERE user_id = $1', [userId]);
+    const w = await client.query('DELETE FROM weekly_summaries WHERE user_id = $1', [userId]);
+    await client.query('COMMIT');
+    return { messages: m.rowCount, weeklies: w.rowCount };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 /* Who has gone quiet, and who we have already left alone.
 
    Every clause here exists to stop this pestering somebody. In order:
@@ -1259,6 +1310,7 @@ module.exports = {
   createLinkCode, claimLinkCode,
   purgeUserData, findAllIdentities,
   quietCheckinCandidates,
+  retentionCandidates, purgeMessagesOnly,
   requestDeletion, getDeletionRequest, cancelDeletion,
   claimDueDeletion, markDeletionDone, releaseStaleDeletions,
   clearProfileField,

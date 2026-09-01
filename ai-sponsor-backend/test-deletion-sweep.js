@@ -93,3 +93,53 @@ function freshDeletion() {
   console.log(`\n${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });
+
+/* ── Retention, appended 1 Sep ──────────────────────────────────────────────
+   The policy promises the digest survives. If this ever purges the users row,
+   somebody coming back after a year meets a stranger and we have broken a
+   written commitment. Run: node test-deletion-sweep.js */
+(async () => {
+  let pass = 0, fail = 0;
+  const check = (name, a, e) => {
+    const ok = JSON.stringify(a) === JSON.stringify(e);
+    console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}`);
+    if (!ok) console.log(`      expected ${JSON.stringify(e)}, got ${JSON.stringify(a)}`);
+    ok ? pass++ : fail++;
+  };
+  const stub = (rel, exports) => {
+    const id = require.resolve(rel);
+    require.cache[id] = { id, filename: id, loaded: true, exports };
+  };
+
+  const called = [];
+  stub('./db.js', {
+    enabled: true,
+    retentionCandidates: async () => [{ user_id: 'wa-+15559990000', last_active: '2025-08-01' }],
+    purgeMessagesOnly: async (id) => { called.push('purgeMessagesOnly:' + id); return { messages: 140, weeklies: 6 }; },
+    purgeUserData: async (id) => { called.push('purgeUserData:' + id); },
+    recordEvent: async (id, ev, detail) => { called.push('event:' + ev + ':' + detail.messages); },
+    releaseStaleDeletions: async () => 0,
+    claimDueDeletion: async () => null,
+  });
+  stub('./stripe.js', { cancelSubscription: async () => 'canceled', getSubscriptionStatus: async () => 'canceled' });
+  stub('./ghl.js', { getContact: async () => ({ tags: [] }), removeTags: async () => {}, deleteContact: async () => true });
+
+  process.env.RETENTION_SWEEP = 'on';
+  delete require.cache[require.resolve('./deletion.js')];
+  let d = require('./deletion.js');
+  let out = await d.runRetentionSweep({ limit: 5 });
+
+  check('purges an aged-out account', [out.purged, out.messages], [1, 140]);
+  check('uses the narrow purge, never the full one', called.filter(c => c.startsWith('purge')), ['purgeMessagesOnly:wa-+15559990000']);
+  check('records what was removed', called.filter(c => c.startsWith('event')), ['event:retention_purge:140']);
+  check('default window is 12 months', d.RETENTION_MONTHS, 12);
+
+  process.env.RETENTION_SWEEP = '';
+  delete require.cache[require.resolve('./deletion.js')];
+  d = require('./deletion.js');
+  out = await d.runRetentionSweep({ limit: 5 });
+  check('off unless switched on', out, { ok: false, reason: 'retention-disabled' });
+
+  console.log(`\nretention: ${pass} passed, ${fail} failed`);
+  process.exit(fail ? 1 : 0);
+})().catch((e) => { console.error(e); process.exit(1); });

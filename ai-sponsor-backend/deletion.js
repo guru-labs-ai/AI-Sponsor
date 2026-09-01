@@ -294,6 +294,62 @@ async function runDeletionSweep({ limit = 5, whatsapp = null, notify = null } = 
   return { ok: true, ...out };
 }
 
+/* ── Retention: the twelve month rule ────────────────────────────────────────
+   The Privacy Policy says, in writing, that an account untouched for twelve
+   months has its raw conversation deleted while the rolling summary is kept.
+   Before this that sentence described nothing. A policy naming a period no code
+   enforces is worse than a policy that stays quiet, because it is a false
+   statement about how somebody's disclosures are handled.
+
+   Narrower than deleteUserIdentity on purpose. The person is not being deleted:
+   their account, profile, streak and digest all survive, so somebody who comes
+   back after a year is still recognised. Only the verbatim conversation and the
+   week notes derived from it go.
+
+   ⚠️ THE DIGEST WILL NOT COVER THE LAST FEW TURNS. memory_digest_upto marks how
+   far the summary has folded in, and the most recent turns are deliberately
+   left verbatim because they still go to Claude in full. So purging drops a
+   tail the summary never absorbed. That is consistent with what the policy
+   actually promises, which is that the summary is KEPT, not that it is
+   complete. The cost is slightly weaker recall for somebody returning after a
+   year, which is the right trade against holding their exact words forever.
+
+   Window from RETENTION_MONTHS so Matt can move it without a deploy of new
+   logic, and off unless RETENTION_SWEEP=on for the same reason the deletion
+   sweep is: this destroys data. */
+const RETENTION_ON = String(process.env.RETENTION_SWEEP || '').toLowerCase() === 'on';
+const RETENTION_MONTHS = Math.max(1, parseInt(process.env.RETENTION_MONTHS, 10) || 12);
+
+async function runRetentionSweep({ limit = 5, notify = null } = {}) {
+  if (!RETENTION_ON) return { ok: false, reason: 'retention-disabled' };
+  if (!db.enabled) return { ok: false, reason: 'no-db' };
+
+  const people = await db.retentionCandidates({ months: RETENTION_MONTHS, limit })
+    .catch((e) => { console.error('[retention] candidate query failed:', e.message); return []; });
+
+  const out = { considered: people.length, purged: 0, failed: 0, messages: 0 };
+
+  for (const p of people) {
+    try {
+      const counts = await db.purgeMessagesOnly(p.user_id);
+      out.purged++;
+      out.messages += counts.messages;
+      /* Recorded against them because they still exist. This is the only trace
+         that their conversation was ever held, and the only way to answer a
+         later question about what happened to it. */
+      await db.recordEvent(p.user_id, 'retention_purge', {
+        months: RETENTION_MONTHS, messages: counts.messages, weeklies: counts.weeklies,
+      }, 'retention').catch((e) => console.error('[retention] recordEvent failed:', e.message));
+      console.log(`[retention] ${p.user_id}: ${counts.messages} messages, ${counts.weeklies} week notes`);
+    } catch (e) {
+      out.failed++;
+      console.error(`[retention] purge failed for ${p.user_id}: ${e.message}`);
+      if (notify) notify({ userId: p.user_id, status: 'failed', note: e.message }).catch(() => {});
+    }
+  }
+  return { ok: true, ...out };
+}
+
 /* Piggybacked on ordinary traffic, exactly like weekly.js. Render spins this
    service down, so anybody talking to the sponsor is the most dependable
    scheduler the product has. Throttled so it never sits between a message and
@@ -308,6 +364,14 @@ function maybeSweep(whatsapp, notify) {
   lastSweep = now;
   runDeletionSweep({ limit: 3, whatsapp, notify })
     .catch((e) => console.error('[delete-sweep] piggyback failed:', e.message));
+  /* Same wake-up. Separately flagged, because completing a request somebody
+     made and aging out somebody who never asked for anything are different
+     promises and should be switchable apart. */
+  runRetentionSweep({ limit: 3, notify })
+    .catch((e) => console.error('[retention] piggyback failed:', e.message));
 }
 
-module.exports = { deleteUserIdentity, runDeletionSweep, maybeSweep, enabled: SWEEP_ON };
+module.exports = {
+  deleteUserIdentity, runDeletionSweep, maybeSweep, enabled: SWEEP_ON,
+  runRetentionSweep, retentionEnabled: RETENTION_ON, RETENTION_MONTHS,
+};
