@@ -1,9 +1,11 @@
 /* ─── "Forget me" — full identity deletion (v1) ──────────────────────────────
    Spec agreed with Mariam in #ai-sponsor (Jul 2026):
 
-   - Admin-run / on-request only. No user-facing trigger yet — that's blocked
-     on the login work (86aj6vfqd). Written as a standalone function so the
-     future button is a thin wrapper around deleteUserIdentity() below.
+   - SUPERSEDED, see "Orchestration" and "The sweep" below. This said admin-run
+     only with no user-facing trigger, and both halves are now wrong: the
+     settings page has had a Deactivate pane since Aug, and the sweep at the
+     bottom of this file completes requests without anybody watching. Read the
+     two sections at the end, not this list, for what actually happens.
 
    - Strict order, because it matters:
        1. Stripe — cancel the subscription and CONFIRM it's cancelled before
@@ -18,15 +20,16 @@
           contact). If the contact is shared with another product's tag,
           untag ours instead of deleting the whole contact.
 
-   - Scope for v1: one identity per call — the exact user_id given (a
-     reg-xxx web identity OR a wa-+phone WhatsApp identity). There's no join
-     key yet linking a person's web and WhatsApp identities, so a request
-     against one does not reach the other. That's a known gap for a later
-     item, not something this handles.
+   - Scope for v1: one identity per call. ALSO SUPERSEDED, Aug 11: link codes
+     gave us the join key, and deleteUserIdentity now resolves every identity a
+     person holds before it destroys any of them. Left here only because the
+     gap was real and somebody reading old notes will come looking for it.
 
-   - No scheduled auto-purge. This module only ever runs on an explicit
-     request; a retention policy for untouched accounts is a separate,
-     deliberately deferred decision.
+   - No scheduled auto-purge OF UNTOUCHED ACCOUNTS. Still true and still a
+     deferred decision, waiting on a retention window from Matt. What IS
+     scheduled now is the completion of requests people made themselves, which
+     is a different thing: they asked, and the window only exists so they can
+     take it back. See "The sweep".
 
    Idempotent by design: safe to re-run after a partial failure. A missing
    subscription/contact/DB row at any step is treated as "nothing to do here",
@@ -190,4 +193,121 @@ async function deleteUserIdentity(userId, { requestedBy } = {}) {
   return { userId, identities, stopped: false, stripe: { ok: true }, db: 'purged', ghl: ghlResults };
 }
 
-module.exports = { deleteUserIdentity };
+/* ── The sweep ───────────────────────────────────────────────────────────────
+   What closes the loop. Before this, a request raised a Slack ping and then
+   waited on a human remembering: the person had been told "someone on the team
+   will delete your data and confirm", and nothing in the system made that true.
+
+   OFF UNLESS DELETION_SWEEP=on. Everything else in this product fails safe by
+   doing nothing; this one destroys data, so it does not begin because a deploy
+   happened. Somebody turns it on deliberately.
+
+   Ordering that matters:
+
+   1. The phone is read BEFORE the purge. Afterwards there is no users row to
+      read it from, and the confirmation would have nowhere to go.
+   2. The confirmation is sent AFTER the purge succeeds, never before. Telling
+      somebody their data is gone and then stopping on a Stripe error would be
+      a lie we cannot take back.
+   3. A stopped deletion messages nobody and keeps its real id. deleteUserIdentity
+      stops rather than guesses, and a human has to be able to find that row.
+
+   Batched and claimed one at a time, same reasoning as the weekly sweep: a free
+   instance must not run for minutes, and what this one does cannot be done
+   twice. */
+const SWEEP_ON = String(process.env.DELETION_SWEEP || '').toLowerCase() === 'on';
+
+function confirmationText(theirName) {
+  const hi = theirName ? `${theirName}, ` : '';
+  return `${hi}this is done. Everything you told me has been deleted, and I do not have any of it any more.
+
+If you ever want to start again, you can, and I will not know you from before. No need to reply to this one.`;
+}
+
+async function runDeletionSweep({ limit = 5, whatsapp = null, notify = null } = {}) {
+  if (!SWEEP_ON) return { ok: false, reason: 'sweep-disabled' };
+  if (!db.enabled) return { ok: false, reason: 'no-db' };
+
+  await db.releaseStaleDeletions().catch((e) =>
+    console.error('[delete-sweep] release stale failed:', e.message));
+
+  const out = { considered: 0, completed: 0, stopped: 0, failed: 0 };
+
+  for (let i = 0; i < limit; i++) {
+    let row;
+    try {
+      row = await db.claimDueDeletion();
+    } catch (e) {
+      console.error('[delete-sweep] claim failed:', e.message);
+      break;
+    }
+    if (!row) break;
+    out.considered++;
+
+    const userId = row.user_id;
+    /* Read before destroying. wa- ids carry the number Meta itself told us the
+       person writes from; users.phone is whatever they typed and is the
+       fallback. Same rule as weekly delivery. */
+    const user = (await db.getUser(userId).catch(() => null)) || {};
+    const phone = (userId.startsWith('wa-') ? userId.slice(3) : '') ||
+      String(user.phone || '').trim();
+    const theirName = String(user.name || '').trim().split(/\s+/)[0];
+
+    let result;
+    try {
+      result = await deleteUserIdentity(userId, { requestedBy: 'deletion-sweep' });
+    } catch (err) {
+      out.failed++;
+      await db.markDeletionDone(userId, 'stopped', `threw: ${err.message}`).catch(() => {});
+      if (notify) notify({ userId, status: 'failed', note: err.message }).catch(() => {});
+      continue;
+    }
+
+    if (result.stopped) {
+      out.stopped++;
+      const note = (result.stripe && result.stripe.reason) || 'stopped, see logs';
+      await db.markDeletionDone(userId, 'stopped', note).catch(() => {});
+      if (notify) notify({ userId, status: 'stopped', note }).catch(() => {});
+      continue;
+    }
+
+    out.completed++;
+    await db.markDeletionDone(userId, 'completed', null).catch((e) =>
+      console.error('[delete-sweep] mark completed failed:', e.message));
+
+    /* Best effort, and deliberately after the row is closed. If the message
+       fails the deletion still happened, and retrying it would mean keeping
+       the number in order to try again, which is the opposite of the ask. */
+    if (phone && whatsapp && whatsapp.sendTextReply) {
+      try {
+        await whatsapp.sendTextReply(`whatsapp:${phone}`, confirmationText(theirName));
+      } catch (e) {
+        console.warn(`[delete-sweep] confirmation not delivered to ${userId}: ${e.message}`);
+      }
+    }
+    if (notify) notify({ userId, status: 'completed' }).catch(() => {});
+  }
+
+  if (out.considered) {
+    console.log(`[delete-sweep] ${out.completed} completed, ${out.stopped} stopped, ${out.failed} failed`);
+  }
+  return { ok: true, ...out };
+}
+
+/* Piggybacked on ordinary traffic, exactly like weekly.js. Render spins this
+   service down, so anybody talking to the sponsor is the most dependable
+   scheduler the product has. Throttled so it never sits between a message and
+   its reply. */
+let lastSweep = 0;
+const SWEEP_EVERY_MS = 60 * 60 * 1000;
+
+function maybeSweep(whatsapp, notify) {
+  if (!SWEEP_ON || !db.enabled) return;
+  const now = Date.now();
+  if (now - lastSweep < SWEEP_EVERY_MS) return;
+  lastSweep = now;
+  runDeletionSweep({ limit: 3, whatsapp, notify })
+    .catch((e) => console.error('[delete-sweep] piggyback failed:', e.message));
+}
+
+module.exports = { deleteUserIdentity, runDeletionSweep, maybeSweep, enabled: SWEEP_ON };

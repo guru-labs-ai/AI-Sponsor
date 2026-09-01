@@ -355,9 +355,15 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
     <div class="pane" id="pane-danger">
     <div class="card danger">
       <h2>Deactivate and delete my data</h2>
-      <p class="note">Removes your account and everything in it, and cancels any subscription. A person on the team handles this and confirms once it's done.</p>
+      <p class="note" id="killNote">Removes your account and everything in it, and cancels any subscription. Nothing happens straight away, so you have time to change your mind.</p>
       <div class="msg err" id="errKill"></div>
       <div class="msg ok" id="okKill"></div>
+      <!-- Only shown once something is actually scheduled. Somebody who asked
+           for this and comes back should find the state, not the button. -->
+      <div id="killPending" style="display:none">
+        <p class="note" id="killPendingText"></p>
+        <button class="btn secondary" onclick="undoKill()">Keep my account after all</button>
+      </div>
       <button class="btn danger" id="btn-kill" onclick="askKill()">Request deletion</button>
       <div class="confirm" id="confirmKill">
         <div class="fg" style="margin-top:14px">
@@ -430,6 +436,8 @@ async function load(){
     VOICES = data.voices || [];
     selectedVoice = data.sponsorVoice || '';
     $('f-name').value = data.sponsorName || '';
+
+    renderKill(data.deletion);
 
     const you = data.you || {};
     if (you.name) $('introLine').textContent = 'Hi ' + you.name + '.';
@@ -692,12 +700,44 @@ async function doRestart(){
 
 function askKill(){ $('confirmKill').classList.add('show'); $('btn-kill').style.display='none'; }
 function cancelKill(){ $('confirmKill').classList.remove('show'); $('btn-kill').style.display=''; }
+/* Three states, and the page has to show which one you are in: nothing asked
+   for, scheduled and still stoppable, or already done. Before this it always
+   showed the button, so somebody who had asked came back and could only ask
+   again. */
+function renderKill(d){
+  const pending = d && d.status === 'pending';
+  $('killPending').style.display = pending ? '' : 'none';
+  $('btn-kill').style.display = pending ? 'none' : '';
+  if(!pending) return;
+  $('confirmKill').classList.remove('show');
+  const when = d.scheduled_for ? new Date(d.scheduled_for) : null;
+  const day = when ? when.toLocaleDateString(undefined, { day:'numeric', month:'long' }) : null;
+  $('killPendingText').textContent = day
+    ? 'Your data is scheduled to be deleted on ' + day + '. Until then nothing has been removed and your sponsor still works. You can stop this any time before that day.'
+    : 'Your data is scheduled to be deleted. Until then nothing has been removed and your sponsor still works.';
+}
+
 async function doKill(){
   clearFlash('errKill','okKill');
   try{
-    await api('/api/sponsor-settings/deactivate', { reason: $('f-reason').value.trim() });
+    const r = await api('/api/sponsor-settings/deactivate', { reason: $('f-reason').value.trim() });
     cancelKill();
-    flash('okKill', 'Requested. Someone on the team will delete your data and confirm. You can keep using your sponsor until then.');
+    renderKill({ status:'pending', scheduled_for: r.scheduledFor });
+    const day = r.scheduledFor
+      ? new Date(r.scheduledFor).toLocaleDateString(undefined, { day:'numeric', month:'long' })
+      : null;
+    flash('okKill', day
+      ? 'Done. Everything will be deleted on ' + day + ', and we will send you one message to confirm. Until then nothing has gone and you can still change your mind.'
+      : 'Done. We will delete everything shortly and send you one message to confirm.');
+  }catch(e){ flash('errKill', e.message); }
+}
+
+async function undoKill(){
+  clearFlash('errKill','okKill');
+  try{
+    await api('/api/sponsor-settings/undo-deactivate', {});
+    renderKill(null);
+    flash('okKill', 'Stopped. Nothing has been deleted and your account stays exactly as it was.');
   }catch(e){ flash('errKill', e.message); }
 }
 

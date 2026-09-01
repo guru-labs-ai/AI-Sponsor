@@ -200,6 +200,42 @@ async function init() {
     );
     CREATE INDEX IF NOT EXISTS weekly_user_idx ON weekly_summaries (user_id, week_start DESC);
   `);
+  /* Deletion requests, and the only record that survives the deletion itself.
+
+     purgeUserData clears account_events along with everything else, which is
+     correct (it holds their history) but it means the request to be deleted is
+     destroyed by the deletion. Without a row that outlives the purge we can
+     show that somebody asked and nothing more: not that we finished, not when.
+     That is the half of the audit trail a privacy policy actually rests on.
+
+     So this table is deliberately NOT in purgeUserData. What makes that safe is
+     that user_id is pseudonymised on completion (see markDeletionDone): the row
+     keeps the two timestamps and the outcome, and stops holding the phone
+     number that a wa-<E.164> id otherwise is. Somebody who later asks "did you
+     delete me" can still be answered by hashing their id and looking, which is
+     the only question this table needs to answer after the fact.
+
+     No reason column on purpose. The reason someone gives lives in GHL, where
+     it can be acted on and deleted with the contact. Copying it here would put
+     recovery detail in a third place and outlive the deletion that was asked
+     for.
+
+     PRIMARY KEY on user_id is the concurrency design, same as weekly_summaries:
+     two clicks on the button cannot open two windows or send two alerts. */
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS deletion_requests (
+      user_id       TEXT PRIMARY KEY,
+      requested_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+      scheduled_for TIMESTAMPTZ NOT NULL,
+      status        TEXT NOT NULL DEFAULT 'pending',
+      started_at    TIMESTAMPTZ,
+      completed_at  TIMESTAMPTZ,
+      note          TEXT,
+      source        TEXT
+    );
+    CREATE INDEX IF NOT EXISTS deletion_due_idx
+      ON deletion_requests (scheduled_for) WHERE status = 'pending';
+  `);
   console.log('DB connected — users + activity_days tables ready.');
 }
 
@@ -386,6 +422,122 @@ async function purgeUserData(userId) {
   } finally {
     client.release();
   }
+}
+
+/* ── The deletion queue ──────────────────────────────────────────────────────
+   A request does not delete anything. It opens a window, and the sweep in
+   deletion.js closes it. See the table comment in init() for why the row
+   outlives the person it was about.
+
+   The window exists for one reason and it is not caution: people ask for this
+   in a bad moment. On a recovery product somebody wiping everything at 2am and
+   wanting it back on Thursday is a normal week, not an edge case. */
+async function requestDeletion(userId, { graceDays = 7, source = null } = {}) {
+  if (!enabled || !userId) return null;
+  /* DO UPDATE rather than DO NOTHING, but only out of a finished state. A
+     second click while one is already pending must not slide the date; a fresh
+     request after they changed their mind, or after one stopped for review,
+     must open a new window. */
+  const r = await pool.query(
+    `INSERT INTO deletion_requests (user_id, scheduled_for, source)
+     VALUES ($1, now() + ($2 || ' days')::interval, $3)
+     ON CONFLICT (user_id) DO UPDATE
+       SET requested_at = now(), scheduled_for = EXCLUDED.scheduled_for,
+           status = 'pending', started_at = NULL, completed_at = NULL,
+           note = NULL, source = EXCLUDED.source
+       WHERE deletion_requests.status IN ('cancelled', 'stopped')
+     RETURNING user_id, requested_at, scheduled_for, status`,
+    [userId, String(graceDays), source]
+  );
+  if (r.rows[0]) return { ...r.rows[0], opened: true };
+  // No row back means one is already pending, or already completed.
+  const existing = await getDeletionRequest(userId);
+  return existing ? { ...existing, opened: false } : null;
+}
+
+async function getDeletionRequest(userId) {
+  if (!enabled || !userId) return null;
+  const r = await pool.query(
+    `SELECT user_id, requested_at, scheduled_for, status, completed_at, note
+       FROM deletion_requests WHERE user_id = $1`,
+    [userId]
+  );
+  return r.rows[0] || null;
+}
+
+async function cancelDeletion(userId) {
+  if (!enabled || !userId) return false;
+  const r = await pool.query(
+    `UPDATE deletion_requests SET status = 'cancelled', completed_at = now()
+      WHERE user_id = $1 AND status = 'pending'`,
+    [userId]
+  );
+  return r.rowCount > 0;
+}
+
+/* Claims one due row at a time. FOR UPDATE SKIP LOCKED so two triggers waking
+   the instance together cannot both take the same person, which on this table
+   would mean running an irreversible purge twice. */
+async function claimDueDeletion() {
+  if (!enabled) return null;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const r = await client.query(
+      `SELECT user_id, requested_at, scheduled_for FROM deletion_requests
+        WHERE status = 'pending' AND scheduled_for <= now()
+        ORDER BY scheduled_for
+        LIMIT 1 FOR UPDATE SKIP LOCKED`
+    );
+    if (!r.rows[0]) { await client.query('COMMIT'); return null; }
+    await client.query(
+      `UPDATE deletion_requests SET status = 'running', started_at = now()
+        WHERE user_id = $1`,
+      [r.rows[0].user_id]
+    );
+    await client.query('COMMIT');
+    return r.rows[0];
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/* Closes the row. On a completed deletion the id is replaced by a one-way hash
+   so the proof survives without the phone number inside a wa-<E.164> id.
+   Anything that did not complete keeps its real id, because a human has to be
+   able to find it and finish the job. */
+async function markDeletionDone(userId, status, note = null) {
+  if (!enabled || !userId) return;
+  const finalId = status === 'completed' ? pseudonymise(userId) : userId;
+  await pool.query(
+    `UPDATE deletion_requests
+        SET status = $2, completed_at = now(), note = $3, user_id = $4
+      WHERE user_id = $1`,
+    [userId, status, note, finalId]
+  );
+}
+
+function pseudonymise(userId) {
+  const salt = process.env.FIELD_ENCRYPTION_KEY || '';
+  const h = require('crypto').createHash('sha256').update(salt + userId).digest('hex');
+  return `deleted-${h.slice(0, 32)}`;
+}
+
+/* Anything left mid-flight when the instance died. 'running' is only ever set
+   inside claimDueDeletion, so a row still in it after the instance restarted
+   was interrupted, not in progress. Put it back rather than leave it stuck. */
+async function releaseStaleDeletions(olderThanMinutes = 30) {
+  if (!enabled) return 0;
+  const r = await pool.query(
+    `UPDATE deletion_requests SET status = 'pending', started_at = NULL
+      WHERE status = 'running'
+        AND (started_at IS NULL OR started_at < now() - ($1 || ' minutes')::interval)`,
+    [String(olderThanMinutes)]
+  );
+  return r.rowCount;
 }
 
 /* Every identity belonging to the same person.
@@ -1060,6 +1212,8 @@ module.exports = {
   recordEvent, getEvents, clearConversation, getPersonStats,
   createLinkCode, claimLinkCode,
   purgeUserData, findAllIdentities,
+  requestDeletion, getDeletionRequest, cancelDeletion,
+  claimDueDeletion, markDeletionDone, releaseStaleDeletions,
   clearProfileField,
   getOrCreateSettingsToken, resolveSettingsToken,
   linkSubscription, findByStripeCustomer, getUser, setAccess,

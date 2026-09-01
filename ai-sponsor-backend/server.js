@@ -30,7 +30,11 @@ if (process.env.TWILIO_ACCOUNT_SID || process.env.META_WA_INBOUND === '1') {
 // simply not offered, and the relay 404s when neither key is set.
 const voiceCompare = require('./voice-compare');
 const voices = require('./voices'); // sponsor voice allow-list + previews
-const { deleteUserIdentity } = require('./deletion');
+const deletion = require('./deletion');
+const { deleteUserIdentity } = deletion;
+// Days between somebody asking to be deleted and it happening. The window is
+// there so they can take it back, not to slow anything down.
+const GRACE_DAYS = Math.max(0, parseInt(process.env.DELETION_GRACE_DAYS, 10) || 7);
 
 // Public site base, used to build the tokenised "change your sponsor" link.
 const SITE_URL = process.env.SITE_URL || 'https://getaisponsor.com';
@@ -837,6 +841,10 @@ async function getSponsorReply(userId, message, context) {
      Fire-and-forget and throttled to once an hour inside weekly.js, so it can
      never sit between somebody's message and their reply. */
   weekly.maybeSweep(whatsapp);
+  /* Same trigger, same reason: this instance is only reliably awake while
+     somebody is using the product. Throttled and flagged off inside
+     deletion.js, so it is a no-op until DELETION_SWEEP is set. */
+  deletion.maybeSweep(whatsapp, notifyDeletionOutcome);
 
   const { profile, history, memory } = await loadSession(userId);
 
@@ -1230,6 +1238,9 @@ app.get('/api/sponsor-settings', async (req, res) => {
     week: latestWeek,
     weeks,
     weekPending,
+    /* So the Deactivate pane can show a real state instead of the button they
+       already pressed. Null for almost everybody. */
+    deletion: await db.getDeletionRequest(userId).catch(() => null),
   });
 });
 
@@ -1399,6 +1410,17 @@ app.post('/api/sponsor-settings/deactivate', async (req, res) => {
     db.recordEvent(userId, 'deactivation_requested', { reason: reason || null }, 'settings-link')
       .catch((e) => console.error('[settings] recordEvent failed:', e.message));
 
+    /* Opens the window. The sweep in deletion.js closes it, so completion no
+       longer depends on somebody seeing the Slack ping. Done before GHL and
+       Slack because if either of those is down the request must still be
+       recorded: this row is the only thing that makes the deletion happen. */
+    const queued = await db.requestDeletion(userId, {
+      graceDays: GRACE_DAYS, source: 'settings-link',
+    }).catch((e) => {
+      console.error('[settings] requestDeletion failed:', e.message);
+      return null;
+    });
+
     const result = await ghl.submitSupport({
       name: user.name || 'AI Sponsor member',
       email,
@@ -1409,13 +1431,49 @@ app.post('/api/sponsor-settings/deactivate', async (req, res) => {
     notifySupportSlack({
       name: user.name || userId, email,
       subject: '🔴 Deactivation + data deletion requested',
-      message: reason || '(no reason given)', contactId: result.contactId,
+      /* The reason they gave is deliberately NOT in this message. Mariam's
+         call, 1 Sep 2026. It is recovery detail about why somebody is leaving,
+         and this channel is read by more people than need it, including an
+         external contractor. It stays on the GHL contact, where it can be acted
+         on and is deleted along with them. alerts.js has followed this rule
+         since it was written; this call site had not. */
+      message: queued && queued.scheduled_for
+        ? `Scheduled to complete ${new Date(queued.scheduled_for).toISOString().slice(0, 10)}. Their reason, if they gave one, is on the GHL contact.`
+        : 'Their reason, if they gave one, is on the GHL contact.',
+      contactId: result.contactId,
     }).catch((e) => console.warn('[settings] Slack notify failed:', e.message));
 
-    res.json({ success: true });
+    res.json({ success: true, scheduledFor: queued ? queued.scheduled_for : null });
   } catch (err) {
     console.error('[settings] deactivate request failed:', err.message);
     res.status(500).json({ error: 'Could not send that just now. Please try again.' });
+  }
+});
+
+/* Taking it back. The whole point of the window: somebody asks for this in a
+   bad moment and wants it back on Thursday. Only ever cancels a request that is
+   still pending, so it cannot resurrect a completed one or interrupt a purge
+   that is mid-flight. */
+app.post('/api/sponsor-settings/undo-deactivate', async (req, res) => {
+  const b = req.body || {};
+  const userId = await db.resolveSettingsToken(String(b.t || '')).catch(() => null);
+  if (!userId) return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
+
+  try {
+    const stopped = await db.cancelDeletion(userId);
+    if (!stopped) {
+      return res.status(409).json({ error: 'There is nothing scheduled to cancel.' });
+    }
+    db.recordEvent(userId, 'deactivation_cancelled', {}, 'settings-link').catch(() => {});
+    notifySupportSlack({
+      name: userId, email: '(not shown)',
+      subject: '✅ Deletion request cancelled',
+      message: 'They changed their mind. Nothing was deleted.',
+    }).catch(() => {});
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[settings] undo-deactivate failed:', err.message);
+    res.status(500).json({ error: 'Could not do that just now. Please try again.' });
   }
 });
 
@@ -1751,6 +1809,22 @@ app.post('/api/redeem-code', async (req, res) => {
 // URL (SLACK_SUPPORT_WEBHOOK). If it's not set, this quietly no-ops so the
 // ticket still saves to GHL — the webhook can be added later.
 const SUPPORT_SLACK_MENTIONS = '<@U0B8NJSJYQH> <@U08V21E9Q8Z> <@U0B8HA1330V>'; // Mariam, Mubashir, Abdul
+/* What the sweep reports back. Counts and outcomes only: no name, no phone, no
+   reason, nothing they ever said. A completed deletion that then described the
+   person in Slack would be a strange kind of deletion. */
+async function notifyDeletionOutcome({ userId, status, note }) {
+  const line = {
+    completed: ':white_check_mark: *Deletion completed* — data purged and the person confirmed.',
+    stopped: ':warning: *Deletion STOPPED, needs a human* — nothing was deleted.',
+    failed: ':rotating_light: *Deletion threw, needs a human* — nothing was deleted.',
+  }[status] || `Deletion ${status}`;
+  return notifySupportSlack({
+    name: userId, email: '(not shown)',
+    subject: line,
+    message: note ? `Reason it stopped: ${note}` : 'No action needed.',
+  });
+}
+
 async function notifySupportSlack({ name, email, subject, message, contactId }) {
   const url = process.env.SLACK_SUPPORT_WEBHOOK;
   if (!url) return;
