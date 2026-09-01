@@ -15,10 +15,15 @@
    Aug 11 and is not the problem.
 
    ⭐ THE THING THAT MAKES THIS POSSIBLE: the WhatsApp Business Account is OURS,
-   not Twilio's. It sits in the Stand Up 8 portfolio, created there through
+   not Twilio's. It sits in the Conscious LLC portfolio, created there through
    Meta's own embedded signup, which is why the display name is editable in our
    own WhatsApp Manager. Twilio is a provider with access, not the owner. So we
    can talk to Meta directly without leaving Twilio.
+
+   That portfolio is the same one older notes and Slack threads call "Stand Up 8
+   LLC". Matt renamed it on 30 Aug 2026 after confirming Conscious LLC is the
+   entity the business verification was actually filed under. The portfolio ID
+   did not change and nothing moved, only the label.
 
    SCOPE, DELIBERATELY NARROW. This sends voice notes and nothing else.
    Inbound webhooks, text replies, blue ticks and the typing indicator all stay
