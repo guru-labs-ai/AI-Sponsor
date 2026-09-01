@@ -1174,6 +1174,7 @@
             <option>Account help</option>
             <option>Billing / subscription</option>
             <option>Cancel my subscription</option>
+            <option>Delete my data</option>
             <option>Technical issue</option>
             <option>Something else</option>
           </select>
@@ -1353,6 +1354,18 @@
     <a href="/blog/" class="footer-nav-link">Blog</a>
     <a href="#amends" class="footer-nav-link">Amends</a>
     <a href="ai-sponsor-registration.html" class="footer-nav-link">Get Started</a>
+    <!-- Legal and data controls. Privacy and Terms are here because it is the
+         standard place people look and the place a Meta reviewer checks.
+         Delete my data is here for a different reason: the only other route to
+         deletion is a tokenised link the sponsor hands out on WhatsApp, so
+         anybody who lost that thread, or never reached it, had no way to ask.
+         The Privacy Policy promises them a route, so one has to exist for
+         somebody who is not holding a link. It goes to the support form, which
+         a person checks, rather than queueing a deletion straight off an
+         unauthenticated page. -->
+    <a href="/privacy" class="footer-nav-link">Privacy</a>
+    <a href="/terms" class="footer-nav-link">Terms</a>
+    <a href="#delete-my-data" class="footer-nav-link">Delete my data</a>
   </nav>
   <p class="footer-disclaimer">AI Sponsor is a private product and is not affiliated with, endorsed by, or connected to Alcoholics Anonymous, Narcotics Anonymous, or any 12-step program or organisation. If you are in crisis, please contact the Crisis Text Line (text HOME to 741741) or call 988.</p>
 </footer>
@@ -1362,7 +1375,28 @@
   <p style="font-size:12px;color:rgba(255,255,255,.25);">AI Sponsor is a service of Conscious LLC.</p>
 </div>
 
-
+<script>
+/* Somebody arriving on #delete-my-data came from a footer link that promised
+   one specific thing, so dropping them on a general contact form with an empty
+   topic dropdown makes them do the work again. Runs on load and on hashchange,
+   because the blog pages link here across a page load and the footer links
+   within one. */
+(function () {
+  function openDeletion() {
+    if (location.hash !== '#delete-my-data') return;
+    var sel = document.getElementById('cf-subject');
+    if (sel) sel.value = 'Delete my data';
+    var sec = document.getElementById('support');
+    if (sec) sec.scrollIntoView({ behavior: 'smooth' });
+  }
+  window.addEventListener('hashchange', openDeletion);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', openDeletion);
+  } else {
+    openDeletion();
+  }
+})();
+</script>
 
 <script>
   // Sticky nav
