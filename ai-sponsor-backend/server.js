@@ -1241,6 +1241,9 @@ app.get('/api/sponsor-settings', async (req, res) => {
     /* So the Deactivate pane can show a real state instead of the button they
        already pressed. Null for almost everybody. */
     deletion: await db.getDeletionRequest(userId).catch(() => null),
+    /* Whether anything will actually happen on that date. The page must not
+       promise a day the sweep is not running to honour. */
+    deletionAutomatic: deletion.enabled,
   });
 });
 
@@ -1443,7 +1446,11 @@ app.post('/api/sponsor-settings/deactivate', async (req, res) => {
       contactId: result.contactId,
     }).catch((e) => console.warn('[settings] Slack notify failed:', e.message));
 
-    res.json({ success: true, scheduledFor: queued ? queued.scheduled_for : null });
+    res.json({
+      success: true,
+      scheduledFor: queued ? queued.scheduled_for : null,
+      automatic: deletion.enabled,
+    });
   } catch (err) {
     console.error('[settings] deactivate request failed:', err.message);
     res.status(500).json({ error: 'Could not send that just now. Please try again.' });

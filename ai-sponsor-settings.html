@@ -437,6 +437,7 @@ async function load(){
     selectedVoice = data.sponsorVoice || '';
     $('f-name').value = data.sponsorName || '';
 
+    KILL_AUTOMATIC = !!data.deletionAutomatic;
     renderKill(data.deletion);
 
     const you = data.you || {};
@@ -704,6 +705,11 @@ function cancelKill(){ $('confirmKill').classList.remove('show'); $('btn-kill').
    for, scheduled and still stoppable, or already done. Before this it always
    showed the button, so somebody who had asked came back and could only ask
    again. */
+/* Set from the backend. When the sweep is off a request is still recorded and
+   still honoured, just by a person, so the page says that instead of naming a
+   day nothing is going to happen on. */
+let KILL_AUTOMATIC = false;
+
 function renderKill(d){
   const pending = d && d.status === 'pending';
   $('killPending').style.display = pending ? '' : 'none';
@@ -712,9 +718,9 @@ function renderKill(d){
   $('confirmKill').classList.remove('show');
   const when = d.scheduled_for ? new Date(d.scheduled_for) : null;
   const day = when ? when.toLocaleDateString(undefined, { day:'numeric', month:'long' }) : null;
-  $('killPendingText').textContent = day
+  $('killPendingText').textContent = (KILL_AUTOMATIC && day)
     ? 'Your data is scheduled to be deleted on ' + day + '. Until then nothing has been removed and your sponsor still works. You can stop this any time before that day.'
-    : 'Your data is scheduled to be deleted. Until then nothing has been removed and your sponsor still works.';
+    : 'Your deletion is requested and someone on the team is handling it. Nothing has been removed yet and your sponsor still works. You can stop this any time before it happens.';
 }
 
 async function doKill(){
@@ -722,13 +728,14 @@ async function doKill(){
   try{
     const r = await api('/api/sponsor-settings/deactivate', { reason: $('f-reason').value.trim() });
     cancelKill();
+    KILL_AUTOMATIC = !!r.automatic;
     renderKill({ status:'pending', scheduled_for: r.scheduledFor });
     const day = r.scheduledFor
       ? new Date(r.scheduledFor).toLocaleDateString(undefined, { day:'numeric', month:'long' })
       : null;
-    flash('okKill', day
+    flash('okKill', (KILL_AUTOMATIC && day)
       ? 'Done. Everything will be deleted on ' + day + ', and we will send you one message to confirm. Until then nothing has gone and you can still change your mind.'
-      : 'Done. We will delete everything shortly and send you one message to confirm.');
+      : 'Done. Someone on the team will delete your data and confirm. Until then nothing has gone and you can still change your mind.');
   }catch(e){ flash('errKill', e.message); }
 }
 
