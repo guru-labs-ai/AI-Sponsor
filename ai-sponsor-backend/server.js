@@ -1601,6 +1601,26 @@ app.post('/register', async (req, res) => {
       discardedId: returning ? b.chatUserId : undefined,
     }, 'registration').catch((e) => console.error('[register] recordEvent failed:', e.message));
 
+    /* Consent, stored as its own event so it can be answered as a question:
+       who agreed, to which version, when. created_at is the server's clock and
+       is the time that counts; agreedAt is what the browser claimed and is kept
+       only because a wide gap between them is worth being able to see.
+
+       Deliberately NOT a hard requirement. A registration that arrives without
+       consent is still saved and still reaches the person, because silently
+       binning signups is a failure this product has already had once. It is
+       logged loudly instead, so a client that stops sending it is visible
+       rather than quiet. */
+    const consent = b.consent || null;
+    if (consent && consent.version) {
+      db.recordEvent(userId, 'consent_given', {
+        version: String(consent.version).slice(0, 40),
+        agreedAt: consent.agreedAt || null,
+      }, 'registration').catch((e) => console.error('[register] consent record failed:', e.message));
+    } else {
+      console.warn(`[register] NO CONSENT on registration for ${userId} — client did not send one`);
+    }
+
     /* Tell the team in Slack. This is the only alert the founding cohort ever
        produces: they redeem a free code, so no Stripe event is raised for them
        at all and a Stripe-driven alert would show an empty channel through the

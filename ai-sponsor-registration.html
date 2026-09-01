@@ -520,6 +520,17 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 .afford-apply textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;resize:vertical;min-height:70px;box-sizing:border-box;margin-bottom:12px}
 .afford-apply textarea:focus{border-color:var(--blue)}
 .afford-submit{width:100%;padding:11px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
+/* Consent. Sits above both ways out of this screen, because both of them start
+   the account. Deliberately plain: this is the last thing somebody reads before
+   they hand over what they are here to talk about. */
+.consent-box{background:#FAFCFF;border:1.5px solid #BFDBFE;border-radius:10px;
+  padding:14px 16px;margin:18px 0 4px;font-size:13px;line-height:1.55;color:#1E3A5F}
+.consent-box h4{font-size:13px;font-weight:700;margin:0 0 6px;color:#0F2942}
+.consent-box p{margin:0 0 6px}
+.consent-tick{display:flex;align-items:flex-start;gap:10px;margin-top:10px;cursor:pointer}
+.consent-tick input{width:18px;height:18px;accent-color:var(--blue);flex-shrink:0;margin-top:1px;cursor:pointer}
+.consent-tick span{font-size:13px;color:#0F2942}
+.consent-tick a{color:var(--blue);text-decoration:underline}
 .afford-submitted{text-align:center;font-size:14px;color:#166534;font-weight:600;padding:10px 0;display:none}
 
 /* ── Screen 9 — Create Sponsor ── */
@@ -1064,6 +1075,22 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
           </div>
         </div>
         <p class="trial-note" id="stripeNote">You'll add your card on Stripe's secure checkout. Nothing is charged until day 31.</p>
+      </div>
+
+      <!-- The consent gate. Placed here, on the last screen, rather than beside
+           the programme checkboxes earlier: this is the moment before anything
+           is created, and it is the screen people actually read because they
+           are about to do something. Gates BOTH exits, card and beta code. -->
+      <div class="consent-box" id="consentBox">
+        <h4>Before you start</h4>
+        <p>Your sponsor is an AI, not a person.</p>
+        <p>What you tell it is stored so it can remember you between conversations. Nobody outside the team can see it.</p>
+        <p>You can delete everything at any time from your settings, and deleting means it is gone.</p>
+        <label class="consent-tick">
+          <input type="checkbox" id="f-consent" onchange="onConsent()">
+          <span>I agree to the <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="/terms" target="_blank" rel="noopener">Terms</a>.</span>
+        </label>
+        <span class="err-msg" id="e-consent">Please agree to these before you start.</span>
       </div>
 
       <!-- Payment: card details are collected by Stripe on their own hosted
@@ -1748,6 +1775,9 @@ async function registerUser(paymentStatus) {
     amendsWho:   D.amendsWho     || '',
     paymentStatus: paymentStatus || 'Unpaid',
     source:      'ai-sponsor-registration',
+    /* Stored, not just shown. "They agreed" is only defensible if we can say
+       when and to what, so the version travels with the timestamp. */
+    consent:     consentPayload(),
     chatUserId:  chatUserId, // bridges this GHL contact to their backend chat sessions
     // How they found us, captured on first touch (see the <head> script). The
     // backend resolves it to one label for the dashboard.
@@ -2042,7 +2072,29 @@ function collectAttribution(){
   return out;
 }
 
+/* One version string, sent with the registration and stored against the person.
+   "They agreed" is only worth anything if we can say when, and to what. Bump
+   this whenever the wording of either document materially changes. */
+const CONSENT_VERSION = '2026-09-01';
+
+function hasConsent(){
+  const box = document.getElementById('f-consent');
+  if (box && box.checked) return true;
+  const e = document.getElementById('e-consent');
+  if (e) e.classList.add('show');
+  if (box) box.focus();
+  return false;
+}
+function onConsent(){
+  const e = document.getElementById('e-consent');
+  if (e) e.classList.remove('show');
+}
+function consentPayload(){
+  return { version: CONSENT_VERSION, agreedAt: new Date().toISOString() };
+}
+
 async function startCheckout(){
+  if (!hasConsent()) return;
   const btn = document.getElementById('payBtn');
   const err = document.getElementById('e-pay');
   err.classList.remove('show');
@@ -2057,7 +2109,7 @@ async function startCheckout(){
     const res = await fetch(BACKEND_URL + '/api/stripe/create-checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan: selectedPlan, email: D.email || '', userId: chatUserId, attribution: collectAttribution() })
+      body: JSON.stringify({ plan: selectedPlan, email: D.email || '', userId: chatUserId, attribution: collectAttribution(), consent: consentPayload() })
     });
     const data = await res.json().catch(()=>({}));
     if (!res.ok || !data.checkoutUrl) throw new Error(data.error || ('HTTP ' + res.status));
@@ -2186,6 +2238,7 @@ function setupSuccessActions(){
 // it can be turned off without redeploying the site. The button shows a brief
 // checking state because the backend can cold-start.
 async function redeemCode(){
+  if (!hasConsent()) return;
   const btn=document.querySelector('#codeSection .code-btn');
   const err=document.getElementById('e-code');
   const code=document.getElementById('f-code').value.trim().toUpperCase();
