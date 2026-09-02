@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>AI Sponsor conversations</title>
+<!--
+  This file is in a PUBLIC repo and holds nothing worth finding: no key, no
+  user ids, no message content. Everything on screen arrives at runtime from
+  /admin/api/*, which requires the httpOnly session cookie the server sets when
+  the link's key checks out. Do not ever put a credential in here.
+-->
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#F4F6F9; --card:#FFFFFF; --text:#212529; --sub:#6C757D;
+  --border:#DEE2E6; --blue:#0066B3; --them:#FFFFFF; --sponsor:#E7F1F9;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#14171A; --card:#1D2126; --text:#E8EAED; --sub:#9AA4AF;
+    --border:#2C3238; --blue:#4DA3E0; --them:#1D2126; --sponsor:#1B2C3A;
+  }
+}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg); color:var(--text); -webkit-text-size-adjust:100%;
+  padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+}
+.wrap{max-width:760px;margin:0 auto;padding:16px}
+h1{font-size:19px;font-weight:600;margin-bottom:2px}
+.sub{font-size:13px;color:var(--sub);margin-bottom:16px}
+button{font-family:inherit;border:0;cursor:pointer}
+
+/* list */
+.row{display:flex;align-items:baseline;gap:10px;width:100%;text-align:left;
+  padding:14px;background:var(--card);border:1px solid var(--border);
+  border-radius:12px;margin-bottom:8px;color:inherit}
+.row:hover{border-color:var(--blue)}
+.nm{font-weight:600;font-size:15px;flex:1;min-width:0;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.meta{font-size:12px;color:var(--sub);white-space:nowrap}
+.tag{font-size:11px;padding:2px 7px;border-radius:20px;border:1px solid var(--border);color:var(--sub)}
+
+/* thread */
+.back{display:inline-block;margin:0 0 14px;padding:8px 14px;border-radius:9px;
+  background:transparent;color:var(--blue);border:1px solid var(--border);font-size:14px}
+.msg{max-width:82%;padding:11px 14px;border-radius:16px;margin-bottom:10px;
+  font-size:15px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;
+  border:1px solid var(--border)}
+.them{background:var(--them);margin-right:auto;border-bottom-left-radius:5px}
+.sponsor{background:var(--sponsor);margin-left:auto;border-bottom-right-radius:5px}
+.when{font-size:11px;color:var(--sub);margin:14px 0 8px;text-align:center}
+.empty{color:var(--sub);font-size:14px;padding:20px 0;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p class="empty">Loading…</p></div>
+
+<script>
+const app = document.getElementById('app');
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const when = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const days = Math.floor((Date.now() - d) / 86400000);
+  if (days === 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 7) return days + ' days ago';
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+};
+const stamp = (iso) => new Date(iso).toLocaleString(undefined,
+  { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+function expired() {
+  app.innerHTML = '<h1>Link expired</h1><p class="empty">' +
+    'This link has run out. Ask Mariam for a fresh one and it will work again.</p>';
+}
+
+async function api(path) {
+  const r = await fetch(path, { credentials: 'same-origin' });
+  if (!r.ok) { expired(); throw new Error('no session'); }
+  return r.json();
+}
+
+async function showList() {
+  app.innerHTML = '<p class="empty">Loading…</p>';
+  let people;
+  try { people = await api('/admin/api/conversations'); } catch { return; }
+
+  if (!people.length) {
+    app.innerHTML = '<h1>Conversations</h1><p class="empty">Nobody has messaged their sponsor yet.</p>';
+    return;
+  }
+
+  app.innerHTML =
+    '<h1>Conversations</h1>' +
+    '<p class="sub">' + people.length + ' ' + (people.length === 1 ? 'person' : 'people') +
+    ', most recent first. Tap to read from their first message.</p>' +
+    people.map((p) =>
+      '<button class="row" data-id="' + esc(p.id) + '">' +
+        '<span class="nm">' + esc(p.name) + '</span>' +
+        (p.access === 'Paid' ? '<span class="tag">Paid</span>' : '') +
+        '<span class="meta">' + p.messages + ' msg · ' + esc(when(p.lastAt)) + '</span>' +
+      '</button>'
+    ).join('');
+
+  app.querySelectorAll('.row').forEach((b) => { b.onclick = () => showThread(b.dataset.id); });
+}
+
+async function showThread(id) {
+  app.innerHTML = '<p class="empty">Loading…</p>';
+  let data;
+  try { data = await api('/admin/api/conversations/' + encodeURIComponent(id)); } catch { return; }
+
+  let last = '';
+  const body = data.messages.map((m) => {
+    const day = new Date(m.at).toDateString();
+    const head = day !== last ? (last = day, '<div class="when">' + esc(stamp(m.at)) + '</div>') : '';
+    const who = m.role === 'assistant' ? 'sponsor' : 'them';
+    return head + '<div class="msg ' + who + '">' + esc(m.content) + '</div>';
+  }).join('');
+
+  app.innerHTML =
+    '<button class="back" id="b">← All conversations</button>' +
+    '<h1>' + esc(data.name) + '</h1>' +
+    '<p class="sub">' + data.messages.length + ' messages, oldest first.</p>' +
+    (body || '<p class="empty">No messages.</p>');
+
+  document.getElementById('b').onclick = showList;
+  window.scrollTo(0, 0);   // start at the first message, not the last
+}
+
+showList();
+</script>
+</body>
+</html>

@@ -9,6 +9,7 @@ const stripeModule = require('./stripe');
 const ghl = require('./ghl');
 const alerts = require('./alerts'); // Slack alerts → #ai-sponsor-updates
 const metacapi = require('./metacapi'); // real payments → Meta Conversions API
+const viewer = require('./viewer'); // admin-only conversation viewer at /admin
 const trialnotice = require('./trialnotice'); // the "your trial ends" WhatsApp notice
 
 // WhatsApp (Twilio) module is loaded ONLY when Twilio is configured. Its SDK
@@ -72,6 +73,12 @@ app.use(express.json({ verify: (req, _res, buf) => { req.rawBody = buf; } }));
 // dashboard weekly-scoreboard.html, not by the AI Sponsor product itself.
 app.get('/api/scoreboard', scoreboard.getScoreboard);
 app.post('/api/scoreboard', scoreboard.postScoreboard);
+
+/* Admin conversation viewer (see viewer.js). Served from here rather than
+   getaisponsor.com because that site is public GitHub Pages, and people's
+   recovery conversations cannot sit behind nothing but an unguessable URL.
+   The whole router 404s unless DASHBOARD_PASSWORD is set. */
+app.use('/admin', viewer.router);
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 

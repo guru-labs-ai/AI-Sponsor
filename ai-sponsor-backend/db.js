@@ -1299,7 +1299,61 @@ async function usersDueForWeekly(weekStart, weekEnd, limit = 25) {
   return r.rows.map((x) => x.user_id);
 }
 
+/* ─── Reading real conversations (the admin viewer) ──────────────────────────
+   Matt asked for somewhere he can read the actual threads while the first users
+   are on the product, so he can feel how the sponsor is landing and adjust the
+   prompt from what he sees. He was doing this in Instagram DMs before.
+
+   Both functions group on PERSON_KEY rather than user_id, and that is the whole
+   point. One human signs up on the web and again on WhatsApp, so they hold two
+   user_id rows. Listing by user_id would show the same person twice, each with
+   half their conversation, which is exactly the wrong thing to hand someone who
+   is trying to read a thread from the first message forward.                  */
+
+// The list: one row per person, newest conversation first. No message content.
+async function listConversations(limit = 200) {
+  if (!enabled) return [];
+  const r = await pool.query(
+    `WITH u AS (
+       SELECT user_id, ${PERSON_KEY} AS person, name, access FROM users
+     ), m AS (
+       SELECT user_id, COUNT(*)::int AS n,
+              MIN(created_at) AS first_at, MAX(created_at) AS last_at
+       FROM messages GROUP BY user_id
+     )
+     SELECT u.person,
+            MAX(u.name)   AS name,
+            MAX(u.access) AS access,
+            COALESCE(SUM(m.n), 0)::int AS messages,
+            MIN(m.first_at) AS first_at,
+            MAX(m.last_at)  AS last_at
+     FROM u LEFT JOIN m ON m.user_id = u.user_id
+     GROUP BY u.person
+     HAVING COALESCE(SUM(m.n), 0) > 0
+     ORDER BY MAX(m.last_at) DESC NULLS LAST
+     LIMIT $1`,
+    [limit]
+  );
+  return r.rows;
+}
+
+/* One person's whole conversation, oldest first, across every user_id they
+   hold. No limit: "from the first message through to where they're at" was the
+   ask, so a 40-message window would answer a different question. */
+async function getFullThread(person) {
+  if (!enabled || !person) return null;
+  const r = await pool.query(
+    `SELECT role, content, created_at
+     FROM messages
+     WHERE user_id IN (SELECT user_id FROM users WHERE ${PERSON_KEY} = $1)
+     ORDER BY created_at ASC, id ASC`,
+    [person]
+  );
+  return decryptRows(r.rows);
+}
+
 module.exports = {
+  listConversations, getFullThread,
   getLastMessageAt,
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
   // Exported so the Slack alerts label a signup's source with the SAME rule the
