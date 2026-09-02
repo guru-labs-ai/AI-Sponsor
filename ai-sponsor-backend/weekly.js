@@ -32,6 +32,7 @@
 // the summary, and must not send the nudge twice.
 
 const db = require('./db');
+const tz = require('./timezones');
 const Anthropic = require('@anthropic-ai/sdk');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -63,20 +64,29 @@ const MAX_TRANSCRIPT_CHARS = 40000;
 const DELIVER = String(process.env.WEEKLY_DELIVER || '').toLowerCase() === 'true';
 
 /* ── The week ───────────────────────────────────────────────────────────────
-   Monday to Sunday, and always the last one that has fully CLOSED. Never the
+   SUNDAY to SATURDAY, and always the last one that has fully CLOSED. Never the
    week in progress: a review of a week that is still happening is wrong the
    moment it is written, and would have to be regenerated, which breaks the
    whole "the row either exists or it doesn't" model that makes this survive a
    sleeping instance.
 
-   All UTC. The instance has no idea what timezone anyone is in, and quietly
-   guessing would put somebody's Sunday night in the wrong week. */
+   It used to run Monday to Sunday, delivered on the Monday. Matt moved
+   delivery to Sunday morning, on the grounds that Sunday is the day people
+   put into their recovery. That forces the window to move with it: sending
+   on Sunday morning while the old week still had Sunday left in it would
+   have reviewed a day that had not happened. The week now ends on the
+   Saturday night before the message, the last full day we can honestly
+   describe.
+
+   Boundaries stay in UTC. Delivery is per person and local, but the window
+   itself has to be one shared thing, or two people talking to each other
+   would have been shown different weeks. */
 function lastCompletedWeek(now = new Date()) {
   const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const sinceMonday = (today.getUTCDay() + 6) % 7;          // getUTCDay: 0=Sun
-  const thisMonday = new Date(today.getTime() - sinceMonday * 86400000);
-  const start = new Date(thisMonday.getTime() - 7 * 86400000);
-  const end = new Date(thisMonday.getTime() - 86400000);    // the Sunday
+  const sinceSunday = today.getUTCDay();                    // getUTCDay: 0=Sun
+  const thisSunday = new Date(today.getTime() - sinceSunday * 86400000);
+  const start = new Date(thisSunday.getTime() - 7 * 86400000);
+  const end = new Date(thisSunday.getTime() - 86400000);    // the Saturday
   return { start: isoDay(start), end: isoDay(end) };
 }
 
@@ -376,8 +386,23 @@ async function deliver(userId, payload, week, whatsapp) {
       ? `${hi}quiet week between us, which is fine. I left you a short note here if you want it:\n\n${link}`
       : `${hi}I looked back over your week and wrote it down for you. It's here whenever you want it:\n\n${link}`;
 
+    /* One extra line, once, on the first weekly note after the policy went up.
+       Matt asked for a "our privacy policy is updated, click here" rather than
+       a separate broadcast, and this is the cheapest honest version: it rides a
+       message already going out, needs nothing from Meta, and the link lands on
+       the page that carries the notice.
+
+       WARNING, free-text path ONLY. Anybody outside the 24-hour window gets the
+       approved template instead, whose body Meta fixed and we cannot add to, so
+       they meet the notice when they open the link rather than in the message.
+       That is why the banner on the settings page is the real mechanism and
+       this line is only the nudge. */
+    const withNotice = PRIVACY_NOTICE
+      ? body + PRIVACY_NOTICE_LINE
+      : body;
+
   try {
-    await whatsapp.sendTextReply(`whatsapp:${phone}`, body);
+    await whatsapp.sendTextReply(`whatsapp:${phone}`, withNotice);
     await db.markWeeklyDelivered(userId, week.start, true, null).catch(() => {});
     return { sent: true };
   } catch (e) {
@@ -410,6 +435,15 @@ async function deliver(userId, payload, week, whatsapp) {
 /* One approved template per tone, mirroring the free-text wording above. The
    names are fixed because Meta approves them by name; changing one means a new
    submission and another review. */
+/* Off by default. Matt wants to see the wording and the page before this goes
+   near a real person, so it ships dark and is switched on after he has looked.
+   Turn it off again once the cohort has been told: this is a one-time notice,
+   not a permanent footer on every weekly note. */
+const PRIVACY_NOTICE = String(process.env.WEEKLY_PRIVACY_NOTICE || '').toLowerCase() === 'on';
+const PRIVACY_NOTICE_LINE = `
+
+We have also updated our privacy policy, which explains what I keep and how to delete it. It is linked at the top of that page.`;
+
 const WEEKLY_TEMPLATES = {
   hard:  'weekly_review_hard',
   quiet: 'weekly_review_quiet',
@@ -445,7 +479,7 @@ async function deliverTemplate(phone, payload, theirName, token) {
    so a single invocation on a small free instance cannot run for minutes; what
    it does not finish, the next trigger picks up, because "due" is defined by
    the database and not by anything held in this process. */
-async function runSweep({ limit = 25, whatsapp = null, week = null } = {}) {
+async function runSweep({ limit = 25, whatsapp = null, week = null, ignoreWindow = false } = {}) {
   if (!db.enabled) return { ok: false, reason: 'no-db' };
 
   const w = week || lastCompletedWeek();
@@ -454,9 +488,17 @@ async function runSweep({ limit = 25, whatsapp = null, week = null } = {}) {
     return [];
   });
 
-  const out = { week: w, considered: due.length, created: 0, skipped: 0, failed: 0, delivered: 0, notDelivered: {} };
+  const out = { week: w, considered: due.length, created: 0, skipped: 0, failed: 0,
+                delivered: 0, waiting: 0, notDelivered: {} };
 
-  for (const userId of due) {
+  for (const { userId, phone } of due) {
+    /* Wait for their own Sunday morning. This runs hourly, so Sydney is
+       picked up when it is 9am there and California sixteen hours later,
+       from the same schedule. Anyone we cannot place is held rather than
+       guessed at: a confident 6am message about somebody's recovery week is
+       worse than a late one. */
+    if (!ignoreWindow && !insideTheirWindow(phone)) { out.waiting++; continue; }
+
     const r = await ensureWeeklySummary(userId, { week: w });
     if (r.status === 'created') {
       out.created++;
@@ -471,6 +513,25 @@ async function runSweep({ limit = 25, whatsapp = null, week = null } = {}) {
     console.log(`[weekly] sweep ${w.start}..${w.end}: ${out.created} written, ${out.delivered} delivered, ${out.failed} failed, ${out.skipped} skipped`);
   }
   return { ok: true, ...out };
+}
+
+/* ── Their Sunday morning ───────────────────────────────────────────────────
+   Matt: "they should all get it Sundays ... between 9 am - 12 pm there local
+   time". Nine to noon on the Sunday where THEY are, which is not one moment
+   and not even one day: 15:00 UTC is Monday morning in California and 1am on
+   Tuesday in Sydney.
+
+   False when we cannot place somebody, so they are held for a human to look
+   at rather than messaged at a guessed hour. */
+const SEND_FROM_HOUR = 9;
+const SEND_UNTIL_HOUR = 12;
+
+function insideTheirWindow(phone, now = new Date()) {
+  const zone = tz.zoneForPhone(phone);
+  if (!zone) return false;
+  if (tz.localDay(zone, now) !== 0) return false;      // 0 = Sunday, where they are
+  const hour = tz.localHour(zone, now);
+  return hour >= SEND_FROM_HOUR && hour < SEND_UNTIL_HOUR;
 }
 
 /* Trigger 3: piggybacked on ordinary traffic. Anybody talking to the sponsor

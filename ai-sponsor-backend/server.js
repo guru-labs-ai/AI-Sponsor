@@ -1403,6 +1403,9 @@ app.get('/api/sponsor-settings', async (req, res) => {
     /* Whether anything will actually happen on that date. The page must not
        promise a day the sweep is not running to honour. */
     deletionAutomatic: deletion.enabled,
+    /* Whether they have already been shown the privacy notice. One event per
+       person, so it appears once and then never nags. */
+    privacyNoticeSeen: await db.hasEvent(userId, 'privacy_notice_seen').catch(() => true),
   });
 });
 
@@ -1614,6 +1617,21 @@ app.post('/api/sponsor-settings/deactivate', async (req, res) => {
     console.error('[settings] deactivate request failed:', err.message);
     res.status(500).json({ error: 'Could not send that just now. Please try again.' });
   }
+});
+
+/* Recorded when somebody closes the privacy notice. The value is not the
+   dismissal, it is being able to answer "who did we actually tell, and when"
+   with a row rather than an assumption. Idempotent: closing it twice is one
+   event, so a double tap cannot inflate the number. */
+app.post('/api/sponsor-settings/privacy-notice-seen', async (req, res) => {
+  const userId = await db.resolveSettingsToken(String((req.body || {}).t || '')).catch(() => null);
+  if (!userId) return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
+  const already = await db.hasEvent(userId, 'privacy_notice_seen').catch(() => false);
+  if (!already) {
+    await db.recordEvent(userId, 'privacy_notice_seen', { version: '2026-09-01' }, 'settings-link')
+      .catch((e) => console.error('[settings] privacy notice record failed:', e.message));
+  }
+  res.json({ success: true });
 });
 
 /* Taking it back. The whole point of the window: somebody asks for this in a

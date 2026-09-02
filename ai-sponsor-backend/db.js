@@ -760,6 +760,17 @@ async function recordEvent(userId, event, detail, source) {
   );
 }
 
+/* Has this person had this event at all. Used for one-time things like the
+   privacy notice, where the question is "were they told", not "how often". */
+async function hasEvent(userId, event) {
+  if (!enabled || !userId || !event) return false;
+  const r = await pool.query(
+    'SELECT 1 FROM account_events WHERE user_id = $1 AND event = $2 LIMIT 1',
+    [userId, event]
+  );
+  return r.rowCount > 0;
+}
+
 async function getEvents(userId, limit = 50) {
   if (!enabled || !userId) return [];
   const r = await pool.query(
@@ -1346,9 +1357,13 @@ async function markWeeklyDelivered(userId, weekStart, ok, note) {
    said anything is correctly absent from this, and so costs nothing. */
 async function usersDueForWeekly(weekStart, weekEnd, limit = 25) {
   if (!enabled) return [];
+  /* The phone comes back with the id now. Matt asked for these to land between
+     9am and noon in each person's own morning, and their number is the only
+     thing we hold that says where they are. See timezones.js. */
   const r = await pool.query(
-    `SELECT m.user_id
+    `SELECT m.user_id, MAX(u.phone) AS phone
        FROM messages m
+       LEFT JOIN users u ON u.user_id = m.user_id
        LEFT JOIN weekly_summaries w
          ON w.user_id = m.user_id AND w.week_start = $1::date
       WHERE m.created_at >= $1::date
@@ -1359,7 +1374,7 @@ async function usersDueForWeekly(weekStart, weekEnd, limit = 25) {
       LIMIT $3`,
     [weekStart, weekEnd, limit]
   );
-  return r.rows.map((x) => x.user_id);
+  return r.rows.map((x) => ({ userId: x.user_id, phone: x.phone || '' }));
 }
 
 /* ─── Week on week ───────────────────────────────────────────────────────────
@@ -1507,7 +1522,7 @@ module.exports = {
   // dashboard groups on. Two implementations would eventually disagree.
   resolveSource,
   saveProfile, getProfile, appendMessages, getHistory, findPersonId,
-  recordEvent, getEvents, clearConversation, getPersonStats,
+  recordEvent, getEvents, hasEvent, clearConversation, getPersonStats,
   createLinkCode, claimLinkCode,
   purgeUserData, findAllIdentities,
   quietCheckinCandidates, betaAccessRoster,
