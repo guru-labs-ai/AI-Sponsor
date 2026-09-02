@@ -1252,18 +1252,26 @@ app.get('/api/metrics/northstar', async (req, res) => {
          will be some who fall off there and we want to measure that."
          conversionPct stays null until at least one trial has actually
          finished, because a rate computed on nobody is not a rate. */
-      paidFunnel: {
-        cardsCaptured: subs.length,
-        stillInTrial: subs.filter((s) => s.status === 'trialing').length,
-        converted: subs.filter((s) => s.status === 'active').length,
-        cancelled: subs.filter((s) => s.canceledAt || s.endedAt).length,
-        conversionPct: (() => {
-          const finished = subs.filter((s) =>
-            s.status === 'active' || s.canceledAt || s.endedAt).length;
-          if (!finished) return null;
-          return Math.round((subs.filter((s) => s.status === 'active').length / finished) * 1000) / 10;
-        })(),
-      },
+      paidFunnel: (() => {
+        const resolved = subs.filter((s) =>
+          s.status === 'active' || s.canceledAt || s.endedAt).length;
+        /* A rate needs enough people to mean anything. The first person to put
+           a card in and cancel would otherwise publish "0% convert", which is
+           arithmetically true and a lie about the product. Below the threshold
+           the raw counts are shown and the rate is withheld. */
+        const MIN_FOR_A_RATE = 5;
+        return {
+          cardsCaptured: subs.length,
+          stillInTrial: subs.filter((s) => s.status === 'trialing').length,
+          converted: subs.filter((s) => s.status === 'active').length,
+          cancelled: subs.filter((s) => s.canceledAt || s.endedAt).length,
+          resolved,
+          minForARate: MIN_FOR_A_RATE,
+          conversionPct: resolved >= MIN_FOR_A_RATE
+            ? Math.round((subs.filter((s) => s.status === 'active').length / resolved) * 1000) / 10
+            : null,
+        };
+      })(),
       // Who they are / what they're doing. Aggregates only — no names, emails
       // or message content ever leave the DB.
       breakdowns,
