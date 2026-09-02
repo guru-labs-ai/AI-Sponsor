@@ -85,6 +85,13 @@ async function init() {
     -- is a running summary of the durable facts (names, dates, triggers,
     -- commitments) from turns that have aged out of that window; _upto is the
     -- highest message id already folded in, so we never re-summarize a turn.
+    /* When somebody's free beta access runs out. Nothing enforces this and
+       nothing should until Matt has decided what happens at the end: the point
+       is that the date exists and can be seen, because "6 months free" was
+       promised in the signup copy and was being counted by nobody. Stamped the
+       first time an account becomes Beta and never moved afterwards, so a later
+       write cannot quietly extend somebody's free run. */
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS beta_expires_at TIMESTAMPTZ;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS memory_digest      TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS memory_digest_upto BIGINT DEFAULT 0;
   `);
@@ -290,7 +297,14 @@ async function upsertUser(u) {
        sponsor_style = COALESCE(NULLIF(EXCLUDED.sponsor_style, ''), users.sponsor_style),
        program = COALESCE(NULLIF(EXCLUDED.program, ''), users.program),
        stage = COALESCE(NULLIF(EXCLUDED.stage, ''), users.stage),
-       access = COALESCE(NULLIF(EXCLUDED.access, ''), users.access)`,
+       access = COALESCE(NULLIF(EXCLUDED.access, ''), users.access),
+       /* Six months from the first moment they became Beta. COALESCE means a
+          repeat registration cannot reset the clock, and the CASE means a
+          non-Beta write never stamps one. */
+       beta_expires_at = COALESCE(
+         users.beta_expires_at,
+         CASE WHEN EXCLUDED.access = 'Beta' THEN now() + interval '6 months' END
+       )`,
     [u.userId, u.name || '', u.email || '', u.phone || '', u.ghlContactId || null,
      u.sponsorName || '', u.sponsorStyle || '', u.program || '', u.stage || '',
      u.access || '',
@@ -300,6 +314,23 @@ async function upsertUser(u) {
      (a && a.utmSource) || '', (a && a.utmMedium) || '',
      (a && a.utmCampaign) || '', (a && a.referrer) || '']
   );
+}
+
+/* Who is on free access and when it runs out. Read-only on purpose: this
+   answers "who needs a decision and by when", it does not make one. */
+async function betaAccessRoster() {
+  if (!enabled) return [];
+  const r = await pool.query(
+    `SELECT ${PERSON_KEY} AS person,
+            MIN(name)            FILTER (WHERE name <> '') AS name,
+            MIN(beta_expires_at) AS expires_at,
+            (MIN(beta_expires_at)::date - now()::date) AS days_left
+       FROM users
+      WHERE access = 'Beta'
+      GROUP BY 1
+      ORDER BY expires_at NULLS LAST`
+  );
+  return r.rows;
 }
 
 /* ─── Stripe linkage (written by the Stripe webhook) ────────────────────────── */
@@ -1479,7 +1510,7 @@ module.exports = {
   recordEvent, getEvents, clearConversation, getPersonStats,
   createLinkCode, claimLinkCode,
   purgeUserData, findAllIdentities,
-  quietCheckinCandidates,
+  quietCheckinCandidates, betaAccessRoster,
   retentionCandidates, purgeMessagesOnly,
   requestDeletion, getDeletionRequest, cancelDeletion,
   claimDueDeletion, markDeletionDone, releaseStaleDeletions,
