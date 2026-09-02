@@ -1038,14 +1038,61 @@ app.get('/health', (req, res) => {
 // ─── North-star metrics (Matt's "cumulative recovery days", per Sunflower) ────
 // Aggregates only — no names/emails/PII ever leave this endpoint. Sign-up dates
 // come from GHL (registration pipeline live since Jul 1 2026); cancellations
-// come from Stripe (AI Sponsor prices only). Cached 10 min to spare both APIs.
+/* ── Helpers for the week-on-week and money blocks ──────────────────────────
+   Kept out of the handler so the shape of each comparison is defined once. */
+
+// Both numbers plus the change. null rather than 0 when the earlier window was
+// empty, because there is no honest percentage increase from nothing.
+function wowPair(now, prev) {
+  const a = Number(now || 0);
+  const b = Number(prev || 0);
+  return {
+    now: a,
+    prev: b,
+    change: a - b,
+    changePct: b > 0 ? Math.round(((a - b) / b) * 1000) / 10 : null,
+  };
+}
+
+// Subscriptions created inside a window, in days ago. This is "cards captured",
+// never "sales": at this point nobody has paid anything.
+function trialsIn(subs, fromDaysAgo, toDaysAgo) {
+  const from = Date.now() / 1000 - fromDaysAgo * 86400;
+  const to = Date.now() / 1000 - toDaysAgo * 86400;
+  return subs.filter((s) => s.created > from && s.created <= to).length;
+}
+
+// People holding a live subscription at a moment in time, so "paid people" can
+// be compared week on week without a history table.
+function subsLiveAt(subs, unixSeconds) {
+  return subs.filter((s) =>
+    s.created <= unixSeconds &&
+    !((s.endedAt && s.endedAt <= unixSeconds) || (s.canceledAt && s.canceledAt <= unixSeconds))
+  ).length;
+}
+
+// When the earliest still-running trial turns into an actual charge. This is
+// the date the revenue line stops being zero, so it is worth stating rather
+// than leaving people to wonder why everything reads $0.
+function nextTrialEnd(subs) {
+  const ends = subs
+    .filter((s) => s.status === 'trialing' && s.trialEnd)
+    .map((s) => s.trialEnd)
+    .sort((a, b) => a - b);
+  return ends.length ? new Date(ends[0] * 1000).toISOString().slice(0, 10) : null;
+}
+
+/* Cached 60s rather than 10 minutes. Matt is watching this while the first
+   users are on the product and asked for it to keep up with them; the DB half
+   is cheap, and the cache is really only there so a page left open does not
+   hammer Stripe and GHL. */
 let metricsCache = { at: 0, data: null };
 app.get('/api/metrics/northstar', async (req, res) => {
-  if (metricsCache.data && Date.now() - metricsCache.at < 10 * 60 * 1000) {
+  if (metricsCache.data && Date.now() - metricsCache.at < 60 * 1000) {
     return res.json(metricsCache.data);
   }
   try {
-    const [contacts, subs, usage, breakdowns] = await Promise.all([
+    const [contacts, subs, usage, breakdowns, wow, collected] = await Promise.all([
       ghl.listSponsorContacts(),
       stripeModule.listSponsorSubscriptions().catch((e) => {
         console.error('[Metrics] Stripe list failed:', e.message);
@@ -1057,6 +1104,14 @@ app.get('/api/metrics/northstar', async (req, res) => {
       }),
       db.getBreakdowns().catch((e) => {
         console.error('[Metrics] DB breakdowns failed:', e.message);
+        return null;
+      }),
+      db.getWeekOverWeek().catch((e) => {
+        console.error('[Metrics] DB week-over-week failed:', e.message);
+        return null;
+      }),
+      db.getCollected().catch((e) => {
+        console.error('[Metrics] DB collected failed:', e.message);
         return null;
       }),
     ]);
@@ -1092,6 +1147,10 @@ app.get('/api/metrics/northstar', async (req, res) => {
     const dbFirst = !!usage;
     const nsUsers = dbFirst ? usage.registered : contacts.length;
     const nsCumulative = dbFirst ? usage.cumulative_days : cumulativeDays;
+
+    const nowSec = Math.floor(Date.now() / 1000);
+    const paidNow = subsLiveAt(subs, nowSec);
+    const paidPrev = subsLiveAt(subs, nowSec - 7 * 86400);
 
     const data = {
       generatedAt: new Date().toISOString(),
@@ -1142,6 +1201,68 @@ app.get('/api/metrics/northstar', async (req, res) => {
       billing: {
         stripeConfigured: subs.length > 0 || !!process.env.STRIPE_SECRET_KEY,
         activeSubscriptions: subs.filter((s) => s.status === 'active' || s.status === 'trialing').length,
+      },
+
+      /* ── Week on week ────────────────────────────────────────────────────
+         Matt asked for a WoW % on everything we track. Both windows are given
+         alongside the percentage, because a percentage on small numbers is
+         noise on its own: going from 1 to 3 is +200% and means very little.
+         changePct is null rather than 0 when last week was zero, since there is
+         no honest percentage increase from nothing. */
+      weekOverWeek: wow ? {
+        window: 'last 7 days vs the 7 days before',
+        newSignups:     wowPair(wow.signups_now, wow.signups_prev),
+        peopleActive:   wowPair(wow.people_now, wow.people_prev),
+        daysShowedUp:   wowPair(wow.days_now, wow.days_prev),
+        messages:       wowPair(wow.messages_now, wow.messages_prev),
+        cardsCaptured:  wowPair(trialsIn(subs, 7, 0), trialsIn(subs, 14, 7)),
+        paidPeople:     wowPair(paidNow, paidPrev),
+      } : null,
+
+      /* ── Money ───────────────────────────────────────────────────────────
+         Three different things, deliberately never merged into one word.
+
+         cardsCaptured is somebody handing over a card. mrr is what those cards
+         will bill once their free month ends. collected is money that has
+         actually arrived. Right now the first is real, the second is committed
+         and the third is genuinely zero, because both plans open with a 30-day
+         trial and the earliest first charge is 29 Sep 2026.
+
+         The DRM Zapier alert announced a $0 trial as a sale and it was read as
+         revenue. That is the mistake this shape exists to make impossible. */
+      revenue: {
+        currency: 'USD',
+        collectedAllTime: (collected?.allTimeCents ?? 0) / 100,
+        collectedLast7d: (collected?.last7dCents ?? 0) / 100,
+        payments: collected?.payments ?? 0,
+        // What the currently-billing subscriptions are worth per month. A sub
+        // still inside its trial is worth nothing yet and is excluded.
+        mrr: Math.round(subs
+          .filter((s) => s.status === 'active')
+          .reduce((sum, s) => sum + (s.plan === 'annual' ? 49 / 12 : 5), 0) * 100) / 100,
+        // What they will be worth once every trial converts, if none drop off.
+        mrrIfAllTrialsConvert: Math.round(subs
+          .filter((s) => s.status === 'active' || s.status === 'trialing')
+          .reduce((sum, s) => sum + (s.plan === 'annual' ? 49 / 12 : 5), 0) * 100) / 100,
+        firstChargeDue: nextTrialEnd(subs),
+      },
+
+      /* ── The paid trial funnel ───────────────────────────────────────────
+         Matt: "the uptake activation of the paid trial since i'm sure there
+         will be some who fall off there and we want to measure that."
+         conversionPct stays null until at least one trial has actually
+         finished, because a rate computed on nobody is not a rate. */
+      paidFunnel: {
+        cardsCaptured: subs.length,
+        stillInTrial: subs.filter((s) => s.status === 'trialing').length,
+        converted: subs.filter((s) => s.status === 'active').length,
+        cancelled: subs.filter((s) => s.canceledAt || s.endedAt).length,
+        conversionPct: (() => {
+          const finished = subs.filter((s) =>
+            s.status === 'active' || s.canceledAt || s.endedAt).length;
+          if (!finished) return null;
+          return Math.round((subs.filter((s) => s.status === 'active').length / finished) * 1000) / 10;
+        })(),
       },
       // Who they are / what they're doing. Aggregates only — no names, emails
       // or message content ever leave the DB.

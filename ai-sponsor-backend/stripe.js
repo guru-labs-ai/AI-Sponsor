@@ -298,6 +298,14 @@ async function listSponsorSubscriptions() {
         created: s.created,                    // unix seconds
         canceledAt: s.canceled_at || null,
         endedAt: s.ended_at || null,
+        /* Which plan, and when the free month runs out. Both are needed to
+           answer "what is monthly revenue" honestly: a subscription sitting in
+           `trialing` is a captured card, not money, and the two plans are worth
+           different amounts a month. Price id rather than amount, so a price
+           change in Stripe cannot silently rewrite past months. */
+        plan: priceId === PRICE_IDS.annual ? 'annual'
+          : priceId === PRICE_IDS.monthly ? 'monthly' : 'unknown',
+        trialEnd: s.trial_end || null,         // unix seconds, null if no trial
       });
     });
     if (!resp.has_more) break;

@@ -1063,28 +1063,58 @@ async function getMetrics() {
    conversations do not leave the database.                                   */
 async function getBreakdowns() {
   if (!enabled) return null;
+
+  /* ⚠️ Every count here is per PERSON, not per row in users.
+     These used to be COUNT(*) FROM users, which counted rows. One human holds
+     two rows (reg- from the website, wa- from WhatsApp), so on 2 Sep 2026 the
+     access split read Beta 44 / Paid 4 / Unpaid 3, totalling 51 against 27 real
+     people, and the paid figure was exactly double the truth. Matt asked for
+     paid vs unpaid in the weekly post, so this had to be right before it could
+     be published rather than after somebody acted on it. */
   const [program, stage, access, channel, msgsByDay, source] = await Promise.all([
-    // program is stored comma-joined ("AA, NA") — one person can be in several
+    // program is stored comma-joined ("AA, NA") — one person can be in several,
+    // so this legitimately sums to more than the number of people.
     pool.query(`
-      SELECT trim(p) AS k, COUNT(*)::int AS n
+      SELECT trim(p) AS k, COUNT(DISTINCT ${PERSON_KEY})::int AS n
       FROM users, unnest(string_to_array(NULLIF(program, ''), ',')) AS p
       GROUP BY 1 ORDER BY n DESC, 1`),
+    /* One value per person. Their rows can disagree, because the website row is
+       written at signup and the WhatsApp one later, so the most complete answer
+       wins over a blank rather than being averaged into 'unknown'. */
     pool.query(`
       SELECT COALESCE(NULLIF(stage, ''), 'unknown') AS k, COUNT(*)::int AS n
-      FROM users GROUP BY 1 ORDER BY n DESC`),
+      FROM (SELECT ${PERSON_KEY} AS person, MAX(NULLIF(stage, '')) AS stage
+            FROM users GROUP BY 1) p
+      GROUP BY 1 ORDER BY n DESC`),
+    /* Access is ranked, not picked at random: somebody holding a Beta row and a
+       Paid row is a paying customer. Reading it any other way would undercount
+       revenue, which is the one direction that must never happen quietly. */
     pool.query(`
-      SELECT COALESCE(NULLIF(access, ''), 'unknown') AS k, COUNT(*)::int AS n
-      FROM users GROUP BY 1 ORDER BY n DESC`),
-    // user_id prefix is the channel: reg- web registration, wa- WhatsApp,
-    // web- anonymous web chat (never registered), beta- imported no-phone
+      SELECT access AS k, COUNT(*)::int AS n
+      FROM (
+        SELECT ${PERSON_KEY} AS person,
+               CASE MAX(CASE access WHEN 'Paid'   THEN 3
+                                    WHEN 'Unpaid' THEN 2
+                                    WHEN 'Beta'   THEN 1 ELSE 0 END)
+                 WHEN 3 THEN 'Paid' WHEN 2 THEN 'Unpaid'
+                 WHEN 1 THEN 'Beta' ELSE 'unknown' END AS access
+        FROM users GROUP BY 1
+      ) p
+      GROUP BY 1 ORDER BY n DESC`),
+    /* Channel is the one breakdown that SHOULD sum to more than the headcount:
+       the same person really does use both the website and WhatsApp, and that
+       is worth seeing. Distinct people per channel, not rows. */
     pool.query(`
-      SELECT CASE
-               WHEN user_id LIKE 'reg-%'  THEN 'Website'
-               WHEN user_id LIKE 'wa-%'   THEN 'WhatsApp'
-               WHEN user_id LIKE 'web-%'  THEN 'Web chat only'
-               ELSE 'Other'
-             END AS k, COUNT(*)::int AS n
-      FROM users GROUP BY 1 ORDER BY n DESC`),
+      SELECT k, COUNT(DISTINCT person)::int AS n FROM (
+        SELECT ${PERSON_KEY} AS person,
+               CASE
+                 WHEN user_id LIKE 'reg-%'  THEN 'Website'
+                 WHEN user_id LIKE 'wa-%'   THEN 'WhatsApp'
+                 WHEN user_id LIKE 'web-%'  THEN 'Web chat only'
+                 ELSE 'Other'
+               END AS k
+        FROM users
+      ) c GROUP BY 1 ORDER BY n DESC`),
     pool.query(`
       SELECT day::text AS k, SUM(messages)::int AS n
       FROM activity_days
@@ -1093,8 +1123,10 @@ async function getBreakdowns() {
     // How they found us. Pre-attribution rows are genuinely Unknown — never
     // fold them into Direct, which would credit a channel we can't evidence.
     pool.query(`
-      SELECT COALESCE(NULLIF(acquired_from, ''), 'Unknown') AS k, COUNT(*)::int AS n
-      FROM users GROUP BY 1 ORDER BY n DESC, 1`),
+      SELECT COALESCE(source, 'Unknown') AS k, COUNT(*)::int AS n
+      FROM (SELECT ${PERSON_KEY} AS person, MAX(NULLIF(acquired_from, '')) AS source
+            FROM users GROUP BY 1) p
+      GROUP BY 1 ORDER BY n DESC, 1`),
   ]);
   const toObj = (rows) => Object.fromEntries(rows.map((r) => [r.k, r.n]));
   return {
@@ -1299,6 +1331,90 @@ async function usersDueForWeekly(weekStart, weekEnd, limit = 25) {
   return r.rows.map((x) => x.user_id);
 }
 
+/* ─── Week on week ───────────────────────────────────────────────────────────
+   Matt: "does it have a WoW % increase across all the metrics we're tracking
+   which i think for sure we should be doing".
+
+   Everything else in getMetrics is either cumulative or a single 7-day window,
+   and neither answers "was this week better than last". This returns both
+   windows so the comparison is computed once, here, against the same
+   de-duplicated definitions the totals use, rather than by whoever renders it.
+
+   Windows are the last 7 days and the 7 before that. Deliberately rolling
+   rather than calendar weeks: the post can then run on any day and still
+   compare like with like.                                                    */
+async function getWeekOverWeek() {
+  if (!enabled) return null;
+  const person = `LOWER(COALESCE(NULLIF(u.email, ''), NULLIF(u.phone, ''), u.user_id))`;
+
+  const r = await pool.query(`
+    WITH win AS (SELECT now()::date - 7 AS this_start, now()::date - 14 AS prev_start)
+    SELECT
+      /* new people */
+      (SELECT COUNT(*)::int FROM (
+         SELECT ${PERSON_KEY} AS p, MIN(signup_date) AS f FROM users GROUP BY 1) s, win
+       WHERE s.f::date > win.this_start)                                    AS signups_now,
+      (SELECT COUNT(*)::int FROM (
+         SELECT ${PERSON_KEY} AS p, MIN(signup_date) AS f FROM users GROUP BY 1) s, win
+       WHERE s.f::date > win.prev_start AND s.f::date <= win.this_start)     AS signups_prev,
+
+      /* people who actually turned up */
+      (SELECT COUNT(DISTINCT ${person})::int FROM activity_days a
+         JOIN users u ON u.user_id = a.user_id, win
+       WHERE a.day > win.this_start)                                        AS people_now,
+      (SELECT COUNT(DISTINCT ${person})::int FROM activity_days a
+         JOIN users u ON u.user_id = a.user_id, win
+       WHERE a.day > win.prev_start AND a.day <= win.this_start)            AS people_prev,
+
+      /* days somebody showed up, the north-star input */
+      (SELECT COUNT(*)::int FROM (
+         SELECT DISTINCT ${person} AS p, a.day FROM activity_days a
+           JOIN users u ON u.user_id = a.user_id, win
+         WHERE a.day > win.this_start) d)                                   AS days_now,
+      (SELECT COUNT(*)::int FROM (
+         SELECT DISTINCT ${person} AS p, a.day FROM activity_days a
+           JOIN users u ON u.user_id = a.user_id, win
+         WHERE a.day > win.prev_start AND a.day <= win.this_start) d)       AS days_prev,
+
+      /* messages */
+      (SELECT COALESCE(SUM(a.messages), 0)::int FROM activity_days a
+         JOIN users u ON u.user_id = a.user_id, win
+       WHERE a.day > win.this_start)                                        AS messages_now,
+      (SELECT COALESCE(SUM(a.messages), 0)::int FROM activity_days a
+         JOIN users u ON u.user_id = a.user_id, win
+       WHERE a.day > win.prev_start AND a.day <= win.this_start)            AS messages_prev
+  `);
+  return r.rows[0];
+}
+
+/* ─── Money that actually moved ──────────────────────────────────────────────
+   Read from account_events, which the Stripe webhook appends to, rather than
+   from Stripe directly: this is the record of what we were told and acted on,
+   and it survives a Stripe outage.
+
+   Deliberately separate from anything counting trials. Matt asked to track
+   "sales" where the card has gone through but the payment has not, and the DRM
+   Zapier alert already made the mistake of printing a $0 trial as a sale. These
+   two numbers must never be added together or share a label.                 */
+async function getCollected() {
+  if (!enabled) return { allTimeCents: 0, last7dCents: 0, payments: 0 };
+  const r = await pool.query(`
+    SELECT
+      COALESCE(SUM((detail->>'amount')::bigint), 0)::bigint AS all_time_cents,
+      COALESCE(SUM((detail->>'amount')::bigint)
+               FILTER (WHERE created_at > now() - interval '7 days'), 0)::bigint AS last_7d_cents,
+      COUNT(*)::int AS payments
+    FROM account_events
+    WHERE event = 'payment_succeeded'
+      AND detail->>'amount' ~ '^[0-9]+$'`);
+  const row = r.rows[0] || {};
+  return {
+    allTimeCents: Number(row.all_time_cents || 0),
+    last7dCents: Number(row.last_7d_cents || 0),
+    payments: Number(row.payments || 0),
+  };
+}
+
 /* ─── Reading real conversations (the admin viewer) ──────────────────────────
    Matt asked for somewhere he can read the actual threads while the first users
    are on the product, so he can feel how the sponsor is landing and adjust the
@@ -1353,7 +1469,7 @@ async function getFullThread(person) {
 }
 
 module.exports = {
-  listConversations, getFullThread,
+  listConversations, getFullThread, getWeekOverWeek, getCollected,
   getLastMessageAt,
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
   // Exported so the Slack alerts label a signup's source with the SAME rule the
