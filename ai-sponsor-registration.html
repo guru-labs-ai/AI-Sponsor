@@ -2076,6 +2076,15 @@ function collectAttribution(){
   }
   out.fbp = cookie('_fbp');
   out.fbc = cookie('_fbc');
+  /* GA4's client id, so the day-31 charge can be reported to Analytics as the
+     same person who registered here rather than as a stranger. The _ga cookie
+     is GA1.1.<id>.<firstSeen> and only the last two parts are the client id;
+     the first two are the cookie's own version and domain depth. It travels
+     the same route as _fbp: into Stripe subscription metadata at checkout,
+     back off the invoice a month later, because by then there is no browser
+     left to ask. */
+  var ga = cookie('_ga');
+  out.ga = ga ? ga.split('.').slice(-2).join('.') : '';
   return out;
 }
 
@@ -2120,6 +2129,21 @@ async function startCheckout(){
     });
     const data = await res.json().catch(()=>({}));
     if (!res.ok || !data.checkoutUrl) throw new Error(data.error || ('HTTP ' + res.status));
+
+    /* Deliberately after the checkout URL comes back, not on the button press:
+       a session that never reached Stripe is not a checkout, and counting it
+       would make the drop-off between checkout and card look worse than it is.
+       gtag sends with keepalive, so the hit survives the navigation below.
+       Value is 0 because both plans open a 30-day trial and take no money, the
+       same reason the Meta pixel reports no revenue here. */
+    try {
+      gtag('event', 'begin_checkout', {
+        currency: 'USD',
+        value: 0,
+        items: [{ item_id: selectedPlan, item_name: selectedPlan === 'annual' ? 'AI Sponsor Annual' : 'AI Sponsor Monthly' }]
+      });
+    } catch(e) { console.warn('[AI Sponsor] GA4 not available:', e); }
+
     window.location.href = data.checkoutUrl;
   } catch(e) {
     console.error('[AI Sponsor] Checkout failed:', e);
@@ -2169,6 +2193,29 @@ function handlePaymentReturn(){
     try {
       oaiq('measure', 'trial_started', { type: 'plan_enrollment' });
     } catch(e) { console.warn('[AI Sponsor] OpenAI pixel not available:', e); }
+
+    /* And the same moment to GA4. Two events, because they answer different
+       questions: sign_up counts everyone who completed registration by any
+       route, start_trial counts only the ones who saved a card. start_trial is
+       the one worth importing into Google Ads as a conversion. sign_up also
+       fires on the beta-code path below, so marking that one as the key event
+       would teach the ad platforms to hunt for people who pay us nothing.
+
+       There is no recommended GA4 event for a free trial, so start_trial is a
+       custom event. Custom events can still be marked as key events and
+       imported into Ads, they just have to be created in the property first.
+       Value stays 0 here for the same reason Meta gets none: the money does
+       not move until day 31, and it is reported from the backend when it does
+       (see ga4.js). */
+    try {
+      gtag('event', 'sign_up', { method: 'stripe_trial' });
+      gtag('event', 'start_trial', {
+        currency: 'USD',
+        value: 0,
+        plan: pending.plan === 'annual' ? 'annual' : 'monthly'
+      });
+    } catch(e) { console.warn('[AI Sponsor] GA4 not available:', e); }
+
     try { localStorage.removeItem('ais_pending'); } catch(e){}
     clearState();
   } else if (status === 'cancelled') {
@@ -2262,6 +2309,12 @@ async function redeemCode(){
     if(data && data.valid){
       showSuccess('6 months of free access');
       registerUser('Beta'); // fire-and-forget — save to GHL as a beta user
+      /* Counted as a registration, but with the route named, so a beta cohort
+         can never be mistaken for acquisition in a report. No trial event:
+         nobody gave us a card here and no money will ever follow. */
+      try {
+        gtag('event', 'sign_up', { method: 'beta_code' });
+      } catch(e) { console.warn('[AI Sponsor] GA4 not available:', e); }
     } else {
       err.textContent="That code doesn't look right. Try again.";
       err.classList.add('show');

@@ -9,6 +9,7 @@ const stripeModule = require('./stripe');
 const ghl = require('./ghl');
 const alerts = require('./alerts'); // Slack alerts → #ai-sponsor-updates
 const metacapi = require('./metacapi'); // real payments → Meta Conversions API
+const ga4 = require('./ga4');           // real payments → GA4 Measurement Protocol
 const viewer = require('./viewer'); // admin-only conversation viewer at /admin
 const trialnotice = require('./trialnotice'); // the "your trial ends" WhatsApp notice
 
@@ -2440,6 +2441,29 @@ async function syncStripeToGhl(result) {
           }
         })
         .catch((e) => console.error('[Meta CAPI] Purchase failed:', e.message));
+
+      /* And the same money to GA4, which otherwise only ever sees the free
+         half of this funnel: registrations and trials, never a sale. Google
+         Ads imports its conversions from GA4, so without this the day a trial
+         becomes a customer is invisible on the Google side of the spend too.
+         Separate from the Meta send on purpose, so one platform refusing an
+         event never costs us the other. */
+      ga4.purchase({
+        amount: result.amount,
+        currency: result.currency,
+        plan: result.plan,
+        invoiceId: result.invoiceId,
+        customerId: result.customerId,
+        attribution: result.attribution,
+      })
+        .then((r) => {
+          if (r.sent) {
+            console.log(`[GA4 MP] purchase sent for invoice ${result.invoiceId} ($${r.value}, client id ${r.clientIdSource}${r.debug ? ', DEBUG ENDPOINT' : ''})`);
+          } else {
+            console.warn(`[GA4 MP] purchase NOT sent for invoice ${result.invoiceId}: ${r.reason}`);
+          }
+        })
+        .catch((e) => console.error('[GA4 MP] purchase failed:', e.message));
       return;
     }
 

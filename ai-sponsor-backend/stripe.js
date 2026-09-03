@@ -63,6 +63,9 @@ function attributionMetadata(attribution) {
     gclid: attribution.gclid,
     fbp: attribution.fbp,
     fbc: attribution.fbc,
+    // GA4's client id. Without it here the day-31 charge reaches Analytics as
+    // a brand new user with no route back to the ad click. See ga4.js.
+    ga: attribution.ga,
     referrer: attribution.referrer,
     landing: attribution.landing,
     first_seen: attribution.at,
