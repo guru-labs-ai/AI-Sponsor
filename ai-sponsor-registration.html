@@ -1110,7 +1110,7 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 
       <!-- Beta code (hidden by default) -->
       <div class="code-section" id="codeSection" style="display:none">
-        <p class="trial-note" style="margin-bottom:12px">Your beta code unlocks <strong>6 months free</strong> — no card required.</p>
+        <p class="trial-note" style="margin-bottom:12px">Your beta code unlocks <strong>free access</strong>, no card required.</p>
         <div class="code-row">
           <input type="text" id="f-code" placeholder="ENTER CODE"
             onkeydown="if(event.key==='Enter')redeemCode()">
@@ -2307,7 +2307,7 @@ async function redeemCode(){
     });
     const data=await res.json().catch(()=>({}));
     if(data && data.valid){
-      showSuccess('6 months of free access');
+      showSuccess('free access');
       registerUser('Beta'); // fire-and-forget — save to GHL as a beta user
       /* Counted as a registration, but with the route named, so a beta cohort
          can never be mistaken for acquisition in a report. No trial event:
