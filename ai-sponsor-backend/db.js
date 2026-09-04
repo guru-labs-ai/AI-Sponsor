@@ -1041,6 +1041,78 @@ async function getLastMessageAt(userId) {
    who have neither. Used for every count that answers "how many people". */
 const PERSON_KEY = `LOWER(COALESCE(NULLIF(email, ''), NULLIF(phone, ''), user_id))`;
 
+/* ─── People who are not customers ──────────────────────────────────────────
+   Mariam and her husband use the product themselves. They are not users of a
+   business, and their conversations are personal, so they should not sit in a
+   metric Matt reads or on the page where he reads other people's threads. Same
+   applies to any internal or test account: Bilal's QA runs put 138 messages
+   into a product with 33 people in it, which moves every average he looks at.
+
+   The identifiers live in the Render env and NEVER in this file. This repo is
+   public, and putting somebody's personal email in it to exclude them from a
+   report would be a worse privacy failure than the one being fixed.
+
+   Set EXCLUDED_PEOPLE to a comma-separated list of emails or phone numbers,
+   matched against the same PERSON_KEY everything else groups on, so a person
+   with a website row and a WhatsApp row goes with both. */
+const EXCLUDED = String(process.env.EXCLUDED_PEOPLE || '')
+  .split(',')
+  .map((x) => x.trim().toLowerCase())
+  .filter(Boolean)
+  /* Inlined into SQL below, so anything that is not plainly an email or a phone
+     number is dropped rather than trusted. These come from our own env, but a
+     value that reaches a query without being checked is a habit worth not
+     having. */
+  .filter((x) => {
+    const safe = /^[a-z0-9@._+-]+$/.test(x);
+    if (!safe) console.error(`[db] ignoring unsafe EXCLUDED_PEOPLE entry: ${JSON.stringify(x)}`);
+    return safe;
+  });
+
+// Appended to any query that groups or counts by person. Empty when nobody is
+// excluded, so the SQL is unchanged in that case.
+/* Some people we need to exclude were here before we recorded an email, so
+   there is nothing stable to match on but the name they gave. EXCLUDED_NAMES
+   handles those, matched exactly and case-insensitively.
+
+   A blunter instrument than an email, deliberately kept separate from it: a
+   real person who happens to share the name would be hidden from every metric
+   without anyone noticing. Use it for the handful of internal accounts that
+   have no better identifier, prefer EXCLUDED_PEOPLE whenever an email exists,
+   and the count is logged at boot so this cannot quietly grow. */
+const EXCLUDED_NAMES = String(process.env.EXCLUDED_NAMES || '')
+  .split(',').map((x) => x.trim().toLowerCase()).filter(Boolean)
+  .filter((x) => {
+    const safe = /^[a-z0-9 .'-]+$/.test(x);
+    if (!safe) console.error(`[db] ignoring unsafe EXCLUDED_NAMES entry: ${JSON.stringify(x)}`);
+    return safe;
+  });
+
+/* A person is excluded if ANY of their rows carries an excluded name, because
+   the website row and the WhatsApp row are the same human. */
+const nameClause = (col) => EXCLUDED_NAMES.length
+  ? ` AND ${col} NOT IN (SELECT ${PERSON_KEY} FROM users
+        WHERE LOWER(TRIM(COALESCE(name, ''))) IN (${EXCLUDED_NAMES.map((n) => `'${n}'`).join(', ')}))`
+  : '';
+
+/* The same condition for queries that join users as `u`, where a bare `email`
+   would be ambiguous. */
+const PERSON_KEY_U = `LOWER(COALESCE(NULLIF(u.email, ''), NULLIF(u.phone, ''), u.user_id))`;
+/* The condition, for whichever column holds the person key in a given query.
+   One helper so a new query cannot accidentally filter on emails but not names. */
+function notExcluded(col) {
+  let sql = '';
+  if (EXCLUDED.length) sql += ` AND ${col} NOT IN (${EXCLUDED.map((e) => `'${e}'`).join(', ')})`;
+  sql += nameClause(col);
+  return sql;
+}
+const NOT_EXCLUDED = notExcluded(PERSON_KEY);
+const NOT_EXCLUDED_U = notExcluded(PERSON_KEY_U);
+
+if (EXCLUDED.length || EXCLUDED_NAMES.length) {
+  console.log(`[db] excluding ${EXCLUDED.length} identifier(s) and ${EXCLUDED_NAMES.length} name(s) from metrics and the reader`);
+}
+
 // North-star + usage aggregates for /api/metrics/northstar.
 async function getMetrics() {
   if (!enabled) return null;
@@ -1059,10 +1131,10 @@ async function getMetrics() {
                   arrived, not the last time a duplicate row was written. */
                SELECT SUM(GREATEST(0, (now()::date - first_signup::date)))
                FROM (SELECT ${PERSON_KEY} AS person, MIN(signup_date) AS first_signup
-                     FROM users GROUP BY 1) people
+                     FROM users WHERE true${NOT_EXCLUDED} GROUP BY 1) people
              ), 0)::int AS cumulative_days,
              COUNT(DISTINCT ${PERSON_KEY}) FILTER (WHERE last_active > now() - interval '7 days')::int AS active_last_7d
-      FROM users`),
+      FROM users WHERE true${NOT_EXCLUDED}`),
     pool.query(`
       /* Same double count, quieter: activity_days is keyed by user_id, so one
          person turning up on one day under two mirrored ids counted twice. A
@@ -1071,10 +1143,11 @@ async function getMetrics() {
              COUNT(DISTINCT LOWER(COALESCE(NULLIF(u.email, ''), NULLIF(u.phone, ''), u.user_id)))::int AS users_who_chatted,
              COALESCE(SUM(a.messages), 0)::int AS total_messages
       FROM activity_days a
-      JOIN users u ON u.user_id = a.user_id`),
+      JOIN users u ON u.user_id = a.user_id
+      WHERE true${NOT_EXCLUDED_U}`),
     pool.query(`
       SELECT signup_date::date AS day, COUNT(DISTINCT ${PERSON_KEY})::int AS n
-      FROM users GROUP BY 1 ORDER BY 1`),
+      FROM users WHERE true${NOT_EXCLUDED} GROUP BY 1 ORDER BY 1`),
   ]);
   /* ── What actually happened in the last 7 days ──────────────────────────
      Everything above is cumulative, which is exactly the complaint: a total
@@ -1087,16 +1160,16 @@ async function getMetrics() {
       (SELECT COUNT(*)::int FROM (
          SELECT DISTINCT LOWER(COALESCE(NULLIF(u.email, ''), NULLIF(u.phone, ''), u.user_id)) AS person, a.day
          FROM activity_days a JOIN users u ON u.user_id = a.user_id
-         WHERE a.day > now()::date - 7) d)                              AS active_days_7d,
+         WHERE true${NOT_EXCLUDED_U} AND a.day > now()::date - 7) d)                              AS active_days_7d,
       (SELECT COUNT(DISTINCT LOWER(COALESCE(NULLIF(u.email, ''), NULLIF(u.phone, ''), u.user_id)))::int
          FROM activity_days a JOIN users u ON u.user_id = a.user_id
-         WHERE a.day > now()::date - 7)                                 AS people_who_showed_7d,
+         WHERE true${NOT_EXCLUDED_U} AND a.day > now()::date - 7)                                 AS people_who_showed_7d,
       (SELECT COALESCE(SUM(a.messages), 0)::int
          FROM activity_days a JOIN users u ON u.user_id = a.user_id
-         WHERE a.day > now()::date - 7)                                 AS messages_7d,
+         WHERE true${NOT_EXCLUDED_U} AND a.day > now()::date - 7)                                 AS messages_7d,
       (SELECT COUNT(*)::int FROM (
          SELECT ${PERSON_KEY} AS person, MIN(signup_date) AS first_signup
-         FROM users GROUP BY 1) p
+         FROM users WHERE true${NOT_EXCLUDED} GROUP BY 1) p
        WHERE p.first_signup > now() - interval '7 days')                AS signups_7d`);
 
   const signupsByDay = {};
@@ -1132,6 +1205,7 @@ async function getBreakdowns() {
     pool.query(`
       SELECT trim(p) AS k, COUNT(DISTINCT ${PERSON_KEY})::int AS n
       FROM users, unnest(string_to_array(NULLIF(program, ''), ',')) AS p
+      WHERE true${NOT_EXCLUDED}
       GROUP BY 1 ORDER BY n DESC, 1`),
     /* One value per person. Their rows can disagree, because the website row is
        written at signup and the WhatsApp one later, so the most complete answer
@@ -1139,7 +1213,7 @@ async function getBreakdowns() {
     pool.query(`
       SELECT COALESCE(NULLIF(stage, ''), 'unknown') AS k, COUNT(*)::int AS n
       FROM (SELECT ${PERSON_KEY} AS person, MAX(NULLIF(stage, '')) AS stage
-            FROM users GROUP BY 1) p
+            FROM users WHERE true${NOT_EXCLUDED} GROUP BY 1) p
       GROUP BY 1 ORDER BY n DESC`),
     /* Access is ranked, not picked at random: somebody holding a Beta row and a
        Paid row is a paying customer. Reading it any other way would undercount
@@ -1153,7 +1227,7 @@ async function getBreakdowns() {
                                     WHEN 'Beta'   THEN 1 ELSE 0 END)
                  WHEN 3 THEN 'Paid' WHEN 2 THEN 'Unpaid'
                  WHEN 1 THEN 'Beta' ELSE 'unknown' END AS access
-        FROM users GROUP BY 1
+        FROM users WHERE true${NOT_EXCLUDED} GROUP BY 1
       ) p
       GROUP BY 1 ORDER BY n DESC`),
     /* Channel is the one breakdown that SHOULD sum to more than the headcount:
@@ -1168,7 +1242,7 @@ async function getBreakdowns() {
                  WHEN user_id LIKE 'web-%'  THEN 'Web chat only'
                  ELSE 'Other'
                END AS k
-        FROM users
+        FROM users WHERE true${NOT_EXCLUDED}
       ) c GROUP BY 1 ORDER BY n DESC`),
     pool.query(`
       SELECT day::text AS k, SUM(messages)::int AS n
@@ -1180,7 +1254,7 @@ async function getBreakdowns() {
     pool.query(`
       SELECT COALESCE(source, 'Unknown') AS k, COUNT(*)::int AS n
       FROM (SELECT ${PERSON_KEY} AS person, MAX(NULLIF(acquired_from, '')) AS source
-            FROM users GROUP BY 1) p
+            FROM users WHERE true${NOT_EXCLUDED} GROUP BY 1) p
       GROUP BY 1 ORDER BY n DESC, 1`),
   ]);
   const toObj = (rows) => Object.fromEntries(rows.map((r) => [r.k, r.n]));
@@ -1403,7 +1477,7 @@ async function phonesByPerson() {
   if (!enabled) return [];
   const r = await pool.query(
     `SELECT ${PERSON_KEY} AS person, MAX(NULLIF(phone, '')) AS phone
-       FROM users GROUP BY 1`
+       FROM users WHERE true${NOT_EXCLUDED} GROUP BY 1`
   );
   return r.rows.filter((x) => x.phone);
 }
@@ -1429,37 +1503,37 @@ async function getWeekOverWeek() {
     SELECT
       /* new people */
       (SELECT COUNT(*)::int FROM (
-         SELECT ${PERSON_KEY} AS p, MIN(signup_date) AS f FROM users GROUP BY 1) s, win
+         SELECT ${PERSON_KEY} AS p, MIN(signup_date) AS f FROM users WHERE true${NOT_EXCLUDED} GROUP BY 1) s, win
        WHERE s.f::date > win.this_start)                                    AS signups_now,
       (SELECT COUNT(*)::int FROM (
-         SELECT ${PERSON_KEY} AS p, MIN(signup_date) AS f FROM users GROUP BY 1) s, win
+         SELECT ${PERSON_KEY} AS p, MIN(signup_date) AS f FROM users WHERE true${NOT_EXCLUDED} GROUP BY 1) s, win
        WHERE s.f::date > win.prev_start AND s.f::date <= win.this_start)     AS signups_prev,
 
       /* people who actually turned up */
       (SELECT COUNT(DISTINCT ${person})::int FROM activity_days a
          JOIN users u ON u.user_id = a.user_id, win
-       WHERE a.day > win.this_start)                                        AS people_now,
+       WHERE true${NOT_EXCLUDED_U} AND a.day > win.this_start)                                        AS people_now,
       (SELECT COUNT(DISTINCT ${person})::int FROM activity_days a
          JOIN users u ON u.user_id = a.user_id, win
-       WHERE a.day > win.prev_start AND a.day <= win.this_start)            AS people_prev,
+       WHERE true${NOT_EXCLUDED_U} AND a.day > win.prev_start AND a.day <= win.this_start)            AS people_prev,
 
       /* days somebody showed up, the north-star input */
       (SELECT COUNT(*)::int FROM (
          SELECT DISTINCT ${person} AS p, a.day FROM activity_days a
            JOIN users u ON u.user_id = a.user_id, win
-         WHERE a.day > win.this_start) d)                                   AS days_now,
+         WHERE true${NOT_EXCLUDED_U} AND a.day > win.this_start) d)                                   AS days_now,
       (SELECT COUNT(*)::int FROM (
          SELECT DISTINCT ${person} AS p, a.day FROM activity_days a
            JOIN users u ON u.user_id = a.user_id, win
-         WHERE a.day > win.prev_start AND a.day <= win.this_start) d)       AS days_prev,
+         WHERE true${NOT_EXCLUDED_U} AND a.day > win.prev_start AND a.day <= win.this_start) d)       AS days_prev,
 
       /* messages */
       (SELECT COALESCE(SUM(a.messages), 0)::int FROM activity_days a
          JOIN users u ON u.user_id = a.user_id, win
-       WHERE a.day > win.this_start)                                        AS messages_now,
+       WHERE true${NOT_EXCLUDED_U} AND a.day > win.this_start)                                        AS messages_now,
       (SELECT COALESCE(SUM(a.messages), 0)::int FROM activity_days a
          JOIN users u ON u.user_id = a.user_id, win
-       WHERE a.day > win.prev_start AND a.day <= win.this_start)            AS messages_prev
+       WHERE true${NOT_EXCLUDED_U} AND a.day > win.prev_start AND a.day <= win.this_start)            AS messages_prev
   `);
   return r.rows[0];
 }
@@ -1521,6 +1595,7 @@ async function listConversations(limit = 200) {
             MIN(m.first_at) AS first_at,
             MAX(m.last_at)  AS last_at
      FROM u LEFT JOIN m ON m.user_id = u.user_id
+     WHERE true${notExcluded('u.person')}
      GROUP BY u.person
      HAVING COALESCE(SUM(m.n), 0) > 0
      ORDER BY MAX(m.last_at) DESC NULLS LAST
@@ -1538,7 +1613,7 @@ async function getFullThread(person) {
   const r = await pool.query(
     `SELECT role, content, created_at, medium
      FROM messages
-     WHERE user_id IN (SELECT user_id FROM users WHERE ${PERSON_KEY} = $1)
+     WHERE user_id IN (SELECT user_id FROM users WHERE ${PERSON_KEY} = $1${NOT_EXCLUDED})
      ORDER BY created_at ASC, id ASC`,
     [person]
   );
