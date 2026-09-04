@@ -2562,9 +2562,14 @@ function toggleVoice() {
 }
 </script>
 <!-- Audos SDK (metrics/contacts/conversions — task 86ajcxgdg). NOT on the chat surface (see index.html note). -->
-<script>
-  (window._audosQueue = window._audosQueue || []).push(['init', { apiKey: 'ak_live_ec8590555d89b8d9028a284a6ea1f8e77c143edcfc2cae641b2f4570d54a320c', autoTrack: true }]);
-</script>
+<!-- STARTED ONCE, VIA THE SCRIPT TAG BELOW ONLY. There used to be a
+     _audosQueue init push here as well, and the SDK runs both: it drains the
+     queue, then calls autoInitFromDataAttributes(), so init() ran twice in the
+     same tick. Its pixel guard is `else if (!pixelLoaded)`, and pixelLoaded is
+     only set once the /api/sdk/pixel fetch RESOLVES, so both calls passed the
+     check and the request fired twice. Replay caught it 4 Sep. Their PageView
+     guard handles re-init properly; the pixel one does not. Do not add a second
+     init back. -->
 <script src="https://audos.com/sdk/audos.js" data-api-key="ak_live_ec8590555d89b8d9028a284a6ea1f8e77c143edcfc2cae641b2f4570d54a320c" data-auto-track="true"></script>
 </body>
 </html>
