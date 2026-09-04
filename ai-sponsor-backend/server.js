@@ -11,6 +11,7 @@ const alerts = require('./alerts'); // Slack alerts → #ai-sponsor-updates
 const metacapi = require('./metacapi'); // real payments → Meta Conversions API
 const ga4 = require('./ga4');           // real payments → GA4 Measurement Protocol
 const viewer = require('./viewer'); // admin-only conversation viewer at /admin
+const phonerules = require('./phonerules'); // is this a real number in that country
 const trialnotice = require('./trialnotice'); // the "your trial ends" WhatsApp notice
 
 // WhatsApp (Twilio) module is loaded ONLY when Twilio is configured. Its SDK
@@ -1738,6 +1739,28 @@ app.post('/api/sponsor-settings', async (req, res) => {
 app.post('/register', async (req, res) => {
   try {
     const b = req.body || {};
+
+    /* Check the number BEFORE anything is written anywhere. On this product the
+       phone number is the person: it is how their sponsor reaches them, so a
+       wrong one does not fail politely, it sends somebody's name and programme
+       to a stranger's handset. The registration page checks this too, but a
+       check that only runs in a browser is a hint rather than a rule, and this
+       endpoint had none at all.
+
+       Only rejects when we are confident: countries missing from the table in
+       phonerules.js keep the plain E.164 bound. */
+    if (b.phone) {
+      const verdict = phonerules.checkPhone(b.phone, b.phoneCC || '');
+      if (!verdict.ok) {
+        console.warn(`[register] rejected phone: ${verdict.reason} (cc=${b.phoneCC || '?'}, got ${verdict.got} digits)`);
+        return res.status(400).json({
+          error: 'phone_invalid',
+          reason: verdict.reason,
+          expected: verdict.expected,
+          got: verdict.got,
+        });
+      }
+    }
 
     /* GHL is the CRM copy, not the record of truth, and it must not be able to
        take our own store down with it. This used to be the first awaited call in

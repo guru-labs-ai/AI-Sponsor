@@ -1396,7 +1396,30 @@ function validate(n){
       const cc=phoneCC();
       const national=phoneNational(phone,cc);
       const junk=/^(\d)\1+$/.test(national) || '01234567890123'.includes(national) || '09876543210987'.includes(national);
-      const invalid = national.length<6 || (cc.length+national.length)>15 || junk;
+
+      /* The length has to match the country they actually picked. The old check
+         asked only for 6 to 15 digits, which is the outer bound of E.164 and
+         almost nothing else: choose +1 and type seven digits and it let you
+         straight through, when every North American number is exactly ten. */
+      const lens = phoneExpectedLengths(cc);
+      const tooLong = (cc.length+national.length) > 15;
+      const wrongLength = lens ? !lens.includes(national.length) : national.length < 6;
+      const invalid = junk || tooLong || wrongLength;
+
+      /* Say what is actually wrong. "That doesn't look right" teaches nobody
+         anything; the number of digits their country needs does. */
+      if(invalid){
+        let msg;
+        if(junk) msg = "That doesn't look like a real number. Please enter the one WhatsApp is on.";
+        else if(tooLong) msg = 'That is too long for a +'+cc+' number.';
+        else if(lens && national.length){
+          const want = lens.length>1 ? lens.slice(0,-1).join(', ')+' or '+lens[lens.length-1] : lens[0];
+          msg = 'A +'+cc+' number is '+want+' digits. You entered '+national.length+'.';
+        }
+        else msg = "Please check that number — it doesn't look complete";
+        ePhone.textContent = msg;
+      }
+
       phoneWrap.classList.toggle('bad',invalid);
       ePhone.classList.toggle('show',invalid);
       if(invalid)return false;
@@ -1673,6 +1696,34 @@ function selStyle(el, val){
    a leading zero the way some European landlines do.
    One definition, used by the validator, the collector and the echo below, so
    the number we check is always the number we store and the number we show. */
+
+/* ─── How long a number is, in the country they picked ───────────────────────
+   MIRROR OF ai-sponsor-backend/phonerules.js. That file is the source of
+   truth and the server enforces it too, because a check that only runs in a
+   browser is a hint, not a rule. test-phonerules.js compares the two tables
+   and fails if they ever drift apart.
+
+   Only countries we are confident about are listed. Anything absent keeps the
+   plain E.164 bound: letting a wrong number through is bad, but blocking
+   somebody with a good number because we guessed at a country we have no data
+   for is worse, and they would never tell us. */
+const PHONE_NATIONAL_LENGTHS = {
+  1:[10], 7:[10], 20:[10], 27:[9], 30:[10], 31:[9], 32:[8,9], 33:[9], 34:[9],
+  36:[8,9], 39:[6,7,8,9,10,11], 40:[9], 41:[9], 44:[9,10], 45:[8], 46:[7,8,9],
+  47:[8], 48:[9], 49:[6,7,8,9,10,11], 51:[9], 52:[10], 54:[10], 55:[10,11],
+  56:[9], 57:[10], 60:[9,10], 61:[9], 62:[9,10,11,12], 63:[10], 64:[8,9],
+  65:[8], 81:[10], 82:[9,10], 86:[11], 90:[10], 91:[10], 92:[10], 234:[10],
+  254:[9], 351:[9], 353:[7,8,9], 356:[8], 357:[8], 370:[8], 371:[8], 372:[7,8],
+  380:[9], 420:[9], 421:[9], 880:[10], 971:[9], 972:[9]
+};
+function phoneExpectedLengths(cc){
+  const code = String(cc || '').replace(/\D/g,'');
+  if (PHONE_NATIONAL_LENGTHS[code]) return PHONE_NATIONAL_LENGTHS[code];
+  // +1246, +1876 and the rest of the NANP islands: four-digit code, seven after.
+  if (code.length === 4 && code[0] === '1') return [7];
+  return null;
+}
+
 function phoneNational(digits, cc){
   let n = String(digits || '').replace(/\D/g, '').replace(/^00/, '').replace(/^0/, '');
   if (n.startsWith(cc) && n.length > cc.length + 6) n = n.slice(cc.length).replace(/^0/, '');
@@ -1769,6 +1820,9 @@ async function registerUser(paymentStatus) {
     name:        D.name         || '',
     email:       D.email        || '',
     phone:       D.phone        || '',
+    // So the server can apply the same length rule instead of guessing
+    // between +1 and +1876. See ai-sponsor-backend/phonerules.js.
+    phoneCC:     D.phoneCC      || '',
     program:     programList().join(', '),
     otherProgram: D.otherProgram || '',
     stage:       D.stage        || '',
