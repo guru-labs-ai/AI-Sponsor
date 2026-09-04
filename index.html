@@ -562,6 +562,61 @@
     .pricing-amends-link { position:absolute; top:16px; right:20px; font-size:12px; font-weight:600; color:#d97706; text-decoration:none; display:flex; align-items:center; gap:5px; transition:color .2s; }
     .pricing-amends-link:hover { color:#b45309; }
 
+
+    /* -- Legal modal ---------------------------------------------------------
+       Privacy and Terms open over the page instead of navigating away from it.
+       Somebody checking what we do with their relapse history should not lose
+       the page they were reading in order to do it.
+
+       The documents themselves are untouched and keep working on their own
+       URLs. That is not a fallback, it is the requirement: a Meta reviewer, a
+       search engine, anybody with JavaScript off, and any direct link all need
+       the real page. This only intercepts an ordinary left click. */
+    .lm-veil {
+      position: fixed; inset: 0; z-index: 200; display: none;
+      background: rgba(11,26,44,.55); backdrop-filter: blur(2px);
+      padding: 20px; overflow-y: auto;
+    }
+    .lm-veil[data-open] { display: flex; align-items: flex-start; justify-content: center; }
+    .lm-box {
+      background: var(--white); border-radius: 18px; width: 100%; max-width: 720px;
+      margin: auto; position: relative; box-shadow: 0 24px 60px rgba(11,26,44,.28);
+      max-height: calc(100vh - 40px); display: flex; flex-direction: column;
+      animation: lm-in .22s cubic-bezier(.22,1,.36,1);
+    }
+    @keyframes lm-in { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: none } }
+    @media (prefers-reduced-motion: reduce) { .lm-box { animation: none } }
+    .lm-head {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+      padding: 26px 26px 14px; border-bottom: 1px solid var(--border); flex: none;
+    }
+    .lm-head h2 { font-size: 26px; line-height: 1.15; margin: 0; }
+    .lm-head .lm-sub { font-size: 13px; color: var(--sub); margin-top: 6px; }
+    .lm-x {
+      flex: none; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--white); color: var(--sub); font-size: 19px; line-height: 1; cursor: pointer;
+    }
+    .lm-x:hover { background: var(--bg); color: var(--text); }
+    .lm-x:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+    .lm-body { overflow-y: auto; padding: 4px 26px 26px; -webkit-overflow-scrolling: touch; }
+    /* The documents' own stylesheet is loaded on demand, so headings and lists
+       read the same here as on the real page. These rules only undo the
+       full-page framing that stylesheet assumes. */
+    .lm-body .legal { max-width: none; margin: 0; padding: 20px 0 0; }
+    .lm-foot {
+      flex: none; padding: 14px 26px 20px; border-top: 1px solid var(--border);
+      font-size: 12.5px; color: var(--sub);
+    }
+    .lm-foot a { color: var(--blue); }
+    @media (max-width: 600px) {
+      .lm-veil { padding: 0; }
+      .lm-box { border-radius: 0; max-height: 100vh; min-height: 100vh; }
+      .lm-head { padding: 20px 18px 12px; }
+      .lm-head h2 { font-size: 22px; }
+      .lm-body { padding: 4px 18px 20px; }
+      .lm-foot { padding: 12px 18px 16px; }
+    }
+
     /* ── PRIVACY ── */
     .privacy-section { background: var(--white); }
     .privacy-grid {
@@ -1353,6 +1408,128 @@
   </nav>
   <p class="footer-disclaimer">AI Sponsor is a private product and is not affiliated with, endorsed by, or connected to Alcoholics Anonymous, Narcotics Anonymous, or any 12-step program or organisation. If you are in crisis, please contact the Crisis Text Line (text HOME to 741741) or call 988.</p>
 </footer>
+
+<!-- Legal modal. Empty on purpose: the content is pulled from /privacy and
+     /terms when it opens, so there is exactly one copy of each document and it
+     can never drift from the page a reviewer or a court would read. -->
+<div class="lm-veil" id="lm" role="dialog" aria-modal="true" aria-labelledby="lm-title" hidden>
+  <div class="lm-box">
+    <div class="lm-head">
+      <div>
+        <h2 id="lm-title">Loading</h2>
+        <div class="lm-sub" id="lm-sub"></div>
+      </div>
+      <button class="lm-x" id="lm-x" aria-label="Close">&#10005;</button>
+    </div>
+    <div class="lm-body" id="lm-body"></div>
+    <div class="lm-foot" id="lm-foot"></div>
+  </div>
+</div>
+
+<script>
+/* Open Privacy and Terms over the page rather than navigating away.
+
+   Deliberately narrow: only a plain left click is intercepted. Middle click,
+   ctrl or cmd click, and "open in new tab" all still get the real page, and so
+   does anybody with JavaScript off, because these are ordinary links to real
+   URLs and stay that way. If the fetch fails for any reason we let the browser
+   follow the link, which is exactly the behaviour we had before. */
+(function () {
+  var veil = document.getElementById('lm');
+  var box = veil.querySelector('.lm-box');
+  var title = document.getElementById('lm-title');
+  var sub = document.getElementById('lm-sub');
+  var body = document.getElementById('lm-body');
+  var foot = document.getElementById('lm-foot');
+  var xBtn = document.getElementById('lm-x');
+
+  var cache = {};
+  var lastFocus = null;
+  var cssLoaded = false;
+
+  /* The documents' own stylesheet, pulled the first time one is opened rather
+     than on every page load, so the landing page stays as light as it is. */
+  function ensureCss() {
+    if (cssLoaded) return;
+    cssLoaded = true;
+    var l = document.createElement('link');
+    l.rel = 'stylesheet';
+    l.href = '/legal.css';
+    document.head.appendChild(l);
+  }
+
+  function close() {
+    veil.removeAttribute('data-open');
+    veil.hidden = true;
+    document.body.style.overflow = '';
+    if (lastFocus) { try { lastFocus.focus(); } catch (e) {} }
+  }
+
+  function open(path, label) {
+    ensureCss();
+    lastFocus = document.activeElement;
+    title.textContent = label;
+    sub.textContent = '';
+    body.innerHTML = '<p style="color:var(--sub);padding:24px 0">Loading…</p>';
+    foot.innerHTML = '<a href="' + path + '">Open the full page</a>';
+    veil.hidden = false;
+    veil.setAttribute('data-open', '');
+    document.body.style.overflow = 'hidden';
+    box.scrollTop = 0;
+    xBtn.focus();
+
+    var done = function (d) {
+      title.textContent = d.heading.trim();
+      sub.textContent = d.sub.trim();
+      body.innerHTML = d.html;
+      body.scrollTop = 0;
+    };
+
+    if (cache[path]) { done(cache[path]); return; }
+
+    fetch(path, { credentials: 'same-origin' })
+      .then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.text();
+      })
+      .then(function (html) {
+        var doc = new DOMParser().parseFromString(html, 'text/html');
+        var main = doc.querySelector('main.legal');
+        if (!main) throw new Error('no content');
+        var h1 = doc.querySelector('.legal-hero h1');
+        var sb = doc.querySelector('.legal-hero .sub');
+        cache[path] = {
+          html: main.outerHTML,
+          heading: h1 ? h1.textContent : label,
+          sub: sb ? sb.textContent : ''
+        };
+        done(cache[path]);
+      })
+      .catch(function () {
+        /* Never leave somebody stuck in a broken box while they are looking for
+           a privacy policy. Send them to the real page instead. */
+        close();
+        window.location.href = path;
+      });
+  }
+
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href="/privacy"], a[href="/terms"]') : null;
+    if (!a) return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault();
+    var path = a.getAttribute('href');
+    open(path, path === '/terms' ? 'Terms of Service' : 'Privacy Policy');
+  });
+
+  xBtn.addEventListener('click', close);
+  veil.addEventListener('click', function (e) { if (e.target === veil) close(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !veil.hidden) close();
+  });
+})();
+</script>
+
 <div style="background:#060E1A;text-align:center;padding:16px 24px;border-top:1px solid rgba(255,255,255,.06);">
   <p style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:6px;">Questions? <a href="#support" style="color:rgba(255,255,255,.4);text-decoration:underline;">Get in touch</a></p>
   <p style="font-size:12px;color:rgba(255,255,255,.25);">© 2026 Conscious LLC. All rights reserved.</p>
