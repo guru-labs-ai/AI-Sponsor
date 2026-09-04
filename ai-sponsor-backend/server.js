@@ -1741,6 +1741,17 @@ app.post('/api/sponsor-settings', async (req, res) => {
   // the same allow-list as everywhere else.
   const sponsorName = String(b.sponsorName || '').trim().slice(0, 30);
   const sponsorVoice = voices.VOICES.includes(b.sponsorVoice) ? b.sponsorVoice : '';
+
+  /* Sent the field, but emptied it. That is somebody asking us to unname their
+     sponsor, which is not a state this product has, so it is refused out loud.
+     It used to fall through: the patch below simply skipped the empty name, the
+     response came back success, and the page showed a green banner for a change
+     that never happened. Refusing to save something and reporting success is
+     the worst of both. An ABSENT field still means "not changing the name". */
+  if ('sponsorName' in b && !sponsorName) {
+    return res.status(400).json({ error: 'Your sponsor needs a name.' });
+  }
+
   if (!sponsorName && !sponsorVoice) {
     return res.status(400).json({ error: 'Nothing to change' });
   }

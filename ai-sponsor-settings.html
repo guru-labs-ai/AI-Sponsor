@@ -689,7 +689,13 @@ function selVoice(el, val){
 async function saveSponsor(){
   const btn = $('btn-save'), name = $('f-name').value.trim();
   clearFlash('errSponsor','okSponsor');
-  if(!name && !selectedVoice) return flash('errSponsor', 'Pick a name or a voice first.');
+  /* Bilal, 4 Sep: clearing the name and saving showed a green success banner
+     while nothing was saved, and the old name came back on reload. The guard
+     only fired when BOTH were empty, and a voice is always selected, so an
+     empty name sailed through. The server refuses it correctly; the lie was the
+     banner. A sponsor with no name is not a state this product has. */
+  if(!name) return flash('errSponsor', 'Your sponsor needs a name.');
+  if(!selectedVoice) return flash('errSponsor', 'Pick a voice first.');
   btn.disabled = true; btn.textContent = 'Saving…';
   try{
     const r = await api('/api/sponsor-settings', { sponsorName: name, sponsorVoice: selectedVoice });
