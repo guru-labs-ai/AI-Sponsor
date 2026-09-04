@@ -1390,6 +1390,24 @@ async function usersDueForWeekly(weekStart, weekEnd, limit = 25) {
   return r.rows.map((x) => ({ userId: x.user_id, phone: x.phone || '' }));
 }
 
+/* ─── Where everybody is ─────────────────────────────────────────────────────
+   Matt: "lets add also country to this also from the phone number prefix and
+   state in the USA also based on their phone number that will be a super
+   interesting metric to track as well."
+
+   One phone per PERSON, not per row, or somebody holding a website row and a
+   WhatsApp row counts twice and the map is wrong by the same 22 people the
+   access split was wrong by. The number itself never leaves the server: the
+   caller turns it into a country and a state and only those are published. */
+async function phonesByPerson() {
+  if (!enabled) return [];
+  const r = await pool.query(
+    `SELECT ${PERSON_KEY} AS person, MAX(NULLIF(phone, '')) AS phone
+       FROM users GROUP BY 1`
+  );
+  return r.rows.filter((x) => x.phone);
+}
+
 /* ─── Week on week ───────────────────────────────────────────────────────────
    Matt: "does it have a WoW % increase across all the metrics we're tracking
    which i think for sure we should be doing".
@@ -1528,7 +1546,7 @@ async function getFullThread(person) {
 }
 
 module.exports = {
-  listConversations, getFullThread, getWeekOverWeek, getCollected,
+  listConversations, getFullThread, getWeekOverWeek, getCollected, phonesByPerson,
   getLastMessageAt,
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
   // Exported so the Slack alerts label a signup's source with the SAME rule the

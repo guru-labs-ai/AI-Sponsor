@@ -35,7 +35,7 @@ const inWindow = (phone, now) => {
 (async () => {
   group('our actual people resolve to the right place');
   check('California',   tz.zoneForPhone('+16614771953'), 'America/Los_Angeles');
-  check('Alberta',      tz.zoneForPhone('+14033709482'), 'America/Denver');
+  check('Alberta',      tz.zoneForPhone('+14033709482'), 'America/Edmonton');
   check('Alabama',      tz.zoneForPhone('+12519783239'), 'America/Chicago');
   check('Michigan',     tz.zoneForPhone('+12484168866'), 'America/New_York');
   check('UK',           tz.zoneForPhone('+447947747253'), 'Europe/London');

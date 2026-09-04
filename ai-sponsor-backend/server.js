@@ -12,6 +12,7 @@ const metacapi = require('./metacapi'); // real payments → Meta Conversions AP
 const ga4 = require('./ga4');           // real payments → GA4 Measurement Protocol
 const viewer = require('./viewer'); // admin-only conversation viewer at /admin
 const phonerules = require('./phonerules'); // is this a real number in that country
+const countries = require('./countries'); // phone prefix -> country and US state
 const trialnotice = require('./trialnotice'); // the "your trial ends" WhatsApp notice
 
 // WhatsApp (Twilio) module is loaded ONLY when Twilio is configured. Its SDK
@@ -1134,7 +1135,7 @@ app.get('/api/metrics/northstar', async (req, res) => {
     return res.json(metricsCache.data);
   }
   try {
-    const [contacts, subs, usage, breakdowns, wow, collected] = await Promise.all([
+    const [contacts, subs, usage, breakdowns, wow, collected, phones] = await Promise.all([
       ghl.listSponsorContacts(),
       stripeModule.listSponsorSubscriptions().catch((e) => {
         console.error('[Metrics] Stripe list failed:', e.message);
@@ -1156,7 +1157,31 @@ app.get('/api/metrics/northstar', async (req, res) => {
         console.error('[Metrics] DB collected failed:', e.message);
         return null;
       }),
+      db.phonesByPerson().catch((e) => {
+        console.error('[Metrics] DB phones failed:', e.message);
+        return [];
+      }),
     ]);
+
+    /* Country and US state, worked out from the dialling code. Matt asked for
+       both. The phone numbers themselves stay on the server; only the counts
+       leave here.
+
+       An area code is where a number was ISSUED, not where somebody is sitting.
+       People keep their number when they move, so this is honest about a
+       population and misleading about any individual, which is why the labels
+       below say "numbers from". Anyone we cannot place is counted as Unknown
+       rather than quietly dropped, so the totals still add up to the headcount. */
+    const byCountry = {};
+    const byState = {};
+    phones.forEach(({ phone }) => {
+      const at = countries.place(phone);
+      const c = at.country || 'Unknown';
+      byCountry[c] = (byCountry[c] || 0) + 1;
+      if (at.state) byState[at.state] = (byState[at.state] || 0) + 1;
+    });
+    const sortDesc = (o) => Object.fromEntries(
+      Object.entries(o).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])));
 
     const now = Date.now();
     const signupsByDay = {};
@@ -1316,7 +1341,9 @@ app.get('/api/metrics/northstar', async (req, res) => {
       })(),
       // Who they are / what they're doing. Aggregates only — no names, emails
       // or message content ever leave the DB.
-      breakdowns,
+      breakdowns: breakdowns
+        ? { ...breakdowns, byCountry: sortDesc(byCountry), byState: sortDesc(byState) }
+        : breakdowns,
       dataNotes: dbFirst
         ? [
             'Counts only people who actually signed up — every sign-up date here is real.',

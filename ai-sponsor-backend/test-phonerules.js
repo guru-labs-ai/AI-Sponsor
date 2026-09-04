@@ -55,12 +55,18 @@ const ok = (digits, cc) => pr.checkPhone(digits, cc).ok;
   check('UK typed with the trunk 0',     ok('07947747253', '44'), true);
   check('UK typed in full',              ok('447947747253', '44'), true);
 
-  group('a country we have no data for stays permissive');
-  // 998 (Uzbekistan) is deliberately absent from the table.
-  check('9 digits is accepted', ok('901234567', '998'), true);
-  check('but 3 digits is not',  ok('123', '998'), false);
+  group('a country whose lengths nobody has checked stays permissive');
+  /* Austria is in countries.js with a name and a timezone but lengths left
+     null, which is the honest state for a country nobody has verified. Null
+     means "do not enforce", so only the E.164 bound applies. */
+  // Not sequential runs: those are correctly rejected as made up, whatever the country.
+  check('7 digits is accepted',  ok('6619473', '43'), true);
+  check('11 digits is accepted', ok('66194738206', '43'), true);
+  check('but 3 digits is not',   ok('619', '43'), false);
   check('and E.164 still caps the total',
-    ok('12345678901234567', '998'), false);
+    ok('12345678901234567', '43'), false);
+  check('a country not in the table at all is unplaceable',
+    ok('901234567', '999'), true);
 
   group('the NANP islands have a four digit code and seven after');
   check('Barbados, 7 digits', ok('2501234', '1246'), true);

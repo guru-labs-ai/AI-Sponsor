@@ -489,7 +489,7 @@ async function runSweep({ limit = 25, whatsapp = null, week = null, ignoreWindow
   });
 
   const out = { week: w, considered: due.length, created: 0, skipped: 0, failed: 0,
-                delivered: 0, waiting: 0, notDelivered: {} };
+                delivered: 0, waiting: 0, unplaceable: [], notDelivered: {} };
 
   for (const { userId, phone } of due) {
     /* Wait for their own Sunday morning. This runs hourly, so Sydney is
@@ -497,7 +497,16 @@ async function runSweep({ limit = 25, whatsapp = null, week = null, ignoreWindow
        from the same schedule. Anyone we cannot place is held rather than
        guessed at: a confident 6am message about somebody's recovery week is
        worse than a late one. */
-    if (!ignoreWindow && !insideTheirWindow(phone)) { out.waiting++; continue; }
+    if (!ignoreWindow && !insideTheirWindow(phone)) {
+      out.waiting++;
+      /* Two very different reasons to skip somebody, and only one of them
+         resolves on its own. Not their morning yet is fine, a later run gets
+         them. Cannot place them at all means they will be skipped every run
+         forever, which is what happened to Bilal on a +92 number, so it is
+         named rather than counted. */
+      if (!tz.zoneForPhone(phone)) out.unplaceable.push(userId);
+      continue;
+    }
 
     const r = await ensureWeeklySummary(userId, { week: w });
     if (r.status === 'created') {
@@ -507,6 +516,12 @@ async function runSweep({ limit = 25, whatsapp = null, week = null, ignoreWindow
       else out.notDelivered[d.reason] = (out.notDelivered[d.reason] || 0) + 1;
     } else if (r.status === 'failed') out.failed++;
     else out.skipped++;
+  }
+
+  /* Loud on purpose. A permanent hold is a person who never hears from their
+     sponsor again, and it used to be invisible inside a count. */
+  if (out.unplaceable.length) {
+    console.error(`[weekly] CANNOT PLACE ${out.unplaceable.length} user(s), they will be skipped every run until countries.js knows their country: ${out.unplaceable.join(', ')}`);
   }
 
   if (out.created || out.failed) {

@@ -19,60 +19,15 @@
    Lengths are the NATIONAL number, with the country code and any trunk 0
    already stripped.                                                          */
 
-const NATIONAL_LENGTHS = {
-  1: [10],            // US, Canada and the rest of the main NANP block
-  7: [10],            // Russia, Kazakhstan
-  20: [10],           // Egypt
-  27: [9],            // South Africa
-  30: [10],           // Greece
-  31: [9],            // Netherlands
-  32: [8, 9],         // Belgium
-  33: [9],            // France
-  34: [9],            // Spain
-  36: [8, 9],         // Hungary
-  39: [6, 7, 8, 9, 10, 11],  // Italy, genuinely this wide
-  40: [9],            // Romania
-  41: [9],            // Switzerland
-  44: [9, 10],        // UK
-  45: [8],            // Denmark
-  46: [7, 8, 9],      // Sweden
-  47: [8],            // Norway
-  48: [9],            // Poland
-  49: [6, 7, 8, 9, 10, 11],  // Germany, also genuinely this wide
-  51: [9],            // Peru
-  52: [10],           // Mexico
-  54: [10],           // Argentina
-  55: [10, 11],       // Brazil
-  56: [9],            // Chile
-  57: [10],           // Colombia
-  60: [9, 10],        // Malaysia
-  61: [9],            // Australia
-  62: [9, 10, 11, 12],// Indonesia
-  63: [10],           // Philippines
-  64: [8, 9],         // New Zealand
-  65: [8],            // Singapore
-  81: [10],           // Japan
-  82: [9, 10],        // South Korea
-  86: [11],           // China
-  90: [10],           // Turkey
-  91: [10],           // India
-  92: [10],           // Pakistan
-  234: [10],          // Nigeria
-  254: [9],           // Kenya
-  351: [9],           // Portugal
-  353: [7, 8, 9],     // Ireland
-  356: [8],           // Malta
-  357: [8],           // Cyprus
-  370: [8],           // Lithuania
-  371: [8],           // Latvia
-  372: [7, 8],        // Estonia
-  380: [9],           // Ukraine
-  420: [9],           // Czechia
-  421: [9],           // Slovakia
-  880: [10],          // Bangladesh
-  971: [9],           // UAE
-  972: [9],           // Israel
-};
+/* The lengths moved to countries.js on 4 Sep, alongside the country name and
+   its timezone, because they used to be maintained here while the timezone
+   table was maintained separately and the two knew different countries. */
+const countries = require('./countries');
+const NATIONAL_LENGTHS = Object.fromEntries(
+  Object.entries(countries.COUNTRIES)
+    .filter(([, v]) => v[2])
+    .map(([code, v]) => [code, v[2]])
+);
 
 /* Absolute bounds from E.164 itself. These apply to every number, including
    countries missing from the table above. */
@@ -96,8 +51,9 @@ function nationalPart(digits, cc) {
    same ten-digit NANP number. */
 function expectedLengths(cc) {
   const code = String(cc || '').replace(/\D/g, '');
+  if (code === '1') return [10];                       // US, Canada, main NANP
   if (NATIONAL_LENGTHS[code]) return NATIONAL_LENGTHS[code];
-  if (code.length === 4 && code[0] === '1') return [7];
+  if (code.length === 4 && code[0] === '1') return [7]; // the NANP islands
   return null;
 }
 
