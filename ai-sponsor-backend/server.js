@@ -535,6 +535,11 @@ async function maybeUpdateMemory(userId) {
           'close calls, milestones, and recurring struggles. Drop small talk and anything ' +
           'ephemeral. Write terse factual notes, not prose. Merge new facts into the old; ' +
           'if something was updated (a new day count, a relapse), reflect the latest. ' +
+          /* Never its own name. That is a setting the person can change whenever
+             they like, and once it is written in here as a fact it outlives the
+             change and then contradicts it. Bilal renamed his sponsor and the
+             old name came back out of the notes. */
+          'Never record your own name as a fact, whatever you were called in these messages. ' +
           'Keep it under ~250 words. Return ONLY the updated memory, nothing else.',
       }],
       messages: [{
@@ -615,6 +620,32 @@ function buildGettingToKnowBlock(profile, historyLength) {
    What's going on with you today?" as if nothing had happened, because one line
    among eight cannot compete with a system prompt that has strong opinions
    about how to open. Its own block, pushed last, with one instruction in it. */
+/* ── Who you are called, right now ───────────────────────────────────────────
+   Bilal, 4 Sep: he renamed his sponsor to Amir in the dashboard, the
+   confirmation voice note correctly said Amir, and then a text asking "what is
+   your name" came back Alex.
+
+   Nothing was stale in the profile: the settings handler already drops the RAM
+   copy, and the block above correctly said Amir. The old name was coming from
+   the two places a rename cannot reach. Every earlier turn in the history has
+   the sponsor introducing itself as Alex, and the rolling memory digest is
+   built out of those same turns. Faced with one line of profile against dozens
+   of messages, the model went with the messages, which is the reasonable read
+   of the evidence in front of it.
+
+   So the name gets its own block, and it is pushed AFTER the memory rather than
+   before it: whatever the notes say, this is the answer. Cheap, and it means a
+   rename cannot be quietly outvoted by the transcript again. */
+function buildIdentityBlock(profile) {
+  if (!profile || !profile.sponsorName) return '';
+  return [
+    '## YOUR NAME',
+    `You are called ${profile.sponsorName}. That is your name right now, and it is the only one you answer to.`,
+    `If anything earlier in this conversation, or anything in your own notes above, calls you by a different name, they renamed you and that older name is out of date. Do not use it and do not correct them about it.`,
+    `Asked what you are called, the answer is ${profile.sponsorName}.`,
+  ].join('\n');
+}
+
 function buildProgramChangeBlock(profile) {
   if (!profile || !profile.programChangedFrom || !profile.program) return '';
   return [
@@ -905,6 +936,11 @@ async function getSponsorReply(userId, message, context) {
 
   const programChangeBlock = buildProgramChangeBlock(profile);
   if (programChangeBlock) systemBlocks.push({ type: 'text', text: programChangeBlock });
+
+  /* Late on purpose. It has to come after the memory digest and the profile,
+     because it exists to overrule both when somebody has renamed their sponsor. */
+  const identityBlock = buildIdentityBlock(profile);
+  if (identityBlock) systemBlocks.push({ type: 'text', text: identityBlock });
 
   /* Tell it where it is. Without this it insists it "can't hear audio" and
      "can't send voice messages" to people who just sent it a voice note and are
