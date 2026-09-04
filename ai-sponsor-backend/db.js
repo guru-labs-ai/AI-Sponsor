@@ -94,6 +94,16 @@ async function init() {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS beta_expires_at TIMESTAMPTZ;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS memory_digest      TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS memory_digest_upto BIGINT DEFAULT 0;
+
+    /* Was this said out loud or typed? The product has taken voice notes since
+       August and transcribed them straight into the content column, throwing the fact
+       away at the door. So nothing could tell afterwards, not the sponsor and
+       not the dashboard, and Matt asked for exactly that split.
+
+       Deliberately NULL for everything written before this existed. Those rows
+       are unknown, not text, and anything reading this must say so rather than
+       quietly counting months of voice notes as typing. */
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS medium TEXT;
   `);
   // Beta invite codes, server-side so they're not readable in the page source
   // and can be turned off without a deploy (just UPDATE active = false).
@@ -905,11 +915,14 @@ async function appendMessages(userId, msgs) {
   const values = [];
   const params = [];
   msgs.forEach((m, i) => {
-    params.push(userId, m.role, fc.encrypt(String(m.content || '')));
-    values.push(`($${i * 3 + 1}, $${i * 3 + 2}, $${i * 3 + 3})`);
+    // 'voice' or 'text'. Anything else, including undefined, is stored as NULL
+    // so an unknown medium can never be mistaken for a known one.
+    const medium = m.medium === 'voice' || m.medium === 'text' ? m.medium : null;
+    params.push(userId, m.role, fc.encrypt(String(m.content || '')), medium);
+    values.push(`($${i * 4 + 1}, $${i * 4 + 2}, $${i * 4 + 3}, $${i * 4 + 4})`);
   });
   await pool.query(
-    `INSERT INTO messages (user_id, role, content) VALUES ${values.join(',')}`,
+    `INSERT INTO messages (user_id, role, content, medium) VALUES ${values.join(',')}`,
     params
   );
 }
@@ -1505,7 +1518,7 @@ async function listConversations(limit = 200) {
 async function getFullThread(person) {
   if (!enabled || !person) return null;
   const r = await pool.query(
-    `SELECT role, content, created_at
+    `SELECT role, content, created_at, medium
      FROM messages
      WHERE user_id IN (SELECT user_id FROM users WHERE ${PERSON_KEY} = $1)
      ORDER BY created_at ASC, id ASC`,

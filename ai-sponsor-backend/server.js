@@ -1053,9 +1053,13 @@ async function getSponsorReply(userId, message, context) {
   }
 
   updatedHistory.push({ role: 'assistant', content: replyText });
+  /* Whether each side of this was spoken or typed. The context has known it all
+     along in order to steer the reply; it was simply never written down, so
+     nothing could tell afterwards. The two directions are independent: somebody
+     can send a voice note and get text back, or the reverse. */
   persistExchange(userId, updatedHistory, [
-    { role: 'user', content: message },
-    { role: 'assistant', content: replyText },
+    { role: 'user', content: message, medium: context && context.viaVoice ? 'voice' : 'text' },
+    { role: 'assistant', content: replyText, medium: context && context.replyIsSpoken ? 'voice' : 'text' },
   ]);
   maybeUpdateMemory(userId).catch(() => {}); // fire-and-forget; never blocks the reply
 
@@ -2276,9 +2280,10 @@ app.post('/api/chat', async (req, res) => {
 
     // Persist the full exchange (RAM + DB)
     updatedHistory.push({ role: 'assistant', content: fullResponse });
+    // The web chat has no voice on either side, so this is known, not assumed.
     persistExchange(userId, updatedHistory, [
-      { role: 'user', content: message },
-      { role: 'assistant', content: fullResponse },
+      { role: 'user', content: message, medium: 'text' },
+      { role: 'assistant', content: fullResponse, medium: 'text' },
     ]);
     maybeUpdateMemory(userId).catch(() => {}); // fire-and-forget; never blocks the reply
 

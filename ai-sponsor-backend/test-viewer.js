@@ -35,8 +35,12 @@ require.cache[dbPath] = {
         first_at: '2026-08-20T10:00:00Z', last_at: '2026-08-30T10:00:00Z' },
     ]),
     getFullThread: async () => ([
-      { role: 'user', content: 'i had a rough night', created_at: '2026-08-20T10:00:00Z' },
-      { role: 'assistant', content: 'thanks for telling me', created_at: '2026-08-20T10:01:00Z' },
+      // No medium: written before we started recording it.
+      { role: 'user', content: 'i had a rough night', created_at: '2026-08-20T10:00:00Z', medium: null },
+      { role: 'assistant', content: 'thanks for telling me', created_at: '2026-08-20T10:01:00Z', medium: null },
+      { role: 'user', content: 'said out loud', created_at: '2026-08-21T10:00:00Z', medium: 'voice' },
+      { role: 'assistant', content: 'answered out loud', created_at: '2026-08-21T10:01:00Z', medium: 'voice' },
+      { role: 'user', content: 'typed this one', created_at: '2026-08-22T10:00:00Z', medium: 'text' },
     ]),
   },
 };
@@ -125,6 +129,18 @@ const close = (s) => new Promise((r) => s.close(r));
   r = await request(s, '/admin/api/conversations/' + list[0].id, { cookie });
   check('the thread is allowed', r.status, 200);
   check('oldest message first', JSON.parse(r.body).messages[0].content, 'i had a rough night');
+
+  group('spoken and typed are counted, and unknown is never called typed');
+  r = await request(s, '/admin/api/conversations/' + list[0].id, { cookie });
+  const thread = JSON.parse(r.body);
+  check('spoken counted', thread.spoken, 2);
+  check('typed counted', thread.typed, 1);
+  check('older messages are unknown, not typed', thread.unknownMedium, 2);
+  check('and they carry null rather than a made-up value',
+    thread.messages.filter((m) => m.medium === null).length, 2);
+  check('a voice message says so', thread.messages[2].medium, 'voice');
+  check('the counts do not silently include the unknown ones',
+    thread.spoken + thread.typed !== thread.messages.length, true);
 
   group('a forged or expired session is refused');
   check('tampered signature', (await request(s, '/admin/api/conversations',

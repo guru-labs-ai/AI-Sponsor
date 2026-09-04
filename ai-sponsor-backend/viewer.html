@@ -53,6 +53,9 @@ button{font-family:inherit;border:0;cursor:pointer}
 .them{background:var(--them);margin-right:auto;border-bottom-left-radius:5px}
 .sponsor{background:var(--sponsor);margin-left:auto;border-bottom-right-radius:5px}
 .when{font-size:11px;color:var(--sub);margin:14px 0 8px;text-align:center}
+/* Said out loud, not typed. A quiet mark rather than a badge: it is context for
+   the person reading, not the point of the message. */
+.mic{font-size:10.5px;color:var(--sub);display:block;margin-bottom:3px;letter-spacing:.02em}
 .empty{color:var(--sub);font-size:14px;padding:20px 0;line-height:1.6}
 </style>
 </head>
@@ -122,13 +125,22 @@ async function showThread(id) {
     const day = new Date(m.at).toDateString();
     const head = day !== last ? (last = day, '<div class="when">' + esc(stamp(m.at)) + '</div>') : '';
     const who = m.role === 'assistant' ? 'sponsor' : 'them';
-    return head + '<div class="msg ' + who + '">' + esc(m.content) + '</div>';
+    /* Only marked when we actually know. Everything logged before 4 Sep has no
+       medium recorded, and showing those as typed would invent an answer. */
+    const mic = m.medium === 'voice'
+      ? '<span class="mic">' + (who === 'sponsor' ? 'voice note' : 'spoken') + '</span>' : '';
+    return head + '<div class="msg ' + who + '">' + mic + esc(m.content) + '</div>';
   }).join('');
 
   app.innerHTML =
     '<button class="back" id="b">← All conversations</button>' +
     '<h1>' + esc(data.name) + '</h1>' +
-    '<p class="sub">' + data.messages.length + ' messages, oldest first.</p>' +
+    '<p class="sub">' + data.messages.length + ' messages, oldest first.' +
+      (data.spoken || data.typed
+        ? ' · ' + data.spoken + ' spoken, ' + data.typed + ' typed' +
+          (data.unknownMedium ? ', ' + data.unknownMedium + ' before this was recorded' : '')
+        : '') +
+    '</p>' +
     (body || '<p class="empty">No messages.</p>');
 
   document.getElementById('b').onclick = showList;

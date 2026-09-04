@@ -160,9 +160,16 @@ router.get('/api/conversations/:id', requireSession, async (req, res) => {
     const thread = await db.getFullThread(match.person);
     res.json({
       name: match.name || 'No name given',
+      /* null for anything written before the medium was recorded. Passed
+         through as null rather than defaulted to 'text', because months of
+         voice notes are sitting in those rows and calling them typing would be
+         a made-up number on a screen somebody makes decisions from. */
       messages: (thread || []).map((m) => ({
-        role: m.role, content: m.content, at: m.created_at,
+        role: m.role, content: m.content, at: m.created_at, medium: m.medium || null,
       })),
+      spoken: (thread || []).filter((m) => m.medium === 'voice').length,
+      typed: (thread || []).filter((m) => m.medium === 'text').length,
+      unknownMedium: (thread || []).filter((m) => !m.medium).length,
     });
   } catch (err) {
     console.error('[viewer] thread failed:', err.message);
