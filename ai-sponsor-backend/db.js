@@ -963,6 +963,27 @@ async function getMemory(userId) {
   return { digest, upto: Number(row.memory_digest_upto) || 0 };
 }
 
+/* ─── A rename has to reach the notes too ────────────────────────────────────
+   Bilal renamed his sponsor, and it kept answering with the old name some of
+   the time. Adding a block that says "your name is X" was not enough on its
+   own, because the stored digest still said the old one in its own words. Two
+   confident statements in the same prompt, and which one wins comes out
+   differently on different samples, which is exactly the "sometimes" he saw.
+
+   So the contradiction is removed rather than argued with. Whole words only, so
+   renaming a sponsor to "Al" cannot turn "always" into "Always" further down
+   the note. Returns whether anything actually changed, for the log. */
+async function renameInMemory(userId, from, to) {
+  if (!enabled || !userId || !from || !to || from === to) return false;
+  const m = await getMemory(userId);
+  if (!m || !m.digest) return false;
+  const escaped = String(from).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`\\b${escaped}\\b`, 'gi');
+  if (!re.test(m.digest)) return false;
+  await saveMemory(userId, m.digest.replace(re, to), m.upto);
+  return true;
+}
+
 async function saveMemory(userId, digest, upto) {
   if (!enabled || !userId) return;
   await pool.query(
@@ -1638,7 +1659,7 @@ module.exports = {
   clearProfileField,
   getOrCreateSettingsToken, resolveSettingsToken,
   linkSubscription, findByStripeCustomer, getUser, setAccess,
-  getMemory, saveMemory, getAgedOutMessages, redeemBetaCode, logAdminAccess,
+  getMemory, saveMemory, renameInMemory, getAgedOutMessages, redeemBetaCode, logAdminAccess,
   getWeekMessages, getWeekActivity, saveWeeklySummary, getWeeklySummary,
   listWeeklySummaries, markWeeklyDelivered, usersDueForWeekly,
 };

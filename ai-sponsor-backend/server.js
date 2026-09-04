@@ -1775,6 +1775,20 @@ app.post('/api/sponsor-settings', async (req, res) => {
     db.recordEvent(userId, 'sponsor_renamed',
       { from: before.sponsorName || null, to: sponsorName }, 'settings-link')
       .catch((e) => console.error('[settings] recordEvent failed:', e.message));
+
+    /* The notes have to be renamed too. Telling the model "you are called X"
+       while its own digest says the old name in its own words leaves two
+       confident statements in one prompt, and which one wins varies from sample
+       to sample. That is the intermittent old name Bilal kept hitting. */
+    if (before.sponsorName) {
+      db.renameInMemory(userId, before.sponsorName, sponsorName)
+        .then((changed) => {
+          if (changed) console.log(`[settings] rewrote ${before.sponsorName} to ${sponsorName} in ${userId}'s memory`);
+        })
+        .catch((e) => console.error('[settings] renameInMemory failed:', e.message));
+    }
+    // The digest is cached in RAM as well, so drop it or the old one is reused.
+    userMemory.delete(userId);
   }
   if (sponsorVoice && sponsorVoice !== before.sponsorVoice) {
     db.recordEvent(userId, 'voice_changed',
@@ -2194,6 +2208,7 @@ app.post('/api/first-message', async (req, res) => {
   }
 
   const userContext = buildUserContextBlock(profile);
+  const identityBlockFirst = buildIdentityBlock(profile);
   const systemBlocks = [
     {
       type: 'text',
@@ -2204,6 +2219,9 @@ app.post('/api/first-message', async (req, res) => {
   if (userContext) {
     systemBlocks.push({ type: 'text', text: userContext });
   }
+  // No history to contradict it here, but this endpoint should not be the one
+  // place that says something different about the sponsor's own name.
+  if (identityBlockFirst) systemBlocks.push({ type: 'text', text: identityBlockFirst });
 
   const firstMessagePrompt = `Generate the sponsor's first message to this person. Use everything from their onboarding. Be warm, personal, present. Address them by name. Reference something specific they shared in "What brought you here." Acknowledge their recovery stage. Name one of their goals. End with a genuine open invitation to start talking. This is not a confirmation message — it is a real human sponsor saying hello for the first time.
 
@@ -2270,6 +2288,13 @@ app.post('/api/chat', async (req, res) => {
   if (memoryBlock) {
     systemBlocks.push({ type: 'text', text: memoryBlock });
   }
+  /* After the memory, for the same reason as the WhatsApp path: this is what
+     overrules a digest or a history still carrying the old name. This endpoint
+     builds its own blocks, which is why the first fix reached WhatsApp and not
+     the website, and Bilal saw it answer correctly out loud and wrongly in
+     text. */
+  const identityBlock = buildIdentityBlock(profile);
+  if (identityBlock) systemBlocks.push({ type: 'text', text: identityBlock });
 
   // Add the new user message
   const updatedHistory = [...history, { role: 'user', content: message }];
