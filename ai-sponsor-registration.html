@@ -394,9 +394,24 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
   border-radius:10px;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;
   transition:background .2s;white-space:nowrap}
 @media (hover:hover){.code-btn:hover{background:var(--blue-dark)}}
-.or-code{font-size:16px;color:var(--sub);text-align:center;margin-top:14px}
-.link-btn{background:none;border:none;font-family:inherit;font-size:16px;
-  color:var(--blue);cursor:pointer;padding:0;text-decoration:underline;font-weight:600}
+/* Beta code box. Green, not blue: it has to read as a different thing from the
+   subscription below it at a glance, from across a room, on a phone. */
+.beta-box{border:2px solid #166534;background:#F0FDF4;border-radius:14px;
+  padding:16px 16px 14px;margin-bottom:18px}
+.beta-box h3{font-size:17px;font-weight:700;color:#14532D;margin:0 0 5px;line-height:1.3}
+.beta-box p{font-size:14px;color:#166534;line-height:1.5;margin:0 0 12px}
+.beta-box .code-row input{border-color:#86C7A2;background:#fff}
+.beta-box .code-row input:focus{border-color:#166534;box-shadow:0 0 0 3px rgba(22,101,52,0.14)}
+.beta-box .code-btn{background:#166534}
+@media (hover:hover){.beta-box .code-btn:hover{background:#14532D}}
+.plan-divider{display:flex;align-items:center;gap:12px;margin:0 0 14px;
+  font-size:14px;font-weight:600;color:var(--sub)}
+.plan-divider::before,.plan-divider::after{content:"";flex:1;height:1px;background:#E1E6EB}
+/* On a phone the input and Unlock side by side leave the field about 140px
+   wide, which clips the placeholder and hides the start of a longer code while
+   it is being typed. Stack them: full width field, full width button, bigger
+   targets for the people this box is for. */
+@media(max-width:430px){.code-row{flex-direction:column;gap:8px}.code-row .code-btn{width:100%;padding:14px 20px}}
 .code-success{display:none;text-align:center;padding:16px 0;animation:rise .4s ease}
 .code-success.show{display:block}
 .s-icon{width:64px;height:64px;border-radius:50%;background:var(--success);
@@ -1039,16 +1054,25 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
         </div>
       </div>
 
-      <!-- Scholarship (gift code coming soon — needs backend coupon system) -->
-      <div class="scholarship-box soon">
-        <span class="soon-badge">Coming soon</span>
-        <h3>🎁 Know someone who needs this?</h3>
-        <p>Soon you'll be able to gift a free scholarship code to someone you know who's struggling and can't afford it. Pass it on.</p>
-        <div class="scholarship-code-wrap">
-          <div class="scholarship-code" id="scholarshipCode">Coming soon</div>
-          <button class="copy-btn" id="copyBtn" disabled>Copy</button>
+      <!-- Beta code. Above the pricing on purpose, and open rather than behind
+           a link. Beta users are mostly 50+: with the plan toggle first they
+           read the whole screen as a paywall, and the one grey line offering
+           the code sat below the pay button where nobody was still reading. -->
+      <div class="code-section" id="codeSection">
+        <div class="beta-box">
+          <h3>Are you a beta user with a code?</h3>
+          <p>Enter it here for free access. You will not be asked for a card.</p>
+          <div class="code-row">
+            <input type="text" id="f-code" placeholder="ENTER CODE"
+              autocomplete="off" autocapitalize="characters" spellcheck="false"
+              onkeydown="if(event.key==='Enter')redeemCode()">
+            <button class="code-btn" onclick="redeemCode()">Unlock</button>
+          </div>
+          <span class="err-msg" id="e-code">That code doesn't look right. Try again.</span>
         </div>
       </div>
+
+      <div class="plan-divider" id="planDivider">No code? Choose a plan</div>
 
       <!-- Plan toggle -->
       <div class="plan-toggle" id="planToggle">
@@ -1075,6 +1099,20 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
           </div>
         </div>
         <p class="trial-note" id="stripeNote">You'll add your card on Stripe's secure checkout. Nothing is charged until day 31.</p>
+      </div>
+
+      <!-- Scholarship (gift code coming soon — needs backend coupon system).
+           Below the plans, not above them: it is green, it is not something
+           anyone can act on yet, and sitting next to the beta code box it stole
+           attention from the one thing on this screen that has to be found. -->
+      <div class="scholarship-box soon">
+        <span class="soon-badge">Coming soon</span>
+        <h3>🎁 Know someone who needs this?</h3>
+        <p>Soon you'll be able to gift a free scholarship code to someone you know who's struggling and can't afford it. Pass it on.</p>
+        <div class="scholarship-code-wrap">
+          <div class="scholarship-code" id="scholarshipCode">Coming soon</div>
+          <button class="copy-btn" id="copyBtn" disabled>Copy</button>
+        </div>
       </div>
 
       <!-- The consent gate. Placed here, on the last screen, rather than beside
@@ -1105,19 +1143,6 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
       <div id="cardSection">
         <button class="btn" id="payBtn" onclick="startCheckout()">Start my free 30 days →</button>
         <span class="err-msg" id="e-pay"></span>
-        <p class="or-code">Have a beta access code instead? <button class="link-btn" onclick="showCodeSection()">Enter it here</button></p>
-      </div>
-
-      <!-- Beta code (hidden by default) -->
-      <div class="code-section" id="codeSection" style="display:none">
-        <p class="trial-note" style="margin-bottom:12px">Your beta code unlocks <strong>free access</strong>, no card required.</p>
-        <div class="code-row">
-          <input type="text" id="f-code" placeholder="ENTER CODE"
-            onkeydown="if(event.key==='Enter')redeemCode()">
-          <button class="code-btn" onclick="redeemCode()">Unlock</button>
-        </div>
-        <span class="err-msg" id="e-code">That code doesn't look right. Try again.</span>
-        <p class="or-code" style="margin-top:12px"><button class="link-btn" onclick="showCardSection()">← Back to free trial</button></p>
       </div>
 
       <!-- Success state -->
@@ -2157,7 +2182,15 @@ function hasConsent(){
   if (box && box.checked) return true;
   const e = document.getElementById('e-consent');
   if (e) e.classList.add('show');
-  if (box) box.focus();
+  /* The code box now sits above the consent tick, so someone pressing Unlock
+     can be most of a screen away from the thing that just blocked them. Bring
+     the tick to them, or the button reads as broken. */
+  const cbox = document.getElementById('consentBox');
+  if (cbox && cbox.scrollIntoView) {
+    try { cbox.scrollIntoView({behavior:'smooth', block:'center'}); }
+    catch(err){ cbox.scrollIntoView(); }
+  }
+  if (box) { try { box.focus({preventScroll:true}); } catch(err){ box.focus(); } }
   return false;
 }
 function onConsent(){
@@ -2285,20 +2318,12 @@ function handlePaymentReturn(){
   }
 }
 document.addEventListener('DOMContentLoaded', handlePaymentReturn);
-function showCodeSection(){
-  document.getElementById('cardSection').style.display='none';
-  document.getElementById('codeSection').style.display='block';
-}
-function showCardSection(){
-  document.getElementById('codeSection').style.display='none';
-  document.getElementById('cardSection').style.display='block';
-}
 
 /* Swap the whole payment step for the "You're in" state. Everything about
    choosing/paying goes away — leaving the plan toggle and trial box on screen
    next to "You're in" reads like the purchase didn't take. */
 function showSuccess(accessLabel){
-  ['cardSection','codeSection','planToggle','trialBox'].forEach(id=>{
+  ['cardSection','codeSection','planDivider','planToggle','trialBox'].forEach(id=>{
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
