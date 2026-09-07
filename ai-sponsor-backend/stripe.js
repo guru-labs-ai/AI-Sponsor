@@ -343,9 +343,40 @@ async function getSubscriptionStatus(subscriptionId) {
   return sub.status;
 }
 
+/* ── What somebody's own plan page needs to show them ──────────────────────
+   Everything here answers a question a person actually asks: what am I on,
+   when does the money move, and how much. Nothing about ids or internal
+   state, because none of that belongs on a page written for somebody in
+   recovery who wants to know whether they are about to be charged.
+
+   Returns null rather than throwing when Stripe cannot be reached, so a page
+   whose whole job is reassurance never renders an error where a date should
+   be. The caller decides what to say about a missing answer. */
+async function getSubscriptionSummary(subscriptionId) {
+  if (!stripe || !subscriptionId) return null;
+  try {
+    const sub = await stripe.subscriptions.retrieve(subscriptionId);
+    const price = (sub.items && sub.items.data && sub.items.data[0] && sub.items.data[0].price) || {};
+    return {
+      status: sub.status,
+      interval: (price.recurring && price.recurring.interval) || null,
+      amount: typeof price.unit_amount === 'number' ? price.unit_amount : null,
+      currency: (price.currency || 'usd').toUpperCase(),
+      trialEnd: sub.trial_end || null,
+      // The day money actually moves, which during a trial is the trial end.
+      nextChargeAt: sub.trial_end || sub.current_period_end || null,
+      cancelAtPeriodEnd: !!sub.cancel_at_period_end,
+    };
+  } catch (err) {
+    console.warn(`[stripe] could not read ${subscriptionId}: ${err.message}`);
+    return null;
+  }
+}
+
 module.exports = {
   cancelSubscription,
   getSubscriptionStatus,
+  getSubscriptionSummary,
   createCheckoutSession,
   constructWebhookEvent,
   handleWebhookEvent,

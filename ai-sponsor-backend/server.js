@@ -1416,6 +1416,20 @@ app.get('/api/voice/preview', async (req, res) => {
    People who registered before the voice picker existed have no voice stored,
    and nothing anywhere let them rename a sponsor they had already named. This
    is the way in for both. */
+/* A person can hold more than one identity: a registration is keyed reg- and
+   carries the Stripe ids, while the same human on WhatsApp is keyed wa- and
+   carries none. Anything asking "is there a card here" has to ask all of them,
+   or it will tell a paying person they are on free access. */
+async function subscriptionForPerson(userId, userRow) {
+  if (userRow && userRow.stripe_subscription_id) return userRow.stripe_subscription_id;
+  const ids = await db.findAllIdentities(userId).catch(() => [userId]);
+  for (const id of ids) {
+    const other = await db.getUser(id).catch(() => null);
+    if (other && other.stripe_subscription_id) return other.stripe_subscription_id;
+  }
+  return null;
+}
+
 app.get('/api/sponsor-settings', async (req, res) => {
   const userId = await db.resolveSettingsToken(String(req.query.t || '')).catch(() => null);
   if (!userId) {
@@ -1476,6 +1490,17 @@ app.get('/api/sponsor-settings', async (req, res) => {
     /* Whether they have already been shown the privacy notice. One event per
        person, so it appears once and then never nags. */
     privacyNoticeSeen: await db.hasEvent(userId, 'privacy_notice_seen').catch(() => true),
+    /* What the plan pane shows. Null for almost everybody, because almost
+       everybody is on a beta code and no Stripe call is made for them at all.
+       This exists because the "your trial ends in three days" message links
+       straight here promising a way to stop the charge, and until now there was
+       no such page: the link fell back to the overview and the person was told
+       they could stop something they then could not find. */
+    billing: await (async () => {
+      const subscriptionId = await subscriptionForPerson(userId, user);
+      if (!subscriptionId) return null;
+      return stripeModule.getSubscriptionSummary(subscriptionId);
+    })(),
   });
 });
 
@@ -1632,6 +1657,46 @@ app.post('/api/sponsor-settings/support', async (req, res) => {
    So this files the request, tells the team immediately, and records it. The
    person gets a definite answer instead of a dead button, and when that branch
    lands this endpoint calls it directly. */
+/* Stopping the money without leaving. Everything else on this page treats
+   "stop paying" and "delete me" as the same act, which is why somebody who only
+   wanted the first has had to write in and ask a human. This is the smaller
+   door: the subscription ends, the account and every conversation stay exactly
+   where they are, and nothing is deleted.
+
+   Immediate, not cancel-at-period-end, matching the deletion path. Both plans
+   are a free trial until day 31, so "keep what you paid for" describes nobody
+   yet, and a person pressing stop means stop. */
+app.post('/api/sponsor-settings/cancel-subscription', async (req, res) => {
+  const userId = await db.resolveSettingsToken(String((req.body || {}).t || '')).catch(() => null);
+  if (!userId) return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
+
+  const user = (await db.getUser(userId).catch(() => null)) || {};
+  const subscriptionId = await subscriptionForPerson(userId, user);
+  if (!subscriptionId) {
+    // Nothing to cancel is a fine outcome to report, not an error to show.
+    return res.json({ ok: true, status: 'none' });
+  }
+
+  try {
+    const status = await stripeModule.cancelSubscription(subscriptionId);
+    db.recordEvent(userId, 'subscription_cancelled', {
+      subscriptionId, via: 'settings-plan-pane',
+    }, 'settings-link').catch(() => {});
+    /* GHL tagging and the Slack alert are not repeated here. Stripe fires
+       customer.subscription.deleted at our webhook, which already does both,
+       and doing it twice would put two cancellations in the channel. */
+    return res.json({ ok: true, status });
+  } catch (err) {
+    /* Never report a cancel we did not get. One lookup separates "already
+       cancelled, fine" from "something is wrong", the same rule the deletion
+       path follows. */
+    const status = await stripeModule.getSubscriptionStatus(subscriptionId).catch(() => null);
+    if (status === 'canceled') return res.json({ ok: true, status });
+    console.error(`[settings] cancel failed for ${userId}: ${err.message}`);
+    return res.status(500).json({ error: 'We could not stop it just now. Please try again, or reply to your sponsor and a person will do it.' });
+  }
+});
+
 app.post('/api/sponsor-settings/deactivate', async (req, res) => {
   const b = req.body || {};
   const userId = await db.resolveSettingsToken(String(b.t || '')).catch(() => null);

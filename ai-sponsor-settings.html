@@ -271,6 +271,7 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
       <button data-pane="sponsor"><span class="ico">💬</span>Your sponsor</button>
       <button data-pane="help"><span class="ico">🤝</span>Need a hand?</button>
       <button data-pane="restart"><span class="ico">↺</span>Start over</button>
+      <button data-pane="plan"><span class="ico">💳</span>Your plan</button>
       <button class="danger" data-pane="danger"><span class="ico">⚠️</span>Deactivate</button>
     </nav>
 
@@ -379,6 +380,36 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
 
     </div>
 
+    <!-- Your plan. Reached directly from the "your trial ends in three days"
+         message, which links to #plan and tells people they can stop the charge
+         here. Before this pane existed that link fell through to the overview,
+         so the one message that goes out before real money moves pointed at a
+         page that could not do what it promised. -->
+    <div class="pane" id="pane-plan">
+    <div class="card plain">
+      <h2>Your plan</h2>
+      <div id="planFree" style="display:none">
+        <p class="note" style="margin-bottom:0">You are on free access. There is nothing to pay, no card is stored, and nothing will ever be taken from you.</p>
+      </div>
+      <div id="planActive" style="display:none">
+        <p class="note" id="planLine" style="margin-bottom:6px"></p>
+        <p class="note" id="planCharge" style="margin-bottom:16px"></p>
+        <div class="msg err" id="errPlan"></div>
+        <div class="msg ok" id="okPlan"></div>
+        <button class="btn secondary" id="btn-stopplan" onclick="askStopPlan()">Stop my subscription</button>
+        <div class="confirm" id="confirmStopPlan">
+          <p class="note" style="margin:14px 0 10px"><strong>Just so you know:</strong> this stops the payments only. Your account, your sponsor and everything you have talked about stay exactly as they are, and nothing is deleted.</p>
+          <button class="btn secondary" onclick="doStopPlan()">Yes, stop the payments</button>
+          <button class="btn secondary" style="margin-top:8px" onclick="cancelStopPlan()">Cancel</button>
+        </div>
+      </div>
+      <div id="planStopped" style="display:none">
+        <p class="note" style="margin-bottom:0">Your subscription is cancelled. Nothing more will be taken from your card, and there is nothing owed. Your account and everything in it stays exactly as it is.</p>
+      </div>
+    </div>
+
+    </div>
+
     <!-- Deactivate -->
     <div class="pane" id="pane-danger">
     <div class="card danger">
@@ -431,7 +462,7 @@ function show(id){ ['s-load','s-bad','s-dash'].forEach(s => $(s).style.display =
 /* Nav. The pane is in the URL hash so a reload, or a link someone sent
    themselves, comes back to the same place instead of the overview. */
 function openPane(name, push){
-  const panes = ['overview','week','sponsor','help','restart','danger'];
+  const panes = ['overview','week','sponsor','help','restart','plan','danger'];
   if (!panes.includes(name)) name = 'overview';
   panes.forEach(p => $('pane-' + p).classList.toggle('on', p === name));
   [...document.querySelectorAll('#nav button')].forEach(b => b.classList.toggle('on', b.dataset.pane === name));
@@ -472,6 +503,7 @@ async function load(){
     renderNotice(!!data.privacyNoticeSeen);
     KILL_AUTOMATIC = !!data.deletionAutomatic;
     renderKill(data.deletion);
+    renderPlan(data.billing);
 
     const you = data.you || {};
     if (you.name) $('introLine').textContent = 'Hi ' + you.name + '.';
@@ -727,6 +759,61 @@ async function sendHelp(){
 }
 
 function askRestart(){ $('confirmRestart').classList.add('show'); $('btn-restart').style.display='none'; }
+/* The plan pane. Everything is phrased as a person would ask it: what am I on,
+   when does the money move, how do I stop it. No status strings, no plan codes.
+
+   `billing` is null for everybody on a beta code, which is almost everybody, so
+   the pane opens saying there is nothing to pay rather than looking broken. */
+function money(amount, currency){
+  if (typeof amount !== 'number') return '';
+  const v = (amount / 100).toFixed(2).replace(/\.00$/, '');
+  return (currency === 'USD' ? '$' : '') + v + (currency === 'USD' ? '' : ' ' + currency);
+}
+function planDay(unix){
+  if (!unix) return null;
+  return new Date(unix * 1000).toLocaleDateString('en-GB',
+    { day: 'numeric', month: 'long', timeZone: 'UTC' });
+}
+function renderPlan(billing){
+  const free = $('planFree'), active = $('planActive'), stopped = $('planStopped');
+  free.style.display = active.style.display = stopped.style.display = 'none';
+
+  if (!billing) { free.style.display = ''; return; }
+  if (billing.status === 'canceled' || billing.status === 'incomplete_expired') {
+    stopped.style.display = ''; return;
+  }
+
+  const per = billing.interval === 'year' ? 'a year' : 'a month';
+  const price = money(billing.amount, billing.currency);
+  $('planLine').textContent = price
+    ? 'You are on the ' + price + ' ' + per + ' plan.'
+    : 'You have a subscription with us.';
+
+  const when = planDay(billing.nextChargeAt);
+  const trialing = billing.status === 'trialing';
+  $('planCharge').textContent = when
+    ? (trialing
+        ? 'Your free trial ends on ' + when + '. That is the first day anything is taken from your card' + (price ? ', and it will be ' + price + '.' : '.')
+        : 'Your next payment' + (price ? ' of ' + price : '') + ' is due on ' + when + '.')
+    : 'Nothing has been taken from your card yet.';
+
+  active.style.display = '';
+}
+function askStopPlan(){ clearFlash('errPlan','okPlan'); $('confirmStopPlan').classList.add('show'); $('btn-stopplan').style.display='none'; }
+function cancelStopPlan(){ $('confirmStopPlan').classList.remove('show'); $('btn-stopplan').style.display=''; }
+async function doStopPlan(){
+  clearFlash('errPlan','okPlan');
+  try{
+    await api('/api/sponsor-settings/cancel-subscription', {});
+    cancelStopPlan();
+    renderPlan({ status: 'canceled' });
+    flash('okPlan', 'Stopped. Nothing more will be taken from your card.');
+  }catch(e){
+    cancelStopPlan();
+    flash('errPlan', e.message);
+  }
+}
+
 function cancelRestart(){ $('confirmRestart').classList.remove('show'); $('btn-restart').style.display=''; }
 async function doRestart(){
   clearFlash('errRestart','okRestart');
