@@ -330,6 +330,42 @@ function asksForVoice(text) {
   return VOICE_REQUEST.test(text);
 }
 
+/* ── "Just text me" ──────────────────────────────────────────────────────────
+   Mariam's brother told his sponsor he would rather only get text. It said it
+   would remember. Then he sent a voice note, as people do when talking is
+   easier than typing, and got a voice note back, because "voice in, voice back"
+   is decided here in code and nothing was ever written down.
+
+   That is a worse failure than an unwanted voice note. Somebody asked for one
+   thing, was told yes, and the product did the other, which teaches them that
+   what they say to their sponsor does not stick. On a product whose whole claim
+   is that it remembers you, that is the claim breaking.
+
+   ⭐ IN CODE, NOT THE PROMPT, for the same reason textOnlyReason is: the model
+   can say it will remember all day, and the medium is not its decision to make.
+   Stored on the profile so it survives a restart, and reversible in one
+   sentence, because somebody who wants to hear their sponsor again should get
+   it by asking, not by finding a settings page. */
+const TEXT_ONLY_REQUEST = new RegExp([
+  // "no voice notes", "stop sending voice messages", "don't send me audio"
+  /\b(?:no|stop|don'?t|do not|quit)\b[^.!?]{0,24}\b(?:voice|audio)\s?(?:note|message|memo|clip|reply|replies|notes|messages)?\b/,
+  // "text only", "in writing please", "typed only"
+  /\b(?:text|written|writing|typed)\b[^.!?]{0,12}\b(?:only|please)\b/,
+  // "just text me", "just send me a text"
+  /\bjust\s(?:send\s)?(?:me\s)?(?:a\s)?text\b/,
+  /\bprefer\b[^.!?]{0,20}\b(?:text|writing|written|reading)\b/,
+  /\brather\b[^.!?]{0,20}\b(?:text|read|reading|writing|written)\b/,
+  // "I can't listen to voice notes right now"
+  /\bcan'?t\b[^.!?]{0,20}\b(?:hear|listen|play)\b/,
+].map((r) => r.source).join('|'), 'i');
+
+function asksForTextOnly(text) {
+  if (typeof text !== 'string' || !text.trim()) return false;
+  // An explicit request for voice always wins, whatever else is in the message.
+  if (asksForVoice(text)) return false;
+  return TEXT_ONLY_REQUEST.test(text);
+}
+
 /* ── Worth a heart, not words ────────────────────────────────────────────────
    Mariam, Aug 25: react when somebody says they are improving, had a better
    day, or similar. Not to everything.
@@ -1078,11 +1114,52 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
          to the person using it. */
       const askedForVoice = !cameByVoice && asksForVoice(userMessageText);
       if (askedForVoice) console.log(`[WhatsApp] ${fromPhone} asked for a voice note in text`);
-      const requestedVoice = cameByVoice || askedForVoice;
+
+      /* "Just text me". Written down the moment they say it, and cleared the
+         moment they ask to hear the sponsor again, so it is reversible in one
+         sentence rather than through a settings page. Read below, where it
+         beats even "voice in, voice back": somebody who talks because typing is
+         hard can still want to read the answer, which is exactly the case that
+         found this. */
+      /* Read across every identity this person holds, not just the row in front
+         of us. A registration is keyed reg- and the same human on WhatsApp is
+         keyed wa-, and a preference that only counts on one of them is a
+         preference that stops working the day something links them. Asked for
+         once, honoured everywhere, for good. */
+      let textOnly = !!(profile && profile.textOnly);
+      if (!textOnly) {
+        try {
+          for (const id of await db.findAllIdentities(userId)) {
+            if (id === userId) continue;
+            const other = await db.getProfile(id);
+            if (other && other.textOnly) { textOnly = true; break; }
+          }
+        } catch (e) {
+          console.warn('[WhatsApp] could not check other identities for text-only:', e.message);
+        }
+      }
+      if (asksForTextOnly(userMessageText)) {
+        textOnly = true;
+        db.findAllIdentities(userId)
+          .then((ids) => Promise.all(ids.map((id) => db.saveProfile(id, { textOnly: true }))))
+          .catch((e) => console.warn('[WhatsApp] could not save text-only preference:', e.message));
+        console.log(`[WhatsApp] ${fromPhone} asked for text only, saved`);
+      } else if (askedForVoice && textOnly) {
+        textOnly = false;
+        /* saveProfile drops empty values, so false has to be written as a
+           deletion of the key rather than a value. clearProfileField already
+           exists for exactly this, and is what programChangedFrom uses. */
+        db.findAllIdentities(userId)
+          .then((ids) => Promise.all(ids.map((id) => db.clearProfileField(id, 'textOnly'))))
+          .catch((e) => console.warn('[WhatsApp] could not clear text-only preference:', e.message));
+        console.log(`[WhatsApp] ${fromPhone} asked for voice again, text-only cleared`);
+      }
+
+      const requestedVoice = (cameByVoice || askedForVoice) && !(textOnly && !askedForVoice);
 
       /* Passed in and read back out afterwards: getSponsorReply sets
          modelWantsVoice on this object when the reply came back marked. */
-      const ctx = { channel: 'whatsapp', viaVoice: cameByVoice, replyIsSpoken: requestedVoice };
+      const ctx = { channel: 'whatsapp', viaVoice: cameByVoice, replyIsSpoken: requestedVoice, textOnly };
       const replyText = await getSponsorReply(userId, userMessageText, ctx);
       console.log(`[WhatsApp] Claude reply to ${fromPhone}: "${replyText.substring(0, 80)}..."`);
 
@@ -1103,6 +1180,11 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
       if (blocked) {
         replyAsVoice = false;
         console.log(`[WhatsApp] forcing text to ${fromPhone}: ${blocked}`);
+      } else if (textOnly && !askedForVoice) {
+        /* They asked for text, so the sponsor does not get to overrule it by
+           deciding this one is worth speaking. Only they can lift it. */
+        replyAsVoice = false;
+        console.log(`[WhatsApp] text only for ${fromPhone}, as they asked`);
       } else if (requestedVoice) {
         replyAsVoice = true;
       } else if (ctx.modelWantsVoice && lastReplyWasUnpromptedVoice.get(userId)) {
