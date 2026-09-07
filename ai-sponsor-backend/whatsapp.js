@@ -36,6 +36,11 @@ const path = require('path');
 const ghl = require('./ghl'); // safe to require unconfigured — throws only when called
 const db = require('./db');   // no-ops without DATABASE_URL
 const alerts = require('./alerts'); // Slack, for the replies the sponsor cannot act on
+const access = require('./access'); // who still has access, off unless ACCESS_ENFORCEMENT=on
+
+/* Where a settings link points. Same default as server.js, read here because
+   the paused notice is the only thing in this file that links anywhere. */
+const SITE_URL = process.env.SITE_URL || 'https://getaisponsor.com';
 const voices = require('./voices'); // the shared voice allow-list + TTS
 const metacloud = require('./metacloud'); // voice notes straight to Meta; inert unless configured
 
@@ -102,11 +107,20 @@ async function captureWhatsAppUser(userId, phone) {
     await db.upsertUser({
       userId,
       phone,
-      // Only claim a status when we actually created the contact. If the phone
-      // already existed, it may be someone who registered on the web — we don't
-      // know what they are from a WhatsApp message alone, and guessing "Unpaid"
-      // over a paying user is worse than leaving it blank.
-      access: isNew ? 'Unpaid' : '',
+      /* Only claim a status when we actually created the contact. If the phone
+         already existed, it may be someone who registered on the web — we don't
+         know what they are from a WhatsApp message alone, and guessing over a
+         paying user is worse than leaving it blank.
+
+         A genuinely new arrival is stamped Beta, which also starts their six
+         months (db.js sets beta_expires_at whenever access becomes Beta).
+         Mariam's call, 7 Sep 2026. This used to say Unpaid, which was never
+         true of anybody: the number is only ever shown on the registration
+         success screen, so somebody arriving here was invited. Unpaid meant
+         "we do not know", it sat on four real users who had cancelled nothing,
+         it kept them out of the beta count, and it left the promised six months
+         recorded nowhere for them. */
+      access: isNew ? 'Beta' : '',
       ghlContactId: contactId,
     });
     console.log(`[WhatsApp→GHL] captured ${userId} → contact ${contactId} (newContact=${isNew})`);
@@ -978,6 +992,28 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
           });
         })
         .catch((e) => console.warn('[WhatsApp] pending-deletion check failed:', e.message));
+
+      /* The one gate in the product. Off unless ACCESS_ENFORCEMENT is on, and
+         it fails open on every uncertainty, including a database it cannot
+         reach. Placed after the typing wait so somebody sending three messages
+         gets one answer rather than three, and before the model call so a
+         paused account costs nothing. */
+      const state = await access.accessState(userId, { db }).catch(() => ({ allowed: true }));
+      if (!state.allowed) {
+        const already = await access.toldRecently(userId, { db });
+        if (!already) {
+          const u = await db.getUser(userId).catch(() => null);
+          const token = await db.getOrCreateSettingsToken(userId).catch(() => null);
+          const first = String((u && u.name) || '').trim().split(/\s+/)[0];
+          const link = token ? `${SITE_URL}/ai-sponsor-settings.html?t=${token}#plan` : null;
+          await sendTextReply(fromPhone, access.pausedText({ first, reason: state.reason, link }))
+            .catch((e) => console.warn(`[access] paused notice not delivered: ${e.message}`));
+          db.recordEvent(userId, 'access_paused_notice', { reason: state.reason }, 'access')
+            .catch(() => {});
+        }
+        console.log(`[access] ${userId} is paused (${state.reason})${already ? ', already told today' : ''}`);
+        return;
+      }
 
       userMessageText = settled.text;
       const replyToId = settled.wamid;
