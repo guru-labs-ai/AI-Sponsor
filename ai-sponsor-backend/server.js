@@ -14,6 +14,7 @@ const viewer = require('./viewer'); // admin-only conversation viewer at /admin
 const phonerules = require('./phonerules'); // is this a real number in that country
 const countries = require('./countries'); // phone prefix -> country and US state
 const trialnotice = require('./trialnotice'); // the "your trial ends" WhatsApp notice
+const notices = require('./notices');       // account notices (cancelled, changed, deletion)
 
 // WhatsApp (Twilio) module is loaded ONLY when Twilio is configured. Its SDK
 // clients (Twilio + OpenAI) throw at construction when their keys are missing,
@@ -1676,6 +1677,86 @@ app.post('/api/sponsor-settings/deactivate', async (req, res) => {
         : 'Their reason, if they gave one, is on the GHL contact.',
       contactId: result.contactId,
     }).catch((e) => console.warn('[settings] Slack notify failed:', e.message));
+
+    /* Tell them on WhatsApp as well as on the screen they are looking at. The
+       screen is the only confirmation they get today, and seven days of silence
+       after asking to be deleted reads as nothing having happened: that is
+       exactly why somebody asked us twice, four days apart. Keyed on the
+       scheduled date so a repeated tap cannot send it twice. */
+    if (queued && queued.scheduled_for) {
+      const when = notices.formatDay(queued.scheduled_for);
+
+      /* The card can sit on a different row than the one deactivating: a
+         registration is keyed reg- and carries the Stripe ids, while the same
+         person on WhatsApp is keyed wa- and carries none. Asking only the row
+         in front of us would tell a paying person nothing about their card. */
+      let subscriptionId = user.stripe_subscription_id || null;
+      if (!subscriptionId) {
+        const ids = await db.findAllIdentities(userId).catch(() => [userId]);
+        for (const id of ids) {
+          const other = await db.getUser(id).catch(() => null);
+          if (other && other.stripe_subscription_id) { subscriptionId = other.stripe_subscription_id; break; }
+        }
+      }
+
+      /* ⭐ BILLING STOPS NOW, THE DATA WAITS OUT THE WINDOW. Mariam's call,
+         7 Sep 2026. The deletion sweep cancels Stripe as its first step, which
+         used to mean a subscription stayed live for the whole grace period:
+         somebody asking to leave on day 28 of a trial was still charged on day
+         31 while waiting for us to delete them. The two windows exist for
+         different reasons. The data is held in case they come back. There is
+         no reason on earth to keep charging somebody who has asked to go.
+
+         The Privacy Policy allows this: it promises nothing is REMOVED during
+         the window, and a cancellation removes nothing. The sweep still runs
+         its own cancel later and handles finding it already cancelled. */
+      let paying = false;
+      if (subscriptionId) {
+        try {
+          await stripeModule.cancelSubscription(subscriptionId);
+          paying = true;
+        } catch (e) {
+          /* Never treat a failed cancel as done: Stripe does not hard-delete
+             subscriptions, so an error usually means a wrong id, not "already
+             handled". One follow-up lookup is the only safe read, same rule the
+             deletion sweep follows. */
+          const status = await stripeModule.getSubscriptionStatus(subscriptionId).catch(() => null);
+          paying = status === 'canceled';
+          if (!paying) {
+            console.error(`[deactivate] could not cancel ${subscriptionId} for ${userId}: ${e.message}`);
+            notifySupportSlack({
+              name: user.name || userId, email,
+              subject: '🔴 Could not cancel a subscription for somebody leaving',
+              message: `${subscriptionId} is still ${status || 'unknown'}. They have been told their data goes on ${when}, and deliberately NOT told anything about their card. Cancel it by hand.`,
+            }).catch(() => {});
+          }
+        }
+        if (paying) {
+          db.recordEvent(userId, 'subscription_cancelled', {
+            subscriptionId, via: 'deactivate-request',
+          }, 'settings-link').catch(() => {});
+        }
+      }
+
+      /* If the cancel failed, the message drops to the wording that says
+         nothing about a card. Everything in it stays true, and Slack has
+         already been told a human needs to finish the job. */
+      /* Their own settings link, landing on the pane that carries the undo.
+         Two ways back on purpose: the button undoes it in one tap, and a reply
+         reaches a person. Somebody who has already decided to leave should not
+         have to compose a sentence to change their mind. A token that cannot be
+         minted is not a reason to hold the message: the reply still works. */
+      const token = await db.getOrCreateSettingsToken(userId).catch(() => null);
+      const link = token ? `${SITE_URL}/ai-sponsor-settings.html?t=${token}#danger` : null;
+
+      const sent = await notices.sendNotice({
+        user: Object.assign({ user_id: userId }, user),
+        kind: paying ? 'leaving_paid' : 'leaving_beta',
+        params: { when, link, linkSuffix: token ? `${token}#danger` : null },
+        key: String(queued.scheduled_for), db, whatsapp, source: 'settings-link',
+      });
+      console.log(`[notice] leaving (${paying ? 'paid' : 'beta'}) → ${userId}: ${sent.sent ? sent.via : sent.reason}`);
+    }
 
     res.json({
       success: true,
