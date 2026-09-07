@@ -233,8 +233,24 @@ const cancelled = safe(({ name, email, keptAccess }) => [
     : 'Access set to Unpaid.',
 ]);
 
+/* Somebody with a deletion counting down has written back. Every leaving
+   message ends by inviting exactly this reply, and the reply lands on the
+   sponsor, which cannot stop a deletion. Without this line the invitation is a
+   promise nothing keeps.
+
+   The message they sent is NOT included. It is a conversation with their
+   sponsor, and this channel is read by more people than need it, including an
+   external contractor. Same rule as the deactivation alert. */
+const leavingReply = safe(({ name, userId, scheduledFor }) => ([
+  '↩️ *Somebody with a pending deletion has replied*',
+  `${name || userId}`,
+  `Scheduled to complete ${fmtDate(scheduledFor)}.`,
+  'They were told they could reply to stop it. Somebody has to actually stop it.',
+]));
+
 module.exports = {
   registered,
+  leavingReply,
   trialStarted,
   paid,
   trialEnding,

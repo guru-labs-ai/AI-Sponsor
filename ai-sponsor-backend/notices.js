@@ -17,9 +17,17 @@
 
    SCOPE, Mariam's call 7 Sep: this covers the moment somebody asks to be let
    go, and nothing else. Beta or paying only changes whether there is a card
-   sentence to write. Both say the same four things: it is over, the billing
-   stopped the moment they asked, everything they told us is still saved until
-   the date named, and they can have it all back until that date.
+   sentence to write. Both say the same four things: we have the request, the
+   billing stopped the moment they asked, nothing has been removed yet and the
+   sponsor still works, and they can call the whole thing off until the date.
+
+   ⛔ DO NOT WRITE "that is everything switched off" OR "your access has ended".
+   Both were in the first version and both were false. Asking to be deleted
+   revokes nothing: the settings page says "nothing has been removed and your
+   sponsor still works", the Privacy Policy promises the same, and the window
+   exists precisely so a request made in a bad moment is not irreversible.
+   Telling somebody their sponsor is gone when it is not is the cruellest
+   possible way to be inaccurate on this product.
 
    Both give them two ways to take it back: their settings link, which does it
    themselves in one tap, and a reply, which reaches us. The link matters most
@@ -75,6 +83,12 @@ function opener(first) {
                    and what Meta holds cannot drift apart unnoticed
      buttonText    the label on the template's URL button, which carries the
                    settings link a template body cannot hold inline
+
+   ⚠️ CHANGING APPROVED WORDING: edit the template through Meta's API, do not
+   delete and recreate it. Meta refuses a new template under a name whose old
+   version is still being deleted ("Message template language is being
+   deleted"), and the deletion is not quick. That is why these carry _v2: the
+   first pair had to be abandoned mid-fix.
      params        the variables that template takes, in order
 
    The template says less than the body on purpose. Meta approves a fixed shape
@@ -86,11 +100,11 @@ const NOTICES = {
      involved, so the only thing to say is what happens to what they told us,
      and by when they can still take it back. */
   leaving_beta: {
-    template: 'leaving_beta',
+    template: 'leaving_beta_v2',
     templateText:
       'Hi {{1}}, a quick note about your account, not a message from your sponsor. '
-      + 'Your access has ended, and your account and everything in it will be deleted on {{2}}. '
-      + 'Until then we keep it all saved, exactly as it is, in case you change your mind. '
+      + 'We have your request to delete your account and everything in it, and it will be done on {{2}}. '
+      + 'Nothing has been removed yet and your sponsor keeps working exactly as before until then. '
       + 'You can stop it with the button below, or by replying here, any time before that date.',
     buttonText: 'Keep my account',
     params: ({ first, when }) => [first || 'there', when],
@@ -98,10 +112,10 @@ const NOTICES = {
       `${opener(first)}
 
 ` +
-      `That is everything switched off. Your account and everything in it will be deleted on ${when}.
+      `We have your request to delete your account and everything in it. It will be done on ${when}.
 
 ` +
-      'Until then we keep it all saved, exactly as it is, in case you change your mind. ' +
+      'Nothing has been removed yet, and your sponsor keeps working exactly as before until then. ' +
       /* No link is better than a broken one: if the token could not be minted
          the reply still works, so the message says that instead of printing a
          dead url at somebody who is already leaving. */
@@ -120,12 +134,12 @@ ${link}
      again" is a different question from "what happens to what I told you", and
      a message that only answers the second reads as dodging the first. */
   leaving_paid: {
-    template: 'leaving_paid',
+    template: 'leaving_paid_v2',
     templateText:
       'Hi {{1}}, a quick note about your account, not a message from your sponsor. '
       + 'Your subscription is cancelled straight away, so nothing more will be taken from your card. '
-      + 'Your account and everything in it will be deleted on {{2}}. '
-      + 'Until then we keep it all saved, exactly as it is, in case you change your mind. '
+      + 'We also have your request to delete your account and everything in it, and it will be done on {{2}}. '
+      + 'Nothing has been removed yet and your sponsor keeps working exactly as before until then. '
       + 'You can stop it with the button below, or by replying here, any time before that date.',
     buttonText: 'Keep my account',
     params: ({ first, when }) => [first || 'there', when],
@@ -133,11 +147,11 @@ ${link}
       `${opener(first)}
 
 ` +
-      'That is everything switched off. Your subscription is cancelled straight away, so nothing more will be taken ' +
-      `from your card, and your account and everything in it will be deleted on ${when}.
+      'Your subscription is cancelled straight away, so nothing more will be taken from your card. ' +
+      `We also have your request to delete your account and everything in it, and that will be done on ${when}.
 
 ` +
-      'Until then we keep it all saved, exactly as it is, in case you change your mind. ' +
+      'Nothing has been removed yet, and your sponsor keeps working exactly as before until then. ' +
       /* No link is better than a broken one: if the token could not be minted
          the reply still works, so the message says that instead of printing a
          dead url at somebody who is already leaving. */

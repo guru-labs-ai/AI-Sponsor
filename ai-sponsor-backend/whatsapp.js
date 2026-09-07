@@ -35,6 +35,7 @@ const os = require('os');
 const path = require('path');
 const ghl = require('./ghl'); // safe to require unconfigured — throws only when called
 const db = require('./db');   // no-ops without DATABASE_URL
+const alerts = require('./alerts'); // Slack, for the replies the sponsor cannot act on
 const voices = require('./voices'); // the shared voice allow-list + TTS
 const metacloud = require('./metacloud'); // voice notes straight to Meta; inert unless configured
 
@@ -960,6 +961,24 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
         console.log(`[WhatsApp] ${fromPhone} is still typing — letting the later message answer`);
         return;
       }
+      /* Every leaving message ends with "reply to this message and we will
+         stop it", and this is that reply arriving. It cannot be left to the
+         sponsor: Claude answers as their sponsor and has no way to cancel a
+         deletion, so without this the invitation is a promise nothing keeps.
+         Fire and forget, never awaited: an alert must not be able to delay or
+         take out somebody's reply. */
+      db.getDeletionRequest(userId)
+        .then((pending) => {
+          if (!pending || pending.status !== 'pending') return;
+          return db.getUser(userId).catch(() => null).then((u) => {
+            alerts.leavingReply({
+              name: (u && u.name) || null, userId,
+              scheduledFor: pending.scheduled_for,
+            });
+          });
+        })
+        .catch((e) => console.warn('[WhatsApp] pending-deletion check failed:', e.message));
+
       userMessageText = settled.text;
       const replyToId = settled.wamid;
       const cameByVoice = settled.anyAudio;
