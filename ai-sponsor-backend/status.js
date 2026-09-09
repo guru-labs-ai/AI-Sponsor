@@ -335,17 +335,54 @@ async function getStatus({ fresh } = {}) {
   return data;
 }
 
+/* What somebody sees when they land here without their link. Inline rather than
+   a file because it must work even if nothing else does, and it says nothing
+   about the state of the system to someone who is not allowed to know it. */
+const NO_KEY_PAGE = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>AI Sponsor — Is anything wrong</title>
+<style>
+:root{color-scheme:light dark}
+body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#F0F4F8;color:#212529;
+  margin:0;min-height:100vh;display:grid;place-items:center;padding:24px}
+@media (prefers-color-scheme:dark){body{background:#0f1720;color:#F3F4F6}}
+.box{max-width:380px;text-align:center}
+h1{font-size:19px;font-weight:700;margin:0 0 10px}
+p{font-size:14px;line-height:1.6;opacity:.8;margin:0 0 8px}
+</style></head><body><div class="box">
+<h1>You need your own link for this</h1>
+<p>This page is limited to a few people, and the link carries the key. Open the
+one you were sent and you will stay signed in on this device for a month.</p>
+<p>If you do not have it, ask Mariam.</p>
+</div></body></html>`;
+
 /* ── Routes ──────────────────────────────────────────────────────────────── */
 
 router.get('/', (req, res) => {
   if (req.query.k !== undefined) {
     const good = keyMatches(req.query.k);
     db.logAdminAccess('status:key', null, good, req.ip).catch(() => {});
-    if (!good) return res.status(404).end();
+    /* A key that does not work is usually an old link or a truncated paste, not
+       an attack, and "404" tells that person nothing they can act on. */
+    if (!good) return res.status(401).type('html').send(NO_KEY_PAGE);
     issue(res);
     return res.redirect('/status/');
   }
-  if (!validSession(req)) return res.status(404).end();
+  /* ⚠️ NOT A BARE 404, unlike the conversation reader, and the difference is
+     deliberate. That one hides its own existence because finding it is most of
+     the attack; this one is LINKED FROM THE PUBLIC DASHBOARD, so pretending it
+     is not there fools nobody and only confuses the four people who are meant
+     to be here. Mariam opened it without her key, got a blank 404 and
+     reasonably read it as broken.
+
+     Still gives away nothing: no data, no check names, no hint of whether
+     anything is wrong. Just what to do next. */
+  if (!validSession(req)) {
+    res.status(401).type('html').send(NO_KEY_PAGE);
+    return;
+  }
   res.sendFile(path.join(__dirname, 'status.html'));
 });
 
