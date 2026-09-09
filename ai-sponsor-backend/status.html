@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>AI Sponsor — Is anything wrong</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Same tokens as the north star, so the two pages read as one product. */
+:root{
+  --blue:#0080D4; --ink:#212529; --muted:#6B7280; --bg:#F0F4F8; --card:#FFFFFF; --line:#E5E7EB;
+  --ok:#0F7B4F; --ok-bg:#DCFCE7; --warn:#B45309; --warn-bg:#FEF3C7; --down:#B42318; --down-bg:#FEE4E2;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --ink:#F3F4F6; --muted:#9CA3AF; --bg:#0f1720; --card:#182230; --line:#26303e;
+    --ok:#6EE7A8; --ok-bg:#0d2a1d; --warn:#fad98c; --warn-bg:#2a2415; --down:#FCA5A5; --down-bg:#33161a;
+  }
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;padding:20px 16px 48px}
+.wrap{max-width:520px;margin:0 auto}
+
+.banner{border-radius:20px;padding:26px 22px;text-align:center;margin-bottom:8px}
+.banner.ok{background:var(--ok-bg);color:var(--ok)}
+.banner.warn{background:var(--warn-bg);color:var(--warn)}
+.banner.down{background:var(--down-bg);color:var(--down)}
+.banner .eyebrow{font-size:11.5px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;opacity:.8}
+.banner .headline{font-size:26px;font-weight:800;letter-spacing:-0.02em;margin-top:8px;line-height:1.2}
+.banner .sub{font-size:13px;margin-top:8px;opacity:.9;line-height:1.5}
+.stamp{text-align:center;font-size:11.5px;color:var(--muted);margin:0 0 18px}
+
+.group{margin-bottom:14px}
+.group h2{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);
+  margin:0 0 7px 4px}
+.rows{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.row{display:flex;align-items:flex-start;gap:11px;padding:13px 14px;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.dot{width:9px;height:9px;border-radius:50%;flex:none;margin-top:5px}
+.dot.ok{background:var(--ok)} .dot.warn{background:var(--warn)} .dot.down{background:var(--down)}
+.row .t{flex:1;min-width:0}
+.row .n{font-size:13.5px;font-weight:600}
+.row .d{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.45;word-wrap:break-word}
+.row.down .d{color:var(--down);font-weight:600}
+.row .ms{font-size:10.5px;color:var(--muted);flex:none;margin-top:3px;font-variant-numeric:tabular-nums}
+
+.foot{margin-top:18px;font-size:11.5px;color:var(--muted);line-height:1.6;text-align:center}
+.btn{display:block;width:100%;margin-top:14px;background:var(--card);border:1px solid var(--line);
+  color:var(--ink);border-radius:14px;padding:13px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.btn:disabled{opacity:.5}
+.state{text-align:center;color:var(--muted);font-size:13.5px;padding:60px 20px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="loading" class="state">Checking everything…<br>
+    <span style="font-size:11.5px">this runs real calls, so give it a few seconds</span></div>
+  <div id="page" style="display:none">
+    <div class="banner" id="banner">
+      <div class="eyebrow">AI Sponsor</div>
+      <div class="headline" id="headline"></div>
+      <div class="sub" id="sub"></div>
+    </div>
+    <div class="stamp" id="stamp"></div>
+    <div id="groups"></div>
+    <button class="btn" id="refresh">Check again now</button>
+    <div class="foot" id="foot"></div>
+  </div>
+  <div id="error" class="state" style="display:none"></div>
+</div>
+
+<script>
+/* No key and no data in this file. It is fetched at runtime by a request the
+   session cookie authenticates, which is the whole reason the page can be
+   served from a public repo at all. */
+const $ = (id) => document.getElementById(id);
+
+const WORDS = {
+  ok:   { head: 'Everything is working',      sub: 'All checks passed. Nothing needs you.' },
+  warn: { head: 'Something needs a look',     sub: 'Nothing is down, but one or more checks came back unhappy.' },
+  down: { head: 'Something is broken',        sub: 'At least one thing people rely on is not working right now.' },
+};
+
+function render(d) {
+  const b = $('banner');
+  b.className = 'banner ' + d.overall;
+  $('headline').textContent = WORDS[d.overall].head;
+
+  const bad = d.checks.filter((c) => c.state !== 'ok');
+  $('sub').textContent = d.overall === 'ok'
+    ? WORDS.ok.sub
+    : bad.map((c) => c.name).join(', ') + (bad.length === 1 ? ' needs attention.' : ' need attention.');
+
+  const when = new Date(d.checkedAt);
+  $('stamp').textContent = 'Checked ' + when.toLocaleString('en-GB', {
+    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+  }) + (d.commit ? ' · running ' + d.commit : '');
+
+  // Grouped in the order someone worries about them, not alphabetically.
+  const order = ['The sponsor', 'WhatsApp', 'Website', 'Money', 'Backend'];
+  const groups = {};
+  for (const c of d.checks) (groups[c.group] = groups[c.group] || []).push(c);
+
+  $('groups').innerHTML = order.filter((g) => groups[g]).map((g) => `
+    <div class="group">
+      <h2>${g}</h2>
+      <div class="rows">
+        ${groups[g].map((c) => `
+          <div class="row ${c.state}">
+            <span class="dot ${c.state}"></span>
+            <span class="t">
+              <span class="n">${esc(c.name)}</span>
+              <span class="d">${esc(c.detail)}</span>
+            </span>
+            <span class="ms">${c.ms}ms</span>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+
+  $('foot').textContent = 'Results are cached for a few minutes because some of these checks '
+    + 'cost money to run. "Check again now" forces a fresh run. '
+    + 'Slack gets a message in #ai-sponsor-updates only when something is wrong.';
+
+  $('loading').style.display = 'none';
+  $('page').style.display = '';
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+async function load(fresh) {
+  try {
+    const r = await fetch('/status/data' + (fresh ? '?fresh=1' : ''), { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    render(await r.json());
+  } catch (e) {
+    $('loading').style.display = 'none';
+    $('error').style.display = '';
+    $('error').textContent = 'Could not run the checks: ' + e.message;
+  }
+}
+
+$('refresh').addEventListener('click', async (ev) => {
+  ev.target.disabled = true;
+  ev.target.textContent = 'Checking…';
+  await load(true);
+  ev.target.disabled = false;
+  ev.target.textContent = 'Check again now';
+});
+
+load(false);
+</script>
+</body>
+</html>

@@ -11,6 +11,7 @@ const alerts = require('./alerts'); // Slack alerts → #ai-sponsor-updates
 const metacapi = require('./metacapi'); // real payments → Meta Conversions API
 const ga4 = require('./ga4');           // real payments → GA4 Measurement Protocol
 const viewer = require('./viewer'); // admin-only conversation viewer at /admin
+const status = require('./status'); // "is anything broken" page at /status
 const phonerules = require('./phonerules'); // is this a real number in that country
 const countries = require('./countries'); // phone prefix -> country and US state
 const trialnotice = require('./trialnotice'); // the "your trial ends" WhatsApp notice
@@ -83,6 +84,14 @@ app.post('/api/scoreboard', scoreboard.postScoreboard);
    recovery conversations cannot sit behind nothing but an unguessable URL.
    The whole router 404s unless DASHBOARD_PASSWORD is set. */
 app.use('/admin', viewer.router);
+
+/* "Is anything wrong with AI Sponsor" (see status.js). Same reasoning as the
+   viewer for why it is served from here and gated the same way: this repo is
+   public, and a list of which of our subsystems is currently broken is not
+   something to leave on an unguessable URL either. 404s unless STATUS_KEY is
+   set. The master prompt is handed over because status.js cannot require this
+   file back without a cycle. */
+app.use('/status', status.router);
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -498,6 +507,12 @@ The full detail is at getaisponsor.com/privacy, and the terms at getaisponsor.co
 ## ONE FINAL RULE
 
 You are here because this person chose to be here, at whatever hour, in whatever state, because they needed someone. That means something. Treat every conversation as the one that might matter most.`;
+
+/* Handed to the status page so it can say if the sponsor's instructions ever
+   arrive empty or truncated. Done HERE rather than beside the mount above,
+   because a const sits in its temporal dead zone until this line and reading
+   it any earlier throws on boot. */
+status.setContext({ masterPrompt: MASTER_SYSTEM_PROMPT });
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

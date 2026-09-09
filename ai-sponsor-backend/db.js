@@ -791,6 +791,19 @@ async function getEvents(userId, limit = 50) {
   return r.rows;
 }
 
+/* Is the database actually answering, and how fast. Used by the status page.
+
+   A real round trip rather than a look at the pool's own opinion of itself: a
+   pool can hold a connection it believes is fine to a database that has stopped
+   answering, and "the client object exists" is not the question anyone is
+   asking when they open a status page. */
+async function ping() {
+  if (!enabled) throw new Error('DATABASE_URL not set');
+  const started = Date.now();
+  await pool.query('SELECT 1');
+  return Date.now() - started;
+}
+
 /* The emoji somebody has recently put ON the sponsor's messages.
 
    Reactions are stored as events, never as message turns, because a reaction is
@@ -1681,7 +1694,7 @@ module.exports = {
   // dashboard groups on. Two implementations would eventually disagree.
   resolveSource,
   saveProfile, getProfile, appendMessages, getHistory, findPersonId,
-  recordEvent, getEvents, hasEvent, recentReactions, clearConversation, getPersonStats,
+  recordEvent, getEvents, hasEvent, recentReactions, ping, clearConversation, getPersonStats,
   createLinkCode, claimLinkCode,
   purgeUserData, findAllIdentities,
   quietCheckinCandidates, betaAccessRoster,
