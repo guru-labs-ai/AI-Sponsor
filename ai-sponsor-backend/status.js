@@ -366,11 +366,43 @@ router.get('/data', async (req, res) => {
    ⭐ POSTS ONLY WHEN SOMETHING IS WRONG (Mariam, 9 Sep: "only post inside ai
    sponsor updates if there is any issue"). A daily all-clear becomes wallpaper
    inside a week and then nobody reads the one that matters. */
+/* ⚠️ SAME PROBLEM, SAME MESSAGE, OVER AND OVER is how an alert channel becomes
+   something people mute, and a muted channel is worse than no channel. The
+   check runs every few hours so a real outage is caught quickly, but an
+   ONGOING one is only repeated twice a day.
+
+   Kept in the database rather than in memory on purpose: Render's free tier
+   sleeps and restarts constantly, so anything held in a variable is forgotten
+   within the hour and every run would look like the first. Filed against a
+   sentinel id, which never appears in any metric because those group the users
+   table, not this one. */
+const ALERT_USER = 'system-status';
+const REPEAT_AFTER_MS = 12 * 60 * 60 * 1000;
+
+async function alreadyToldThem(signature) {
+  if (!db.enabled) return false;
+  const prior = await db.getEvents(ALERT_USER, 5).catch(() => []);
+  const last = prior.find((e) => e.event === 'status_alert');
+  if (!last) return false;
+  const sameProblem = last.detail && last.detail.signature === signature;
+  const recent = Date.now() - new Date(last.created_at).getTime() < REPEAT_AFTER_MS;
+  return sameProblem && recent;
+}
+
 async function runAndAlert() {
   const data = await getStatus({ fresh: true });
   if (data.overall === 'ok') return { posted: false, overall: 'ok' };
 
   const bad = data.checks.filter((c) => c.state !== 'ok');
+  /* The set of things wrong, not their wording: a detail that carries a
+     changing figure must not read as a brand new problem every time. */
+  const signature = bad.map((c) => `${c.name}:${c.state}`).sort().join('|');
+  if (await alreadyToldThem(signature)) {
+    return { posted: false, overall: data.overall, suppressed: 'same problem already reported' };
+  }
+  db.recordEvent(ALERT_USER, 'status_alert', { signature, overall: data.overall }, 'status')
+    .catch((e) => console.warn('[status] could not record the alert:', e.message));
+
   const lines = [
     data.overall === 'down'
       ? '🔴 *AI Sponsor: something is broken*'
