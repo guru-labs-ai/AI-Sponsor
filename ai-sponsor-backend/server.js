@@ -1212,22 +1212,30 @@ async function getSponsorReply(userId, message, context) {
      time has passed and the reply would otherwise land under an old
      conversation, pointless when they are mid-exchange and it is obvious. */
   if (context) context.lastMessageAt = lastAt;
+  /* ── STABLE BLOCKS FIRST, VOLATILE ONES LAST, AND THE REASON IS MONEY ──────
+     Prompt caching works on a PREFIX. Everything up to a cache marker is
+     cached; the first thing that changes ends the reusable part.
+
+     ⛔ THE TIME BLOCK USED TO SIT HERE, SECOND, and it carries the gap since
+     they last wrote, so it changed on every single message. That meant nothing
+     after it could ever be cached: the profile, the memory digest, the settings
+     and the identity block were re-sent as fresh input every time. Measured
+     9 Sep across 355 real replies: 8,340 UNCACHED input tokens per reply,
+     roughly 58% of what AI Sponsor costs, against 5,634 cached.
+
+     So the order is now stable things first, one cache marker after them, and
+     anything that changes per message below it.
+
+     ⚠️ THE IDENTITY BLOCK KEEPS ITS PLACE. It is last of the stable group on
+     purpose, because it exists to overrule the memory digest and the profile
+     when somebody has renamed their sponsor. Caching does not reorder it and
+     must never be allowed to. */
   const systemBlocks = [
-    { type: 'text', text: MASTER_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+    { type: 'text', text: MASTER_SYSTEM_PROMPT },
   ];
-  systemBlocks.push({ type: 'text', text: buildTimeBlock(lastAt) });
   if (userContext) systemBlocks.push({ type: 'text', text: userContext });
   if (memoryBlock) systemBlocks.push({ type: 'text', text: memoryBlock });
   if (settingsBlock) systemBlocks.push({ type: 'text', text: settingsBlock });
-
-  /* Never allowed to block a reply, exactly like lastAt above: if this read
-     fails the sponsor simply does not know about the emoji, which is where it
-     was before any of this existed. */
-  const reactionBlock = buildReactionBlock(
-    await db.recentReactions(userId).catch(() => []),
-    history
-  );
-  if (reactionBlock) systemBlocks.push({ type: 'text', text: reactionBlock });
 
   const gettingToKnowBlock = buildGettingToKnowBlock(profile, history.length);
   if (gettingToKnowBlock) systemBlocks.push({ type: 'text', text: gettingToKnowBlock });
@@ -1239,6 +1247,33 @@ async function getSponsorReply(userId, message, context) {
      because it exists to overrule both when somebody has renamed their sponsor. */
   const identityBlock = buildIdentityBlock(profile);
   if (identityBlock) systemBlocks.push({ type: 'text', text: identityBlock });
+
+  /* ── The cache marker ─────────────────────────────────────────────────────
+     Everything above is stable for a given person between messages, so it is
+     cached as one prefix. Everything below changes per message and is
+     deliberately outside it.
+
+     ONE HOUR rather than the five-minute default, and that is measured too:
+     67% of consecutive messages from the same person arrive within five
+     minutes, 84% within an hour. Those extra 17 points move from paying a
+     cache WRITE to paying a cache READ, roughly a tenth of the price.
+
+     Marks whatever the last stable block turned out to be, because all of them
+     above are conditional and a thin profile can leave only the master prompt. */
+  systemBlocks[systemBlocks.length - 1].cache_control = { type: 'ephemeral', ttl: '1h' };
+
+  /* Never allowed to block a reply, exactly like lastAt above: if this read
+     fails the sponsor simply does not know about the emoji, which is where it
+     was before any of this existed. Sits below the marker because a reaction
+     arriving mid-conversation would otherwise invalidate the whole prefix. */
+  const reactionBlock = buildReactionBlock(
+    await db.recentReactions(userId).catch(() => []),
+    history
+  );
+  if (reactionBlock) systemBlocks.push({ type: 'text', text: reactionBlock });
+
+  // Carries the gap since they last wrote, so it changes on every message.
+  systemBlocks.push({ type: 'text', text: buildTimeBlock(lastAt) });
 
   /* Tell it where it is. Without this it insists it "can't hear audio" and
      "can't send voice messages" to people who just sent it a voice note and are
