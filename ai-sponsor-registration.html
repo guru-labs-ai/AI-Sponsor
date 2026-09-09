@@ -451,14 +451,22 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 .save-qr{display:none;align-items:center;gap:14px;margin-top:12px;padding:12px 14px;
   border:1px dashed var(--border);border-radius:12px;text-align:left}
 .save-qr.show{display:flex}
-.save-qr svg{flex-shrink:0;width:140px;height:140px;background:#fff;border-radius:4px}
-/* 140px is not a taste call. A QR scans from roughly ten times its own width,
-   and 140px is about 37mm on a normal display, so it reads from arm's length
-   at a monitor. At the 84px this started as it is 22mm, which only scans if you
-   lean right into the screen, and nobody does that on a page they think is done.
-   Error correction stays at M for the same reason: raising it to H adds eight
-   modules across, which SHRINKS every module at a fixed width and makes the
-   code harder to read, not easier. Damage tolerance is for stickers on walls. */
+.save-qr svg{flex-shrink:0;width:180px;height:180px;background:#fff;border-radius:4px}
+/* This QR carries the vCard ITSELF, not a link to one. That is the whole point:
+   a QR holding a URL gets handed to the browser, and the browser downloads the
+   file to Downloads instead of offering to save a contact, which is exactly what
+   happened when this was tested on a real phone. Contact data in the QR is read
+   by the camera app directly, so no browser and no download are in the path.
+
+   The payload costs modules: 49 across instead of 37. A QR reads from roughly
+   ten times its own width, so the code has to grow with it or every module gets
+   smaller and it stops scanning. 180px is about 48mm, which keeps modules near
+   1mm, the same as before. Error correction stays at M: raising it adds more
+   modules again and shrinks each one, making the code harder to read, not
+   easier. Damage tolerance is for stickers on walls, not screens.
+
+   Keep the vCard lean for the same reason. Name and number are what a contact
+   needs; adding a note and a URL pushed it to 65 modules and 0.8mm. */
 .save-qr .save-sub{display:block;font-size:13px;color:var(--sub);line-height:1.6;margin-top:6px}
 @media(max-width:520px){.save-qr{flex-direction:column;text-align:center}}
 
@@ -1222,11 +1230,11 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
         </a>
         <p class="save-why" id="saveWhy">Do this first and I show up by name in WhatsApp instead of a number.</p>
         <div class="save-qr" id="saveQr">
-          <svg shape-rendering="crispEdges" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 37 37"><path stroke="#212529" d="M4 4.5h7m1 0h2m2 0h1m3 0h5m1 0h7m-29 1h1m5 0h1m1 0h7m3 0h1m3 0h1m5 0h1m-29 1h1m1 0h3m1 0h1m6 0h3m2 0h1m3 0h1m1 0h3m1 0h1m-29 1h1m1 0h3m1 0h1m1 0h2m3 0h5m4 0h1m1 0h3m1 0h1m-29 1h1m1 0h3m1 0h1m2 0h1m1 0h2m1 0h3m2 0h1m2 0h1m1 0h3m1 0h1m-29 1h1m5 0h1m3 0h1m3 0h1m1 0h1m1 0h2m2 0h1m5 0h1m-29 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-21 1h2m1 0h1m2 0h6m-20 1h1m1 0h2m1 0h3m3 0h1m1 0h1m1 0h3m4 0h1m2 0h1m1 0h2m-28 1h1m2 0h2m1 0h1m4 0h1m4 0h3m1 0h4m3 0h1m-29 1h1m4 0h2m1 0h2m1 0h1m2 0h1m3 0h1m1 0h1m1 0h1m3 0h2m-25 1h2m3 0h2m1 0h3m1 0h2m1 0h1m2 0h2m5 0h1m-29 1h3m1 0h1m1 0h1m2 0h4m2 0h3m2 0h1m4 0h2m-26 1h2m2 0h1m2 0h1m2 0h1m1 0h5m1 0h1m1 0h2m3 0h3m-28 1h2m1 0h5m2 0h2m1 0h1m4 0h2m1 0h1m3 0h3m-29 1h2m2 0h1m2 0h1m1 0h3m1 0h1m2 0h1m2 0h2m1 0h3m2 0h1m-28 1h1m1 0h2m1 0h2m2 0h1m5 0h1m2 0h4m2 0h2m1 0h1m-25 1h1m3 0h1m3 0h1m1 0h1m1 0h1m1 0h1m2 0h2m1 0h1m1 0h3m-28 1h1m2 0h4m2 0h1m5 0h2m1 0h1m1 0h2m1 0h2m1 0h1m-22 1h1m2 0h2m2 0h1m2 0h1m1 0h4m5 0h1m-26 1h4m1 0h2m1 0h3m1 0h1m3 0h10m-19 1h1m3 0h3m1 0h1m2 0h2m3 0h5m-29 1h7m1 0h3m2 0h1m5 0h2m1 0h1m1 0h2m1 0h1m-28 1h1m5 0h1m1 0h2m2 0h1m2 0h1m2 0h1m1 0h1m3 0h2m-26 1h1m1 0h3m1 0h1m2 0h1m1 0h1m2 0h1m2 0h1m2 0h5m1 0h1m-27 1h1m1 0h3m1 0h1m1 0h2m1 0h8m2 0h1m1 0h3m2 0h1m-29 1h1m1 0h3m1 0h1m1 0h2m4 0h1m5 0h1m2 0h1m2 0h1m1 0h1m-29 1h1m5 0h1m2 0h5m2 0h1m1 0h1m1 0h1m1 0h2m1 0h1m1 0h1m-28 1h7m1 0h5m1 0h2m2 0h5m4 0h1"/></svg>
+          <svg shape-rendering="crispEdges" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 49 49"><path stroke="#212529" d="M4 4.5h7m1 0h1m2 0h2m1 0h1m1 0h1m2 0h1m3 0h2m2 0h2m3 0h1m1 0h7m-41 1h1m5 0h1m1 0h1m1 0h2m1 0h5m3 0h3m1 0h2m1 0h3m3 0h1m5 0h1m-41 1h1m1 0h3m1 0h1m2 0h4m1 0h1m1 0h1m1 0h1m1 0h4m1 0h1m8 0h1m1 0h3m1 0h1m-41 1h1m1 0h3m1 0h1m1 0h1m1 0h2m1 0h2m1 0h1m1 0h1m1 0h4m2 0h1m1 0h5m1 0h1m1 0h3m1 0h1m-41 1h1m1 0h3m1 0h1m2 0h2m3 0h6m1 0h1m4 0h2m1 0h4m1 0h1m1 0h3m1 0h1m-41 1h1m5 0h1m3 0h1m1 0h2m5 0h3m4 0h1m4 0h1m2 0h1m5 0h1m-41 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-33 1h2m2 0h1m1 0h1m1 0h2m1 0h2m1 0h1m1 0h1m1 0h2m1 0h4m-33 1h1m1 0h2m1 0h3m2 0h2m4 0h1m2 0h2m2 0h1m1 0h3m2 0h2m2 0h1m2 0h1m1 0h2m-39 1h4m2 0h3m2 0h1m1 0h1m2 0h2m5 0h1m1 0h3m2 0h1m2 0h2m3 0h1m-41 1h1m2 0h1m1 0h6m2 0h1m2 0h2m2 0h2m1 0h4m6 0h4m-37 1h2m1 0h2m2 0h1m1 0h1m6 0h1m3 0h1m1 0h1m2 0h4m1 0h1m2 0h2m1 0h1m3 0h1m-41 1h1m4 0h8m3 0h2m1 0h1m1 0h4m3 0h1m4 0h1m-34 1h1m2 0h1m4 0h2m3 0h3m1 0h1m3 0h1m1 0h1m2 0h1m1 0h2m10 0h1m-39 1h2m2 0h4m7 0h1m3 0h2m7 0h2m1 0h1m1 0h6m-40 1h1m1 0h1m3 0h5m1 0h4m2 0h4m1 0h1m1 0h2m2 0h6m1 0h1m2 0h1m-39 1h3m1 0h2m2 0h1m2 0h1m2 0h1m2 0h1m1 0h1m1 0h2m3 0h4m3 0h1m1 0h2m-32 1h1m2 0h1m1 0h1m2 0h1m1 0h2m4 0h1m1 0h1m1 0h4m2 0h1m1 0h1m2 0h2m-40 1h1m5 0h1m1 0h1m7 0h2m3 0h1m2 0h1m1 0h5m3 0h6m-38 1h2m1 0h1m2 0h1m1 0h1m1 0h3m1 0h1m3 0h1m1 0h3m1 0h1m1 0h2m4 0h5m1 0h1m-37 1h1m1 0h2m3 0h3m2 0h1m1 0h3m1 0h2m1 0h1m4 0h1m1 0h3m3 0h2m-37 1h1m1 0h1m1 0h1m2 0h1m1 0h2m1 0h1m1 0h2m1 0h1m1 0h1m8 0h2m1 0h1m1 0h2m1 0h1m-38 1h3m1 0h3m1 0h6m1 0h2m1 0h4m4 0h1m4 0h1m2 0h1m1 0h2m-36 1h1m2 0h3m2 0h1m2 0h2m1 0h2m2 0h7m3 0h1m1 0h2m1 0h1m1 0h2m-41 1h4m1 0h2m4 0h2m1 0h1m1 0h1m1 0h1m5 0h1m1 0h1m4 0h1m4 0h4m-39 1h5m6 0h1m1 0h1m1 0h1m2 0h2m1 0h4m3 0h1m5 0h1m1 0h4m-41 1h2m2 0h1m1 0h5m2 0h8m1 0h1m1 0h3m4 0h1m3 0h1m4 0h1m-40 1h2m2 0h1m2 0h2m1 0h3m1 0h2m2 0h1m1 0h4m1 0h3m2 0h5m1 0h1m2 0h1m-39 1h2m1 0h2m3 0h2m1 0h2m3 0h1m3 0h2m2 0h2m1 0h2m1 0h2m1 0h2m1 0h1m-38 1h4m3 0h2m1 0h1m1 0h1m1 0h2m2 0h1m2 0h1m2 0h1m3 0h1m1 0h2m1 0h2m1 0h1m1 0h1m-40 1h1m1 0h1m3 0h1m2 0h3m1 0h1m1 0h1m1 0h2m1 0h2m2 0h1m1 0h3m1 0h1m1 0h3m1 0h3m-37 1h3m2 0h1m1 0h2m3 0h4m2 0h1m1 0h1m4 0h1m1 0h2m3 0h2m1 0h2m1 0h1m-40 1h6m1 0h2m1 0h2m1 0h4m1 0h5m1 0h2m1 0h1m1 0h7m1 0h2m-32 1h4m1 0h1m1 0h2m2 0h1m2 0h1m2 0h1m1 0h2m3 0h1m3 0h1m2 0h1m-40 1h7m1 0h1m2 0h4m1 0h2m3 0h3m6 0h1m1 0h1m1 0h1m1 0h1m2 0h1m-40 1h1m5 0h1m1 0h2m1 0h1m1 0h4m1 0h1m2 0h2m1 0h3m1 0h1m3 0h1m3 0h2m-38 1h1m1 0h3m1 0h1m4 0h1m1 0h1m4 0h1m2 0h4m2 0h2m3 0h5m2 0h2m-41 1h1m1 0h3m1 0h1m1 0h1m3 0h1m2 0h1m2 0h4m1 0h2m1 0h2m1 0h1m1 0h3m1 0h1m1 0h2m1 0h1m-41 1h1m1 0h3m1 0h1m1 0h1m1 0h1m2 0h1m2 0h7m7 0h1m2 0h3m1 0h4m-41 1h1m5 0h1m2 0h2m2 0h1m1 0h1m2 0h1m2 0h1m1 0h2m2 0h1m2 0h1m1 0h2m1 0h1m3 0h1m-40 1h7m1 0h1m1 0h7m1 0h2m1 0h1m2 0h1m2 0h1m1 0h1m1 0h4m2 0h1m1 0h1"/></svg>
           <span>
             <span class="save-name">Save me as AI Sponsor</span>
             <span class="save-num">+1 307 323 4467</span>
-            <span class="save-sub">Point your phone camera at this. Your phone will offer to save me, so the name lands on the phone WhatsApp is on rather than on this computer.</span>
+            <span class="save-sub">Point your phone camera at this and it will offer to save me straight to your contacts. Nothing to download. The name lands on the phone WhatsApp is on, not on this computer.</span>
           </span>
         </div>
 
