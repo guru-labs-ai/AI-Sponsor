@@ -140,6 +140,9 @@ function normalise(body) {
           isAudio: false,
           mediaId: null,
           mediaType: '',
+          isReaction: false,
+          reactionEmoji: '',
+          reactedTo: null,
         };
 
         if (m.type === 'text') {
@@ -152,11 +155,28 @@ function normalise(body) {
             console.warn('[Meta] audio message with no media id — treating as unsupported');
             msg.isAudio = false;
           }
+        } else if (m.type === 'reaction') {
+          /* Somebody long-pressed a message and put an emoji on it.
+
+             This used to fall through with the rest and get answered with "I
+             can receive text and voice messages", once per reaction, because
+             the branch that sends that line sits in FRONT of the typing
+             debounce. Matt reacted four times in a minute and got the same
+             sentence back four times. Reading it here is what makes silence
+             possible downstream.
+
+             An EMPTY emoji is not a malformed reaction, it is Meta's way of
+             saying they took the reaction back off. Kept rather than dropped:
+             somebody removing a heart is a real thing that happened, and the
+             caller can decide what it is worth. */
+          msg.isReaction = true;
+          msg.reactionEmoji = (m.reaction && m.reaction.emoji) || '';
+          msg.reactedTo = (m.reaction && m.reaction.message_id) || null;
         }
-        /* Everything else (image, document, sticker, location, reaction) falls
-           through as its own type with empty text. The reply flow already has a
-           branch for "I can receive text and voice messages", and that answer is
-           better than pretending we understood. */
+        /* Everything else (image, document, sticker, location) falls through as
+           its own type with empty text. The reply flow already has a branch for
+           "I can receive text and voice messages", and that answer is better
+           than pretending we understood. */
 
         out.push(msg);
       }

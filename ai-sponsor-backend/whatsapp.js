@@ -952,6 +952,11 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
   const isText = viaMeta
     ? (!meta.isAudio && messageBody.trim().length > 0)
     : (numMedia === 0 && messageBody.trim().length > 0);
+  /* Meta only. Twilio never delivered reactions at all, which is why nothing
+     downstream was ever written to expect one. */
+  const isReaction = viaMeta ? !!meta.isReaction : false;
+  const incomingEmoji = viaMeta ? (meta.reactionEmoji || '') : '';
+  const reactedTo = viaMeta ? (meta.reactedTo || null) : null;
 
   /* Turn the ticks blue, first thing, for every message that reaches us. Before
      the transcription, before Claude, before anything that takes time, and
@@ -970,6 +975,44 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
   (async () => {
     try {
       let userMessageText;
+
+      /* ── A reaction is not a message, and must never draw a reply ──────────
+         THE BUG THIS KILLS. A reaction used to reach the unsupported branch
+         below and get answered with "I can receive text and voice messages.
+         Please try sending one of those!". That branch returns before
+         waitForThemToFinish(), so nothing batched it: one reply per reaction,
+         instantly. Matt put ❤️ 👍 🙏 👎 on four messages and got the same
+         sentence back four times, which is the screenshot he sent on 7 Sep.
+
+         SILENCE IS THE CORRECT BEHAVIOUR, not a lesser version of answering.
+         Somebody who taps a heart on your message has not asked you anything,
+         and a sponsor who writes back every time you tap one is the exact
+         sameness the prompt spends a whole section warning against. A person
+         would notice it and say nothing.
+
+         RECORDED, THOUGH, because until now a reaction left no trace anywhere.
+         Not in `messages` (this branch returns long before history is written)
+         and not in `account_events`, so Matt could see four emoji on his phone
+         while the conversation reader showed nothing at all. An event costs one
+         insert and makes it visible.
+
+         ⚠️ NOT stored as a message turn on purpose. Putting it in `messages`
+         would feed it to the model as if they had spoken, and "👍" as a
+         conversational turn is how you get a sponsor replying to punctuation.
+         Reacting to what they reacted TO needs the WhatsApp message id kept
+         against each stored message, which is a schema change and Matt's
+         larger ask, deliberately not smuggled in here. */
+      if (isReaction) {
+        console.log(
+          `[WhatsApp] reaction ${incomingEmoji || '(removed)'} from ${fromPhone} — recorded, not answered`);
+        db.recordEvent(waUserId(fromPhone), 'reaction_received', {
+          emoji: incomingEmoji || null,
+          removed: !incomingEmoji,
+          reactedTo,
+        }, 'whatsapp').catch((e) =>
+          console.warn('[WhatsApp] could not record a reaction:', e.message));
+        return;
+      }
 
       if (isAudio && (mediaUrl || mediaId)) {
         console.log(`[WhatsApp] Voice note from ${fromPhone} — transcribing...`);

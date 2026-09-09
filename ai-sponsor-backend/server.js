@@ -246,6 +246,28 @@ No em dashes, ever. Use a comma, a period, or just start a new sentence. Short
 lines. This is a text conversation with someone who needs to feel a person on
 the other end, not something that reads like it was generated.
 
+### An emoji occasionally, the way anyone texting would
+
+You can use emoji, and most of the time you should not. A sponsor who puts a
+warm little symbol on the end of every message is not warmer, they are
+decorated, and people feel the decoration. An emoji on every message is
+sameness, and sameness is the thing that gives a machine away.
+
+So, once in a while, when it does something a word would do worse:
+- One at most, and not in most messages.
+- Never as punctuation on a sentence that was already fine.
+- Never stacked, never a row of them, never as bullets or a border.
+- Not in the same spot two messages running.
+
+Where it earns its place: warmth on something small and good, taking the
+stiffness out of a line that reads flat typed, or meeting someone who is
+clearly texting that way themselves.
+
+Where it does not belong at all: relapse, crisis, shame, grief, fear, or
+anything they were frightened to tell you. Someone saying the hard thing does
+not need a symbol back, and it reads as though you skimmed it. If you are
+weighing whether a moment is too heavy for one, it is.
+
 ### VARY THE SHAPE OF YOUR MESSAGES
 
 A beta user's whole conversation was read back and every single reply had the
@@ -897,6 +919,44 @@ function persistExchange(userId, updatedHistory, newTurns) {
    Used by channels that can't consume a stream (e.g. WhatsApp). The /api/chat
    route keeps streaming for the web UI; both share MASTER_SYSTEM_PROMPT +
    conversation history, so the sponsor behaves identically across web + WhatsApp. */
+/* ── An emoji must never share a message with a crisis number ────────────────
+   The prompt above tells the sponsor not to reach for one in a heavy moment.
+   Saying it in the prompt is not the same as it being true: an instruction is a
+   preference the model weighs against everything else it was told. This is the
+   one case where being wrong is not a missed warmth but a smiley face next to a
+   suicide hotline, so it is a guarantee made in code, exactly like
+   textOnlyReason in whatsapp.js.
+
+   ⚠️ WHAT THIS DOES NOT COVER. It runs on the reply getSponsorReply returns,
+   which is the WhatsApp path. The two web-chat paths stream straight to the
+   browser token by token, so by the time a whole reply exists it has already
+   been read, and there is nothing left to strip. On the web the prompt is the
+   only thing carrying this. Worth knowing rather than assuming.
+
+   ⚠️ CRISIS_RESOURCE is deliberately the same list as its twin in whatsapp.js,
+   which uses it for a different decision (a crisis reply goes as text, never as
+   a voice note). Add a helpline to one, add it to the other.
+
+   Errs toward stripping throughout. */
+const CRISIS_RESOURCE =
+  /\b(?:988|741741|1[\s.-]?800[\s.-]?662[\s.-]?4357|crisis (?:text )?line|crisis lifeline|samhsa|helpline)\b/i;
+const ANY_EMOJI =
+  /\p{Extended_Pictographic}(?:\uFE0F|\uFE0E)?\p{Emoji_Modifier}?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F)?\p{Emoji_Modifier}?)*/gu;
+
+function stripEmojiNearCrisis(text) {
+  if (typeof text !== 'string' || !CRISIS_RESOURCE.test(text)) return text;
+  const cleaned = text.replace(ANY_EMOJI, '');
+  if (cleaned === text) return text;
+  console.log('[sponsor] stripped an emoji from a reply carrying crisis resources');
+  /* Tidy what pulling a character out of the middle of a sentence leaves
+     behind. Line breaks are left alone: they are how the message was written. */
+  return cleaned
+    .replace(/[ 	]{2,}/g, ' ')
+    .replace(/[ 	]+([,.!?])/g, '$1')
+    .replace(/[ 	]+$/gm, '')
+    .trim();
+}
+
 async function getSponsorReply(userId, message, context) {
   /* Trigger 3: anybody talking to the sponsor has just woken this instance, and
      on a free tier that is the most dependable scheduler the product has.
@@ -1042,7 +1102,7 @@ async function getSponsorReply(userId, message, context) {
      its past turns starts writing them where there is no voice at all. Same
      reasoning, and the same place in the pipeline, as [[voice]]. */
   if (context) context.spokenText = voices.forSpeech(markerFree);
-  const replyText = voices.stripSpeechTags(markerFree);
+  const replyText = stripEmojiNearCrisis(voices.stripSpeechTags(markerFree));
 
   /* The programme change has now been put in front of them once, which is all
      it was for. Clear the flag or the sponsor reopens it in every message from
@@ -2482,8 +2542,26 @@ app.post('/api/chat', async (req, res) => {
         console.log(`[cache] input=${u.input_tokens} cache_write=${u.cache_creation_input_tokens||0} cache_read=${u.cache_read_input_tokens||0}`);
       }
       if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-        fullResponse += event.delta.text;
-        res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
+        /* The same rule as stripEmojiNearCrisis, applied the only way a stream
+           allows. Once a crisis number has gone out, no emoji follows it.
+
+           FOUND BY RUNNING IT, not by reading it. A real test conversation
+           ended "will you put 988 in your phone? Just save it. [heart]" and the
+           web chat sent the heart, because the whole-reply guard only covers
+           the WhatsApp path. This closes the shape that actually happened: the
+           resource mid-message, a warm symbol after it.
+
+           WARNING: IT IS NOT THE EQUAL OF THE WHATSAPP GUARD, and pretending
+           otherwise would be worse than the hole. Tokens already written cannot
+           be recalled, so an emoji arriving BEFORE the number still goes out.
+           Buffering the whole reply would fix it and would also throw away
+           streaming, which is the one thing that makes a reply feel like
+           somebody typing. Left as the cheaper half on purpose. */
+        let piece = event.delta.text;
+        if (CRISIS_RESOURCE.test(fullResponse)) piece = piece.replace(ANY_EMOJI, '');
+        // Accumulates the CLEANED copy, so what is persisted is what was sent.
+        fullResponse += piece;
+        if (piece) res.write(`data: ${JSON.stringify({ text: piece })}\n\n`);
       }
     }
 

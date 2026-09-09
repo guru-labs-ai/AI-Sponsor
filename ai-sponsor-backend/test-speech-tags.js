@@ -114,7 +114,12 @@ const server = src('server.js');
 const whatsapp = src('whatsapp.js');
 const voicesSrc = src('voices.js');
 check('the spoken copy is put on the context', server.includes('context.spokenText = voices.forSpeech(markerFree)'), true);
-check('the returned copy is the clean one', server.includes('const replyText = voices.stripSpeechTags(markerFree)'), true);
+/* The guarantee is that what gets returned, persisted and sent has been through
+   stripSpeechTags. Matched loosely enough to allow another guard wrapped around
+   it (stripEmojiNearCrisis was added Sep 2026) and tightly enough that dropping
+   the strip, or feeding it something other than markerFree, still fails here. */
+check('the returned copy is the clean one',
+  /const replyText = [^;]*voices\.stripSpeechTags\(markerFree\)/.test(server), true);
 check('direction is given when the reply is already spoken',
   /if \(context\.replyIsSpoken\) systemBlocks\.push\(\{ type: 'text', text: SPEAKING_DIRECTION \}\)/.test(server), true);
 check('direction is given when the sponsor can choose to speak',
