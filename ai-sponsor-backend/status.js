@@ -437,20 +437,42 @@ async function runAndAlert() {
   if (await alreadyToldThem(signature)) {
     return { posted: false, overall: data.overall, suppressed: 'same problem already reported' };
   }
-  db.recordEvent(ALERT_USER, 'status_alert', { signature, overall: data.overall }, 'status')
-    .catch((e) => console.warn('[status] could not record the alert:', e.message));
+  /* ⭐ @channel ONLY WHEN SOMETHING IS ACTUALLY BROKEN. A message sitting in a
+     channel is not a notification: it reaches somebody when they next happen to
+     look, which for an outage is too late. The three people in this channel are
+     exactly the three who need it (Matt, Mubashir, Mariam), so a red state
+     pings them.
 
+     An amber does NOT ping. "Could not check the xAI key" at 3am is not worth
+     waking anyone, and a ping that is sometimes ignorable is a ping that gets
+     muted, which would cost us the red one too. */
+  const broken = data.overall === 'down';
   const lines = [
-    data.overall === 'down'
-      ? '🔴 *AI Sponsor: something is broken*'
+    broken
+      ? '<!channel> 🔴 *AI Sponsor: something is broken*'
       : '🟠 *AI Sponsor: something needs a look*',
     '',
     ...bad.map((c) => `${c.state === 'down' ? '🔴' : '🟠'} *${c.name}* (${c.group}) — ${c.detail}`),
     '',
     `Checked ${new Date(data.checkedAt).toUTCString()}`,
   ];
-  await alerts._internals.send(lines);
-  return { posted: true, overall: data.overall, problems: bad.length };
+
+  /* ⚠️ SENT BEFORE IT IS FILED, and the order is the whole point. Recording
+     first would mark the problem "already reported" even when the send failed,
+     and the next run would suppress it. That is the exact silent-failure shape
+     this page exists to catch, and building it into the thing doing the
+     catching would be embarrassing. */
+  const sent = await alerts._internals.send(lines);
+  /* send() returns {ok:false, skipped} rather than throwing when there is no
+     SLACK_BOT_TOKEN, so "it did not throw" is NOT proof anybody was told. */
+  if (!sent || sent.ok !== true) {
+    throw new Error(`Slack did not accept the alert: ${(sent && (sent.error || sent.skipped)) || 'unknown'}`);
+  }
+
+  db.recordEvent(ALERT_USER, 'status_alert', { signature, overall: data.overall }, 'status')
+    .catch((e) => console.warn('[status] could not record the alert:', e.message));
+
+  return { posted: true, overall: data.overall, problems: bad.length, pinged: broken };
 }
 
 router.post('/check', async (req, res) => {
