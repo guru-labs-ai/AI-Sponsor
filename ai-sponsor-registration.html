@@ -457,6 +457,22 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
    a .vcf link downloads a file instead of offering to save a contact, so the card
    was asking people to do something the browser would not let them do. The number
    as readable text at least tells them what to save. */
+.consent-modal{position:fixed;inset:0;z-index:60;background:rgba(15,26,44,0.55);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  overflow-y:auto;animation:rise .25s ease}
+/* An author display rule beats the browser's own [hidden]{display:none}, no
+   matter the specificity, so the line above would keep this dialog on screen
+   for ever with the attribute set and everything reading as closed. Caught by
+   a screenshot disagreeing with the DOM. */
+.consent-modal[hidden]{display:none}
+.consent-dialog{background:var(--card);border-radius:16px;padding:24px;
+  width:100%;max-width:440px;box-shadow:0 12px 40px rgba(0,0,0,0.25);
+  max-height:calc(100vh - 40px);overflow-y:auto}
+.consent-dialog h4{font-size:17px;font-weight:700;margin-bottom:12px}
+.consent-dialog p{font-size:13.5px;color:var(--sub);line-height:1.65;margin-bottom:10px}
+.consent-dialog .consent-links{margin-top:14px;margin-bottom:18px}
+.consent-dialog .consent-links a{color:var(--blue);font-weight:600}
+.consent-dialog .btn-ghost{width:100%;margin-top:4px}
 .wa-number{margin-top:16px;font-size:13.5px}
 .wa-number strong{color:var(--blue);white-space:nowrap}
 .s9-continue{text-align:center;margin-top:18px}
@@ -1054,12 +1070,12 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 
     <!-- SCREEN 11 — Payment -->
     <div class="screen" id="s11">
-      <button class="back" onclick="go(10)">← Back</button>
-      <h1 class="heading">You've already done the hardest part.</h1>
-      <p class="sub">Showing up. Everything from here is one day at a time, and I'll be right here for every one of them.</p>
+      <button class="back" id="s11Back" onclick="go(10)">← Back</button>
+      <h1 class="heading" id="s11Heading">You've already done the hardest part.</h1>
+      <p class="sub" id="s11Sub">Showing up. Everything from here is one day at a time, and I'll be right here for every one of them.</p>
 
       <!-- Buy One Give One -->
-      <div class="b1g1-box">
+      <div class="b1g1-box" id="b1g1Box">
         <div class="b1g1-icon">🤲</div>
         <div class="b1g1-text">
           <div class="b1g1-title">One for one.</div>
@@ -1119,7 +1135,7 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
            Below the plans, not above them: it is green, it is not something
            anyone can act on yet, and sitting next to the beta code box it stole
            attention from the one thing on this screen that has to be found. -->
-      <div class="scholarship-box soon">
+      <div class="scholarship-box soon" id="scholarshipBox">
         <span class="soon-badge">Coming soon</span>
         <h3>🎁 Know someone who needs this?</h3>
         <p>Soon you'll be able to gift a free scholarship code to someone you know who's struggling and can't afford it. Pass it on.</p>
@@ -1192,6 +1208,28 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 
   </div><!-- /card -->
 </div><!-- /container -->
+
+<!-- ── Consent, as a step rather than a box to find ────────────────────────
+     A beta user pressing Unlock used to be blocked by a tick most of a screen
+     away, then handed a button that said "Start my free 30 days" and sent to
+     Stripe. They never needed a card and should never have seen one. So for
+     that route the agreement comes to them, right when they act, and the only
+     way out of it is agreeing or closing it.
+
+     Same words as the inline box on purpose. Two versions of a consent notice
+     drifting apart is how you end up not knowing what anybody agreed to. -->
+<div class="consent-modal" id="consentModal" hidden>
+  <div class="consent-dialog" role="dialog" aria-modal="true" aria-labelledby="consentModalTitle">
+    <h4 id="consentModalTitle">Before you start</h4>
+    <p>Your sponsor is an AI, not a person.</p>
+    <p>What you tell it is stored encrypted, so it can remember you between conversations. It is never sold and never used for advertising.</p>
+    <p>To write replies and handle voice notes, your messages pass through Anthropic, OpenAI, xAI and WhatsApp.</p>
+    <p>You can delete everything at any time from your settings, and deleting means it is gone.</p>
+    <p class="consent-links">Read the <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="/terms" target="_blank" rel="noopener">Terms</a>.</p>
+    <button class="btn" id="consentAgreeBtn" onclick="agreeAndUnlock()">I agree, unlock my access →</button>
+    <button class="btn-ghost" onclick="closeConsentModal()">Not right now</button>
+  </div>
+</div>
 
 <!-- ── Chat Overlay ── -->
 <div class="chat-overlay" id="chatOverlay">
@@ -2305,8 +2343,50 @@ document.addEventListener('DOMContentLoaded', handlePaymentReturn);
 /* Swap the whole payment step for the "You're in" state. Everything about
    choosing/paying goes away — leaving the plan toggle and trial box on screen
    next to "You're in" reads like the purchase didn't take. */
+function openConsentModal(){
+  const m = document.getElementById('consentModal');
+  if (!m) return unlockBetaAccess();   // never trap somebody behind a missing dialog
+  m.hidden = false;
+  const btn = document.getElementById('consentAgreeBtn');
+  if (btn) { try { btn.focus({preventScroll:true}); } catch(e){ btn.focus(); } }
+}
+
+function closeConsentModal(){
+  const m = document.getElementById('consentModal');
+  if (m) m.hidden = true;
+}
+
+/* Ticking the real checkbox rather than setting a separate flag: consentPayload()
+   is what gets recorded, and it should read from the same one place whichever
+   route somebody agreed by. Two sources of truth for what a person consented to
+   is exactly the thing not to build. */
+function agreeAndUnlock(){
+  const box = document.getElementById('f-consent');
+  if (box) box.checked = true;
+  const e = document.getElementById('e-consent');
+  if (e) e.classList.remove('show');
+  closeConsentModal();
+  unlockBetaAccess();
+}
+
+function unlockBetaAccess(){
+  showSuccess('free access');
+  registerUser('Beta'); // fire-and-forget — save to GHL as a beta user
+  /* Counted as a registration, but with the route named, so a beta cohort can
+     never be mistaken for acquisition in a report. No trial event: nobody gave
+     us a card here and no money will ever follow. */
+  try {
+    gtag('event', 'sign_up', { method: 'beta_code' });
+  } catch(e) { console.warn('[AI Sponsor] GA4 not available:', e); }
+}
+
 function showSuccess(accessLabel){
-  ['cardSection','codeSection','planDivider','planToggle','trialBox'].forEach(id=>{
+  /* Everything that was asking them for something goes, including the pitch,
+     the scholarship box and the consent box. Leaving those up put "You're in"
+     underneath a page still selling a subscription, which is how a beta user
+     ends up pressing "Start my free 30 days" and landing in Stripe. */
+  ['cardSection','codeSection','planDivider','planToggle','trialBox',
+   'consentBox','b1g1Box','scholarshipBox','s11Heading','s11Sub','s11Back'].forEach(id=>{
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
@@ -2376,8 +2456,10 @@ function setupSuccessActions(){
 // Beta code is validated SERVER-SIDE now — it isn't in this page's source, and
 // it can be turned off without redeploying the site. The button shows a brief
 // checking state because the backend can cold-start.
+/* Consent is asked for AFTER the code is known to be good. Making somebody
+   agree to a privacy policy and only then telling them their code is wrong is
+   a way of wasting the agreement, and of teaching them to click past it. */
 async function redeemCode(){
-  if (!hasConsent()) return;
   const btn=document.querySelector('#codeSection .code-btn');
   const err=document.getElementById('e-code');
   const code=document.getElementById('f-code').value.trim().toUpperCase();
@@ -2392,14 +2474,11 @@ async function redeemCode(){
     });
     const data=await res.json().catch(()=>({}));
     if(data && data.valid){
-      showSuccess('free access');
-      registerUser('Beta'); // fire-and-forget — save to GHL as a beta user
-      /* Counted as a registration, but with the route named, so a beta cohort
-         can never be mistaken for acquisition in a report. No trial event:
-         nobody gave us a card here and no money will ever follow. */
-      try {
-        gtag('event', 'sign_up', { method: 'beta_code' });
-      } catch(e) { console.warn('[AI Sponsor] GA4 not available:', e); }
+      /* Somebody who already ticked the box on the way down the page has
+         agreed, and asking twice for the same thing reads as a bug. */
+      const box = document.getElementById('f-consent');
+      if (box && box.checked) unlockBetaAccess();
+      else openConsentModal();
     } else {
       err.textContent="That code doesn't look right. Try again.";
       err.classList.add('show');
