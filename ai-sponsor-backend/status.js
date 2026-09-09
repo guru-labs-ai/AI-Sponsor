@@ -114,15 +114,35 @@ async function timed(name, group, fn) {
       fn(),
       new Promise((_, rej) => setTimeout(() => rej(new Error(`timed out after ${TIMEOUT_MS}ms`)), TIMEOUT_MS)),
     ]);
-    return { name, group, ms: Date.now() - started, state: out.state, detail: out.detail };
+    return {
+      name, group, ms: Date.now() - started,
+      state: out.state, detail: out.detail,
+      impact: out.impact || null, action: out.action || null,
+    };
   } catch (e) {
-    return { name, group, ms: Date.now() - started, state: 'warn', detail: `could not check: ${e.message}` };
+    return {
+      name, group, ms: Date.now() - started, state: 'warn',
+      detail: `could not check: ${e.message}`,
+      impact: 'Unknown. This check could not run, so this part of the product is unwatched rather than known to be fine.',
+      action: 'Open the page again in a few minutes. If it keeps saying this, the check itself is broken and needs looking at.',
+    };
   }
 }
 
-const ok = (detail) => ({ state: 'ok', detail });
-const warn = (detail) => ({ state: 'warn', detail });
-const down = (detail) => ({ state: 'down', detail });
+/* Every result can carry two extra things, and they only ever appear on the
+   page when something is wrong:
+
+     impact  who is hurt by this, in plain words
+     action  the next thing a person should actually do
+
+   Matt's ask, 9 Sep: "if there is an issue you send more details about it when
+   somebody opens the link and reads it". A status page that says "Voice notes
+   in: down" and stops has told you the least useful half. The half that
+   matters is that people are sending voice notes and silently getting nothing
+   back, and that the fix is a billing page rather than a deploy. */
+const ok = (detail, extra) => ({ state: 'ok', detail, ...(extra || {}) });
+const warn = (detail, extra) => ({ state: 'warn', detail, ...(extra || {}) });
+const down = (detail, extra) => ({ state: 'down', detail, ...(extra || {}) });
 
 async function fetchJson(url, init) {
   const r = await fetch(url, init);
@@ -134,7 +154,10 @@ async function fetchJson(url, init) {
 
 // The sponsor's brain. If this is down nobody gets a reply at all.
 async function checkAnthropic() {
-  if (!process.env.ANTHROPIC_API_KEY) return down('no ANTHROPIC_API_KEY set');
+  if (!process.env.ANTHROPIC_API_KEY) return down('no ANTHROPIC_API_KEY set', {
+    impact: 'The sponsor cannot reply to anybody, on any channel. Total outage.',
+    action: 'Set ANTHROPIC_API_KEY on the Render service.',
+  });
   const { r, body } = await fetchJson('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -150,8 +173,14 @@ async function checkAnthropic() {
   });
   if (r.ok) return ok('replying');
   const err = (body.error && body.error.message) || `HTTP ${r.status}`;
-  if (r.status === 401) return down(`key rejected: ${err}`);
-  if (r.status === 400 && /credit|balance|quota/i.test(err)) return down(`out of credit: ${err}`);
+  if (r.status === 401) return down(`key rejected: ${err}`, {
+    impact: 'The sponsor cannot reply to anyone, on any channel. This is a total outage.',
+    action: 'Check ANTHROPIC_API_KEY on Render and that the key still exists in the Anthropic console.',
+  });
+  if (r.status === 400 && /credit|balance|quota/i.test(err)) return down(`out of credit: ${err}`, {
+    impact: 'The sponsor cannot reply to anyone. Everyone messaging gets the "I am having a moment" fallback.',
+    action: 'Top up the Anthropic account. This is a billing page, not a deploy.',
+  });
   if (r.status === 429) return warn(`rate limited: ${err}`);
   return warn(err);
 }
@@ -159,7 +188,10 @@ async function checkAnthropic() {
 /* Inbound voice notes. THE ONE THAT ACTUALLY DIED, so it is checked by using it
    rather than by asking whether the key exists. */
 async function checkOpenAI() {
-  if (!process.env.OPENAI_API_KEY) return down('no OPENAI_API_KEY set, voice notes cannot be transcribed');
+  if (!process.env.OPENAI_API_KEY) return down('no OPENAI_API_KEY set, voice notes cannot be transcribed', {
+    impact: 'Anyone sending a voice note gets the generic "I am having a moment" reply. Text keeps working, so this looks fine from outside. It is what cost us Sylvia on 1 September.',
+    action: 'Set OPENAI_API_KEY on the Render service. Transcription is the one thing xAI cannot do, so there is no fallback.',
+  });
   const { r, body } = await fetchJson('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -174,7 +206,10 @@ async function checkOpenAI() {
   if (r.status === 401) return down(`key rejected: ${err}`);
   // The 1 Sep outage, exactly. Worth naming rather than leaving as "429".
   if (code === 'insufficient_quota' || /quota|billing|credit/i.test(err)) {
-    return down(`OUT OF CREDIT. Inbound voice notes are failing silently: ${err}`);
+    return down(`OUT OF CREDIT. Inbound voice notes are failing silently: ${err}`, {
+      impact: 'Anyone sending a voice note gets the generic "I am having a moment" reply and no transcription. Text still works, so nothing looks broken from outside. This is exactly what cost us Sylvia on 1 September.',
+      action: 'Top up the OpenAI account (org Guru AI, project Default). Auto-reload is OFF and the card on file has declined before, so check the card too.',
+    });
   }
   if (r.status === 429) return warn(`rate limited: ${err}`);
   if (r.status === 404) return warn(`could not confirm billing (model unavailable): ${err}`);
@@ -183,7 +218,10 @@ async function checkOpenAI() {
 
 // The voice the sponsor speaks in. Text still works without it.
 async function checkXai() {
-  if (!process.env.XAI_API_KEY) return warn('no XAI_API_KEY set, the sponsor cannot speak');
+  if (!process.env.XAI_API_KEY) return warn('no XAI_API_KEY set, the sponsor cannot speak', {
+    impact: 'The sponsor can read and reply but cannot send voice notes. Text is unaffected, so this is a lost feature rather than an outage.',
+    action: 'Set XAI_API_KEY on the Render service.',
+  });
   const r = await fetch('https://api.x.ai/v1/models', {
     headers: { Authorization: `Bearer ${process.env.XAI_API_KEY}` },
   });
@@ -193,7 +231,10 @@ async function checkXai() {
 }
 
 async function checkDatabase() {
-  if (!db.enabled) return down('DATABASE_URL not set, nothing is being remembered');
+  if (!db.enabled) return down('DATABASE_URL not set, nothing is being remembered', {
+    impact: 'Nobody is remembered between messages. Every conversation restarts from nothing, and nothing is being saved.',
+    action: 'Check DATABASE_URL on Render. Do not leave this running.',
+  });
   const t = await db.ping();
   return ok(`answering in ${t}ms`);
 }
@@ -203,7 +244,10 @@ async function checkDatabase() {
    error, so it is worth watching a number that should never move much. */
 function checkMasterPrompt() {
   const len = String(ctx.masterPrompt || '').length;
-  if (!len) return down('the master prompt is EMPTY, the sponsor has no instructions');
+  if (!len) return down('the master prompt is EMPTY, the sponsor has no instructions', {
+    impact: 'The sponsor has no character, no crisis protocol and no boundaries. It would answer as a generic assistant to people in recovery.',
+    action: 'Roll back the last deploy immediately. This is not something to debug while it is live.',
+  });
   if (len < 8000) return down(`the master prompt is only ${len} characters, it looks truncated`);
   return ok(`${len.toLocaleString()} characters loaded`);
 }
@@ -218,7 +262,10 @@ function checkMasterPrompt() {
    number up, because a confidently wrong number on a status page is worse than
    no number: somebody acts on it. */
 async function checkStripe() {
-  if (!process.env.STRIPE_SECRET_KEY) return warn('no STRIPE_SECRET_KEY set, nobody can pay');
+  if (!process.env.STRIPE_SECRET_KEY) return warn('no STRIPE_SECRET_KEY set, nobody can pay', {
+    impact: 'Nobody can start a paid trial. Beta users are unaffected because they never touch Stripe.',
+    action: 'Set STRIPE_SECRET_KEY on the Render service.',
+  });
   const auth = { headers: { Authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}` } };
   const prices = [process.env.STRIPE_PRICE_MONTHLY, process.env.STRIPE_PRICE_ANNUAL].filter(Boolean);
 
@@ -244,7 +291,10 @@ async function checkStripe() {
 }
 
 async function checkGhl() {
-  if (!process.env.GHL_API_TOKEN) return warn('no GHL_API_TOKEN set, registrations reach nobody');
+  if (!process.env.GHL_API_TOKEN) return warn('no GHL_API_TOKEN set, registrations reach nobody', {
+    impact: 'People can still register and use the sponsor, but nothing reaches the CRM, so the team cannot see them and Amends candidates are lost.',
+    action: 'Set GHL_API_TOKEN on the Render service.',
+  });
   const loc = process.env.GHL_LOCATION_ID || 'Mgfec8mT0vXxyhp9SizK';
   const r = await fetch(`https://services.leadconnectorhq.com/contacts/?locationId=${loc}&limit=1`, {
     headers: {
@@ -254,14 +304,20 @@ async function checkGhl() {
     },
   });
   if (r.ok) return ok('reachable, registrations can be filed');
-  if (r.status === 401) return down(`token rejected (HTTP 401), new registrations are not reaching GHL`);
+  if (r.status === 401) return down('token rejected (HTTP 401), new registrations are not reaching GHL', {
+    impact: 'People can still sign up and use the sponsor, but nobody lands in the CRM, so the team cannot see them and Amends candidates are lost.',
+    action: 'Reissue the GHL private integration token and update GHL_API_TOKEN on Render.',
+  });
   return warn(`HTTP ${r.status}`);
 }
 
 async function checkWhatsApp() {
   const token = process.env.META_WA_TOKEN;
   const id = process.env.META_WA_PHONE_NUMBER_ID;
-  if (!token || !id) return down('Meta WhatsApp is not configured, the number is not being answered');
+  if (!token || !id) return down('Meta WhatsApp is not configured, the number is not being answered', {
+    impact: 'The channel almost everybody uses is dead. Messages are not arriving and none can be sent.',
+    action: 'Set META_WA_TOKEN and META_WA_PHONE_NUMBER_ID on the Render service.',
+  });
   const v = process.env.META_GRAPH_VERSION || 'v25.0';
   const { r, body } = await fetchJson(
     `https://graph.facebook.com/${v}/${id}?fields=display_phone_number,quality_rating,verified_name`,
@@ -275,7 +331,18 @@ async function checkWhatsApp() {
   }
   const q = body.quality_rating || 'UNKNOWN';
   const line = `${body.display_phone_number || id}, quality ${q}`;
-  return q === 'RED' ? warn(`${line}. Meta has flagged message quality`) : ok(line);
+  /* YELLOW is the warning shot. RED is the one before Meta starts limiting how
+     many people we can message first, which would take out the weekly review
+     and every milestone message. Catching it at YELLOW is the whole point. */
+  if (q === 'RED' || q === 'YELLOW') {
+    return warn(`${line}. Meta has flagged message quality`, {
+      impact: q === 'RED'
+        ? 'Meta is close to limiting how many people the sponsor can message first. That would silently break the weekly review and the check-ins.'
+        : 'Quality has slipped. If it reaches red, Meta starts limiting how many people we can message first.',
+      action: 'Look at what we have been sending and how people have reacted to it. Blocks and "not useful" reports drive this rating.',
+    });
+  }
+  return ok(line);
 }
 
 /* The pages a person actually lands on. Checked by fetching them, because
@@ -292,6 +359,195 @@ function pageCheck(name, url, mustContain) {
   };
 }
 
+/* ── Seeing it coming ────────────────────────────────────────────────────────
+   Matt, 9 Sep: "make sure that you actually catch all the problems of ai
+   sponsor before any user is affected by it".
+
+   Everything above answers "is this broken now". These answer "is something
+   about to break", which is the only kind of check that can get in front of a
+   person being hurt. They are the difference between telling you the WhatsApp
+   token died and telling you it dies on Thursday.
+
+   ⚠️ ONE THING CANNOT BE MADE PREDICTIVE AND IT IS WORTH SAYING SO. Neither
+   Anthropic nor OpenAI expose a credit balance to an API key, only to a logged
+   in browser session, so "the balance is getting low" is not knowable from
+   here. The best we can do for those two is notice within six hours instead of
+   two days. That is a real improvement and it is not prevention. */
+
+/* The WhatsApp token, and when it dies.
+
+   A Meta token expiring is a total, silent outage of the channel almost
+   everybody uses, and it happens on a date that is knowable weeks ahead. */
+async function checkMetaTokenLife() {
+  const token = process.env.META_WA_TOKEN;
+  if (!token) return down('Meta WhatsApp is not configured', {
+    impact: 'Nobody can reach the sponsor on WhatsApp at all.',
+    action: 'Set META_WA_TOKEN on the Render service.',
+  });
+  const { r, body } = await fetchJson(
+    `https://graph.facebook.com/debug_token?input_token=${encodeURIComponent(token)}` +
+    `&access_token=${encodeURIComponent(token)}`);
+  if (!r.ok || !body.data) {
+    return warn('could not read the token expiry from Meta', {
+      impact: 'We cannot tell how long the WhatsApp channel has left.',
+      action: 'Check the token by hand in Meta Business settings.',
+    });
+  }
+  const d = body.data;
+  if (d.is_valid === false) {
+    return down(`Meta says this token is not valid: ${(d.error && d.error.message) || 'no reason given'}`, {
+      impact: 'WhatsApp is down for everyone. Messages are not arriving and none can be sent.',
+      action: 'Reissue the token in Meta Business settings and update META_WA_TOKEN on Render.',
+    });
+  }
+  // expires_at 0 means a permanent token, which is what we want.
+  if (!d.expires_at) return ok('permanent token, no expiry date');
+  const days = Math.floor((d.expires_at * 1000 - Date.now()) / 864e5);
+  if (days < 0) {
+    return down('the WhatsApp token has EXPIRED', {
+      impact: 'WhatsApp is down for everyone right now.',
+      action: 'Reissue the token in Meta Business settings and update META_WA_TOKEN on Render.',
+    });
+  }
+  if (days <= 14) {
+    return warn(`the WhatsApp token expires in ${days} day${days === 1 ? '' : 's'}`, {
+      impact: `On that day WhatsApp stops working for everyone, with no warning to them. ${days} days left.`,
+      action: 'Reissue it in Meta Business settings and update META_WA_TOKEN on Render, before it lapses.',
+    });
+  }
+  return ok(`token valid, ${days} days left`);
+}
+
+/* The certificate. An expired one is a browser warning on the landing page,
+   which is the single worst thing a first-time visitor can meet. */
+function checkTls(host) {
+  return () => new Promise((resolve, reject) => {
+    const tls = require('tls');
+    const socket = tls.connect({ host, port: 443, servername: host }, () => {
+      const cert = socket.getPeerCertificate();
+      socket.end();
+      if (!cert || !cert.valid_to) return resolve(warn('no certificate returned'));
+      const days = Math.floor((new Date(cert.valid_to).getTime() - Date.now()) / 864e5);
+      if (days < 0) {
+        return resolve(down(`the certificate EXPIRED ${Math.abs(days)} days ago`, {
+          impact: 'Every visitor sees a full page browser security warning before the site.',
+          action: 'GitHub Pages renews this automatically. If it has expired, re-check the custom domain settings in the repo.',
+        }));
+      }
+      if (days <= 21) {
+        return resolve(warn(`the certificate expires in ${days} days`, {
+          impact: 'If it lapses, every visitor meets a browser security warning instead of the site.',
+          action: 'Usually renews itself. Worth watching, and worth checking the custom domain settings if it gets under a week.',
+        }));
+      }
+      resolve(ok(`valid for ${days} more days`));
+    });
+    socket.setTimeout(7000, () => { socket.destroy(); reject(new Error('TLS connection timed out')); });
+    socket.on('error', reject);
+  });
+}
+
+/* The domain itself. Ours expires 10 Jun 2027 and auto-renew has never been
+   confirmed, which makes this exactly the kind of thing that takes a product
+   off the internet on a Tuesday with nobody having done anything wrong. */
+async function checkDomain() {
+  /* Verisign is the registry for .com and answers directly. The rdap.org
+     aggregator redirects and then 403s us, which would have left this check
+     permanently amber and taught everyone to ignore an amber. */
+  const { r, body } = await fetchJson(
+    'https://rdap.verisign.com/com/v1/domain/GETAISPONSOR.COM',
+    { headers: { Accept: 'application/rdap+json' } });
+  if (!r.ok) return warn(`could not read the domain record (HTTP ${r.status})`, {
+    impact: 'We cannot tell how long the domain has left.',
+    action: 'Check the expiry in Namecheap by hand.',
+  });
+  const ev = (body.events || []).find((e) => e.eventAction === 'expiration');
+  if (!ev) return warn('the domain record carries no expiry date');
+  const days = Math.floor((new Date(ev.eventDate).getTime() - Date.now()) / 864e5);
+  const when = new Date(ev.eventDate).toISOString().slice(0, 10);
+  if (days < 0) {
+    return down(`getaisponsor.com EXPIRED on ${when}`, {
+      impact: 'The website, the registration flow and every link we have ever sent are dead.',
+      action: 'Renew it in Namecheap immediately.',
+    });
+  }
+  if (days <= 45) {
+    return warn(`getaisponsor.com expires ${when}, in ${days} days`, {
+      impact: 'On that date the site, registration and every link we have sent people stop working.',
+      action: 'Renew it in Namecheap, and confirm auto-renew is actually on. It has never been verified.',
+    });
+  }
+  return ok(`expires ${when}, ${days} days away`);
+}
+
+/* ⭐ THE OUTAGE NOTHING ELSE CAN SEE. If the Meta webhook is unsubscribed or
+   the number deregistered, every other check still passes and messages just
+   stop arriving. Silence is the only symptom it has. */
+async function checkSilence() {
+  if (!db.enabled) return warn('no database, so inbound traffic cannot be watched');
+  const s = await db.inboundSilence();
+  if (!s.lastAt) return warn('nobody has ever messaged us, so there is no normal to compare against');
+
+  const hours = Math.floor(s.hoursQuiet);
+  const normal = s.perDay;
+  const pretty = hours < 48 ? `${hours}h ago` : `${Math.floor(hours / 24)} days ago`;
+
+  /* Scaled to how busy we normally are, so a quiet product does not alarm and a
+     busy one is not allowed to go quiet unnoticed. Under roughly one message a
+     day there is no meaningful signal here and it says so. */
+  if (normal < 1) return ok(`last message ${pretty}, too quiet a product to read anything into a gap`);
+  const budget = normal >= 10 ? 6 : normal >= 3 ? 12 : 24;
+  if (hours >= budget * 2) {
+    return down(`no message from anyone for ${pretty}, and we normally see about ${normal.toFixed(1)} a day`, {
+      impact: 'This is what a dead WhatsApp webhook looks like from in here. People may be messaging and getting nothing back, with every other check still green.',
+      action: 'Send a message to +1 307-323-4467 yourself. If it does not answer, check the webhook subscription in the Meta app and that the number is still registered.',
+    });
+  }
+  if (hours >= budget) {
+    return warn(`nothing for ${pretty}, against about ${normal.toFixed(1)} a day normally`, {
+      impact: 'Might be a quiet night, might be the webhook. Worth a look rather than an alarm.',
+      action: 'Send a test message to the number. If it replies, this is just a quiet spell.',
+    });
+  }
+  return ok(`${s.today} today, last one ${pretty}`);
+}
+
+/* People whose access runs out shortly. They are real, the date is already
+   known, and nobody should learn about it by being locked out mid-conversation. */
+async function checkAccessExpiry() {
+  if (!db.enabled) return warn('no database, so access expiry cannot be checked');
+  const { soon, firstAt } = await db.accessExpiringSoon(30);
+  if (!soon) return ok('nobody loses access in the next 30 days');
+  const when = new Date(firstAt).toISOString().slice(0, 10);
+  return warn(`${soon} ${soon === 1 ? 'person loses' : 'people lose'} access within 30 days, first on ${when}`, {
+    impact: 'Access enforcement is currently OFF, so nothing actually cuts them off today. If it is ever switched on, these are the people it would silently lock out.',
+    action: 'Decide what these people are told and when. This is a conversation to have before the date, not after.',
+  });
+}
+
+/* Subscriptions in trouble. A failed payment is a person about to lose access
+   who has not done anything wrong. */
+async function checkBilling() {
+  if (!process.env.STRIPE_SECRET_KEY) return warn('no STRIPE_SECRET_KEY set');
+  const prices = [process.env.STRIPE_PRICE_MONTHLY, process.env.STRIPE_PRICE_ANNUAL].filter(Boolean);
+  if (!prices.length) return warn('no AI Sponsor price ids set, so nothing can be checked');
+  const auth = { headers: { Authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}` } };
+  let trouble = 0;
+  for (const price of prices) {
+    for (const status of ['past_due', 'unpaid', 'incomplete']) {
+      const { r, body } = await fetchJson(
+        `https://api.stripe.com/v1/subscriptions?limit=100&status=${status}&price=${encodeURIComponent(price)}`, auth);
+      if (!r.ok) return warn('could not list subscriptions by status');
+      trouble += (body.data || []).length;
+    }
+  }
+  if (!trouble) return ok('no failed or stuck payments');
+  return warn(`${trouble} subscription${trouble === 1 ? '' : 's'} with a payment problem`, {
+    impact: `${trouble} ${trouble === 1 ? 'person is' : 'people are'} about to lose access over a card, not a choice.`,
+    action: 'Open Stripe and look at each one. A failed card is usually worth a message before it lapses.',
+  });
+}
+
 const SITE = 'https://getaisponsor.com';
 
 async function runChecks() {
@@ -302,8 +558,12 @@ async function runChecks() {
     timed('Sponsor speaks', 'The sponsor', checkXai),
 
     timed('WhatsApp number', 'WhatsApp', checkWhatsApp),
+    timed('WhatsApp token life', 'WhatsApp', checkMetaTokenLife),
+    timed('People still talking', 'WhatsApp', checkSilence),
 
     timed('Database', 'Backend', checkDatabase),
+    timed('Domain', 'Backend', checkDomain),
+    timed('Certificate', 'Backend', checkTls('getaisponsor.com')),
 
     timed('Landing page', 'Website', pageCheck('', SITE, null)),
     timed('Registration', 'Website', pageCheck('', `${SITE}/ai-sponsor-registration.html`, 'beta')),
@@ -313,7 +573,9 @@ async function runChecks() {
     timed('Terms', 'Website', pageCheck('', `${SITE}/terms.html`, null)),
 
     timed('Payments', 'Money', checkStripe),
+    timed('Failed payments', 'Money', checkBilling),
     timed('GHL (registrations)', 'Money', checkGhl),
+    timed('Access running out', 'Money', checkAccessExpiry),
   ]);
 
   const worst = results.some((r) => r.state === 'down') ? 'down'
@@ -416,6 +678,11 @@ router.get('/data', async (req, res) => {
 const ALERT_USER = 'system-status';
 const REPEAT_AFTER_MS = 12 * 60 * 60 * 1000;
 
+/* The bare path, never the keyed one. The four people who need this have
+   opened their link and hold a cookie; putting the key in a Slack message
+   every six hours would scatter copies of it through the channel history. */
+const SITE_STATUS_LINK = 'https://ai-sponsor-f7de.onrender.com/status/';
+
 async function alreadyToldThem(signature) {
   if (!db.enabled) return false;
   const prior = await db.getEvents(ALERT_USER, 5).catch(() => []);
@@ -452,9 +719,17 @@ async function runAndAlert() {
       ? '<!channel> 🔴 *AI Sponsor: something is broken*'
       : '🟠 *AI Sponsor: something needs a look*',
     '',
-    ...bad.map((c) => `${c.state === 'down' ? '🔴' : '🟠'} *${c.name}* (${c.group}) — ${c.detail}`),
-    '',
-    `Checked ${new Date(data.checkedAt).toUTCString()}`,
+    /* The same "what this means / what to do" the page shows. Somebody reading
+       this on a phone at night should not have to open a link to find out
+       whether it can wait until morning. */
+    ...bad.flatMap((c) => [
+      `${c.state === 'down' ? '🔴' : '🟠'} *${c.name}* (${c.group})`,
+      `> ${c.detail}`,
+      c.impact ? `> *What this means:* ${c.impact}` : null,
+      c.action ? `> *What to do:* ${c.action}` : null,
+      '',
+    ].filter((l) => l !== null)),
+    `<${SITE_STATUS_LINK}|Open the status page> · checked ${new Date(data.checkedAt).toUTCString()}`,
   ];
 
   /* ⚠️ SENT BEFORE IT IS FILED, and the order is the whole point. Recording

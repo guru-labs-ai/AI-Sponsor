@@ -791,6 +791,55 @@ async function getEvents(userId, limit = 50) {
   return r.rows;
 }
 
+/* ── Signals the status page reads to see trouble COMING ─────────────────────
+   Everything else it checks answers "is this broken right now". These answer
+   "is something about to hurt somebody", which is a different and more useful
+   question. */
+
+/* When did a real person last say anything to us, and how busy is normal.
+
+   ⭐ THE OUTAGE NO REACHABILITY CHECK CAN SEE. If the Meta webhook is
+   unsubscribed, the number deregistered, or the app's permissions lapse, every
+   single check still passes: the token is valid, the site loads, the model
+   replies. Nothing is broken from where we are standing. Messages simply stop
+   arriving, and the first sign is a person saying "I texted and got nothing".
+   Silence is the only symptom, so silence has to be something we measure. */
+async function inboundSilence() {
+  if (!enabled) throw new Error('DATABASE_URL not set');
+  const r = await pool.query(`
+    SELECT
+      (SELECT MAX(created_at) FROM messages WHERE role = 'user') AS last_at,
+      (SELECT COUNT(*)::int FROM messages
+        WHERE role = 'user' AND created_at > now() - interval '7 days') AS week,
+      (SELECT COUNT(*)::int FROM messages
+        WHERE role = 'user' AND created_at > now() - interval '24 hours') AS today
+  `);
+  const row = r.rows[0] || {};
+  return {
+    lastAt: row.last_at || null,
+    perDay: Number(row.week || 0) / 7,
+    today: Number(row.today || 0),
+    hoursQuiet: row.last_at ? (Date.now() - new Date(row.last_at).getTime()) / 36e5 : null,
+  };
+}
+
+/* Who loses access soon. beta_expires_at is stamped six months out and is
+   enforced by access.js, so these are real people who will be shut out on a
+   date we already know. Nobody should find out by being locked out. */
+async function accessExpiringSoon(days = 30) {
+  if (!enabled) throw new Error('DATABASE_URL not set');
+  const r = await pool.query(`
+    SELECT COUNT(DISTINCT ${PERSON_KEY})::int AS soon, MIN(beta_expires_at) AS first_at
+      FROM users
+     WHERE beta_expires_at IS NOT NULL
+       AND beta_expires_at > now()
+       AND beta_expires_at < now() + ($1 || ' days')::interval`,
+    [String(Math.max(1, Number(days) || 30))]
+  );
+  const row = r.rows[0] || {};
+  return { soon: Number(row.soon || 0), firstAt: row.first_at || null };
+}
+
 /* Is the database actually answering, and how fast. Used by the status page.
 
    A real round trip rather than a look at the pool's own opinion of itself: a
@@ -1694,7 +1743,8 @@ module.exports = {
   // dashboard groups on. Two implementations would eventually disagree.
   resolveSource,
   saveProfile, getProfile, appendMessages, getHistory, findPersonId,
-  recordEvent, getEvents, hasEvent, recentReactions, ping, clearConversation, getPersonStats,
+  recordEvent, getEvents, hasEvent, recentReactions, ping, inboundSilence, accessExpiringSoon,
+  clearConversation, getPersonStats,
   createLinkCode, claimLinkCode,
   purgeUserData, findAllIdentities,
   quietCheckinCandidates, betaAccessRoster,

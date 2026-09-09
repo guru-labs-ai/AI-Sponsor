@@ -48,6 +48,17 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);min-he
 .row.down .d{color:var(--down);font-weight:600}
 .row .ms{font-size:10.5px;color:var(--muted);flex:none;margin-top:3px;font-variant-numeric:tabular-nums}
 
+/* The explanation, shown only when something is actually wrong. A healthy page
+   stays a list of green dots; a broken one tells you who is hurt and what to do
+   without anybody having to open a second thing. */
+.why{margin-top:9px;border-left:2px solid currentColor;padding:2px 0 2px 10px;
+  display:flex;flex-direction:column;gap:6px}
+.why b{display:block;font-size:10px;letter-spacing:0.09em;text-transform:uppercase;opacity:.75;
+  margin-bottom:2px;font-weight:700}
+.why p{font-size:11.5px;line-height:1.5;margin:0;color:var(--ink);opacity:.9}
+.row.down .why{color:var(--down)}
+.row.warn .why{color:var(--warn)}
+
 .foot{margin-top:18px;font-size:11.5px;color:var(--muted);line-height:1.6;text-align:center}
 .btn{display:block;width:100%;margin-top:14px;background:var(--card);border:1px solid var(--line);
   color:var(--ink);border-radius:14px;padding:13px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
@@ -115,6 +126,11 @@ function render(d) {
             <span class="t">
               <span class="n">${esc(c.name)}</span>
               <span class="d">${esc(c.detail)}</span>
+              ${c.state !== 'ok' && (c.impact || c.action) ? `
+                <span class="why">
+                  ${c.impact ? `<span><b>What this means</b><p>${esc(c.impact)}</p></span>` : ''}
+                  ${c.action ? `<span><b>What to do</b><p>${esc(c.action)}</p></span>` : ''}
+                </span>` : ''}
             </span>
             <span class="ms">${c.ms}ms</span>
           </div>`).join('')}
