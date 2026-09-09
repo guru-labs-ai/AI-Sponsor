@@ -358,10 +358,6 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 .uncheck-hint{font-size:12px;color:var(--sub);margin-bottom:24px}
 
 /* Screen 9 */
-.badge{display:inline-flex;align-items:center;gap:6px;background:var(--blue);
-  color:#fff;font-size:12px;font-weight:600;padding:5px 14px;border-radius:2px;
-  margin-bottom:20px;letter-spacing:.05em;text-transform:uppercase}
-.badge::before{content:'●';font-size:7px;color:rgba(255,255,255,0.7)}
 
 /* Screen 10 */
 .b1g1-box{display:flex;gap:14px;align-items:flex-start;
@@ -481,15 +477,6 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 .btn-ghost{background:none;border:none;font-family:inherit;font-size:14px;
   color:var(--sub);cursor:pointer;padding:8px;transition:color .2s}
 @media (hover:hover){.btn-ghost:hover{color:var(--blue)}}
-.avatar{width:64px;height:64px;border-radius:50%;
-  background:linear-gradient(135deg,var(--blue),var(--teal));
-  display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:20px}
-.sponsor-msg{background:linear-gradient(135deg,rgba(27,94,138,0.06),rgba(13,148,136,0.04));
-  border:1px solid rgba(27,94,138,0.12);border-radius:16px;border-top-left-radius:4px;
-  padding:22px;margin-bottom:24px;font-size:15px;line-height:1.8;
-  white-space:pre-line;position:relative}
-.sponsor-msg::before{content:'"';font-size:60px;color:rgba(27,94,138,0.1);
-  position:absolute;top:-10px;left:14px;line-height:1}
 .reply-wrap{display:flex;gap:10px;align-items:flex-end}
 .reply-input{flex:1;padding:14px 16px;border:1.5px solid var(--border);
   border-radius:12px;font-size:15px;font-family:inherit;resize:none;outline:none;
@@ -1041,16 +1028,7 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
           <div class="voice-card" onclick="selVoice(this,'rigel')"><div class="v-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg></div><div class="v-name">Rigel</div></div>
         </div>
 
-        <button class="btn" id="btn-create" onclick="createSponsor()" disabled>Meet my AI Sponsor →</button>
-      </div>
-
-      <!-- Phase 2: First message -->
-      <div id="s9-meet" style="display:none">
-        <div class="badge">You're here</div>
-        <div class="avatar">🤝</div>
-        <h1 class="heading" id="s9-greeting">Hi there.</h1>
-        <div class="sponsor-msg" id="s9-msg">Preparing your first message...</div>
-        <button class="btn" style="margin-top:8px" onclick="go(10)">Continue to your free month →</button>
+        <button class="btn" id="btn-create" onclick="createSponsor()" disabled>Create my AI Sponsor →</button>
       </div>
     </div>
 
@@ -1452,9 +1430,6 @@ function go(n){
   next.classList.add(dir);
   document.getElementById('pLabel').textContent = stepLabel(cur);
   updateSteps(cur);
-  // restore s9 back button if returning to screen 9
-  if(n===9){ const b=document.getElementById('s9-back'); if(b)b.style.display=''; }
-  // screen 9 message built after sponsor creation
   if(n===11) renderPlanBox();
   window.scrollTo({top:0,behavior:'smooth'});
   saveState();
@@ -1742,16 +1717,6 @@ function togCS(id,key){
   D[key]=chk;
 }
 
-function typeWriter(text, el, speed=14){
-  el.textContent='';
-  el.style.whiteSpace='pre-line';
-  let i=0;
-  const t=setInterval(()=>{
-    el.textContent+=text[i];
-    i++;
-    if(i>=text.length) clearInterval(t);
-  }, speed);
-}
 
 // Returns the interval handle so a caller that re-renders the same element
 // mid-animation can cancel it — otherwise the ticks keep overwriting whatever
@@ -2029,36 +1994,9 @@ function createSponsor(){
   D.sponsorStyle = style;
   // Note: GHL sync fires later, at completion (redeemCode / payment return), once
   // the Amends step + payment status are known — see registerUser().
-  document.getElementById('s9-create').style.display='none';
-  document.getElementById('s9-back').style.display='none';
-  document.getElementById('s9-meet').style.display='block';
-  buildMsg();
+  go(10);
 }
 
-function buildMsg(){
-  const name=D.name||'friend';
-  const sname=D.sponsorName||'your sponsor';
-  const style=D.sponsorStyle||'';
-  const goal=D.goals.length>0?D.goals[0].toLowerCase():'your recovery';
-  const stageMap={
-    'Just starting out':'just beginning this journey',
-    'Under 3 months':'in those early days',
-    '3-12 months':'in your first year',
-    '1-5 years':'building real momentum',
-    '5+ years':'carrying so much wisdom already',
-    'Starting over':'starting over — which takes courage'
-  };
-  const stagePhrase=stageMap[D.stage]||'on this path';
-  const styleNote = style ? `\n\nYou asked me to be ${style.toLowerCase()} with you. That's exactly how I'll show up.` : '';
-  let msg;
-  if(D.why&&D.why.length>10){
-    msg=`I'm really glad you're here, ${name}.\n\nYou shared: "${D.why}"\n\nThat took something to write. I heard it.\n\nYou're ${stagePhrase}, and you said you want ${goal}. We're going to work toward that — together, one day at a time.${styleNote}\n\nI'm here whenever you need me. Day or night. No judgement, ever.\n\nWhere are you at today?`;
-  } else {
-    msg=`I'm really glad you're here, ${name}.\n\nYou're ${stagePhrase}. And wherever you're coming from — you showed up today. That matters.\n\nYou said you want ${goal}. We're going to work toward that. One day at a time.${styleNote}\n\nI'm here whenever you need me — no judgement, ever.\n\nWhere are you at today?`;
-  }
-  document.getElementById('s9-greeting').textContent='Hi '+name+', I\'m '+sname+'.';
-  typeWriter(msg, document.getElementById('s9-msg'));
-}
 
 
 // ─── Scholarship code ────────────────────────────────────────────────────────
