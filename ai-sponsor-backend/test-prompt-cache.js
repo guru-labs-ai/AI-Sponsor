@@ -113,5 +113,74 @@ check('the length budget is not baked into the cached prefix', () => {
   assert.ok(i > at(MARKER), 'the per-reply length target must never be cached');
 });
 
+console.log('\n── The conversation is cached too, but only when that pays ──');
+
+/* ⛔ THE TRAP THIS GUARDS. Caching the history outright looks free and is not.
+   `slice(-RECENT_TURNS)` drops the oldest turn once a conversation passes the
+   limit, so the cached prefix changes every message and every turn pays a write
+   it never reads. Measured 9 Sep: a third of conversations pass 40 messages and
+   39% of ALL messages are sent while that window slides. Caching everything
+   works out at roughly 1.03x today's cost.
+
+   Verified against the live API with the marker on: turn two read 3,171 tokens
+   from cache where the uncached baseline pays 3,179 fresh, every time. */
+const withCachedHistory = new Function(
+  src.slice(src.indexOf('function withCachedHistory'), src.indexOf('/* ── How long this reply should be')) +
+  '; return withCachedHistory;'
+)();
+const convo = (n) => Array.from({ length: n },
+  (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: `turn ${i}` }));
+const markerIn = (msgs) => msgs.findIndex(
+  (m) => Array.isArray(m.content) && m.content[0] && m.content[0].cache_control);
+
+check('a settled window is cached', () => {
+  const out = withCachedHistory(convo(10), false);
+  assert.strictEqual(markerIn(out), 8, 'the marker should sit on the turn before the new message');
+  assert.strictEqual(out[8].content[0].cache_control.ttl, '1h');
+});
+
+check('a SLIDING window is left completely alone', () => {
+  // The whole point. Marking here costs money instead of saving it.
+  const before = convo(10);
+  const out = withCachedHistory(before, true);
+  assert.strictEqual(markerIn(out), -1, 'a sliding window must never be marked');
+  assert.deepStrictEqual(out, before);
+});
+
+check('only what they just said is left outside the cache', () => {
+  const out = withCachedHistory(convo(10), false);
+  assert.strictEqual(markerIn(out), out.length - 2,
+    'everything up to the marker is reused; the new message has to stay fresh');
+});
+
+check('the array that gets PERSISTED is never mutated', () => {
+  // updatedHistory is saved and fed to the memory digest. Turning a stored
+  // message into a block array would quietly change the shape of what we keep.
+  const original = convo(10);
+  const snapshot = JSON.stringify(original);
+  withCachedHistory(original, false);
+  assert.strictEqual(JSON.stringify(original), snapshot, 'withCachedHistory mutated its input');
+});
+
+check('a conversation too short to matter is left alone', () => {
+  assert.strictEqual(markerIn(withCachedHistory(convo(2), false)), -1);
+});
+
+check('content that is already a block array is not re-wrapped', () => {
+  const odd = [
+    { role: 'user', content: 'a' },
+    { role: 'assistant', content: [{ type: 'text', text: 'b' }] },
+    { role: 'user', content: 'c' },
+  ];
+  assert.strictEqual(withCachedHistory(odd, false), odd, 'should bail rather than double-wrap');
+});
+
+check('the sliding test is computed from the real window, not guessed', () => {
+  assert.ok(/const windowSliding = updatedHistory\.length > RECENT_TURNS/.test(src),
+    'windowSliding must come from the actual history length against RECENT_TURNS');
+  assert.ok(/withCachedHistory\(updatedHistory\.slice\(-RECENT_TURNS\), windowSliding\)/.test(src),
+    'the helper is not wired into the real call');
+});
+
 console.log(`\n${failed ? 'FAILED' : 'All good'}: ${passed} passed, ${failed} failed\n`);
 process.exit(failed ? 1 : 0);

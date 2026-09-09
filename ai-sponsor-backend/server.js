@@ -972,6 +972,42 @@ function stripEmojiNearCrisis(text) {
     .trim();
 }
 
+/* ── Cache the conversation as well as the instructions ─────────────────────
+   The single biggest line on the bill: roughly 8,000 tokens of history sent at
+   full price with every message, about 56% of what AI Sponsor costs.
+
+   ⛔ AND THE OBVIOUS FIX LOSES MONEY. Caching it outright looks free and is
+   not, because the history window SLIDES. `slice(-RECENT_TURNS)` drops the
+   oldest turn every time a conversation goes past the limit, so the cached
+   prefix changes on every message and every turn pays a cache WRITE it never
+   reads back. Measured 9 Sep: a third of conversations pass 40 messages and
+   39% of ALL messages are sent while the window is sliding. Caching the lot
+   works out at about 1.03x today's cost. It looks like a win and it is a slow
+   loss.
+
+   So the marker only goes on while the window is STILL. Under the limit,
+   nothing has dropped off, the prefix is genuinely stable and the cache pays
+   for itself. Once it starts sliding this does nothing at all and those
+   messages cost exactly what they cost today.
+
+   ⚠️ RETURNS A COPY. `updatedHistory` is what gets persisted and handed to the
+   memory digest; turning a stored message's content into a block array to
+   carry cache_control would quietly change the shape of what we save. */
+function withCachedHistory(messages, slidingWindow) {
+  if (slidingWindow || messages.length < 3) return messages;
+  /* Mark the turn BEFORE the message being answered, so everything up to and
+     including it is reused and only what they just said is new. */
+  const at = messages.length - 2;
+  const target = messages[at];
+  if (!target || typeof target.content !== 'string') return messages;
+  const copy = messages.slice();
+  copy[at] = {
+    role: target.role,
+    content: [{ type: 'text', text: target.content, cache_control: { type: 'ephemeral', ttl: '1h' } }],
+  };
+  return copy;
+}
+
 /* ── How long this reply should be, decided here and not by the model ────────
    MEASURED, NOT GUESSED. 573 real replies out of the live database, 9 Sep:
 
@@ -1361,11 +1397,15 @@ async function getSponsorReply(userId, message, context) {
     ].join('\n') });
   }
 
+  /* The window is sliding once there is more history than fits in it, which is
+     the moment caching the conversation stops paying. See withCachedHistory. */
+  const windowSliding = updatedHistory.length > RECENT_TURNS;
   const response = await client.messages.create({
     model: 'claude-opus-4-8',
     max_tokens: 1024,
     system: systemBlocks,
-    messages: updatedHistory.slice(-RECENT_TURNS), // recent window; older turns live in the digest + DB
+    // recent window; older turns live in the digest + DB
+    messages: withCachedHistory(updatedHistory.slice(-RECENT_TURNS), windowSliding),
   });
 
   let rawReply = response.content
