@@ -1,21 +1,18 @@
-# The save-me-as-AI-Sponsor card is three things that have to agree: a QR drawn
-# into the page, a link next to it, and a file at the other end. The QR is static
-# artwork, so if the file is ever renamed or dropped it keeps pointing at a 404
-# and says nothing. Nobody would find out from the page. Somebody would find out
-# by scanning it and getting nothing, and they would not tell us.
-#
-# So this checks the whole chain against the LIVE site rather than the repo, and
-# fails loudly. Reading the repo would only prove we still mean to serve the file.
+# The save-me-as-AI-Sponsor flow is a QR, a link and a file that all have to
+# agree. Any one can break while the page still looks perfect, and the only
+# person who would find out is somebody who scans it, gets nothing, and does not
+# tell us. So this checks the live site every day and after every change to it.
 name: Contact card still works
 
 on:
   schedule:
-    - cron: '17 7 * * *'      # daily, 07:17 UTC
+    - cron: '17 7 * * *'
   push:
     paths:
       - 'aisponsor.vcf'
       - 'ai-sponsor-registration.html'
       - '.github/workflows/contact-card.yml'
+      - '.github/scripts/check_contact_card.py'
   workflow_dispatch:
 
 jobs:
@@ -24,117 +21,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: The file is served, and served as a contact
-        run: |
-          set -euo pipefail
-          URL=https://getaisponsor.com/aisponsor.vcf
+      - run: pip install --quiet zxing-cpp pillow vobject
 
-          # GitHub Pages can lag a push by a couple of minutes. Give it a fair
-          # chance before calling it broken, or this cries wolf on every deploy.
-          for i in $(seq 1 10); do
-            CODE=$(curl -fsS -o /tmp/card.vcf -w '%{http_code}' "$URL") && break || true
-            echo "attempt $i: not there yet"; sleep 30
+      # On a push the check races GitHub Pages, which takes a few minutes and is
+      # cancelled outright if another commit lands first. Failing on that would
+      # paint the run red on every deploy, and a check that cries wolf is one
+      # people stop reading, which is worse than not having it. So retry through
+      # the deploy window and only report the state it settles on.
+      #
+      # The daily run passes on the first attempt: nothing is deploying then.
+      - name: Check the live contact card
+        run: |
+          for attempt in $(seq 1 12); do
+            if python .github/scripts/check_contact_card.py; then
+              echo "settled after $attempt attempt(s)"
+              exit 0
+            fi
+            echo "attempt $attempt did not pass, the deploy may still be landing"
+            sleep 30
           done
-
-          CODE=$(curl -sS -o /tmp/card.vcf -w '%{http_code}' "$URL")
-          CT=$(curl -sSI "$URL" | tr -d '\r' | awk -F': ' 'tolower($1)=="content-type"{print $2}')
-          echo "status=$CODE content-type=$CT"
-
-          test "$CODE" = "200" || { echo "::error::$URL returned $CODE, the QR points at nothing"; exit 1; }
-
-          # This is the header that makes a phone offer to add a contact. Served
-          # as text/plain the file still downloads and the whole thing quietly
-          # stops working, which is exactly the failure worth catching.
-          case "$CT" in
-            text/x-vcard*|text/vcard*) ;;
-            *) echo "::error::content-type is '$CT', phones will not open the add-contact sheet"; exit 1 ;;
-          esac
-
-          grep -q '^FN:AI Sponsor' /tmp/card.vcf \
-            || { echo "::error::the card no longer carries the name AI Sponsor"; exit 1; }
-          grep -q '^TEL.*+13073234467' /tmp/card.vcf \
-            || { echo "::error::the card no longer carries the WhatsApp number"; exit 1; }
-
-      - name: The page still points at it, and the QR agrees
-        run: |
-          set -euo pipefail
-          curl -fsS https://getaisponsor.com/ai-sponsor-registration.html -o /tmp/reg.html
-
-          grep -q 'Save me as AI Sponsor' /tmp/reg.html \
-            || { echo "::error::the save card is gone from the registration page"; exit 1; }
-          grep -q '/aisponsor.vcf' /tmp/reg.html \
-            || { echo "::error::the page no longer links to the contact file"; exit 1; }
-          grep -q 'id="saveQr"' /tmp/reg.html \
-            || { echo "::error::the QR block is gone from the registration page"; exit 1; }
-
-          # Decode the QR that is actually drawn in the LIVE page, and check it is
-          # a CONTACT rather than a link. This shipped wrong once: the QR held a
-          # URL, so phones handed it to the browser and the browser dropped the
-          # file in Downloads instead of offering to save a contact. On the page
-          # that regression looks identical, so only decoding the artwork catches
-          # it. No rendering library: the path is walked back into a matrix, so
-          # there is nothing to install that could rot.
-          python3 -m pip install --quiet zxing-cpp pillow vobject
-          python3 - <<'PY'
-          import re, io, sys
-          import zxingcpp, vobject
-          from PIL import Image
-
-          html = open('/tmp/reg.html', encoding='utf-8').read()
-          block = re.search(r'id="saveQr".*?</div>\s*</div>', html, re.S)
-          if not block:
-              sys.exit('::error::could not find the QR block in the live page')
-          svg = re.search(r'<svg.*?</svg>', block.group(0), re.S)
-          if not svg:
-              sys.exit('::error::the QR block has no SVG in it')
-          svg = svg.group(0)
-
-          # segno draws the code as horizontal dark runs:
-          #   M<x> <y>.5  move to the start of a run
-          #   h<n>        a dark run of n modules
-          #   m<dx> 0     hop right over light modules on the same row
-          #   m-<dx> 1    hop back left and down a row
-          size = int(re.search(r'viewBox="0 0 (\d+)', svg).group(1))
-          d = re.search(r'\sd="([^"]+)"', svg).group(1)
-          grid = [[0]*size for _ in range(size)]
-          x = y = 0
-          for t in re.finditer(r'([Mmh])(-?\d+)(?:[ ,](-?\d+)(?:\.5)?)?', d):
-              op, a, b = t.group(1), int(t.group(2)), t.group(3)
-              if op == 'M':
-                  x, y = a, int(b)
-              elif op == 'm':
-                  x += a; y += int(b)
-              else:
-                  for i in range(a):
-                      if 0 <= y < size and 0 <= x + i < size:
-                          grid[y][x + i] = 1
-                  x += a
-
-          scale = 8
-          img = Image.new('L', (size*scale, size*scale), 255)
-          px = img.load()
-          for r, row in enumerate(grid):
-              for c, v in enumerate(row):
-                  if v:
-                      for dy in range(scale):
-                          for dx in range(scale):
-                              px[c*scale+dx, r*scale+dy] = 0
-
-          got = zxingcpp.read_barcode(img)
-          if not got:
-              sys.exit('::error::the QR in the live page does not decode at all')
-          text = got.text
-
-          if text.lstrip().upper().startswith(('HTTP://', 'HTTPS://')):
-              sys.exit('::error::the QR holds a URL again. Phones will download it '
-                       'instead of offering to save a contact. It must hold the vCard itself')
-          if 'BEGIN:VCARD' not in text:
-              sys.exit('::error::the QR does not hold a vCard. It holds: ' + text[:80])
-
-          c = vobject.readOne(text)
-          if c.fn.value != 'AI Sponsor':
-              sys.exit('::error::the QR contact is named ' + repr(c.fn.value) + ', not AI Sponsor')
-          if c.tel.value.replace(' ', '') != '+13073234467':
-              sys.exit('::error::the QR contact carries ' + c.tel.value + ', not the WhatsApp number')
-          print('QR holds a contact:', c.fn.value, c.tel.value)
-          PY
+          echo "::error::the contact card is still broken after 6 minutes of retries"
+          python .github/scripts/check_contact_card.py
+          exit 1
