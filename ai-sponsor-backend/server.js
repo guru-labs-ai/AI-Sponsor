@@ -957,6 +957,57 @@ function stripEmojiNearCrisis(text) {
     .trim();
 }
 
+/* ── What they put on your messages, and what it is allowed to do ────────────
+   Matt, 7 Sep: "so it knows what emoji has been done and store that and adjust
+   next message if relevant because of specific emoji".
+
+   A reaction is never stored as a turn in the conversation, so it arrives here
+   as its own small fact instead: they tapped something onto a message, and the
+   sponsor is allowed to know that.
+
+   THE RULE, Mariam's call on 9 Sep. A reaction informs TONE and nothing else.
+   It never changes what the sponsor was going to say, and a thumbs down is not
+   an instruction to apologise or to soften something true. Recovery is the one
+   place a sponsor has to be able to hold a line it was right to take, and one
+   that folds the moment somebody taps a thumbs down is worse than one that
+   never saw it at all.
+
+   AND IT GOES COMPLETELY DARK NEAR A CRISIS, which is the half that is here in
+   code rather than in the prompt. If anything in the recent conversation
+   carried a crisis resource, no reaction is surfaced, full stop. Somebody
+   putting an emoji on the message where their sponsor just handed them a
+   hotline number is not feedback to act on, and the failure is not a clumsy
+   reply, it is the sponsor changing course at the worst possible moment. Same
+   reasoning as stripEmojiNearCrisis above: a prompt instruction is a preference
+   weighed against everything else, and this one has to be a guarantee.
+
+   Errs toward silence throughout. Showing nothing costs a small piece of
+   texture nobody knew to expect. */
+function buildReactionBlock(reactions, history) {
+  if (!Array.isArray(reactions) || !reactions.length) return null;
+
+  /* The recent turns, not the whole history: what matters is whether this
+     conversation is in that place NOW. Reads the sponsor's own messages,
+     because the hotline numbers are something it said, not something they did. */
+  const recent = (history || []).slice(-6);
+  const nearCrisis = recent.some(
+    (m) => m && m.role === 'assistant' && CRISIS_RESOURCE.test(String(m.content || ''))
+  );
+  if (nearCrisis) {
+    console.log('[sponsor] reactions withheld: crisis resources in the recent conversation');
+    return null;
+  }
+
+  return [
+    '## THEY PUT AN EMOJI ON SOMETHING YOU SAID',
+    `Recently, most recent first: ${reactions.map((r) => r.emoji).join(' ')}`,
+    'They tapped that onto one of your messages instead of writing to you. It is a small signal, not a message, and they are not waiting on an answer to it.',
+    'Let it colour your tone if it fits, and otherwise let it go. It never changes what you were going to say.',
+    'A negative one is not an instruction to apologise, to water down something true, or to take it back. If you were right, stay where you are. You can be warm while you do it.',
+    'Never announce that you noticed it, never thank them for it, and never name the emoji back to them. Someone who reacts to a text does not expect a reply about the reaction.',
+  ].join('\n');
+}
+
 async function getSponsorReply(userId, message, context) {
   /* Trigger 3: anybody talking to the sponsor has just woken this instance, and
      on a free tier that is the most dependable scheduler the product has.
@@ -992,6 +1043,15 @@ async function getSponsorReply(userId, message, context) {
   if (userContext) systemBlocks.push({ type: 'text', text: userContext });
   if (memoryBlock) systemBlocks.push({ type: 'text', text: memoryBlock });
   if (settingsBlock) systemBlocks.push({ type: 'text', text: settingsBlock });
+
+  /* Never allowed to block a reply, exactly like lastAt above: if this read
+     fails the sponsor simply does not know about the emoji, which is where it
+     was before any of this existed. */
+  const reactionBlock = buildReactionBlock(
+    await db.recentReactions(userId).catch(() => []),
+    history
+  );
+  if (reactionBlock) systemBlocks.push({ type: 'text', text: reactionBlock });
 
   const gettingToKnowBlock = buildGettingToKnowBlock(profile, history.length);
   if (gettingToKnowBlock) systemBlocks.push({ type: 'text', text: gettingToKnowBlock });

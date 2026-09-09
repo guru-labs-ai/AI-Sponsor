@@ -212,6 +212,89 @@ check('the known hole is the documented one, not a surprise', () => {
     'if this ever passes, the stream is being buffered and the comment is wrong');
 });
 
+console.log('\n── A thumbs down informs tone, and never more than that ──');
+
+const buildReactionBlock = new Function(
+  `${guardBody.replace(/console\.log\([^)]*\);/g, '')}; return buildReactionBlock;`
+)();
+
+const react = (...e) => e.map((emoji) => ({ emoji, removed: false, at: new Date() }));
+const said = (content) => ({ role: 'assistant', content });
+const them = (content) => ({ role: 'user', content });
+
+check('nothing to say when nobody reacted', () => {
+  assert.strictEqual(buildReactionBlock([], [said('hey')]), null);
+  assert.strictEqual(buildReactionBlock(null, []), null);
+});
+
+check('a reaction reaches the sponsor at all, which it never did before', () => {
+  const b = buildReactionBlock(react('\u{1F44D}'), [said('good to hear from you')]);
+  assert.ok(b && b.includes('\u{1F44D}'), b);
+});
+
+check('a thumbs down is not an instruction to apologise or back down', () => {
+  const b = buildReactionBlock(react('\u{1F44E}'), [said('I think you already know the answer')]);
+  assert.ok(/not an instruction to apologise/i.test(b), b);
+  assert.ok(/If you were right, stay where you are/i.test(b), b);
+});
+
+check('it can never override what the sponsor was going to say', () => {
+  const b = buildReactionBlock(react('\u{1F44E}'), [said('anything')]);
+  assert.ok(/never changes what you were going to say/i.test(b), b);
+});
+
+check('the sponsor is told not to mention or thank them for it', () => {
+  const b = buildReactionBlock(react('❤️'), [said('anything')]);
+  assert.ok(/Never announce that you noticed it/i.test(b), b);
+});
+
+/* The half that is in code rather than the prompt. */
+check('NOTHING is surfaced when the recent conversation carried a crisis number', () => {
+  const history = [
+    them('I dont want to be here anymore'),
+    said('Please call or text 988. It is the Suicide and Crisis Lifeline.'),
+    them('ok'),
+  ];
+  assert.strictEqual(buildReactionBlock(react('\u{1F44E}'), history), null);
+});
+
+check('a thumbs down on the crisis reply itself is not feedback to act on', () => {
+  const history = [said('Text HOME to 741741 and stay with me.')];
+  assert.strictEqual(buildReactionBlock(react('\u{1F44E}', '❤️'), history), null);
+});
+
+check('the crisis check reads the sponsor own words, not the person mentioning a number', () => {
+  // They can say "988" themselves without that being the sponsor handing it over.
+  const b = buildReactionBlock(react('\u{1F44D}'), [them('my mate gave me 988 once')]);
+  assert.ok(b, 'a reaction should still land when the sponsor did not give a resource');
+});
+
+check('an old crisis, well behind the recent window, stops suppressing', () => {
+  const history = [
+    said('Call 988 now.'),
+    ...Array.from({ length: 7 }, (_, i) => said(`ordinary message ${i}`)),
+  ];
+  assert.ok(buildReactionBlock(react('\u{1F44D}'), history),
+    'the window is the recent turns, not the whole history');
+});
+
+check('the block is actually wired into the reply', () => {
+  assert.ok(/const reactionBlock = buildReactionBlock\(/.test(serverSrc),
+    'buildReactionBlock exists but nothing calls it');
+  assert.ok(/db\.recentReactions\(userId\)\.catch\(\(\) => \[\]\)/.test(serverSrc),
+    'the read must never be able to block a reply');
+});
+
+check('db.recentReactions drops the ones they took back off', () => {
+  const dbSrc = require('fs').readFileSync(require.resolve('./db.js'), 'utf8');
+  assert.ok(/async function recentReactions/.test(dbSrc), 'recentReactions is gone');
+  assert.ok(/\.filter\(\(x\) => x\.emoji && !x\.removed\)/.test(dbSrc),
+    'a removed reaction should not be handed to the sponsor as context');
+  assert.ok(/created_at > now\(\) - /.test(dbSrc),
+    'reactions must be time-boxed, or the sponsor answers last week');
+  assert.ok(/recentReactions,/.test(dbSrc), 'recentReactions is not exported');
+});
+
 console.log('\n── The prompt actually tells it the rule ──');
 
 check('the master prompt carries the emoji section', () => {

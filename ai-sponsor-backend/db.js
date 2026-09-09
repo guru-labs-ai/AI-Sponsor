@@ -791,6 +791,38 @@ async function getEvents(userId, limit = 50) {
   return r.rows;
 }
 
+/* The emoji somebody has recently put ON the sponsor's messages.
+
+   Reactions are stored as events, never as message turns, because a reaction is
+   not something the person said (see the long note in whatsapp.js). This reads
+   them back so the sponsor can know a thumbs up or a thumbs down happened
+   without it ever becoming a turn in the conversation.
+
+   DELIBERATELY TIME-BOXED. A thumbs up from last Tuesday is not context for
+   this reply, it is archaeology, and handing it over would have the sponsor
+   responding to something that finished days ago.
+
+   A reaction that was REMOVED is dropped here. Taking a heart back off is worth
+   recording, and it is not worth acting on: nobody wants their sponsor reading
+   into a tap they undid. */
+async function recentReactions(userId, withinMinutes = 180, limit = 5) {
+  if (!enabled || !userId) return [];
+  const r = await pool.query(
+    `SELECT detail, created_at FROM account_events
+      WHERE user_id = $1 AND event = 'reaction_received'
+        AND created_at > now() - ($2 || ' minutes')::interval
+      ORDER BY id DESC LIMIT $3`,
+    [userId, String(Math.max(1, Number(withinMinutes) || 180)), limit]
+  );
+  return r.rows
+    .map((row) => ({
+      emoji: (row.detail && row.detail.emoji) || '',
+      removed: !!(row.detail && row.detail.removed),
+      at: row.created_at,
+    }))
+    .filter((x) => x.emoji && !x.removed);
+}
+
 /* Has this person been here before?
 
    The browser mints a fresh reg-<uuid> on every visit, so a returning person
@@ -1649,7 +1681,7 @@ module.exports = {
   // dashboard groups on. Two implementations would eventually disagree.
   resolveSource,
   saveProfile, getProfile, appendMessages, getHistory, findPersonId,
-  recordEvent, getEvents, hasEvent, clearConversation, getPersonStats,
+  recordEvent, getEvents, hasEvent, recentReactions, clearConversation, getPersonStats,
   createLinkCode, claimLinkCode,
   purgeUserData, findAllIdentities,
   quietCheckinCandidates, betaAccessRoster,
