@@ -1,17 +1,16 @@
-"""Is the save-me-as-AI-Sponsor flow actually working on the live site?
+"""Does the save-me-as-AI-Sponsor QR still work on the live site?
 
-Three things have to agree: a QR drawn into the page, a link beside it, and a
-file at the other end. Any one of them can break while the page still looks
-perfect, so this checks the LIVE site rather than the repo. The repo would only
-prove we still mean to serve it.
+The QR is static artwork carrying a contact. It can stop working while the page
+still looks perfect, and the only person who would find out is somebody who
+scans it, gets nothing, and does not tell us. So this checks the LIVE site
+rather than the repo. The repo would only prove we still mean to serve it.
 
-Exit 0 if everything holds, 1 with a reason if not.
+Exit 0 if it holds, 1 with a reason if not.
 """
 import re, io, sys, urllib.request
 
 SITE   = 'https://getaisponsor.com'
 PAGE   = SITE + '/ai-sponsor-registration.html'
-VCF    = SITE + '/aisponsor.vcf'
 NAME   = 'AI Sponsor'
 NUMBER = '+13073234467'
 
@@ -24,24 +23,6 @@ def fetch(url):
                                  headers={'Cache-Control': 'no-cache'})
     with urllib.request.urlopen(req, timeout=30) as r:
         return r.status, r.headers.get('Content-Type', ''), r.read().decode('utf-8', 'replace')
-
-
-def check_file():
-    try:
-        status, ctype, body = fetch(VCF)
-    except Exception as e:
-        return problems.append(f'{VCF} could not be fetched ({e}). The link points at nothing')
-    if status != 200:
-        return problems.append(f'{VCF} returned {status}. The link points at nothing')
-    # This header is what makes a phone offer to add a contact. Served as
-    # text/plain the file still downloads and the whole thing quietly stops
-    # working, which is exactly the failure worth catching.
-    if not ctype.split(';')[0].strip() in ('text/x-vcard', 'text/vcard'):
-        problems.append(f"content-type is {ctype!r}; phones will not open the add-contact sheet")
-    if f'FN:{NAME}' not in body:
-        problems.append(f'the contact file no longer carries the name {NAME}')
-    if NUMBER not in body:
-        problems.append('the contact file no longer carries the WhatsApp number')
 
 
 def qr_matrix(svg):
@@ -76,8 +57,6 @@ def check_page():
 
     if f'Save me as {NAME}' not in html:
         problems.append('the save card is gone from the registration page')
-    if '/aisponsor.vcf' not in html:
-        problems.append('the page no longer links to the contact file')
 
     block = re.search(r'id="saveQr".*?</div>\s*</div>', html, re.S)
     if not block:
@@ -123,10 +102,9 @@ def check_page():
 
 
 if __name__ == '__main__':
-    check_file()
     check_page()
     if problems:
         for p in problems:
             print(f'::error::{p}')
         sys.exit(1)
-    print('contact card is working on the live site')
+    print('the save-contact QR is working on the live site')

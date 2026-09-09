@@ -421,29 +421,16 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 @media (hover:hover){.wa-btn:hover{box-shadow:0 6px 20px rgba(37,211,102,0.32)}}
 .btn-secondary{background:none;border:1.5px solid var(--border);color:var(--blue)}
 @media (hover:hover){.btn-secondary:hover{background:#F4F8FC;box-shadow:none}}
-/* The save-contact card. Deliberately outlined rather than filled: it sits
-   ABOVE the green WhatsApp button because the saving only helps if it happens
-   first, but the WhatsApp tap is the one that has to happen at all, so the eye
-   still has to land on the green. Left-aligned inside a centred screen on
-   purpose, two lines of explanation do not read centred. */
-.save-card{display:flex;align-items:center;gap:14px;width:100%;text-align:left;
-  margin-top:20px;padding:14px 16px;border:1.5px solid var(--border);border-radius:12px;
-  background:#FAFCFF;text-decoration:none;color:inherit;transition:all .2s;
-  font-family:inherit;cursor:pointer}
-@media (hover:hover){.save-card:hover{border-color:var(--blue-light);background:#EFF6FF}}
-.save-card:active{transform:translateY(1px)}
-.save-ico{flex-shrink:0;width:40px;height:40px;border-radius:50%;
-  background:rgba(0,102,179,0.10);display:flex;align-items:center;justify-content:center}
 .save-name{display:block;font-size:15px;font-weight:700;color:var(--blue);line-height:1.35}
 .save-num{display:block;font-size:13.5px;color:var(--sub);margin-top:2px;white-space:nowrap}
 .save-why{font-size:13px;color:var(--sub);line-height:1.6;margin-top:10px;text-align:left}
 
-/* Registering on a computer saves the contact onto the COMPUTER, which is the
-   one device WhatsApp is not on. A Mac will push it to an iPhone through iCloud
-   and a Windows machine will not push it anywhere, so the file alone cannot be
-   the answer. The QR carries the same file to the phone: camera, tap the link,
-   the phone offers to save AI Sponsor. Hidden on phones, where it would be a
-   picture of a thing they are already holding. */
+/* The QR exists for people registering on a computer, and it is the only route
+   that ever worked. A contact saved on a computer sits on the one device
+   WhatsApp is not on, and no web API can write a contact to a phone, so a link
+   was never going to do it. The QR reaches the phone directly: camera, and the
+   phone itself offers to save AI Sponsor. Hidden on phones, where it would be a
+   picture of the page they are already holding. */
 .save-qr{display:none;align-items:center;gap:14px;margin-top:12px;padding:12px 14px;
   border:1px dashed var(--border);border-radius:12px;text-align:left}
 .save-qr.show{display:flex}
@@ -466,13 +453,12 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 .save-qr .save-sub{display:block;font-size:13px;color:var(--sub);line-height:1.6;margin-top:6px}
 @media(max-width:520px){.save-qr{flex-direction:column;text-align:center}}
 
-/* The card and the QR are the same destination reached two ways, so only one of
-   them is ever on screen. A phone gets the card, because a QR of the page you
-   are holding is nonsense. A computer gets the QR ONLY: the card downloads the
-   file onto the computer, which is the one device WhatsApp is not on, and on
-   Windows it never travels any further. Showing both there puts a button that
-   quietly does nothing above the one that works. */
-.save-card.hide{display:none}
+/* Back to the plain line this screen carried before the card existed. On a phone
+   a .vcf link downloads a file instead of offering to save a contact, so the card
+   was asking people to do something the browser would not let them do. The number
+   as readable text at least tells them what to save. */
+.wa-number{margin-top:16px;font-size:13.5px}
+.wa-number strong{color:var(--blue);white-space:nowrap}
 .s9-continue{text-align:center;margin-top:18px}
 .btn-ghost{background:none;border:none;font-family:inherit;font-size:14px;
   color:var(--sub);cursor:pointer;padding:8px;transition:color .2s}
@@ -1178,34 +1164,6 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
         <div class="s-icon">✓</div>
         <h2>You're in.</h2>
         <p>Your <span id="trialLen">access</span> starts now.<br>I'll be here whenever you need me, day or night.</p>
-        <!-- Saving the number is what puts a NAME on the chat. WhatsApp reads the
-             top line of a header out of the phone's own address book, so a saved
-             contact is the only thing that turns a bare +1 307 into "AI Sponsor"
-             for someone. Meta's own display name is a separate line and a separate
-             review that we do not control.
-
-             It lives HERE, on the last screen of registration, and not as a card
-             sent inside the chat. In the chat it arrives after they have already
-             met a phone number, with nothing to say what it is for, and a card
-             with no explanation is just an odd first message. Here it is one tap
-             before they ever open WhatsApp, with the reason next to it, so the
-             very first time they see the chat it is already headed by a name.
-
-             A real .vcf file rather than a generated blob: GitHub Pages serves it
-             as text/x-vcard (checked, not assumed), which is what makes a phone
-             open the add-contact sheet instead of showing the file as text.
-             Deliberately NO download attribute: on iOS that sends the file to
-             Files and makes them go and find it, where a plain link opens the
-             contact sheet there and then. Android downloads it either way. -->
-        <a class="save-card" id="saveCard" href="/aisponsor.vcf">
-          <span class="save-ico">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0066B3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-          </span>
-          <span>
-            <span class="save-name" id="saveName">Save me as AI Sponsor</span>
-            <span class="save-num">+1 307 323 4467</span>
-          </span>
-        </a>
         <p class="save-why" id="saveWhy">Do this first and I show up by name in WhatsApp instead of a number.</p>
         <div class="save-qr" id="saveQr">
           <svg shape-rendering="crispEdges" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 49 49"><path stroke="#212529" d="M4 4.5h7m1 0h1m2 0h2m1 0h1m1 0h1m2 0h1m3 0h2m2 0h2m3 0h1m1 0h7m-41 1h1m5 0h1m1 0h1m1 0h2m1 0h5m3 0h3m1 0h2m1 0h3m3 0h1m5 0h1m-41 1h1m1 0h3m1 0h1m2 0h4m1 0h1m1 0h1m1 0h1m1 0h4m1 0h1m8 0h1m1 0h3m1 0h1m-41 1h1m1 0h3m1 0h1m1 0h1m1 0h2m1 0h2m1 0h1m1 0h1m1 0h4m2 0h1m1 0h5m1 0h1m1 0h3m1 0h1m-41 1h1m1 0h3m1 0h1m2 0h2m3 0h6m1 0h1m4 0h2m1 0h4m1 0h1m1 0h3m1 0h1m-41 1h1m5 0h1m3 0h1m1 0h2m5 0h3m4 0h1m4 0h1m2 0h1m5 0h1m-41 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-33 1h2m2 0h1m1 0h1m1 0h2m1 0h2m1 0h1m1 0h1m1 0h2m1 0h4m-33 1h1m1 0h2m1 0h3m2 0h2m4 0h1m2 0h2m2 0h1m1 0h3m2 0h2m2 0h1m2 0h1m1 0h2m-39 1h4m2 0h3m2 0h1m1 0h1m2 0h2m5 0h1m1 0h3m2 0h1m2 0h2m3 0h1m-41 1h1m2 0h1m1 0h6m2 0h1m2 0h2m2 0h2m1 0h4m6 0h4m-37 1h2m1 0h2m2 0h1m1 0h1m6 0h1m3 0h1m1 0h1m2 0h4m1 0h1m2 0h2m1 0h1m3 0h1m-41 1h1m4 0h8m3 0h2m1 0h1m1 0h4m3 0h1m4 0h1m-34 1h1m2 0h1m4 0h2m3 0h3m1 0h1m3 0h1m1 0h1m2 0h1m1 0h2m10 0h1m-39 1h2m2 0h4m7 0h1m3 0h2m7 0h2m1 0h1m1 0h6m-40 1h1m1 0h1m3 0h5m1 0h4m2 0h4m1 0h1m1 0h2m2 0h6m1 0h1m2 0h1m-39 1h3m1 0h2m2 0h1m2 0h1m2 0h1m2 0h1m1 0h1m1 0h2m3 0h4m3 0h1m1 0h2m-32 1h1m2 0h1m1 0h1m2 0h1m1 0h2m4 0h1m1 0h1m1 0h4m2 0h1m1 0h1m2 0h2m-40 1h1m5 0h1m1 0h1m7 0h2m3 0h1m2 0h1m1 0h5m3 0h6m-38 1h2m1 0h1m2 0h1m1 0h1m1 0h3m1 0h1m3 0h1m1 0h3m1 0h1m1 0h2m4 0h5m1 0h1m-37 1h1m1 0h2m3 0h3m2 0h1m1 0h3m1 0h2m1 0h1m4 0h1m1 0h3m3 0h2m-37 1h1m1 0h1m1 0h1m2 0h1m1 0h2m1 0h1m1 0h2m1 0h1m1 0h1m8 0h2m1 0h1m1 0h2m1 0h1m-38 1h3m1 0h3m1 0h6m1 0h2m1 0h4m4 0h1m4 0h1m2 0h1m1 0h2m-36 1h1m2 0h3m2 0h1m2 0h2m1 0h2m2 0h7m3 0h1m1 0h2m1 0h1m1 0h2m-41 1h4m1 0h2m4 0h2m1 0h1m1 0h1m1 0h1m5 0h1m1 0h1m4 0h1m4 0h4m-39 1h5m6 0h1m1 0h1m1 0h1m2 0h2m1 0h4m3 0h1m5 0h1m1 0h4m-41 1h2m2 0h1m1 0h5m2 0h8m1 0h1m1 0h3m4 0h1m3 0h1m4 0h1m-40 1h2m2 0h1m2 0h2m1 0h3m1 0h2m2 0h1m1 0h4m1 0h3m2 0h5m1 0h1m2 0h1m-39 1h2m1 0h2m3 0h2m1 0h2m3 0h1m3 0h2m2 0h2m1 0h2m1 0h2m1 0h2m1 0h1m-38 1h4m3 0h2m1 0h1m1 0h1m1 0h2m2 0h1m2 0h1m2 0h1m3 0h1m1 0h2m1 0h2m1 0h1m1 0h1m-40 1h1m1 0h1m3 0h1m2 0h3m1 0h1m1 0h1m1 0h2m1 0h2m2 0h1m1 0h3m1 0h1m1 0h3m1 0h3m-37 1h3m2 0h1m1 0h2m3 0h4m2 0h1m1 0h1m4 0h1m1 0h2m3 0h2m1 0h2m1 0h1m-40 1h6m1 0h2m1 0h2m1 0h4m1 0h5m1 0h2m1 0h1m1 0h7m1 0h2m-32 1h4m1 0h1m1 0h2m2 0h1m2 0h1m2 0h1m1 0h2m3 0h1m3 0h1m2 0h1m-40 1h7m1 0h1m2 0h4m1 0h2m3 0h3m6 0h1m1 0h1m1 0h1m1 0h1m2 0h1m-40 1h1m5 0h1m1 0h2m1 0h1m1 0h4m1 0h1m2 0h2m1 0h3m1 0h1m3 0h1m3 0h2m-38 1h1m1 0h3m1 0h1m4 0h1m1 0h1m4 0h1m2 0h4m2 0h2m3 0h5m2 0h2m-41 1h1m1 0h3m1 0h1m1 0h1m3 0h1m2 0h1m2 0h4m1 0h2m1 0h2m1 0h1m1 0h3m1 0h1m1 0h2m1 0h1m-41 1h1m1 0h3m1 0h1m1 0h1m1 0h1m2 0h1m2 0h7m7 0h1m2 0h3m1 0h4m-41 1h1m5 0h1m2 0h2m2 0h1m1 0h1m2 0h1m2 0h1m1 0h2m2 0h1m2 0h1m1 0h2m1 0h1m3 0h1m-40 1h7m1 0h1m1 0h7m1 0h2m1 0h1m2 0h1m2 0h1m1 0h1m1 0h4m2 0h1m1 0h1"/></svg>
@@ -1227,6 +1185,7 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
           <a class="btn wa-btn" id="waBtn" href="https://wa.me/13073234467" target="_blank" rel="noopener">Message me on WhatsApp →</a>
           <button class="btn" id="webBtn" onclick="openChat()">Start talking here →</button>
         </div>
+        <p class="wa-number" id="waNumber"></p>
       </div>
 
     </div>
@@ -2393,30 +2352,24 @@ function setupSuccessActions(){
      picked WhatsApp is told to do it first. Somebody who picked the web chat is
      not going anywhere near WhatsApp today, so the card stays offered but stops
      pretending to be the next step. */
-  /* One decision, both elements, so there is no state where a person sees two
-     ways to do the same thing or none at all. A phone fails the width test in
-     portrait and fails pointer:fine anyway. A tablet with a mouse counts as a
-     computer here, which is the right answer: its contacts are not the phone's
-     either. */
+  /* The QR is for a computer only: it puts the contact on the phone, which is
+     the device WhatsApp is on. There is no phone equivalent worth showing. A
+     .vcf link on a phone downloads a file rather than opening the contact
+     sheet, so the tappable card that used to sit here was asking for something
+     the browser would not do. The number as readable text is what this screen
+     carried before, and it is honest about what it is. */
   const onComputer = window.matchMedia('(min-width:768px) and (hover:hover) and (pointer:fine)').matches;
-  const qr = document.getElementById('saveQr');
-  const card = document.getElementById('saveCard');
-  if (qr) qr.classList.toggle('show', onComputer);
-  if (card) card.classList.toggle('hide', onComputer);
-
-  /* On a phone this link downloads a file rather than opening the contact
-     sheet, on both iOS and Android, because that is what a browser does with a
-     .vcf. Tapping the download then opens the save screen. It works, but only
-     if somebody expects the download instead of thinking it failed and giving
-     up. So the copy says the download is coming. The computer path avoids this
-     entirely: the QR carries the contact itself, so no browser is involved. */
+  const qr  = document.getElementById('saveQr');
   const why = document.getElementById('saveWhy');
-  if (why) {
-    why.textContent = onComputer
-      ? 'Do this first and I show up by name in WhatsApp instead of a number.'
-      : prefersWa
-        ? 'Tap it, then tap the file your phone downloads, and it will offer to save me. Do this first and I show up by name in WhatsApp instead of a number.'
-        : 'Tap it, then tap the file your phone downloads, to save my number. If you ever message me on WhatsApp I arrive by name and not a number.';
+  const num = document.getElementById('waNumber');
+
+  if (qr) qr.classList.toggle('show', onComputer);
+  if (why) why.style.display = onComputer ? '' : 'none';
+  if (num) {
+    num.style.display = onComputer ? 'none' : '';
+    num.innerHTML = prefersWa
+      ? 'Save my number so you can reach me any time: <strong>+1 307 323 4467</strong>'
+      : 'Or save my number and message any time: <strong>+1 307 323 4467</strong>';
   }
 }
 

@@ -972,6 +972,102 @@ function stripEmojiNearCrisis(text) {
     .trim();
 }
 
+/* ── How long this reply should be, decided here and not by the model ────────
+   MEASURED, NOT GUESSED. 573 real replies out of the live database, 9 Sep:
+
+     the person   median  16 words
+     the sponsor  median 116 words
+
+   The sponsor writes SEVEN TIMES what it is answering, every time. 83% of
+   replies run to three or more paragraphs and only 5% are short. That shape is
+   what a beta member means by "you can still feel it is an AI": it gives itself
+   away before anybody reads a sentence, because no human texts back seven times
+   what you wrote.
+
+   ⭐ AND THE PROMPT ALREADY ASKED FOR THIS. There is a whole section headed
+   VARY THE SHAPE OF YOUR MESSAGES, written after the last beta member said the
+   same thing, and it is followed about 5% of the time. What DID work in the
+   same prompt is the hard bans: "no em dashes, ever" got em dashes down to 1%.
+   Soft style guidance loses to everything else in the context; a specific
+   number does not. So the number is computed here and stated, rather than asked
+   for as a quality.
+
+   Roughly a person's own length back, occasionally a bit more, with room for
+   the moments that genuinely earn it. */
+function replyBudget(theirMessage, { history, isFirst } = {}) {
+  const theirWords = String(theirMessage || '').trim().split(/\s+/).filter(Boolean).length;
+
+  /* A first message is an introduction and is allowed to be longer: there is no
+     conversation yet and they have just arrived. */
+  if (isFirst) return { target: 90, ceiling: 220, theirWords };
+
+  /* ⛔ A CRISIS REPLY IS NEVER SHORTENED. It carries hotline numbers and the
+     reason to use them, and trimming it to look conversational would be the
+     worst trade this codebase could make. */
+  const recent = (history || []).slice(-4);
+  const nearCrisis = recent.some(
+    (m) => m && m.role === 'assistant' && CRISIS_RESOURCE.test(String(m.content || ''))
+  );
+  if (nearCrisis) return { target: null, ceiling: null, theirWords, exempt: 'crisis' };
+
+  /* They asked something real, so answering it properly is the point. Still not
+     an invitation to write an essay. */
+  const askedSomething = /\?/.test(String(theirMessage || ''));
+
+  const base = Math.round(theirWords * 1.4);
+  const floor = askedSomething ? 35 : 12;
+  const cap = askedSomething ? 110 : 70;
+  const target = Math.max(floor, Math.min(cap, base));
+  /* The ceiling is what triggers a rewrite, and it is deliberately loose. This
+     is meant to catch an essay, not to police every reply into the same size,
+     which would be its own kind of machine. */
+  return { target, ceiling: Math.round(target * 2.2) + 25, theirWords };
+}
+
+const words = (s) => String(s || '').trim().split(/\s+/).filter(Boolean).length;
+
+/* ── Not two questions in a row ──────────────────────────────────────────────
+   58% of replies end with a question and 78% contain one. The prompt says "do
+   not end every message with a question" and is overruled by the fact that a
+   question is always the easiest thing to write.
+
+   ⭐ WHY THE SPONSOR REACHES FOR ONE SO OFTEN, which is the more interesting
+   half. What a real sponsor mostly does is TELL: "when I was 30 days in I did
+   exactly that". This one has no recovery of its own to share and must never
+   pretend otherwise, so it substitutes the only other move available, and asks.
+   That is why it reads like a therapist rather than a sponsor. Capping the
+   questions does not fix that on its own, but it stops the tic.
+
+   RAM only, like the not-twice-in-a-row rule the voice notes already use. A
+   restart loses it and the worst case is one extra question, which is the
+   harmless direction to fail in. */
+const lastReplyAskedSomething = new Map();
+
+/* Enforced rather than requested. If the previous reply ended with a question
+   and this one does too, the trailing question is removed. The sentence before
+   it is a complete thought, and a sponsor who says the thing and stops is doing
+   what the prompt has been asking for in words all along.
+
+   Never touches a crisis reply: "will you call them right now?" is the most
+   important question in the product. */
+function dropTrailingQuestion(text) {
+  const t = String(text || '').trim();
+  if (!t.endsWith('?') || CRISIS_RESOURCE.test(t)) return text;
+  /* Split on sentence ends, keeping them, then drop trailing question
+     sentences. Bails out rather than returning something too short to send. */
+  const parts = t.match(/[^.!?]+[.!?]+(?:\s|$)/g);
+  if (!parts || parts.length < 2) return text;
+  let kept = parts.slice();
+  while (kept.length && /\?\s*$/.test(kept[kept.length - 1].trim())) kept.pop();
+  const out = kept.join('').trim();
+  /* Two words, not four. An earlier version used four and threw away "That
+     lands hard.", which is exactly the reply this whole change is trying to
+     produce. The floor is only here to stop a fragment going out, and the
+     prompt itself holds up "That's a big deal." as the thing to aim for. */
+  if (words(out) < 2) return text;
+  return out;
+}
+
 /* ── What they put on your messages, and what it is allowed to do ────────────
    Matt, 7 Sep: "so it knows what emoji has been done and store that and adjust
    next message if relevant because of specific emoji".
@@ -1208,6 +1304,28 @@ async function getSponsorReply(userId, message, context) {
 
   const updatedHistory = [...usableHistory, { role: 'user', content: message }];
 
+  /* How long this one should be, and whether it is allowed to end on a
+     question. Both decided here so they cannot be talked out of. */
+  const budget = replyBudget(message, { history: usableHistory, isFirst: !history.length });
+  const askedLastTime = lastReplyAskedSomething.get(userId) === true;
+
+  if (budget.target) {
+    systemBlocks.push({ type: 'text', text: [
+      '## HOW LONG THIS PARTICULAR REPLY SHOULD BE',
+      `They just wrote ${budget.theirWords} word${budget.theirWords === 1 ? '' : 's'}. Aim for about ${budget.target} back.`,
+      'This is not a style note, it is the length of this message. Somebody who texts you a line does not expect three paragraphs, and getting seven times what you wrote is the clearest sign there is that nobody is really there.',
+      'Say the one thing that matters and stop. If it genuinely needs more, take more, but the bar for that is high and it is not most messages.',
+    ].join('\n') });
+  }
+
+  if (askedLastTime) {
+    systemBlocks.push({ type: 'text', text: [
+      '## YOUR LAST MESSAGE ENDED WITH A QUESTION',
+      'This one must not. Say what you actually think, or say nothing more than the thing itself, and let them come back in their own time.',
+      'Two questions in a row is an interview. A sponsor is comfortable leaving a silence.',
+    ].join('\n') });
+  }
+
   const response = await client.messages.create({
     model: 'claude-opus-4-8',
     max_tokens: 1024,
@@ -1215,10 +1333,53 @@ async function getSponsorReply(userId, message, context) {
     messages: updatedHistory.slice(-RECENT_TURNS), // recent window; older turns live in the digest + DB
   });
 
-  const rawReply = response.content
+  let rawReply = response.content
     .filter((block) => block.type === 'text')
     .map((block) => block.text)
     .join('');
+
+  /* ── Enforcement, because asking is not the same as getting ────────────────
+     The prompt has asked for shorter replies for weeks and gets them 5% of the
+     time, so these two run on the way out.
+
+     The rewrite fires only on a real overshoot, never on a crisis reply, and
+     only once. It costs a second call on the messages that earn it. Falls back
+     to the original on any failure: a long reply is worse than a short one, and
+     both are far better than no reply at all. */
+  if (budget.ceiling && words(rawReply) > budget.ceiling) {
+    const before = words(rawReply);
+    try {
+      const tighter = await client.messages.create({
+        model: 'claude-opus-4-8',
+        max_tokens: 1024,
+        system: [{ type: 'text', text: [
+          'You are editing one message from a sponsor to somebody in recovery, and you are not adding anything to it.',
+          `Cut it to about ${budget.target} words. Keep the warmth, keep the one thing it is actually saying, and keep it in the same voice.`,
+          'Drop the explaining, drop any repetition, and drop the part that reads like it was written to be thorough.',
+          'Never remove a phone number, a link, or anything they need to act on.',
+          'Reply with the shortened message and nothing else. No preamble, no quotes around it, no comment on what you changed.',
+        ].join('\n') }],
+        messages: [{ role: 'user', content: rawReply }],
+      });
+      const cut = tighter.content.filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
+      // Only take it if it is actually shorter and did not come back empty.
+      if (cut && words(cut) >= 4 && words(cut) < before) {
+        console.log(`[sponsor] reply tightened ${before} -> ${words(cut)} words (target ${budget.target})`);
+        rawReply = cut;
+      }
+    } catch (e) {
+      console.warn('[sponsor] could not tighten a long reply, sending it as written:', e.message);
+    }
+  }
+
+  if (askedLastTime) {
+    const trimmed = dropTrailingQuestion(rawReply);
+    if (trimmed !== rawReply) {
+      console.log('[sponsor] dropped a second question in a row');
+      rawReply = trimmed;
+    }
+  }
+  lastReplyAskedSomething.set(userId, /\?\s*$/.test(String(rawReply).trim()));
 
   /* Pull the sponsor's request to be spoken off the front of the reply, and
      report it back through the context object the caller passed in. Done this
