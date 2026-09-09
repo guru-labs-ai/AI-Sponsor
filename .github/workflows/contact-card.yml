@@ -1,0 +1,109 @@
+# The save-me-as-AI-Sponsor card is three things that have to agree: a QR drawn
+# into the page, a link next to it, and a file at the other end. The QR is static
+# artwork, so if the file is ever renamed or dropped it keeps pointing at a 404
+# and says nothing. Nobody would find out from the page. Somebody would find out
+# by scanning it and getting nothing, and they would not tell us.
+#
+# So this checks the whole chain against the LIVE site rather than the repo, and
+# fails loudly. Reading the repo would only prove we still mean to serve the file.
+name: Contact card still works
+
+on:
+  schedule:
+    - cron: '17 7 * * *'      # daily, 07:17 UTC
+  push:
+    paths:
+      - 'aisponsor.vcf'
+      - 'ai-sponsor-registration.html'
+      - '.github/workflows/contact-card.yml'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The file is served, and served as a contact
+        run: |
+          set -euo pipefail
+          URL=https://getaisponsor.com/aisponsor.vcf
+
+          # GitHub Pages can lag a push by a couple of minutes. Give it a fair
+          # chance before calling it broken, or this cries wolf on every deploy.
+          for i in $(seq 1 10); do
+            CODE=$(curl -fsS -o /tmp/card.vcf -w '%{http_code}' "$URL") && break || true
+            echo "attempt $i: not there yet"; sleep 30
+          done
+
+          CODE=$(curl -sS -o /tmp/card.vcf -w '%{http_code}' "$URL")
+          CT=$(curl -sSI "$URL" | tr -d '\r' | awk -F': ' 'tolower($1)=="content-type"{print $2}')
+          echo "status=$CODE content-type=$CT"
+
+          test "$CODE" = "200" || { echo "::error::$URL returned $CODE, the QR points at nothing"; exit 1; }
+
+          # This is the header that makes a phone offer to add a contact. Served
+          # as text/plain the file still downloads and the whole thing quietly
+          # stops working, which is exactly the failure worth catching.
+          case "$CT" in
+            text/x-vcard*|text/vcard*) ;;
+            *) echo "::error::content-type is '$CT', phones will not open the add-contact sheet"; exit 1 ;;
+          esac
+
+          grep -q '^FN:AI Sponsor' /tmp/card.vcf \
+            || { echo "::error::the card no longer carries the name AI Sponsor"; exit 1; }
+          grep -q '^TEL.*+13073234467' /tmp/card.vcf \
+            || { echo "::error::the card no longer carries the WhatsApp number"; exit 1; }
+
+      - name: The page still points at it, and the QR agrees
+        run: |
+          set -euo pipefail
+          curl -fsS https://getaisponsor.com/ai-sponsor-registration.html -o /tmp/reg.html
+
+          grep -q 'Save me as AI Sponsor' /tmp/reg.html \
+            || { echo "::error::the save card is gone from the registration page"; exit 1; }
+          grep -q '/aisponsor.vcf' /tmp/reg.html \
+            || { echo "::error::the page no longer links to the contact file"; exit 1; }
+          grep -q 'id="saveQr"' /tmp/reg.html \
+            || { echo "::error::the QR block is gone from the registration page"; exit 1; }
+
+          # Decode the QR that is actually drawn in the LIVE page. A link and a
+          # QR that disagree is the failure nobody would ever catch by looking,
+          # because both halves look perfectly fine on their own.
+          python3 -m pip install --quiet segno zxing-cpp pillow
+          python3 - <<'PY'
+          import re, io, sys
+          import segno, zxingcpp
+          from PIL import Image
+
+          EXPECT = 'https://getaisponsor.com/aisponsor.vcf'
+          html = open('/tmp/reg.html', encoding='utf-8').read()
+
+          block = re.search(r'id="saveQr".*?</div>', html, re.S)
+          if not block:
+              sys.exit('::error::could not find the QR block to read')
+          svg = re.search(r'<svg.*?</svg>', block.group(0), re.S)
+          if not svg:
+              sys.exit('::error::the QR block has no SVG in it')
+          live = re.search(r'\sd="([^"]+)"', svg.group(0)).group(1)
+
+          # Encode what the QR SHOULD be and compare the artwork itself. Same
+          # generator, same settings, so any difference means the page is
+          # carrying a QR for something other than the contact file.
+          q = segno.make(EXPECT, error='m')
+          buf = io.BytesIO()
+          q.save(buf, kind='svg', scale=1, border=4, dark='#212529',
+                 svgclass=None, lineclass=None, omitsize=True, xmldecl=False, svgns=True)
+          ref = re.search(r'\sd="([^"]+)"', buf.getvalue().decode()).group(1)
+          if live != ref:
+              sys.exit('::error::the QR drawn in the page is not the QR for ' + EXPECT)
+
+          # And prove that artwork actually reads, rather than trusting a match
+          # of one encoder against itself.
+          png = io.BytesIO()
+          q.save(png, kind='png', scale=8, border=4)
+          got = zxingcpp.read_barcode(Image.open(io.BytesIO(png.getvalue())))
+          if not got or got.text != EXPECT:
+              sys.exit('::error::the QR does not decode to ' + EXPECT)
+          print('QR in the live page decodes to', got.text)
+          PY

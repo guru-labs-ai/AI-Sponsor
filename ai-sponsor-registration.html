@@ -451,8 +451,16 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 .save-qr{display:none;align-items:center;gap:14px;margin-top:12px;padding:12px 14px;
   border:1px dashed var(--border);border-radius:12px;text-align:left}
 .save-qr.show{display:flex}
-.save-qr svg{flex-shrink:0;width:84px;height:84px;background:#fff;border-radius:4px}
+.save-qr svg{flex-shrink:0;width:140px;height:140px;background:#fff;border-radius:4px}
+/* 140px is not a taste call. A QR scans from roughly ten times its own width,
+   and 140px is about 37mm on a normal display, so it reads from arm's length
+   at a monitor. At the 84px this started as it is 22mm, which only scans if you
+   lean right into the screen, and nobody does that on a page they think is done.
+   Error correction stays at M for the same reason: raising it to H adds eight
+   modules across, which SHRINKS every module at a fixed width and makes the
+   code harder to read, not easier. Damage tolerance is for stickers on walls. */
 .save-qr span{font-size:13px;color:var(--sub);line-height:1.6}
+@media(max-width:520px){.save-qr{flex-direction:column;text-align:center}}
 .s9-continue{text-align:center;margin-top:18px}
 .btn-ghost{background:none;border:none;font-family:inherit;font-size:14px;
   color:var(--sub);cursor:pointer;padding:8px;transition:color .2s}
