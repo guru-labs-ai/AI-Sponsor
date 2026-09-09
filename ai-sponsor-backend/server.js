@@ -1748,6 +1748,23 @@ app.get('/api/metrics/northstar', async (req, res) => {
         mrrIfAllTrialsConvert: Math.round(subs
           .filter((s) => s.status === 'active' || s.status === 'trialing')
           .reduce((sum, s) => sum + (s.plan === 'annual' ? 49 / 12 : 5), 0) * 100) / 100,
+        /* ⭐ WHERE THE ODD CENTS COME FROM. Matt, 5 Sep: "why does this show
+           $14.08 when our plans are an even $?" Because an annual plan is
+           divided by twelve so it can sit beside the monthly ones, and two at
+           $5 plus one at $49/12 is $14.0833.
+
+           The figure was correct and unexplainable, which is its own kind of
+           wrong on a dashboard: he had no way to reach it from the two prices
+           he knows. The counts go out so the page can show its working instead
+           of asking him to trust it. */
+        committedFrom: (() => {
+          const counting = subs.filter((s) => s.status === 'active' || s.status === 'trialing');
+          return {
+            monthly: counting.filter((s) => s.plan !== 'annual').length,
+            annual: counting.filter((s) => s.plan === 'annual').length,
+            annualAsMonthly: Math.round((49 / 12) * 100) / 100,
+          };
+        })(),
         firstChargeDue: nextTrialEnd(subs),
       },
 
