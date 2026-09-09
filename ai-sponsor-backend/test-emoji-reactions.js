@@ -232,15 +232,62 @@ check('a reaction reaches the sponsor at all, which it never did before', () => 
   assert.ok(b && b.includes('\u{1F44D}'), b);
 });
 
-check('a thumbs down is not an instruction to apologise or back down', () => {
-  const b = buildReactionBlock(react('\u{1F44E}'), [said('I think you already know the answer')]);
-  assert.ok(/not an instruction to apologise/i.test(b), b);
-  assert.ok(/If you were right, stay where you are/i.test(b), b);
+/* Mariam, 9 Sep: "we don't want the thumbs down reactions at all, maybe with
+   the negative emojis only the sad and crying emoji and thats it." */
+check('a thumbs down NEVER reaches the sponsor', () => {
+  assert.strictEqual(
+    buildReactionBlock(react('\u{1F44E}'), [said('I think you already know the answer')]),
+    null);
+});
+
+check('a thumbs down does not smuggle itself in beside a warm one', () => {
+  const b = buildReactionBlock(react('\u{1F44E}', '\u{1F44D}'), [said('anything')]);
+  assert.ok(b, 'the thumbs up should still land');
+  assert.ok(!/\u{1F44E}/u.test(b), 'the thumbs down leaked into the prompt: ' + b);
+});
+
+check('angry, sick and the rest of the dismissive set are not shown either', () => {
+  for (const e of ['\u{1F621}', '\u{1F92E}', '\u{1F4A9}', '\u{1F595}', '\u{1F644}']) {
+    assert.strictEqual(buildReactionBlock(react(e), [said('anything')]), null, `${e} was shown`);
+  }
+});
+
+check('anything unrecognised falls to silence rather than into the prompt', () => {
+  assert.strictEqual(buildReactionBlock(react('\u{1F996}'), [said('anything')]), null);
+});
+
+check('a thumbs up still lands, whichever skin tone sent it', () => {
+  const b = buildReactionBlock(react('\u{1F44D}\u{1F3FF}'), [said('anything')]);
+  assert.ok(b && b.includes('\u{1F44D}\u{1F3FF}'), b);
 });
 
 check('it can never override what the sponsor was going to say', () => {
-  const b = buildReactionBlock(react('\u{1F44E}'), [said('anything')]);
+  const b = buildReactionBlock(react('\u{1F44D}'), [said('anything')]);
   assert.ok(/never changes what you were going to say/i.test(b), b);
+});
+
+console.log('\n── Sad and crying are the exception, and they get heard ──');
+
+check('a crying face is shown, and told to land', () => {
+  const b = buildReactionBlock(react('\u{1F62D}'), [said('that sounds like a hard week')]);
+  assert.ok(b && b.includes('\u{1F62D}'), b);
+  assert.ok(/telling you how they feel/i.test(b), b);
+  assert.ok(/Be gentler, go slower/i.test(b), b);
+});
+
+check('a sad face gets the same treatment', () => {
+  const b = buildReactionBlock(react('\u{1F622}'), [said('anything')]);
+  assert.ok(/sad or crying face/i.test(b), b);
+});
+
+check('the gentler instruction does NOT appear for a warm reaction', () => {
+  const b = buildReactionBlock(react('❤️'), [said('anything')]);
+  assert.ok(!/Be gentler, go slower/i.test(b), b);
+});
+
+check('it is never turned into a question about the emoji', () => {
+  const b = buildReactionBlock(react('\u{1F62D}'), [said('anything')]);
+  assert.ok(/do not ask them what the emoji meant/i.test(b), b);
 });
 
 check('the sponsor is told not to mention or thank them for it', () => {
@@ -255,12 +302,16 @@ check('NOTHING is surfaced when the recent conversation carried a crisis number'
     said('Please call or text 988. It is the Suicide and Crisis Lifeline.'),
     them('ok'),
   ];
-  assert.strictEqual(buildReactionBlock(react('\u{1F44E}'), history), null);
+  /* A thumbs up, not a thumbs down: this has to fail on the CRISIS check, not
+     on the allow-list, or it would pass even with the crisis rule deleted. */
+  assert.strictEqual(buildReactionBlock(react('\u{1F44D}'), history), null);
 });
 
-check('a thumbs down on the crisis reply itself is not feedback to act on', () => {
+check('even a crying face is withheld next to a crisis reply', () => {
+  /* The one place the sad exception does not apply. Reading distress off a
+     reaction is the wrong move while a hotline number is on the screen. */
   const history = [said('Text HOME to 741741 and stay with me.')];
-  assert.strictEqual(buildReactionBlock(react('\u{1F44E}', '❤️'), history), null);
+  assert.strictEqual(buildReactionBlock(react('\u{1F62D}', '❤️'), history), null);
 });
 
 check('the crisis check reads the sponsor own words, not the person mentioning a number', () => {

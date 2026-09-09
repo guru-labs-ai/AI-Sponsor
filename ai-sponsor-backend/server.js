@@ -983,8 +983,60 @@ function stripEmojiNearCrisis(text) {
 
    Errs toward silence throughout. Showing nothing costs a small piece of
    texture nobody knew to expect. */
+/* ── Which reactions the sponsor is allowed to see at all ────────────────────
+   Mariam, 9 Sep: "we don't want the thumbs down reactions at all, maybe with
+   the negative emojis only the sad and crying emoji and thats it".
+
+   A THUMBS DOWN IS NEVER SHOWN. It is the one reaction whose entire meaning is
+   "that was wrong", and putting a verdict in front of a sponsor mid-conversation
+   invites exactly the folding the rule below forbids. Blocking it in code is
+   stronger than telling the model to weigh it lightly, and it costs nothing:
+   there is no version of a recovery conversation that goes better because the
+   sponsor knows it was thumbed down.
+
+   SAD AND CRYING ARE DIFFERENT IN KIND, and they are the reason this list is
+   not simply "warm things only". They are not a review of the message. They are
+   somebody saying how they feel without having to find the words, which is the
+   most useful thing a reaction can carry in this product.
+
+   AN ALLOW-LIST, NOT A BLOCK-LIST, deliberately. Anything unrecognised falls to
+   silence rather than into the prompt, and the set of ways to be dismissive in
+   Unicode is not something to keep up with by hand. A missed emoji costs a
+   little texture; the wrong one reaching the sponsor costs more.
+
+   Skin tones and variation selectors are stripped before the lookup, so a
+   thumbs up is a thumbs up whichever hand sent it. */
+const REACTION_WARM = new Set([
+  '❤', '\u{1F9E1}', '\u{1F49B}', '\u{1F49A}', '\u{1F499}', '\u{1F49C}',
+  '\u{1F90D}', '\u{1F90E}', '\u{1F497}', '\u{1F49E}', '\u{1FAF6}',
+  '\u{1F44D}', '\u{1F64F}', '\u{1F44F}', '\u{1F64C}', '\u{1F4AA}',
+  '\u{1F60A}', '\u{1F970}', '\u{1F60D}', '\u{1F979}', '\u{1F917}',
+  '\u{1F602}', '\u{1F923}', '\u{1F601}', '\u{1F603}', '\u{1F604}',
+  '\u{1F389}', '✨', '\u{1F4AF}', '\u{1F62E}',
+]);
+const REACTION_SAD = new Set([
+  '\u{1F622}', '\u{1F62D}', '\u{1F61E}', '\u{1F614}', '\u{1F97A}',
+  '\u{1F625}', '\u{1F62A}', '☹', '\u{1F641}', '\u{1F61F}', '\u{1F494}',
+]);
+
+function reactionBase(emoji) {
+  return String(emoji || '').replace(/[️︎]|[\u{1F3FB}-\u{1F3FF}]/gu, '');
+}
+function reactionIsShown(emoji) {
+  const base = reactionBase(emoji);
+  return REACTION_WARM.has(base) || REACTION_SAD.has(base);
+}
+function reactionIsSad(emoji) {
+  return REACTION_SAD.has(reactionBase(emoji));
+}
+
 function buildReactionBlock(reactions, history) {
   if (!Array.isArray(reactions) || !reactions.length) return null;
+
+  /* Everything is still RECORDED, including the thumbs down. This only decides
+     what the sponsor gets to see. */
+  const shown = reactions.filter((r) => r && reactionIsShown(r.emoji));
+  if (!shown.length) return null;
 
   /* The recent turns, not the whole history: what matters is whether this
      conversation is in that place NOW. Reads the sponsor's own messages,
@@ -998,14 +1050,27 @@ function buildReactionBlock(reactions, history) {
     return null;
   }
 
-  return [
+  const lines = [
     '## THEY PUT AN EMOJI ON SOMETHING YOU SAID',
-    `Recently, most recent first: ${reactions.map((r) => r.emoji).join(' ')}`,
+    `Recently, most recent first: ${shown.map((r) => r.emoji).join(' ')}`,
     'They tapped that onto one of your messages instead of writing to you. It is a small signal, not a message, and they are not waiting on an answer to it.',
     'Let it colour your tone if it fits, and otherwise let it go. It never changes what you were going to say.',
-    'A negative one is not an instruction to apologise, to water down something true, or to take it back. If you were right, stay where you are. You can be warm while you do it.',
-    'Never announce that you noticed it, never thank them for it, and never name the emoji back to them. Someone who reacts to a text does not expect a reply about the reaction.',
-  ].join('\n');
+  ];
+
+  /* The one case where a reaction carries something worth actually hearing.
+     Still not a message, and still not something to announce, but a person who
+     puts a crying face on your message has told you something. */
+  if (shown.some((r) => reactionIsSad(r.emoji))) {
+    lines.push(
+      'One of those is a sad or crying face. That is not a verdict on what you said, it is them telling you how they feel without having to find the words. Let it land. Be gentler, go slower, and leave more room than you were going to.',
+      'Do not treat it as a request to fix anything, and do not ask them what the emoji meant.'
+    );
+  }
+
+  lines.push(
+    'Never announce that you noticed it, never thank them for it, and never name the emoji back to them. Someone who reacts to a text does not expect a reply about the reaction.'
+  );
+  return lines.join('\n');
 }
 
 async function getSponsorReply(userId, message, context) {
