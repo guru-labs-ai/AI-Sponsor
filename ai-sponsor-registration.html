@@ -2466,11 +2466,19 @@ function setupSuccessActions(){
   if (qr) qr.classList.toggle('show', onComputer);
   if (card) card.classList.toggle('hide', onComputer);
 
+  /* On a phone this link downloads a file rather than opening the contact
+     sheet, on both iOS and Android, because that is what a browser does with a
+     .vcf. Tapping the download then opens the save screen. It works, but only
+     if somebody expects the download instead of thinking it failed and giving
+     up. So the copy says the download is coming. The computer path avoids this
+     entirely: the QR carries the contact itself, so no browser is involved. */
   const why = document.getElementById('saveWhy');
   if (why) {
-    why.textContent = prefersWa
+    why.textContent = onComputer
       ? 'Do this first and I show up by name in WhatsApp instead of a number.'
-      : 'Save my number if you ever want to reach me on WhatsApp, so I arrive by name and not a number.';
+      : prefersWa
+        ? 'Tap it, then tap the file your phone downloads, and it will offer to save me. Do this first and I show up by name in WhatsApp instead of a number.'
+        : 'Tap it, then tap the file your phone downloads, to save my number. If you ever message me on WhatsApp I arrive by name and not a number.';
   }
 }
 
