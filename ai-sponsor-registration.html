@@ -459,8 +459,16 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
    Error correction stays at M for the same reason: raising it to H adds eight
    modules across, which SHRINKS every module at a fixed width and makes the
    code harder to read, not easier. Damage tolerance is for stickers on walls. */
-.save-qr span{font-size:13px;color:var(--sub);line-height:1.6}
+.save-qr .save-sub{display:block;font-size:13px;color:var(--sub);line-height:1.6;margin-top:6px}
 @media(max-width:520px){.save-qr{flex-direction:column;text-align:center}}
+
+/* The card and the QR are the same destination reached two ways, so only one of
+   them is ever on screen. A phone gets the card, because a QR of the page you
+   are holding is nonsense. A computer gets the QR ONLY: the card downloads the
+   file onto the computer, which is the one device WhatsApp is not on, and on
+   Windows it never travels any further. Showing both there puts a button that
+   quietly does nothing above the one that works. */
+.save-card.hide{display:none}
 .s9-continue{text-align:center;margin-top:18px}
 .btn-ghost{background:none;border:none;font-family:inherit;font-size:14px;
   color:var(--sub);cursor:pointer;padding:8px;transition:color .2s}
@@ -1215,7 +1223,11 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
         <p class="save-why" id="saveWhy">Do this first and I show up by name in WhatsApp instead of a number.</p>
         <div class="save-qr" id="saveQr">
           <svg shape-rendering="crispEdges" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 37 37"><path stroke="#212529" d="M4 4.5h7m1 0h2m2 0h1m3 0h5m1 0h7m-29 1h1m5 0h1m1 0h7m3 0h1m3 0h1m5 0h1m-29 1h1m1 0h3m1 0h1m6 0h3m2 0h1m3 0h1m1 0h3m1 0h1m-29 1h1m1 0h3m1 0h1m1 0h2m3 0h5m4 0h1m1 0h3m1 0h1m-29 1h1m1 0h3m1 0h1m2 0h1m1 0h2m1 0h3m2 0h1m2 0h1m1 0h3m1 0h1m-29 1h1m5 0h1m3 0h1m3 0h1m1 0h1m1 0h2m2 0h1m5 0h1m-29 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-21 1h2m1 0h1m2 0h6m-20 1h1m1 0h2m1 0h3m3 0h1m1 0h1m1 0h3m4 0h1m2 0h1m1 0h2m-28 1h1m2 0h2m1 0h1m4 0h1m4 0h3m1 0h4m3 0h1m-29 1h1m4 0h2m1 0h2m1 0h1m2 0h1m3 0h1m1 0h1m1 0h1m3 0h2m-25 1h2m3 0h2m1 0h3m1 0h2m1 0h1m2 0h2m5 0h1m-29 1h3m1 0h1m1 0h1m2 0h4m2 0h3m2 0h1m4 0h2m-26 1h2m2 0h1m2 0h1m2 0h1m1 0h5m1 0h1m1 0h2m3 0h3m-28 1h2m1 0h5m2 0h2m1 0h1m4 0h2m1 0h1m3 0h3m-29 1h2m2 0h1m2 0h1m1 0h3m1 0h1m2 0h1m2 0h2m1 0h3m2 0h1m-28 1h1m1 0h2m1 0h2m2 0h1m5 0h1m2 0h4m2 0h2m1 0h1m-25 1h1m3 0h1m3 0h1m1 0h1m1 0h1m1 0h1m2 0h2m1 0h1m1 0h3m-28 1h1m2 0h4m2 0h1m5 0h2m1 0h1m1 0h2m1 0h2m1 0h1m-22 1h1m2 0h2m2 0h1m2 0h1m1 0h4m5 0h1m-26 1h4m1 0h2m1 0h3m1 0h1m3 0h10m-19 1h1m3 0h3m1 0h1m2 0h2m3 0h5m-29 1h7m1 0h3m2 0h1m5 0h2m1 0h1m1 0h2m1 0h1m-28 1h1m5 0h1m1 0h2m2 0h1m2 0h1m2 0h1m1 0h1m3 0h2m-26 1h1m1 0h3m1 0h1m2 0h1m1 0h1m2 0h1m2 0h1m2 0h5m1 0h1m-27 1h1m1 0h3m1 0h1m1 0h2m1 0h8m2 0h1m1 0h3m2 0h1m-29 1h1m1 0h3m1 0h1m1 0h2m4 0h1m5 0h1m2 0h1m2 0h1m1 0h1m-29 1h1m5 0h1m2 0h5m2 0h1m1 0h1m1 0h1m1 0h2m1 0h1m1 0h1m-28 1h7m1 0h5m1 0h2m2 0h5m4 0h1"/></svg>
-          <span>On a computer? Point your phone camera at this and save me there instead, so the name is on the phone WhatsApp is actually on.</span>
+          <span>
+            <span class="save-name">Save me as AI Sponsor</span>
+            <span class="save-num">+1 307 323 4467</span>
+            <span class="save-sub">Point your phone camera at this. Your phone will offer to save me, so the name lands on the phone WhatsApp is on rather than on this computer.</span>
+          </span>
         </div>
 
         <!-- A tap here is the only way that channel can start: WhatsApp lets us
@@ -2435,13 +2447,16 @@ function setupSuccessActions(){
      picked WhatsApp is told to do it first. Somebody who picked the web chat is
      not going anywhere near WhatsApp today, so the card stays offered but stops
      pretending to be the next step. */
-  /* Desktop-ish only. A phone fails the width test in portrait and fails
-     pointer:fine anyway, so it never sees a QR of the page it is already on.
-     A tablet with a mouse may match, which is harmless. */
+  /* One decision, both elements, so there is no state where a person sees two
+     ways to do the same thing or none at all. A phone fails the width test in
+     portrait and fails pointer:fine anyway. A tablet with a mouse counts as a
+     computer here, which is the right answer: its contacts are not the phone's
+     either. */
+  const onComputer = window.matchMedia('(min-width:768px) and (hover:hover) and (pointer:fine)').matches;
   const qr = document.getElementById('saveQr');
-  if (qr && window.matchMedia('(min-width:768px) and (hover:hover) and (pointer:fine)').matches) {
-    qr.classList.add('show');
-  }
+  const card = document.getElementById('saveCard');
+  if (qr) qr.classList.toggle('show', onComputer);
+  if (card) card.classList.toggle('hide', onComputer);
 
   const why = document.getElementById('saveWhy');
   if (why) {
