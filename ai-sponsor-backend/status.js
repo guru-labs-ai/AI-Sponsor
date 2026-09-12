@@ -483,6 +483,42 @@ async function checkDomain() {
 /* ⭐ THE OUTAGE NOTHING ELSE CAN SEE. If the Meta webhook is unsubscribed or
    the number deregistered, every other check still passes and messages just
    stop arriving. Silence is the only symptom it has. */
+/* ⭐ THE WEBHOOK ITSELF, asked of Meta rather than guessed at from silence.
+   The check below used to infer "the webhook is dead" from nobody having
+   messaged for a few hours, which is not the same claim and was wrong five
+   times in three days. Meta will tell us directly which app it delivers this
+   account's messages to, so we ask it. A WABA with nothing subscribed is the
+   real version of the fault the silence check was reaching for: people message
+   the number, Meta has nowhere to deliver it, and every other check stays
+   green. */
+async function checkWebhook() {
+  const token = process.env.META_WA_TOKEN;
+  const waba = process.env.META_WA_WABA_ID;
+  if (!token || !waba) return down('cannot tell whether Meta is delivering messages to us', {
+    impact: 'Unwatched. If the subscription were dropped, inbound WhatsApp would die silently.',
+    action: 'Set META_WA_TOKEN and META_WA_WABA_ID on the Render service.',
+  });
+  const v = process.env.META_GRAPH_VERSION || 'v25.0';
+  const { r, body } = await fetchJson(
+    `https://graph.facebook.com/${v}/${waba}/subscribed_apps`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!r.ok) {
+    const err = (body.error && body.error.message) || `HTTP ${r.status}`;
+    return warn(`could not read the subscription: ${err}`);
+  }
+  const apps = (body.data || [])
+    .map((d) => (d.whatsapp_business_api_data || {}))
+    .filter((a) => a.id);
+  if (!apps.length) return down('no app is subscribed, so Meta has nowhere to deliver inbound messages', {
+    impact: 'Everyone who writes to the sponsor gets silence. Nothing else looks wrong from in here, which is exactly what makes it dangerous.',
+    action: 'Re-subscribe the app to the WhatsApp account, then send a message to the number to confirm a reply comes back.',
+  });
+  /* Named rather than counted, because the fault worth catching is somebody
+     else's app holding the subscription, not the count being zero. */
+  return ok(`delivering to ${apps.map((a) => a.name || a.id).join(', ')}`);
+}
+
 async function checkSilence() {
   if (!db.enabled) return warn('no database, so inbound traffic cannot be watched');
   const s = await db.inboundSilence();
@@ -496,17 +532,22 @@ async function checkSilence() {
      busy one is not allowed to go quiet unnoticed. Under roughly one message a
      day there is no meaningful signal here and it says so. */
   if (normal < 1) return ok(`last message ${pretty}, too quiet a product to read anything into a gap`);
-  const budget = normal >= 10 ? 6 : normal >= 3 ? 12 : 24;
-  if (hours >= budget * 2) {
-    return down(`no message from anyone for ${pretty}, and we normally see about ${normal.toFixed(1)} a day`, {
-      impact: 'This is what a dead WhatsApp webhook looks like from in here. People may be messaging and getting nothing back, with every other check still green.',
-      action: 'Send a message to +1 307-323-4467 yourself. If it does not answer, check the webhook subscription in the Meta app and that the number is still registered.',
-    });
-  }
-  if (hours >= budget) {
+  /* ⛔ SILENCE IS NOT A FAULT, and this check used to treat it as one. It
+     measured the gap against a flat daily average with no idea what time it
+     was, so at 02:20 and 10:19 UTC it was comparing a normal night against a
+     24 hour mean. Five alerts in three days, two of them red with an @channel,
+     every one of them wrong: Mariam messaged the number on 10 Sep and it
+     answered, and it fired again the next morning with identical wording.
+
+     ⚠️ An alert that is sometimes noise is an alert that gets muted, which
+     costs us the real one. The question this was reaching for is answered
+     properly by the webhook check above, so this reports what it knows and
+     nothing more. It can no longer return 'down', which is what carries the
+     @channel. */
+  if (hours >= 24) {
     return warn(`nothing for ${pretty}, against about ${normal.toFixed(1)} a day normally`, {
-      impact: 'Might be a quiet night, might be the webhook. Worth a look rather than an alarm.',
-      action: 'Send a test message to the number. If it replies, this is just a quiet spell.',
+      impact: 'A full day of quiet on a product this busy is worth a glance. It is not evidence of a fault on its own.',
+      action: 'Read the webhook check first. If Meta is still delivering to us, send a message to the number yourself before assuming anything is broken.',
     });
   }
   return ok(`${s.today} today, last one ${pretty}`);
@@ -559,6 +600,7 @@ async function runChecks() {
 
     timed('WhatsApp number', 'WhatsApp', checkWhatsApp),
     timed('WhatsApp token life', 'WhatsApp', checkMetaTokenLife),
+    timed('WhatsApp webhook', 'WhatsApp', checkWebhook),
     timed('People still talking', 'WhatsApp', checkSilence),
 
     timed('Database', 'Backend', checkDatabase),
@@ -678,10 +720,15 @@ router.get('/data', async (req, res) => {
 const ALERT_USER = 'system-status';
 const REPEAT_AFTER_MS = 12 * 60 * 60 * 1000;
 
-/* The bare path, never the keyed one. The four people who need this have
-   opened their link and hold a cookie; putting the key in a Slack message
-   every six hours would scatter copies of it through the channel history. */
-const SITE_STATUS_LINK = 'https://ai-sponsor-f7de.onrender.com/status/';
+/* ⭐ THE KEYED LINK, and the reasoning that used to sit here was wrong. It
+   posted the bare path so the key would not repeat through the channel
+   history, assuming everyone who needs this already holds a cookie. THE COOKIE
+   IS PER DEVICE. Matt opened the keyed link on one machine, read an alert on
+   his phone, and got the "you need your own link" screen at the single moment
+   the link had to work. The key has sat in this channel since the 9 Sep test
+   message, so repeating it exposes nothing that is not already there, and an
+   alert nobody can open is worth less than a tidy history. */
+const SITE_STATUS_LINK = `https://ai-sponsor-f7de.onrender.com/status/?k=${encodeURIComponent(KEY)}`;
 
 async function alreadyToldThem(signature) {
   if (!db.enabled) return false;
