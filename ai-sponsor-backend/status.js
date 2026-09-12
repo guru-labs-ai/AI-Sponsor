@@ -26,12 +26,19 @@
    page that mixes growth numbers with alarms trains you to skim both.
 
    ── Access ──────────────────────────────────────────────────────────────────
-   Same shape as viewer.js, for the same reasons, and read that file's header
-   for the full argument. Short version: this repo is public, so the page ships
-   with no key and no data, the key is checked server side and exchanged for an
-   httpOnly cookie, and an unset STATUS_KEY 404s the whole router rather than
-   leaving it discoverable. One shared link for the four people who need it
-   (Mariam's call, 9 Sep), so rotating STATUS_KEY revokes everyone at once.   */
+   ⭐ OPEN, Mariam's call 12 Sep: "no keys, he just needs to access it". It used
+   to hold a key that was swapped for a per-device cookie, and that is exactly
+   what broke it. The key only ever went out in one Slack message, the cookie
+   lived on one browser, and Matt hit a locked door on his phone at the one
+   moment the page had to work. A status page that the people who need it
+   cannot open has failed at the only job it has.
+
+   ⚠️ SO ASSUME EVERYTHING HERE IS PUBLIC to anyone holding the URL, and the
+   public dashboard links straight to it. The page still sends noindex so it
+   stays out of search, but that is tidiness, not protection. Nothing that
+   would actually hurt to publish should be added to a check's detail line:
+   no names, no email addresses, no figures that are nobody else's business.
+   The checks report whether a thing works, never who is in it.                */
 
 const express = require('express');
 const crypto = require('crypto');
@@ -39,11 +46,7 @@ const path = require('path');
 const alerts = require('./alerts');
 const db = require('./db');
 
-const KEY = process.env.STATUS_KEY || '';
-const enabled = !!KEY;
-
-const COOKIE = 'ais_status';
-const SESSION_MS = 30 * 24 * 60 * 60 * 1000;
+const enabled = true;
 
 /* Providers cost money to check properly, so a result is reused for a few
    minutes. Someone refreshing the page must not be able to run up a bill, and
@@ -54,41 +57,10 @@ let cached = null;
 const router = express.Router();
 
 router.use((req, res, next) => {
-  if (!enabled) return res.status(404).end();
   res.set('X-Robots-Tag', 'noindex, nofollow');
   res.set('Referrer-Policy', 'no-referrer');
   next();
 });
-
-/* ── Session, lifted from viewer.js ─────────────────────────────────────────
-   `<expiry>.<hmac(expiry)>`. Carries no identity and no key, so it grants
-   nothing once expired and cannot be edited to extend itself. */
-const sign = (expiry) => crypto.createHmac('sha256', KEY).update(String(expiry)).digest('hex');
-
-function issue(res) {
-  const expiry = Date.now() + SESSION_MS;
-  res.cookie(COOKIE, `${expiry}.${sign(expiry)}`, {
-    httpOnly: true, secure: true, sameSite: 'lax', maxAge: SESSION_MS, path: '/status',
-  });
-}
-
-function validSession(req) {
-  const raw = req.headers.cookie || '';
-  const hit = raw.split(';').map((c) => c.trim()).find((c) => c.startsWith(`${COOKIE}=`));
-  if (!hit) return false;
-  const [expiry, mac] = decodeURIComponent(hit.slice(COOKIE.length + 1)).split('.');
-  if (!expiry || !mac) return false;
-  if (!Number.isFinite(Number(expiry)) || Number(expiry) < Date.now()) return false;
-  const a = Buffer.from(mac, 'utf8');
-  const b = Buffer.from(sign(expiry), 'utf8');
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
-}
-
-function keyMatches(given) {
-  const g = String(given || '');
-  if (g.length !== KEY.length) return false;
-  return crypto.timingSafeEqual(Buffer.from(g, 'utf8'), Buffer.from(KEY, 'utf8'));
-}
 
 /* ── The context server.js hands over ────────────────────────────────────────
    The master prompt lives in server.js, and server.js requires this file, so
@@ -639,59 +611,13 @@ async function getStatus({ fresh } = {}) {
   return data;
 }
 
-/* What somebody sees when they land here without their link. Inline rather than
-   a file because it must work even if nothing else does, and it says nothing
-   about the state of the system to someone who is not allowed to know it. */
-const NO_KEY_PAGE = `<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex, nofollow">
-<title>AI Sponsor — Is anything wrong</title>
-<style>
-:root{color-scheme:light dark}
-body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#F0F4F8;color:#212529;
-  margin:0;min-height:100vh;display:grid;place-items:center;padding:24px}
-@media (prefers-color-scheme:dark){body{background:#0f1720;color:#F3F4F6}}
-.box{max-width:380px;text-align:center}
-h1{font-size:19px;font-weight:700;margin:0 0 10px}
-p{font-size:14px;line-height:1.6;opacity:.8;margin:0 0 8px}
-</style></head><body><div class="box">
-<h1>You need your own link for this</h1>
-<p>This page is limited to a few people, and the link carries the key. Open the
-one you were sent and you will stay signed in on this device for a month.</p>
-<p>If you do not have it, ask Mariam.</p>
-</div></body></html>`;
-
 /* ── Routes ──────────────────────────────────────────────────────────────── */
 
 router.get('/', (req, res) => {
-  if (req.query.k !== undefined) {
-    const good = keyMatches(req.query.k);
-    db.logAdminAccess('status:key', null, good, req.ip).catch(() => {});
-    /* A key that does not work is usually an old link or a truncated paste, not
-       an attack, and "404" tells that person nothing they can act on. */
-    if (!good) return res.status(401).type('html').send(NO_KEY_PAGE);
-    issue(res);
-    return res.redirect('/status/');
-  }
-  /* ⚠️ NOT A BARE 404, unlike the conversation reader, and the difference is
-     deliberate. That one hides its own existence because finding it is most of
-     the attack; this one is LINKED FROM THE PUBLIC DASHBOARD, so pretending it
-     is not there fools nobody and only confuses the four people who are meant
-     to be here. Mariam opened it without her key, got a blank 404 and
-     reasonably read it as broken.
-
-     Still gives away nothing: no data, no check names, no hint of whether
-     anything is wrong. Just what to do next. */
-  if (!validSession(req)) {
-    res.status(401).type('html').send(NO_KEY_PAGE);
-    return;
-  }
   res.sendFile(path.join(__dirname, 'status.html'));
 });
 
 router.get('/data', async (req, res) => {
-  if (!validSession(req)) return res.status(404).end();
   try {
     res.json(await getStatus({ fresh: req.query.fresh === '1' }));
   } catch (e) {
@@ -720,15 +646,10 @@ router.get('/data', async (req, res) => {
 const ALERT_USER = 'system-status';
 const REPEAT_AFTER_MS = 12 * 60 * 60 * 1000;
 
-/* ⭐ THE KEYED LINK, and the reasoning that used to sit here was wrong. It
-   posted the bare path so the key would not repeat through the channel
-   history, assuming everyone who needs this already holds a cookie. THE COOKIE
-   IS PER DEVICE. Matt opened the keyed link on one machine, read an alert on
-   his phone, and got the "you need your own link" screen at the single moment
-   the link had to work. The key has sat in this channel since the 9 Sep test
-   message, so repeating it exposes nothing that is not already there, and an
-   alert nobody can open is worth less than a tidy history. */
-const SITE_STATUS_LINK = `https://ai-sponsor-f7de.onrender.com/status/?k=${encodeURIComponent(KEY)}`;
+/* Plain, and it opens for anyone who taps it now that the key is gone. This is
+   the whole point of dropping it: the link in the alert is the link that
+   works, on whatever device happens to be in someone's hand. */
+const SITE_STATUS_LINK = 'https://ai-sponsor-f7de.onrender.com/status/';
 
 async function alreadyToldThem(signature) {
   if (!db.enabled) return false;
