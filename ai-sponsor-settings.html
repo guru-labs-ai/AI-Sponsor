@@ -536,6 +536,9 @@ async function load(){
     }
 
     renderWeek(data.week, data.weeks, data.weekPending);
+    // An older week on screen while the latest is still unwritten: fetch the
+    // latest anyway, or last week's note sits there as if it were this one.
+    if(data.week && data.weekPending) fetchWeek();
 
     renderVoices();
     show('s-dash');
@@ -666,6 +669,16 @@ async function fetchWeek(start){
     const res = await fetch(BACKEND_URL + q);
     if(!res.ok) throw new Error('failed');
     const data = await res.json();
+    /* Writing it failed this time (nothing was saved, so it is retried). Must
+       not fall through to "you did not talk last week", which is untrue, or to
+       an older week shown as if it were this one. */
+    if(data.status === 'failed' && !start){
+      $('weekRange').textContent = 'Putting the week just gone together for you now.';
+      $('weekBody').innerHTML = '<div class="wk-empty"><div class="big">✍️</div>' +
+        'Your sponsor is still writing this one up.<br>Check back a little later and it will be here.</div>';
+      WEEKS = data.weeks || WEEKS; renderWeekPicker();
+      return;
+    }
     if(!data.week && !start){
       // Generated nothing because there was nothing to generate from.
       $('weekRange').textContent = 'A look back at the week just gone, written by your sponsor.';

@@ -107,7 +107,7 @@ function prettyRange(startISO, endISO) {
    Strict JSON rather than prose, so the page can lay it out as a person reads
    it — the note first, the things they said they'd do somewhere they can find
    them again — instead of one undifferentiated block. A model that ignores the
-   format is handled below rather than retried.
+   format is rejected below and retried, never shown.
 
    The content list is deliberately the one a human sponsor actually carries in
    their head between calls: what you kept coming back to, what helped, what you
@@ -156,6 +156,9 @@ function coerce(raw) {
 
   const note = str(raw && raw.note, 1200);
   if (!note) return null; // without the note there is no summary worth showing
+  // The last line of defence against raw model output reaching a person's page:
+  // a note that is itself JSON or a code fence is a broken reply, not writing.
+  if (/^(\{|\[|```)/.test(note) || /"note"\s*:/.test(note)) return null;
 
   return {
     note,
@@ -169,18 +172,21 @@ function coerce(raw) {
   };
 }
 
+/* Anything that is not a complete JSON object with a note is REJECTED, never
+   shown. There used to be a prose fallback here that kept whatever came back as
+   the note, and on 13 Sep it put two replies that had stopped mid-sentence on
+   people's pages as raw code, starting `{ "note": "` and cut off halfway. The
+   same fallback stamped those weeks "steady", so a hard week got the everyday
+   WhatsApp wording. A missing note gets retried; a wrong one gets read. */
 function parseModelJSON(text) {
-  const cleaned = String(text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
-  try {
-    return coerce(JSON.parse(cleaned));
-  } catch (e) {
-    /* It ignored the format. The writing is probably still fine, and throwing it
-       away to retry costs another Opus call for a person who is going to read
-       one paragraph. Keep the prose as the note and leave every structured
-       field empty rather than guessing at them. */
-    const asNote = cleaned.slice(0, 1200).trim();
-    return asNote ? coerce({ note: asNote, tone: 'steady' }) : null;
-  }
+  const cleaned = String(text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+  const attempt = (s) => { try { return coerce(JSON.parse(s)); } catch (e) { return null; } };
+  const direct = attempt(cleaned);
+  if (direct) return direct;
+  // A sentence of commentary before or after the object is survivable; the
+  // object itself still has to be whole.
+  const open = cleaned.indexOf('{'), close = cleaned.lastIndexOf('}');
+  return open !== -1 && close > open ? attempt(cleaned.slice(open, close + 1)) : null;
 }
 
 /* ── The quiet-week card ────────────────────────────────────────────────────
@@ -334,18 +340,28 @@ async function writeNarrative({ userId, week, stats, sponsorName, theirName }) {
       : '',
   ].filter(Boolean).join('\n');
 
-  const resp = await client.messages.create({
-    model: WEEKLY_MODEL,
-    max_tokens: 1200,
-    system: [{ type: 'text', text: SYSTEM_PROMPT }],
-    messages: [{
-      role: 'user',
-      content: `${context}\n\nTHIS WEEK'S CONVERSATION:\n${transcript}`,
-    }],
-  });
+  /* Two tries. If both come back unusable nothing is saved, so the week is not
+     burned: the next trigger (their page opening, the next hourly sweep) tries
+     again, and nobody is messaged about a note that does not exist. The stop
+     reason is logged because on 13 Sep a reply ended after 248 characters, far
+     under max_tokens, and nothing recorded why. Content is never logged. */
+  for (let attemptNo = 1; attemptNo <= 2; attemptNo++) {
+    const resp = await client.messages.create({
+      model: WEEKLY_MODEL,
+      max_tokens: 1200,
+      system: [{ type: 'text', text: SYSTEM_PROMPT }],
+      messages: [{
+        role: 'user',
+        content: `${context}\n\nTHIS WEEK'S CONVERSATION:\n${transcript}`,
+      }],
+    });
 
-  const text = resp.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
-  return parseModelJSON(text);
+    const text = resp.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
+    const payload = parseModelJSON(text);
+    if (payload) return payload;
+    console.warn(`[weekly] unusable reply for ${userId} (attempt ${attemptNo} of 2, stop_reason ${resp.stop_reason}, ${text.length} chars)`);
+  }
+  return null;
 }
 
 /* ── Delivery ───────────────────────────────────────────────────────────────

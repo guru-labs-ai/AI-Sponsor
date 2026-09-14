@@ -69,14 +69,26 @@ check('a code fence is stripped rather than breaking the parse',
   w._parseModelJSON('```json\n' + good + '\n```').note,
   'You had a hard Wednesday and you called it early.');
 
-/* Prose instead of JSON must not lose the writing. It becomes the note and
-   every structured field stays empty, which is the honest degradation: no
-   invented themes, no invented commitments. */
-const prose = w._parseModelJSON('It was a steadier week than the last one.');
-check('prose fallback keeps the note', prose.note, 'It was a steadier week than the last one.');
-check('prose fallback invents no themes', prose.themes, []);
-check('prose fallback invents no commitments', prose.commitments, []);
-check('prose fallback claims no milestone', prose.milestone, null);
+/* Anything that is not a whole object with a note is rejected, so it is retried
+   instead of shown. The old prose fallback put a reply that stopped mid-sentence
+   on two real pages as raw code, and guessed "steady" for weeks that were not. */
+check('prose is rejected, not shown with a guessed tone',
+  w._parseModelJSON('It was a steadier week than the last one.'), null);
+check('a reply cut off mid-note is rejected (the 13 Sep bug)',
+  w._parseModelJSON('{\n  "note": "Something heavy came up this week, but I want'), null);
+check('a reply cut off after the note is rejected too',
+  w._parseModelJSON('{"note": "A steady week.", "themes": ["sleep", "wo'), null);
+check('a fenced reply cut off mid-note is rejected',
+  w._parseModelJSON('```json\n{"note": "Something heavy'), null);
+check('a sentence of commentary around a whole object is survivable',
+  w._parseModelJSON('Here is the note:\n' + good + '\nHope that helps.').note,
+  'You had a hard Wednesday and you called it early.');
+check('a note that is itself raw JSON is rejected',
+  w._coerce({ note: '{ "note": "nested", "tone": "steady" }' }), null);
+check('a note that is a code fence is rejected',
+  w._coerce({ note: '```json something' }), null);
+check('a real tone survives a whole reply',
+  w._parseModelJSON(JSON.stringify({ note: 'A hard week.', tone: 'hard' })).tone, 'hard');
 
 check('empty response yields nothing at all rather than a blank card',
   w._parseModelJSON(''), null);
