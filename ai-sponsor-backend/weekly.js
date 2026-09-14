@@ -343,12 +343,17 @@ async function writeNarrative({ userId, week, stats, sponsorName, theirName }) {
   /* Two tries. If both come back unusable nothing is saved, so the week is not
      burned: the next trigger (their page opening, the next hourly sweep) tries
      again, and nobody is messaged about a note that does not exist. The stop
-     reason is logged because on 13 Sep a reply ended after 248 characters, far
-     under max_tokens, and nothing recorded why. Content is never logged. */
+     reason is logged, never the content.
+
+     max_tokens was 1200, which was the real cause of the 13 Sep breakage.
+     Render sets WEEKLY_MODEL to claude-sonnet-5, which thinks by default, and
+     thinking counts against max_tokens: the log showed stop_reason max_tokens
+     with 0 to 656 characters of actual text. 16000 leaves room for the
+     thinking and the note; a short note still costs only what it uses. */
   for (let attemptNo = 1; attemptNo <= 2; attemptNo++) {
     const resp = await client.messages.create({
       model: WEEKLY_MODEL,
-      max_tokens: 1200,
+      max_tokens: 16000,
       system: [{ type: 'text', text: SYSTEM_PROMPT }],
       messages: [{
         role: 'user',
