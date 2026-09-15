@@ -1008,6 +1008,34 @@ function withCachedHistory(messages, slidingWindow) {
   return copy;
 }
 
+/* ── Counting words and questions in any language ──────────────────────────
+   Chinese, Japanese and Thai are written without spaces, so splitting on
+   spaces counted a whole Japanese message as one word. The budget below then
+   told the sponsor "they just wrote 1 word, aim for about 12 back", and the
+   essay check could never fire on a reply that was also one "word". Text in
+   those scripts is counted the way the language itself breaks into words.
+   Everything else is still split on spaces exactly as before, so the numbers
+   the budget was measured against do not move.
+
+   Same for questions: "?" in most languages, but "？" in Chinese and Japanese
+   and "؟" in Arabic, Persian and Urdu. */
+const NO_SPACES_SCRIPT =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}]/u;
+const WORD_SEGMENTER = typeof Intl === 'object' && Intl.Segmenter
+  ? new Intl.Segmenter(undefined, { granularity: 'word' }) : null;
+const QUESTION_MARK = /[?？؟]/;
+const ENDS_ON_QUESTION = /[?？؟]\s*$/;
+
+function words(s) {
+  const t = String(s || '').trim();
+  if (!t) return 0;
+  if (!NO_SPACES_SCRIPT.test(t)) return t.split(/\s+/).length;
+  if (!WORD_SEGMENTER) return Math.ceil(t.replace(/\s+/g, '').length / 2);
+  let n = 0;
+  for (const part of WORD_SEGMENTER.segment(t)) if (part.isWordLike) n++;
+  return n;
+}
+
 /* ── How long this reply should be, decided here and not by the model ────────
    MEASURED, NOT GUESSED. 573 real replies out of the live database, 9 Sep:
 
@@ -1031,7 +1059,7 @@ function withCachedHistory(messages, slidingWindow) {
    Roughly a person's own length back, occasionally a bit more, with room for
    the moments that genuinely earn it. */
 function replyBudget(theirMessage, { history, isFirst } = {}) {
-  const theirWords = String(theirMessage || '').trim().split(/\s+/).filter(Boolean).length;
+  const theirWords = words(theirMessage);
 
   /* A first message is an introduction and is allowed to be longer: there is no
      conversation yet and they have just arrived. */
@@ -1048,7 +1076,7 @@ function replyBudget(theirMessage, { history, isFirst } = {}) {
 
   /* They asked something real, so answering it properly is the point. Still not
      an invitation to write an essay. */
-  const askedSomething = /\?/.test(String(theirMessage || ''));
+  const askedSomething = QUESTION_MARK.test(String(theirMessage || ''));
 
   const base = Math.round(theirWords * 1.4);
   const floor = askedSomething ? 35 : 12;
@@ -1059,8 +1087,6 @@ function replyBudget(theirMessage, { history, isFirst } = {}) {
      which would be its own kind of machine. */
   return { target, ceiling: Math.round(target * 2.2) + 25, theirWords };
 }
-
-const words = (s) => String(s || '').trim().split(/\s+/).filter(Boolean).length;
 
 /* ── Not two questions in a row ──────────────────────────────────────────────
    58% of replies end with a question and 78% contain one. The prompt says "do
@@ -1088,13 +1114,15 @@ const lastReplyAskedSomething = new Map();
    important question in the product. */
 function dropTrailingQuestion(text) {
   const t = String(text || '').trim();
-  if (!t.endsWith('?') || CRISIS_RESOURCE.test(t)) return text;
+  if (!ENDS_ON_QUESTION.test(t) || CRISIS_RESOURCE.test(t)) return text;
   /* Split on sentence ends, keeping them, then drop trailing question
      sentences. Bails out rather than returning something too short to send. */
-  const parts = t.match(/[^.!?]+[.!?]+(?:\s|$)/g);
+  // Chinese and Japanese put no space after a full stop, so 。！？ end a
+  // sentence on their own; . ! ? still need a space or the end after them.
+  const parts = t.match(/[^.!?。！？؟।]+(?:[.!?]+(?:\s|$)|[。！？؟।]+\s*)/g);
   if (!parts || parts.length < 2) return text;
   let kept = parts.slice();
-  while (kept.length && /\?\s*$/.test(kept[kept.length - 1].trim())) kept.pop();
+  while (kept.length && ENDS_ON_QUESTION.test(kept[kept.length - 1].trim())) kept.pop();
   const out = kept.join('').trim();
   /* Two words, not four. An earlier version used four and threw away "That
      lands hard.", which is exactly the reply this whole change is trying to
@@ -1459,7 +1487,7 @@ async function getSponsorReply(userId, message, context) {
       rawReply = trimmed;
     }
   }
-  lastReplyAskedSomething.set(userId, /\?\s*$/.test(String(rawReply).trim()));
+  lastReplyAskedSomething.set(userId, ENDS_ON_QUESTION.test(String(rawReply).trim()));
 
   /* Pull the sponsor's request to be spoken off the front of the reply, and
      report it back through the context object the caller passed in. Done this

@@ -149,5 +149,30 @@ check('the question rule is enforced on the way out, not just requested', () => 
     'nothing remembers whether the last reply asked something');
 });
 
+console.log('\n── The same rules in the other languages the sponsor speaks ──');
+
+check('English is still counted exactly as before', () => {
+  assert.strictEqual(words(say(16)), 16);
+  assert.strictEqual(words("I don't know, it's been a long day."), 8);
+});
+
+check('a Japanese message is not one word just because it has no spaces', () => {
+  const n = words('今日は仕事の後にお酒を飲みたくなりました。ミーティングに行くべきか迷っています。');
+  assert.ok(n >= 10, `counted ${n} words`);
+});
+
+check('Chinese, Japanese and Arabic questions count as questions', () => {
+  const plain = replyBudget(say(12), { history: [] });
+  for (const q of ['我应该去参加聚会吗？', 'ミーティングに行くべき？', 'هل يجب أن أذهب إلى الاجتماع؟']) {
+    assert.ok(replyBudget(q, { history: [] }).target > plain.target, `not read as a question: ${q}`);
+  }
+});
+
+check('a second question in a row is dropped in Japanese and Arabic too', () => {
+  assert.strictEqual(dropTrailingQuestion('大変だったね。本当によく頑張った。今夜ミーティングに行ける？'), '大変だったね。本当によく頑張った。');
+  assert.strictEqual(dropTrailingQuestion('لقد كان يوما صعبا. أنا فخور بك. هل ستذهب الليلة؟'), 'لقد كان يوما صعبا. أنا فخور بك.');
+  assert.strictEqual(dropTrailingQuestion('Suena difícil. Estoy orgulloso de ti. ¿Vas a ir esta noche?'), 'Suena difícil. Estoy orgulloso de ti.');
+});
+
 console.log(`\n${failed ? 'FAILED' : 'All good'}: ${passed} passed, ${failed} failed\n`);
 process.exit(failed ? 1 : 0);
