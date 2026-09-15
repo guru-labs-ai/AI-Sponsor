@@ -1334,7 +1334,9 @@ async function getSponsorReply(userId, message, context) {
         : 'They sent you a text message.',
       context.replyIsSpoken
         ? 'This reply is being spoken back to them as a voice note, in the voice they chose for you. Write it to be listened to.'
-        : 'This particular reply goes back as text, because they wrote to you and did not ask to hear you.',
+        : context.voiceUnavailable
+          ? 'They wanted to hear you, but voice notes are not available yet in the language they are writing in, so this reply goes back as text. Tell them that briefly and warmly, in their language, then answer them. Once is enough: if you already told them earlier in this conversation, only say it again if they ask for a voice note again.'
+          : 'This particular reply goes back as text, because they wrote to you and did not ask to hear you.',
       'The rule, if it ever comes up: you send a voice note whenever they send you one, and whenever they ask you for one. Asking is enough, in any words they like. If they want to hear you more often, tell them that plainly.',
       'Never tell them you cannot hear audio or cannot send voice messages. Never say that text is all you have. All of that is untrue.',
       'If they point at a moment where you said otherwise, say plainly that you were wrong about it, and move on without making a meal of it.',
@@ -1349,8 +1351,11 @@ async function getSponsorReply(userId, message, context) {
 
        Lives here rather than in MASTER_SYSTEM_PROMPT on purpose: the master
        prompt is shared with the web chat, which has no voice at all, and a web
-       reply that opens with [[voice]] would be a visible bug. */
-    if (!context.replyIsSpoken) {
+       reply that opens with [[voice]] would be a visible bug.
+
+       Not offered either when voice is unavailable in their language
+       (voices.canSpeak): it would be offering something it cannot deliver. */
+    if (!context.replyIsSpoken && !context.voiceUnavailable) {
       systemBlocks.push({ type: 'text', text: [
         '## YOU CAN CHOOSE TO SPEAK INSTEAD OF TYPE',
         'If a reply would land better heard than read, write [[voice]] at the very start of it. That reply then goes to them as a voice note in your voice rather than as text. Write the message exactly as you otherwise would: the marker is stripped before anyone sees it, and it is the only thing that changes.',

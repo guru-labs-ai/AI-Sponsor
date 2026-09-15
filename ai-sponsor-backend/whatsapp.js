@@ -1200,9 +1200,20 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
 
       const requestedVoice = (cameByVoice || askedForVoice) && !(textOnly && !askedForVoice);
 
+      /* They want to hear the sponsor, but xAI only speaks 20 languages (see
+         voices.canSpeak). Checked on their own message, before the reply is
+         written, so that when voice cannot happen the sponsor knows, tells them
+         in their language, and that explanation is kept in the history like
+         everything else it says. */
+      const voiceUnavailable = requestedVoice && !(await voices.canSpeak(userMessageText));
+      if (voiceUnavailable) console.log(`[WhatsApp] ${fromPhone} wants voice in a language voice notes cannot speak: text, with an explanation`);
+
       /* Passed in and read back out afterwards: getSponsorReply sets
          modelWantsVoice on this object when the reply came back marked. */
-      const ctx = { channel: 'whatsapp', viaVoice: cameByVoice, replyIsSpoken: requestedVoice, textOnly };
+      const ctx = {
+        channel: 'whatsapp', viaVoice: cameByVoice,
+        replyIsSpoken: requestedVoice && !voiceUnavailable, textOnly, voiceUnavailable,
+      };
       const replyText = await getSponsorReply(userId, userMessageText, ctx);
       console.log(`[WhatsApp] Claude reply to ${fromPhone}: "${replyText.substring(0, 80)}..."`);
 
@@ -1228,6 +1239,8 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
            deciding this one is worth speaking. Only they can lift it. */
         replyAsVoice = false;
         console.log(`[WhatsApp] text only for ${fromPhone}, as they asked`);
+      } else if (voiceUnavailable) {
+        replyAsVoice = false;
       } else if (requestedVoice) {
         replyAsVoice = true;
       } else if (ctx.modelWantsVoice && lastReplyWasUnpromptedVoice.get(userId)) {
@@ -1240,10 +1253,10 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
         replyAsVoice = false;
       }
 
-      /* Last, because it costs an API call: only asked when the answer would
-         otherwise be voice. A reply in a language xAI cannot speak goes as
-         text. See voices.canSpeak. */
-      if (replyAsVoice && !(await voices.canSpeak(replyText))) {
+      /* The sponsor chose to speak on its own. Their message was not checked
+         above (they did not ask for voice), so the reply is checked here, and
+         goes as text without a word about it: they never asked to hear it. */
+      if (replyAsVoice && !requestedVoice && !(await voices.canSpeak(replyText))) {
         replyAsVoice = false;
         console.log(`[WhatsApp] forcing text to ${fromPhone}: reply is in a language voice notes cannot speak`);
       }
