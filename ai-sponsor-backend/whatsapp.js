@@ -1240,6 +1240,14 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
         replyAsVoice = false;
       }
 
+      /* Last, because it costs an API call: only asked when the answer would
+         otherwise be voice. A reply in a language xAI cannot speak goes as
+         text. See voices.canSpeak. */
+      if (replyAsVoice && !(await voices.canSpeak(replyText))) {
+        replyAsVoice = false;
+        console.log(`[WhatsApp] forcing text to ${fromPhone}: reply is in a language voice notes cannot speak`);
+      }
+
       // Only an UNPROMPTED voice note arms the not-twice-in-a-row rule.
       lastReplyWasUnpromptedVoice.set(userId, replyAsVoice && !requestedVoice);
 
