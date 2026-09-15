@@ -206,6 +206,9 @@ async function synthesize(text, voice) {
    If the check itself fails, the answer is yes. That is exactly how voice
    notes behaved before this existed, and a blip here must not quietly turn
    everybody's voice notes into text. */
+/* Also the list of languages the sponsor WRITES in (Mariam, Sep 15: same
+   languages for text and voice). That half lives in the LANGUAGES section of
+   the master prompt in server.js. Change one, change the other. */
 const SPEAKABLE = ['en', 'es', 'pt', 'fr', 'de', 'it', 'ru', 'tr', 'ar', 'hi',
   'bn', 'zh', 'ja', 'ko', 'id', 'vi'];
 
