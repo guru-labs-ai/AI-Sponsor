@@ -175,7 +175,9 @@ async function synthesize(text, voice) {
     body: JSON.stringify({
       text: forSpeech(text),
       voice_id: resolve(voice),
-      language: 'en',
+      // Was 'en', which told xAI every reply is English. 'auto' lets it detect
+      // the language from the reply text (one of the 20 xAI supports).
+      language: 'auto',
       output_format: OUTPUT,
     }),
   });
