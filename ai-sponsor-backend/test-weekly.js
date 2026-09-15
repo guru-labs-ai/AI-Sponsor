@@ -196,13 +196,18 @@ check('the quiet card only mentions score to disclaim it',
   check("Meta's window error is recognised, not just Twilio's",
     /63016\|131047/.test(wk), true);
   check('falls back to a template when outside the window',
-    wk.includes('deliverTemplate(phone, payload, theirName, token)'), true);
+    wk.includes('deliverTemplate(phone, payload, theirName, token, lang)'), true);
   check('one template per tone, matching the three free-text tones',
     wk.includes("hard:  'weekly_review_hard'") &&
     wk.includes("quiet: 'weekly_review_quiet'") &&
     wk.includes("good:  'weekly_review'"), true);
+  /* Every language the template exists in needs its own words for a missing
+     name: Meta rejects an empty variable, and "there" inside a Spanish
+     template is its own kind of broken. */
+  const fallbacks = require('./notice-copy').SPONSOR_NAME_FALLBACK;
   check('a nameless person still gets a greeting Meta will accept',
-    wk.includes("|| 'there'"), true);
+    wk.includes('first || copy.SPONSOR_NAME_FALLBACK[l]') && fallbacks.en === 'there' &&
+    require('./language').NOTICE_LANGUAGES.every((l) => String(fallbacks[l] || '').trim().length > 0), true);
   check('the settings token rides on the button with the week anchor',
     wk.includes('`${token}#week`'), true);
   check('a template failure is swallowed, never thrown',

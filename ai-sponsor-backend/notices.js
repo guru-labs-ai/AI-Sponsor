@@ -56,6 +56,11 @@
    moved in August and an old error string should still be understood. */
 const OUTSIDE_WINDOW = /63016|131047/;
 
+/* Their language, for the six this is translated into (notice-copy.js).
+   Everyone else, and anyone we know nothing about, gets the English below. */
+const language = require('./language');
+const copy = require('./notice-copy');
+
 /* "9 September". No year, same reasoning as the trial notice: these dates are
    always days away, and a year makes a note read like a contract. */
 function formatDay(value) {
@@ -208,17 +213,28 @@ async function sendNotice({
   }
 
   const first = String(user.name || '').trim().split(/\s+/)[0];
-  const filled = Object.assign({ first }, params);
+  const lang = language.noticeLanguage(await language.languageOf(db, uid));
+  /* The date is written in the language of the message it sits in. Callers
+     pass the raw date as `at`; `when` is the English wording they already
+     built, and is used as it is when there is no raw date. */
+  const filledIn = (l) => Object.assign({ first }, params, {
+    when: (params.at && language.formatDay(params.at, l)) || params.when,
+  });
+  const filled = filledIn(lang);
   const mark = (via) =>
-    db.recordEvent(uid, 'notice_sent', { kind, key: dedupeKey, via }, source).catch(() => {});
+    db.recordEvent(uid, 'notice_sent', { kind, key: dedupeKey, via, lang }, source).catch(() => {});
+
+  const body = lang === 'en'
+    ? spec.body(filled)
+    : copy.leavingBody(lang, kind === 'leaving_paid', filled);
 
   try {
-    await whatsapp.sendTextReply(`whatsapp:${phone}`, spec.body(filled));
+    await whatsapp.sendTextReply(`whatsapp:${phone}`, body);
     await mark('text');
     return { sent: true, via: 'text' };
   } catch (err) {
     const outside = OUTSIDE_WINDOW.test(err.message || '');
-    if (outside && await sendViaTemplate({ metacloud, phone, spec, filled })) {
+    if (outside && await sendViaTemplate({ metacloud, phone, spec, lang, filledIn })) {
       await mark('template');
       return { sent: true, via: 'template' };
     }
@@ -234,17 +250,24 @@ async function sendNotice({
 /* Lazily required rather than imported at the top, the same way weekly.js and
    trialnotice.js do it, so this module stays loadable on a box with no Meta
    credentials and the tests can hand it a stub. */
-async function sendViaTemplate({ metacloud, phone, spec, filled }) {
+async function sendViaTemplate({ metacloud, phone, spec, lang, filledIn }) {
   let mc = metacloud;
   if (!mc) { try { mc = require('./metacloud'); } catch { return false; } }
   if (!mc.enabled || !mc.sendTemplate) return false;
   try {
-    // Meta rejects an empty variable, and plenty of people never gave a name.
-    const params = spec.params(filled).map((v) => String(v == null ? '' : v).trim() || 'there');
+    /* Meta rejects an empty variable, and plenty of people never gave a name.
+       Every leaving template takes the same two, name then date, in every
+       language; only the words standing in for a missing name change. */
+    const paramsFor = (l) => {
+      const f = filledIn(l);
+      const raw = l === 'en' ? spec.params(f) : [f.first, f.when];
+      return raw.map((v) => String(v == null ? '' : v).trim() || copy.SERVICE_NAME_FALLBACK[l]);
+    };
     /* A template body cannot carry a URL inline, so the settings link rides the
        template's own button. The suffix is everything after ?t= in the approved
        url, which is how trial_ending already does it. */
-    await mc.sendTemplate(`whatsapp:${phone}`, spec.template, params, filled.linkSuffix || null);
+    await language.sendTemplateIn(mc, `whatsapp:${phone}`, spec.template, lang, paramsFor,
+      filledIn(lang).linkSuffix || null);
     return true;
   } catch (err) {
     console.warn(`[notice] template ${spec.template} failed: ${err.message}`);

@@ -32,19 +32,23 @@ const TRIAL_ENDING_TEMPLATE = 'trial_ending';
    string in a retry queue should still be understood. */
 const OUTSIDE_WINDOW = /63016|131047/;
 
+/* The six other languages this goes out in live in notice-copy.js. */
+const language = require('./language');
+const copy = require('./notice-copy');
+
 /* "29 September". Deliberately no year: it is always within the next few days,
    and a year makes it read like a contract rather than a note. UTC because the
    server is, and guessing somebody's timezone to save four hours of accuracy is
    how you tell a person in California their trial ended yesterday. */
-function formatTrialEnd(unixSeconds) {
+function formatTrialEnd(unixSeconds, lang = 'en') {
   if (!unixSeconds) return null;
-  return new Date(unixSeconds * 1000)
-    .toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+  return language.formatDay(new Date(unixSeconds * 1000), lang);
 }
 
 /* Kept separate and pure so the wording can be read, and argued about, without
    running anything. */
-function trialEndingBody({ first, when, link }) {
+function trialEndingBody({ first, when, link, lang = 'en' }) {
+  if (lang !== 'en') return copy.trialBody(lang, { first, when, link });
   const hi = first ? `${first}, ` : '';
   return (
     `${hi}quick note about your account, not a message from your sponsor.\n\n` +
@@ -58,7 +62,7 @@ function trialEndingBody({ first, when, link }) {
    this is already the fallback path and there is nothing further to fall back
    to. A person not hearing from us is bad, but it is the summary page and the
    Stripe email that carry the fact, not this. */
-async function sendTemplate({ metacloud, phone, first, when, token }) {
+async function sendTemplate({ metacloud, phone, first, trialEndUnix, lang, token }) {
   /* Lazily required rather than imported at the top, the same way weekly.js
      does it, so this module stays loadable on a box with no Meta credentials
      and the tests can hand it a stub instead. */
@@ -67,11 +71,14 @@ async function sendTemplate({ metacloud, phone, first, when, token }) {
   if (!mc.enabled || !mc.sendTemplate) return false;
   try {
     /* Meta rejects an empty variable and plenty of people never gave a name, so
-       it falls back to what a sponsor would say out loud. */
-    await metacloud.sendTemplate(
+       it falls back to what a sponsor would say out loud. The date is built per
+       language so the English fallback never carries a Spanish month. */
+    await language.sendTemplateIn(
+      mc,
       `whatsapp:${phone}`,
       TRIAL_ENDING_TEMPLATE,
-      [String(first || '').trim() || 'there', when],
+      lang,
+      (l) => [String(first || '').trim() || copy.SERVICE_NAME_FALLBACK[l], formatTrialEnd(trialEndUnix, l)],
       `${token}#plan`
     );
     return true;
@@ -94,7 +101,8 @@ async function notifyTrialEnding({ user, trialEndUnix, db, whatsapp, metacloud, 
 
   /* A billing message with no date in it is worse than no message at all, so an
      event arriving without trial_end is logged and dropped rather than guessed. */
-  const when = formatTrialEnd(trialEndUnix);
+  const lang = language.noticeLanguage(await language.languageOf(db, uid));
+  const when = formatTrialEnd(trialEndUnix, lang);
   if (!when) {
     console.warn(`[trial-ending] ${uid} has no trial_end on the event, not sending`);
     return { sent: false, reason: 'no-trial-end' };
@@ -114,10 +122,10 @@ async function notifyTrialEnding({ user, trialEndUnix, db, whatsapp, metacloud, 
 
   const first = String(user.name || '').trim().split(/\s+/)[0];
   const link = `${siteUrl}/ai-sponsor-settings.html?t=${token}#plan`;
-  const body = trialEndingBody({ first, when, link });
+  const body = trialEndingBody({ first, when, link, lang });
 
   const mark = (via) =>
-    db.recordEvent(uid, 'trial_ending_notified', { trialEnd: key, via }, 'stripe').catch(() => {});
+    db.recordEvent(uid, 'trial_ending_notified', { trialEnd: key, via, lang }, 'stripe').catch(() => {});
 
   try {
     await whatsapp.sendTextReply(`whatsapp:${phone}`, body);
@@ -125,7 +133,7 @@ async function notifyTrialEnding({ user, trialEndUnix, db, whatsapp, metacloud, 
     return { sent: true, via: 'text' };
   } catch (e) {
     const outside = OUTSIDE_WINDOW.test(e.message || '');
-    if (outside && await sendTemplate({ metacloud, phone, first, when, token })) {
+    if (outside && await sendTemplate({ metacloud, phone, first, trialEndUnix, lang, token })) {
       await mark('template');
       return { sent: true, via: 'template' };
     }

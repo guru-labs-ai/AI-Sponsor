@@ -42,6 +42,7 @@ const access = require('./access'); // who still has access, off unless ACCESS_E
    the paused notice is the only thing in this file that links anywhere. */
 const SITE_URL = process.env.SITE_URL || 'https://getaisponsor.com';
 const voices = require('./voices'); // the shared voice allow-list + TTS
+const language = require('./language'); // what language a message is in, and what it asks for
 const metacloud = require('./metacloud'); // voice notes straight to Meta; inert unless configured
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -507,8 +508,31 @@ function noteReaction(userId, reacted) {
    Errs toward text throughout. A false positive costs a voice note nobody
    noticed was missing. A false negative costs somebody a crisis number they
    cannot use. */
-const CRISIS_RESOURCE =
-  /\b(?:988|741741|1[\s.-]?800[\s.-]?662[\s.-]?4357|crisis (?:text )?line|crisis lifeline|samhsa|helpline)\b/i;
+const CRISIS_RESOURCE = new RegExp([
+  /* The US lines the prompt hands out, and "helpline" / "crisis line". */
+  String.raw`\b(?:988|741741|1[\s.-]?800[\s.-]?662[\s.-]?4357|crisis (?:text )?line|crisis lifeline|samhsa|helpline)\b`,
+  /* Every other language the sponsor speaks (language.js), because outside
+     the US the prompt sends people to their own national line and the reply is
+     in their language. Names of lines and the words for one, plus the numbers
+     of the best-known national lines. Deliberately broad: a false match only
+     costs an emoji or a voice note, a miss costs somebody a number they can
+     tap. No \b after a word ending in a non-English letter, because \b does
+     not see those as letters. */
+  String.raw`\b(?:samaritans|116[\s.-]?123|lifeline|13[\s.-]?11[\s.-]?14|kids help phone|talk suicide)\b`,
+  String.raw`\bl[ií]nea (?:de la vida|de crisis|de ayuda|de prevenci[oó]n)|prevenci[oó]n del suicidio|tel[eé]fono de la esperanza|\b024\b|\b800[\s.-]?911[\s.-]?2000\b`,
+  String.raw`\bcvv\b|centro de valoriza[cç][aã]o da vida|\b188\b|sos voz amiga|\blinha de (?:apoio|crise|preven[cç][aã]o)|preven[cç][aã]o do suic[ií]dio`,
+  String.raw`\b3114\b|sos amiti[eé]|ligne d'[eé]coute|pr[eé]vention du suicide|num[eé]ro national de pr[eé]vention`,
+  String.raw`telefonseelsorge|\b0800[\s.-]?111[\s.-]?0[\s.-]?11[12]\b|krisentelefon|krisendienst|suizidpr[aä]vention`,
+  String.raw`telefono amico|prevenzione del suicidio|linea di ascolto`,
+  String.raw`телефон доверия|горячая линия|кризисн|профилактик[аи] суицид`,
+  String.raw`intihar [öo]nleme|kriz hatt[ıi]|yard[ıi]m hatt[ıi]|psikolojik destek hatt[ıi]`,
+  String.raw`خط المساعدة|خط الأزمات|الخط الساخن|منع الانتحار|خط الدعم النفسي`,
+  String.raw`हेल्पलाइन|tele[\s-]?manas|\b14416\b|\bicall\b|आत्महत्या रोकथाम|হেল্পলাইন|কান পেতে রই|kaan pete roi|আত্মহত্যা প্রতিরোধ`,
+  String.raw`热线|熱線|心理援助|危机干预|危機干預|自杀预防|自殺預防|生命线|生命線|\b12356\b|\b400[\s-]?161[\s-]?9995\b`,
+  String.raw`いのちの電話|よりそいホットライン|こころの健康相談|ホットライン|相談窓口|\b0120[\s-]?783[\s-]?556\b|\b0570[\s-]?064[\s-]?556\b`,
+  String.raw`자살\s?예방|상담전화|생명의\s?전화|정신건강위기상담|\b109\b|\b1577[\s-]?0199\b|\b1393\b`,
+  String.raw`layanan konseling|hotline kesehatan jiwa|pencegahan bunuh diri|\b119 ext|đường dây nóng|tổng đài tư vấn|phòng chống tự tử|tư vấn tâm lý`,
+].join('|'), 'i');
 const HAS_LINK = /https?:\/\/|\bwww\.|\b[a-z0-9-]{2,}\.(?:com|org|net|io|app|health|co)\b/i;
 const HAS_PHONE = /\+?\d[\d\s().-]{7,}\d/;
 
@@ -1151,11 +1175,27 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
          is met by the sponsor they set up rather than a stock one. */
       const profile = await db.getProfile(userId).catch(() => null);
 
+      /* What language this is in, and whether it asks for a voice note or for
+         text only, in any language (see language.js). The English phrase lists
+         below still decide English messages exactly as they always have; this
+         only adds the same requests in the other fifteen. null means the read
+         failed, and everything carries on as it did before this existed.
+
+         Their language is remembered for the automatic messages (trial ending,
+         weekly note), but only from a message long enough to be sure of: an
+         "ok" must not turn somebody who writes in Spanish into English. */
+      const read = await language.readMessage(userMessageText);
+      const notEnglish = !!read && read.language !== 'en' && read.language !== 'unclear';
+      if (read && String(userMessageText || '').trim().length >= 12) {
+        language.rememberLanguage(db, userId, read.language, profile && profile.language);
+      }
+
       /* Voice in, voice back. Asked for, voice back. Otherwise text, unless the
          sponsor itself decides this one is worth speaking. The model is told
          which of these is happening so it never describes the channel wrongly
          to the person using it. */
-      const askedForVoice = !cameByVoice && asksForVoice(userMessageText);
+      const askedForVoice = !cameByVoice &&
+        (asksForVoice(userMessageText) || (notEnglish && read.asksForVoice));
       if (askedForVoice) console.log(`[WhatsApp] ${fromPhone} asked for a voice note in text`);
 
       /* "Just text me". Written down the moment they say it, and cleared the
@@ -1181,7 +1221,7 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
           console.warn('[WhatsApp] could not check other identities for text-only:', e.message);
         }
       }
-      if (asksForTextOnly(userMessageText)) {
+      if (asksForTextOnly(userMessageText) || (notEnglish && read.asksForTextOnly && !askedForVoice)) {
         textOnly = true;
         db.findAllIdentities(userId)
           .then((ids) => Promise.all(ids.map((id) => db.saveProfile(id, { textOnly: true }))))
@@ -1200,12 +1240,11 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
 
       const requestedVoice = (cameByVoice || askedForVoice) && !(textOnly && !askedForVoice);
 
-      /* They want to hear the sponsor, but xAI only speaks 20 languages (see
-         voices.canSpeak). Checked on their own message, before the reply is
-         written, so that when voice cannot happen the sponsor knows, tells them
-         in their language, and that explanation is kept in the history like
-         everything else it says. */
-      const voiceUnavailable = requestedVoice && !(await voices.canSpeak(userMessageText));
+      /* They want to hear the sponsor, but they are writing in a language
+         outside the 20 (see language.js). Known before the reply is written, so
+         the sponsor can tell them in their language, and that explanation is
+         kept in the history like everything else it says. */
+      const voiceUnavailable = requestedVoice && !!read && read.language === 'other';
       if (voiceUnavailable) console.log(`[WhatsApp] ${fromPhone} wants voice in a language voice notes cannot speak: text, with an explanation`);
 
       /* Passed in and read back out afterwards: getSponsorReply sets

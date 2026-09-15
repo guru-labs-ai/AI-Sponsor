@@ -33,6 +33,8 @@
 
 const db = require('./db');
 const tz = require('./timezones');
+const language = require('./language');   // which language the note and nudge are in
+const copy = require('./notice-copy');     // the nudge, card and templates in six other languages
 const Anthropic = require('@anthropic-ai/sdk');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -193,8 +195,16 @@ function parseModelJSON(text) {
    Written here, in code, with no model involved. There is nothing to analyse in
    two messages, and this is the honest thing to show instead of a summary that
    sounds like there was. */
-function quietWeekCard({ sponsorName, messages, activeDays }) {
+function quietWeekCard({ sponsorName, messages, activeDays, lang = 'en' }) {
   const who = sponsorName || 'your sponsor';
+  const translated = copy.QUIET_CARD[lang];
+  if (translated) {
+    return {
+      note: messages === 0 ? translated.none : translated.some,
+      themes: [], carried: null, helped: [], commitments: [], milestone: null,
+      nextWeek: translated.nextWeek, tone: 'quiet', _by: who,
+    };
+  }
   const note = messages === 0
     ? `We didn't talk this week. That's allowed, and it doesn't undo anything. I'm here when you want me, and there's no catching up to do first.`
     : `A quiet week between us, just ${messages} message${messages === 1 ? '' : 's'} across ${activeDays} day${activeDays === 1 ? '' : 's'}. That's not a failure and I'm not keeping score. Whenever you want to talk properly, I'm here.`;
@@ -262,11 +272,15 @@ async function ensureWeeklySummary(userId, opts = {}) {
   const sponsorName = profile.sponsorName || user.sponsor_name || '';
   const theirName = String(profile.name || user.name || '').trim().split(/\s+/)[0] || '';
 
+  /* The language they talk to their sponsor in. The model writes the note in
+     any of the sixteen; the card written in code exists in the notice six. */
+  const lang = await language.languageOf(db, userId);
+
   let payload;
   if (plan === 'quiet') {
-    payload = quietWeekCard({ sponsorName, messages: have, activeDays: stats.activeDays });
+    payload = quietWeekCard({ sponsorName, messages: have, activeDays: stats.activeDays, lang: language.noticeLanguage(lang) });
   } else {
-    payload = await writeNarrative({ userId, week, stats, sponsorName, theirName }).catch((e) => {
+    payload = await writeNarrative({ userId, week, stats, sponsorName, theirName, lang }).catch((e) => {
       console.error('[weekly] model call failed:', e.message);
       return null;
     });
@@ -302,7 +316,7 @@ async function ensureWeeklySummary(userId, opts = {}) {
   return { status: 'created', week, summary: { ...payload, week_start: week.start, week_end: week.end, stats } };
 }
 
-async function writeNarrative({ userId, week, stats, sponsorName, theirName }) {
+async function writeNarrative({ userId, week, stats, sponsorName, theirName, lang = 'en' }) {
   const rows = await db.getWeekMessages(userId, week.start, week.end, MAX_ROWS);
   if (!rows || !rows.length) return null;
 
@@ -334,6 +348,9 @@ async function writeNarrative({ userId, week, stats, sponsorName, theirName }) {
     theirName ? `Their name is ${theirName}.` : '',
     `The week you are writing about is ${prettyRange(week.start, week.end)}.`,
     `They talked with you on ${stats.activeDays} of those 7 days.`,
+    lang !== 'en' && language.LANGUAGE_NAMES[lang]
+      ? `They talk to you in ${language.LANGUAGE_NAMES[lang]}. Write every text field of the JSON in ${language.LANGUAGE_NAMES[lang]}. "tone" stays one of the three English words.`
+      : '',
     weekEvents.length ? `Account things that happened this week: ${weekEvents.join(', ')}.` : '',
     memory && memory.digest
       ? `BACKGROUND you already know about them from before this week — context only, do NOT summarise it back to them, the note is about this week:\n${memory.digest}`
@@ -399,9 +416,13 @@ async function deliver(userId, payload, week, whatsapp) {
   const theirName = String(user.name || '').trim().split(/\s+/)[0];
   const hi = theirName ? `${theirName}, ` : '';
 
+  const lang = language.noticeLanguage(await language.languageOf(db, userId));
+
   /* A hard week does not get a cheerful "here's your week in review". The
      wording changes with the tone for the same reason the note does. */
-  const body = payload.tone === 'hard'
+  const body = lang !== 'en'
+    ? copy.weeklyBody(lang, payload.tone, { first: theirName, link })
+    : payload.tone === 'hard'
     ? `${hi}I've been thinking about your week. I wrote a few things down for you, only if you want them:\n\n${link}\n\nNo need to reply. I'm here either way.`
     : payload.tone === 'quiet'
       ? `${hi}quiet week between us, which is fine. I left you a short note here if you want it:\n\n${link}`
@@ -419,7 +440,7 @@ async function deliver(userId, payload, week, whatsapp) {
        That is why the banner on the settings page is the real mechanism and
        this line is only the nudge. */
     const withNotice = PRIVACY_NOTICE
-      ? body + PRIVACY_NOTICE_LINE
+      ? body + (lang !== 'en' ? copy.WEEKLY[lang].privacy : PRIVACY_NOTICE_LINE)
       : body;
 
   try {
@@ -440,7 +461,7 @@ async function deliver(userId, payload, week, whatsapp) {
        and anyone outside it gets the approved template instead. Same link,
        same three tones, plainer words because Meta reviews every one. */
     if (outside) {
-      const sent = await deliverTemplate(phone, payload, theirName, token);
+      const sent = await deliverTemplate(phone, payload, theirName, token, lang);
       if (sent) {
         await db.markWeeklyDelivered(userId, week.start, true, null).catch(() => {});
         return { sent: true, via: 'template' };
@@ -475,18 +496,20 @@ const WEEKLY_TEMPLATES = {
    this is already the fallback path, and there is nothing further to fall back
    to. A person not receiving a nudge is a missed warmth, not a broken product,
    and the summary is still waiting on their dashboard either way. */
-async function deliverTemplate(phone, payload, theirName, token) {
+async function deliverTemplate(phone, payload, theirName, token, lang = 'en') {
   let metacloud;
   try { metacloud = require('./metacloud'); } catch { return false; }
   if (!metacloud.enabled || !metacloud.sendTemplate) return false;
 
   const name = WEEKLY_TEMPLATES[payload.tone] || WEEKLY_TEMPLATES.good;
   /* Meta rejects an empty variable, and plenty of people never gave a name, so
-     it falls back to something a sponsor would actually say out loud. */
-  const first = String(theirName || '').trim() || 'there';
+     it falls back to something a sponsor would actually say out loud, in the
+     language of the template it lands in. */
+  const first = String(theirName || '').trim();
 
   try {
-    await metacloud.sendTemplate(`whatsapp:${phone}`, name, [first], `${token}#week`);
+    await language.sendTemplateIn(metacloud, `whatsapp:${phone}`, name, lang,
+      (l) => [first || copy.SPONSOR_NAME_FALLBACK[l]], `${token}#week`);
     console.log(`[weekly] delivered via template ${name}`);
     return true;
   } catch (err) {

@@ -189,68 +189,18 @@ async function synthesize(text, voice) {
 }
 
 /* ── Can this reply be spoken at all? ─────────────────────────────────────
-   synthesize() sends 'auto', but xAI only speaks 20 languages (English,
-   Spanish, Portuguese, French, German, Italian, Russian, Turkish, Arabic,
-   Hindi, Bengali, Chinese, Japanese, Korean, Indonesian, Vietnamese, with
-   regional variants). Their docs do not say what 'auto' does with anything
-   else, so a Polish or Dutch reply could come back as an error or as a voice
-   note read in the wrong language. Neither is acceptable, so the language is
-   checked first and a reply that cannot be spoken goes as text.
+   synthesize() sends 'auto', but xAI only speaks 20 languages, and its docs do
+   not say what 'auto' does with anything else: an error, or a voice note read
+   in the wrong language. So the language is checked first and a reply that
+   cannot be spoken goes as text. The list and the check live in language.js,
+   shared with everything else that needs to know a language.
 
-   Claude names the language. Checked Sep 15 against the live API: English,
-   Spanish and Portuguese came back speakable, Polish, Dutch, Georgian, Hebrew
-   and Swedish came back "other", all in about two seconds. Thinking is off
-   because the answer is one word forced by the schema, and with it on one
-   check took six seconds.
-
-   If the check itself fails, the answer is yes. That is exactly how voice
-   notes behaved before this existed, and a blip here must not quietly turn
-   everybody's voice notes into text. */
-/* Also the list of languages the sponsor WRITES in (Mariam, Sep 15: same
-   languages for text and voice). That half lives in the LANGUAGES section of
-   the master prompt in server.js. Change one, change the other. */
-const SPEAKABLE = ['en', 'es', 'pt', 'fr', 'de', 'it', 'ru', 'tr', 'ar', 'hi',
-  'bn', 'zh', 'ja', 'ko', 'id', 'vi'];
-
-let languageClient = null;
-
+   "unclear" (an emoji, a name) counts as speakable, and so does a failed
+   check: that is exactly how voice notes behaved before this existed, and a
+   blip here must not quietly turn everybody's voice notes into text. */
 async function canSpeak(text) {
-  if (!process.env.ANTHROPIC_API_KEY) return true;
-  if (!languageClient) {
-    const Anthropic = require('@anthropic-ai/sdk');
-    // Short timeout: this sits in front of a voice note somebody is waiting on.
-    languageClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 8000, maxRetries: 1 });
-  }
-  try {
-    const res = await languageClient.beta.messages.create({
-      model: 'claude-opus-5',
-      max_tokens: 64,
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-      thinking: { type: 'disabled' },
-      output_config: {
-        effort: 'low',
-        format: {
-          type: 'json_schema',
-          schema: {
-            type: 'object',
-            properties: { language: { type: 'string', enum: [...SPEAKABLE, 'other'] } },
-            required: ['language'],
-            additionalProperties: false,
-          },
-        },
-      },
-      system: 'Name the main language of the text. Answer with its code from the list, or "other" if it is not one of them.',
-      messages: [{ role: 'user', content: stripSpeechTags(text) }],
-    });
-    if (res.stop_reason !== 'end_turn') return true;
-    const block = res.content.find((b) => b.type === 'text');
-    const { language } = JSON.parse(block.text);
-    return SPEAKABLE.includes(language);
-  } catch (e) {
-    console.warn('[voices] language check failed, trying voice anyway:', e.message);
-    return true;
-  }
+  const read = await require('./language').readMessage(stripSpeechTags(text));
+  return !read || read.language !== 'other';
 }
 
 /* Previews are generated once per voice per process and held in memory. The

@@ -37,6 +37,7 @@ if (process.env.TWILIO_ACCOUNT_SID || process.env.META_WA_INBOUND === '1') {
 // simply not offered, and the relay 404s when neither key is set.
 const voiceCompare = require('./voice-compare');
 const voices = require('./voices'); // sponsor voice allow-list + previews
+const language = require('./language'); // the languages the sponsor speaks, and each person's
 const deletion = require('./deletion');
 const checkin = require('./checkin'); // "it has been a few days", gated on its own template
 const { deleteUserIdentity } = deletion;
@@ -967,8 +968,31 @@ function persistExchange(userId, updatedHistory, newTurns) {
    a voice note). Add a helpline to one, add it to the other.
 
    Errs toward stripping throughout. */
-const CRISIS_RESOURCE =
-  /\b(?:988|741741|1[\s.-]?800[\s.-]?662[\s.-]?4357|crisis (?:text )?line|crisis lifeline|samhsa|helpline)\b/i;
+const CRISIS_RESOURCE = new RegExp([
+  /* The US lines the prompt hands out, and "helpline" / "crisis line". */
+  String.raw`\b(?:988|741741|1[\s.-]?800[\s.-]?662[\s.-]?4357|crisis (?:text )?line|crisis lifeline|samhsa|helpline)\b`,
+  /* Every other language the sponsor speaks (language.js), because outside
+     the US the prompt sends people to their own national line and the reply is
+     in their language. Names of lines and the words for one, plus the numbers
+     of the best-known national lines. Deliberately broad: a false match only
+     costs an emoji or a voice note, a miss costs somebody a number they can
+     tap. No \b after a word ending in a non-English letter, because \b does
+     not see those as letters. */
+  String.raw`\b(?:samaritans|116[\s.-]?123|lifeline|13[\s.-]?11[\s.-]?14|kids help phone|talk suicide)\b`,
+  String.raw`\bl[ií]nea (?:de la vida|de crisis|de ayuda|de prevenci[oó]n)|prevenci[oó]n del suicidio|tel[eé]fono de la esperanza|\b024\b|\b800[\s.-]?911[\s.-]?2000\b`,
+  String.raw`\bcvv\b|centro de valoriza[cç][aã]o da vida|\b188\b|sos voz amiga|\blinha de (?:apoio|crise|preven[cç][aã]o)|preven[cç][aã]o do suic[ií]dio`,
+  String.raw`\b3114\b|sos amiti[eé]|ligne d'[eé]coute|pr[eé]vention du suicide|num[eé]ro national de pr[eé]vention`,
+  String.raw`telefonseelsorge|\b0800[\s.-]?111[\s.-]?0[\s.-]?11[12]\b|krisentelefon|krisendienst|suizidpr[aä]vention`,
+  String.raw`telefono amico|prevenzione del suicidio|linea di ascolto`,
+  String.raw`телефон доверия|горячая линия|кризисн|профилактик[аи] суицид`,
+  String.raw`intihar [öo]nleme|kriz hatt[ıi]|yard[ıi]m hatt[ıi]|psikolojik destek hatt[ıi]`,
+  String.raw`خط المساعدة|خط الأزمات|الخط الساخن|منع الانتحار|خط الدعم النفسي`,
+  String.raw`हेल्पलाइन|tele[\s-]?manas|\b14416\b|\bicall\b|आत्महत्या रोकथाम|হেল্পলাইন|কান পেতে রই|kaan pete roi|আত্মহত্যা প্রতিরোধ`,
+  String.raw`热线|熱線|心理援助|危机干预|危機干預|自杀预防|自殺預防|生命线|生命線|\b12356\b|\b400[\s-]?161[\s-]?9995\b`,
+  String.raw`いのちの電話|よりそいホットライン|こころの健康相談|ホットライン|相談窓口|\b0120[\s-]?783[\s-]?556\b|\b0570[\s-]?064[\s-]?556\b`,
+  String.raw`자살\s?예방|상담전화|생명의\s?전화|정신건강위기상담|\b109\b|\b1577[\s-]?0199\b|\b1393\b`,
+  String.raw`layanan konseling|hotline kesehatan jiwa|pencegahan bunuh diri|\b119 ext|đường dây nóng|tổng đài tư vấn|phòng chống tự tử|tư vấn tâm lý`,
+].join('|'), 'i');
 const ANY_EMOJI =
   /\p{Extended_Pictographic}(?:\uFE0F|\uFE0E)?\p{Emoji_Modifier}?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F)?\p{Emoji_Modifier}?)*/gu;
 
@@ -2317,7 +2341,8 @@ app.post('/api/sponsor-settings/deactivate', async (req, res) => {
       const sent = await notices.sendNotice({
         user: Object.assign({ user_id: userId }, user),
         kind: paying ? 'leaving_paid' : 'leaving_beta',
-        params: { when, link, linkSuffix: token ? `${token}#danger` : null },
+        // `at` lets notices.js write the date in their language; `when` is the English.
+        params: { when, at: queued.scheduled_for, link, linkSuffix: token ? `${token}#danger` : null },
         key: String(queued.scheduled_for), db, whatsapp, source: 'settings-link',
       });
       console.log(`[notice] leaving (${paying ? 'paid' : 'beta'}) → ${userId}: ${sent.sent ? sent.via : sent.reason}`);
@@ -2613,6 +2638,11 @@ app.post('/register', async (req, res) => {
       sponsorName: b.sponsorName || '',
       sponsorStyle: b.sponsorStyle || '',
       sponsorVoice: b.sponsorVoice || '',
+      /* The language the website was in when they signed up. A starting point
+         for the automatic messages until they write to their sponsor, which
+         then keeps it current (language.js). Empty values are not saved, so an
+         English sign-up never overwrites a language already learned. */
+      language: language.SUPPORTED.includes(b.language) && b.language !== 'en' ? b.language : '',
       ...(programChanged ? { programChangedFrom: prevProfile.program } : {}),
     }).catch((e) => console.error('[DB] saveProfile failed:', e.message));
 
@@ -2672,6 +2702,7 @@ app.post('/register', async (req, res) => {
         sponsorName: b.sponsorName || '',
         sponsorStyle: b.sponsorStyle || '',
         sponsorVoice: b.sponsorVoice || '',
+        language: language.SUPPORTED.includes(b.language) && b.language !== 'en' ? b.language : '',
         /* The flag has to be on THIS profile, not just the web one. WhatsApp
            reads the wa- key, so a change flagged only on the reg- side is
            invisible to the sponsor they actually talk to. */

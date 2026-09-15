@@ -26,6 +26,8 @@
 ──────────────────────────────────────────────────────────────────────────── */
 
 const db = require('./db');
+const language = require('./language');
+const copy = require('./notice-copy');   // the check-in in six other languages
 
 const ON = String(process.env.QUIET_CHECKIN || '').toLowerCase() === 'on';
 const QUIET_DAYS = Math.max(1, parseInt(process.env.QUIET_CHECKIN_DAYS, 10) || 5);
@@ -50,7 +52,8 @@ function firstName(name) {
 
 /* Kept in one place because it is both the message and the thing Meta approves.
    If this wording changes the template has to be resubmitted, not edited here. */
-function checkinText(name) {
+function checkinText(name, lang = 'en') {
+  if (lang !== 'en' && copy.CHECKIN[lang]) return copy.checkinBody(lang, firstName(name));
   const hi = firstName(name);
   return hi
     ? `Hi ${hi}, it has been a few days. No agenda, I just wanted to see how you are.`
@@ -93,7 +96,9 @@ async function runCheckinSweep({ limit = 3, whatsapp = null, metacloud, now = ne
     }
 
     try {
-      await sender.sendTemplate(phone, TEMPLATE, [firstName(p.name) || 'there']);
+      const lang = language.noticeLanguage(await language.languageOf(db, p.user_id));
+      await language.sendTemplateIn(sender, phone, TEMPLATE, lang,
+        (l) => [firstName(p.name) || copy.SPONSOR_NAME_FALLBACK[l]]);
       /* Written AFTER the send. A row written first would silence this person
          for thirty days on a message that never left. */
       await db.recordEvent(p.user_id, 'quiet_checkin', { quietDays: QUIET_DAYS }, 'checkin')

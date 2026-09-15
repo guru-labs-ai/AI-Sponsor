@@ -195,7 +195,8 @@ const deservesReaction = new Function(`${body}; return deservesReaction;`)();
   check('their messages are answered as one',
     wa.includes("texts.join("), true);
   check('a voice note anywhere in the burst still gets voice back',
-    wa.includes('anyAudio: now.anyAudio') && wa.includes('const requestedVoice = cameByVoice || askedForVoice'), true);
+    // "|| askedForVoice" grew a text-only guard on Sep 7 ("just text me"); voice in still means voice back.
+    wa.includes('anyAudio: now.anyAudio') && wa.includes('const requestedVoice = (cameByVoice || askedForVoice)'), true);
   /* One person typing continuously must still get an answer. */
   check('there is a hard cap on how long it waits',
     wa.includes('SETTLE_MAX_MS'), true);

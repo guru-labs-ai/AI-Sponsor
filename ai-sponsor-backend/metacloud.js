@@ -313,7 +313,7 @@ async function downloadMedia(mediaId) {
 
    Twilio had no template support on our account at all, so this was flatly
    impossible until the number moved. */
-async function sendTemplate(toPhone, name, bodyParams = [], urlParam = null) {
+async function sendTemplate(toPhone, name, bodyParams = [], urlParam = null, languageCode = 'en_US') {
   if (!enabled) throw new Error('META_WA_TOKEN / META_WA_PHONE_NUMBER_ID not configured');
   if (!name) throw new Error('no template name');
 
@@ -341,7 +341,8 @@ async function sendTemplate(toPhone, name, bodyParams = [], urlParam = null) {
       recipient_type: 'individual',
       to: toE164(toPhone),
       type: 'template',
-      template: { name, language: { code: 'en_US' }, components },
+      // The translation to use. language.sendTemplateIn picks it and falls back to English.
+      template: { name, language: { code: languageCode || 'en_US' }, components },
     }),
   });
   return { messageId: (res.messages && res.messages[0] && res.messages[0].id) || null };
