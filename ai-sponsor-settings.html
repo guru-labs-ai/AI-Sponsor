@@ -3,6 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Site language, in "wait" mode: this page shows itself in the language the
+     person's sponsor talks to them in, which it only learns once their profile
+     loads (see load()). A ?lang= on the link still wins, which is how the page
+     reopens straight after they change it below. See i18n.js. -->
+<script src="i18n.js" data-i18n-wait data-i18n-extra="settings"></script>
 <title>AI Sponsor — Your settings</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="favicon.png">
@@ -324,6 +329,22 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
       <button class="btn" id="btn-save" onclick="saveSponsor()">Save changes</button>
     </div>
 
+    <!-- Bilal, Sep 16: there was nowhere here to change language. Saved as if
+         they had asked their sponsor for it, so replies, automatic messages
+         and this page all follow. -->
+    <div class="card plain">
+      <h2>Language</h2>
+      <p class="note">The language your sponsor talks to you in. Your automatic messages and this page follow it too.</p>
+      <div class="msg err" id="errLang"></div>
+      <div class="msg ok" id="okLang"></div>
+      <div class="fg">
+        <label for="f-lang">Language</label>
+        <!-- Each language in its own name, never translated. -->
+        <select id="f-lang" data-no-i18n></select>
+      </div>
+      <button class="btn" id="btn-lang" onclick="saveLanguage()">Save language</button>
+    </div>
+
     </div>
 
     <!-- Support -->
@@ -346,12 +367,14 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
       <div class="fg">
         <label for="f-help-subject">Subject</label>
         <select id="f-help-subject">
+          <!-- Values carried explicitly, so a translated label never changes
+               what reaches the team. -->
           <option value="">Choose a topic…</option>
-          <option>Account help</option>
-          <option>Billing / subscription</option>
-          <option>Cancel my subscription</option>
-          <option>Technical issue</option>
-          <option>Something else</option>
+          <option value="Account help">Account help</option>
+          <option value="Billing / subscription">Billing / subscription</option>
+          <option value="Cancel my subscription">Cancel my subscription</option>
+          <option value="Technical issue">Technical issue</option>
+          <option value="Something else">Something else</option>
         </select>
       </div>
       <div class="fg">
@@ -457,6 +480,20 @@ const TOKEN = new URLSearchParams(location.search).get('t') || '';
 let VOICES = [], selectedVoice = '', voiceAudio = null;
 
 const $ = (id) => document.getElementById(id);
+
+/* Dates in the language the page is showing. English keeps what it always did
+   (the browser's own format), so nothing changes for English readers. */
+const LOCALE = () => ({ es: 'es-ES', fr: 'fr-FR', de: 'de-DE' })[window.AIS_LANG] || undefined;
+
+/* Every language the sponsor speaks, each in its own name. The page itself is
+   only translated into the first four; the rest still change how the sponsor
+   and the automatic messages talk to them. */
+const LANGUAGE_NAMES = {
+  en: 'English', es: 'Español', fr: 'Français', de: 'Deutsch', it: 'Italiano', pt: 'Português',
+  ru: 'Русский', tr: 'Türkçe', ar: 'العربية', hi: 'हिन्दी', bn: 'বাংলা', zh: '中文', ja: '日本語',
+  ko: '한국어', id: 'Bahasa Indonesia', vi: 'Tiếng Việt'
+};
+const PAGE_LANGUAGES = ['en', 'es', 'fr', 'de'];
 function show(id){ ['s-load','s-bad','s-dash'].forEach(s => $(s).style.display = s===id ? 'block' : 'none'); }
 
 /* Nav. The pane is in the URL hash so a reload, or a link someone sent
@@ -496,6 +533,10 @@ async function load(){
       return fail(b.error || 'This link has expired. Ask your sponsor for a new one.');
     }
     const data = await res.json();
+    /* First, before anything is written to the page, so dates and anything
+       built below come out in their language. */
+    if (window.AIS_USE_LANG && data.language) window.AIS_USE_LANG(data.language);
+    renderLanguage(data.language || 'en', data.languages);
     VOICES = data.voices || [];
     selectedVoice = data.sponsorVoice || '';
     $('f-name').value = data.sponsorName || '';
@@ -532,7 +573,7 @@ async function load(){
     if (st.joined) {
       const d = new Date(st.joined + 'T00:00:00');
       $('sinceLine').textContent = 'Together since ' +
-        d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) + '.';
+        d.toLocaleDateString(LOCALE(), { day: 'numeric', month: 'long', year: 'numeric' }) + '.';
     }
 
     renderWeek(data.week, data.weeks, data.weekPending);
@@ -564,9 +605,11 @@ function weekLabel(startISO, endISO){
   const a = new Date(startISO + 'T00:00:00Z'), b = new Date(endISO + 'T00:00:00Z');
   const o = { day:'numeric', month:'long', timeZone:'UTC' };
   const sameMonth = a.getUTCMonth() === b.getUTCMonth();
-  return (sameMonth ? a.toLocaleDateString(undefined,{day:'numeric',timeZone:'UTC'})
-                    : a.toLocaleDateString(undefined,o))
-    + ' to ' + b.toLocaleDateString(undefined,o);
+  const to = ({ es: ' al ', fr: ' au ', de: ' bis ' })[window.AIS_LANG] || ' to ';
+  // German writes the first day of "7. bis 13. September" with its full stop too.
+  return (sameMonth ? a.toLocaleDateString(LOCALE(),{day:'numeric',timeZone:'UTC'}) + (window.AIS_LANG === 'de' ? '.' : '')
+                    : a.toLocaleDateString(LOCALE(),o))
+    + to + b.toLocaleDateString(LOCALE(),o);
 }
 
 function dayStrip(days){
@@ -606,9 +649,11 @@ function renderWeek(week, weeks, pending){
 
   const st = week.stats || {};
   const tone = ['steady','hard','quiet'].includes(week.tone) ? week.tone : 'steady';
-  let html = '<div class="wk-note ' + tone + '">' + escHTML(week.note) + '</div>';
+  /* data-no-i18n on everything the sponsor wrote: it is already in their
+     language, and it is theirs, not page copy to look up. */
+  let html = '<div class="wk-note ' + tone + '" data-no-i18n>' + escHTML(week.note) + '</div>';
 
-  if(week.milestone) html += '<div class="wk-mile"><span>🌟</span><span>' + escHTML(week.milestone) + '</span></div>';
+  if(week.milestone) html += '<div class="wk-mile"><span>🌟</span><span data-no-i18n>' + escHTML(week.milestone) + '</span></div>';
 
   if(st.days && st.days.length){
     html += section('How the week went',
@@ -622,18 +667,18 @@ function renderWeek(week, weeks, pending){
 
   if(week.themes && week.themes.length){
     html += section('What the week kept coming back to',
-      '<div class="wk-chips">' + week.themes.map(t => '<span class="wk-chip static">' + escHTML(t) + '</span>').join('') + '</div>');
+      '<div class="wk-chips" data-no-i18n>' + week.themes.map(t => '<span class="wk-chip static">' + escHTML(t) + '</span>').join('') + '</div>');
   }
-  if(week.carried) html += section('What you were carrying', '<div class="wk-carried">' + escHTML(week.carried) + '</div>');
+  if(week.carried) html += section('What you were carrying', '<div class="wk-carried" data-no-i18n>' + escHTML(week.carried) + '</div>');
   if(week.helped && week.helped.length){
-    html += section('What helped', '<ul class="wk-list">' + week.helped.map(h => '<li>' + escHTML(h) + '</li>').join('') + '</ul>');
+    html += section('What helped', '<ul class="wk-list" data-no-i18n>' + week.helped.map(h => '<li>' + escHTML(h) + '</li>').join('') + '</ul>');
   }
   if(week.commitments && week.commitments.length){
     html += section('What you said you would do',
-      '<ul class="wk-list said">' + week.commitments.map(c => '<li>' + escHTML(c) + '</li>').join('') + '</ul>');
+      '<ul class="wk-list said" data-no-i18n>' + week.commitments.map(c => '<li>' + escHTML(c) + '</li>').join('') + '</ul>');
   }
   if(week.nextWeek){
-    html += '<div class="wk-next"><div class="lbl">One thing for this week</div><div class="txt">' +
+    html += '<div class="wk-next"><div class="lbl">One thing for this week</div><div class="txt" data-no-i18n>' +
       escHTML(week.nextWeek) + '</div></div>';
   }
 
@@ -722,7 +767,9 @@ function selVoice(el, val){
   document.querySelectorAll('.voice-card').forEach(c => c.classList.remove('loading','playing'));
   el.classList.add('loading');
 
-  const a = new Audio(BACKEND_URL + '/api/voice/preview?voice=' + encodeURIComponent(val));
+  // In the language this page is showing, the same as on the sign-up page.
+  const a = new Audio(BACKEND_URL + '/api/voice/preview?voice=' + encodeURIComponent(val)
+    + '&lang=' + encodeURIComponent(window.AIS_LANG || 'en'));
   voiceAudio = a;
   const clear = () => { el.classList.remove('loading','playing'); if(voiceAudio===a) voiceAudio=null; };
   a.onplaying = () => { if(voiceAudio===a){ el.classList.remove('loading'); el.classList.add('playing'); } };
@@ -749,6 +796,48 @@ async function saveSponsor(){
       : 'Saved. They’ll go by ' + (r.sponsorName || 'that') + ' from now on.');
   }catch(e){ flash('errSponsor', e.message); }
   btn.disabled = false; btn.textContent = 'Save changes';
+}
+
+/* The language card. Their current language is always an option, even one
+   the page is not translated into, so the control never shows something they
+   did not choose. */
+function renderLanguage(current, available){
+  const sel = $('f-lang');
+  const codes = (available && available.length ? available : Object.keys(LANGUAGE_NAMES))
+    .filter(c => LANGUAGE_NAMES[c]);
+  const order = PAGE_LANGUAGES.filter(c => codes.includes(c)).concat(codes.filter(c => !PAGE_LANGUAGES.includes(c)));
+  sel.innerHTML = '';
+  order.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c; o.textContent = LANGUAGE_NAMES[c];
+    if (c === current) o.selected = true;
+    sel.appendChild(o);
+  });
+  sel.dataset.current = current;
+}
+
+async function saveLanguage(){
+  const btn = $('btn-lang'), want = $('f-lang').value;
+  clearFlash('errLang','okLang');
+  if (want === $('f-lang').dataset.current) return flash('okLang', 'That is already your language.');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try{
+    await api('/api/sponsor-settings/language', { language: want });
+    /* Reopen the page in the new language, on this same pane. A language the
+       page is not translated into reopens in English, with no ?lang= left
+       over from before. */
+    const u = new URL(location.href);
+    if (PAGE_LANGUAGES.includes(want)) u.searchParams.set('lang', want);
+    else u.searchParams.delete('lang');
+    u.hash = 'sponsor';
+    const withoutHash = (s) => s.split('#')[0];
+    if (withoutHash(u.toString()) !== withoutHash(location.href)) { location.href = u.toString(); return; }
+    /* Nothing about the page changes (a language it is not translated into,
+       from English), so say so here instead of reloading into the same page. */
+    $('f-lang').dataset.current = want;
+    flash('okLang', 'Saved. Your sponsor will talk to you in ' + LANGUAGE_NAMES[want] + ' from now on.');
+  }catch(e){ flash('errLang', e.message); }
+  btn.disabled = false; btn.textContent = 'Save language';
 }
 
 async function sendHelp(){
@@ -784,7 +873,7 @@ function money(amount, currency){
 }
 function planDay(unix){
   if (!unix) return null;
-  return new Date(unix * 1000).toLocaleDateString('en-GB',
+  return new Date(unix * 1000).toLocaleDateString(LOCALE() || 'en-GB',
     { day: 'numeric', month: 'long', timeZone: 'UTC' });
 }
 function renderPlan(billing){
@@ -867,7 +956,7 @@ function renderKill(d){
   if(!pending) return;
   $('confirmKill').classList.remove('show');
   const when = d.scheduled_for ? new Date(d.scheduled_for) : null;
-  const day = when ? when.toLocaleDateString(undefined, { day:'numeric', month:'long' }) : null;
+  const day = when ? when.toLocaleDateString(LOCALE(), { day:'numeric', month:'long' }) : null;
   $('killPendingText').textContent = (KILL_AUTOMATIC && day)
     ? 'Your data is scheduled to be deleted on ' + day + '. Until then nothing has been removed and your sponsor still works. You can stop this any time before that day.'
     : 'Your deletion is requested and someone on the team is handling it. Nothing has been removed yet and your sponsor still works. You can stop this any time before it happens.';
@@ -881,7 +970,7 @@ async function doKill(){
     KILL_AUTOMATIC = !!r.automatic;
     renderKill({ status:'pending', scheduled_for: r.scheduledFor });
     const day = r.scheduledFor
-      ? new Date(r.scheduledFor).toLocaleDateString(undefined, { day:'numeric', month:'long' })
+      ? new Date(r.scheduledFor).toLocaleDateString(LOCALE(), { day:'numeric', month:'long' })
       : null;
     flash('okKill', (KILL_AUTOMATIC && day)
       ? 'Done. Everything will be deleted on ' + day + ', and we will send you one message to confirm. Until then nothing has gone and you can still change your mind.'

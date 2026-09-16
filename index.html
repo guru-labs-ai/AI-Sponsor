@@ -1497,6 +1497,9 @@
 
   function open(path, label) {
     ensureCss();
+    /* The document's own translation, fetched the first time a box opens on a
+       translated page. It translates the box whenever it arrives. */
+    if (window.AIS_I18N_LOAD) window.AIS_I18N_LOAD(path === '/terms' ? 'terms' : 'privacy');
     lastFocus = document.activeElement;
     title.textContent = label;
     sub.textContent = '';
@@ -1544,11 +1547,13 @@
   }
 
   document.addEventListener('click', function (e) {
-    var a = e.target.closest ? e.target.closest('a[href="/privacy"], a[href="/terms"]') : null;
+    /* Prefix match: on a translated page i18n.js adds ?lang= to these links,
+       and an exact match would stop the box opening for those readers. */
+    var a = e.target.closest ? e.target.closest('a[href^="/privacy"], a[href^="/terms"]') : null;
     if (!a) return;
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
     e.preventDefault();
-    var path = a.getAttribute('href');
+    var path = a.getAttribute('href').split('#')[0].split('?')[0];
     open(path, path === '/terms' ? 'Terms of Service' : 'Privacy Policy');
   });
 

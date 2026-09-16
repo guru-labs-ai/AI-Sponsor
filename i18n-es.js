@@ -1,7 +1,7 @@
 /* Español. Tuteo: hablamos de tú, como lo haría un padrino.
    Keys are the exact English on the page. See i18n.js. */
 window.AIS_I18N = window.AIS_I18N || {};
-window.AIS_I18N.es = {
+window.AIS_I18N.es = Object.assign(window.AIS_I18N.es || {}, {
 
   /* ── Shared ── */
 
@@ -448,4 +448,4 @@ window.AIS_I18N.es = {
   "Hi {sponsor}": "Hola {sponsor}",
   "Hi": "Hola",
   ", it's {name}": ", soy {name}"
-};
+});

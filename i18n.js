@@ -3,18 +3,31 @@
    so the pages stay readable and editable in English and a missing
    translation degrades to English instead of to a blank or a raw key.
 
-   Why replacement rather than data-i18n keys on every element: the two pages
-   this runs on are ~250KB of hand-written HTML with text set from JavaScript
-   in dozens of places (step labels, phone errors, plan lines, the success
-   screen). Keying every one of them by hand would mean touching all of that
-   code, and every future edit would have to remember to do it again. Reading
-   the text that is actually on the page catches all of it, including the
-   parts written after load.
+   Why replacement rather than data-i18n keys on every element: the pages this
+   runs on are hundreds of KB of hand-written HTML with text set from
+   JavaScript in dozens of places (step labels, phone errors, plan lines, the
+   success screen). Keying every one of them by hand would mean touching all of
+   that code, and every future edit would have to remember to do it again.
+   Reading the text that is actually on the page catches all of it, including
+   the parts written after load.
 
-   Load it from <head>. For a non-English visitor the page is hidden until the
-   dictionary is in and applied, so nobody reads a line in English and watches
-   it change under them. The hide is capped at 1.2s and released on any error,
-   so a missing dictionary file costs a moment, never the page.
+   Two kinds of dictionary:
+   - AIS_I18N[lang]: short strings, matched per text node (buttons, labels,
+     messages the page writes).
+   - AIS_I18N_HTML[lang]: whole paragraphs, matched on the element's HTML and
+     replaced with translated HTML. For long documents (Privacy, Terms, the
+     blog), where a sentence carries links and bold text and the word order
+     around them changes from language to language.
+
+   How a page uses it, from <head>:
+     <script src="/i18n.js"></script>
+     <script src="/i18n.js" data-i18n-extra="privacy"></script>  also loads i18n-privacy-xx.js
+     <script src="/i18n.js" data-i18n-wait></script>  the page decides, see AIS_USE_LANG
+
+   For a non-English visitor the page is hidden until the dictionary is in and
+   applied, so nobody reads a line in English and watches it change under
+   them. The hide is capped at 1.2s and released on any error, so a missing
+   dictionary file costs a moment, never the page.
 ──────────────────────────────────────────────────────────────────────────── */
 (function () {
   'use strict';
@@ -24,32 +37,52 @@
   var STORE = 'ais_lang';
   var REVEAL_MS = 1200;
 
-  /* English unless the person asked for something else: ?lang= on the link
-     they came from, or what they picked on the switcher last time.
-     Deliberately NOT the browser's language. The ads run in English, and a
-     visitor who clicked an English ad should land on the English page even
-     if their phone happens to be set to Spanish (Mariam, Sep 16). */
-  function chosen() {
-    var q = '';
-    try { q = (new URLSearchParams(location.search).get('lang') || '').toLowerCase().slice(0, 2); } catch (e) {}
-    if (q && SUPPORTED.indexOf(q) > -1) { remember(q); return q; }
-    try {
-      var saved = localStorage.getItem(STORE);
-      if (saved && SUPPORTED.indexOf(saved) > -1) return saved;
-    } catch (e) {}
-    return 'en';
-  }
+  var SCRIPT = document.currentScript;
+  /* Relative to this file, so it works from / and from a subfolder alike. */
+  var HERE = (SCRIPT && SCRIPT.src) || 'i18n.js';
+  var EXTRAS = ((SCRIPT && SCRIPT.getAttribute('data-i18n-extra')) || '')
+    .split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+  /* The settings page knows the person. It shows their own language, which it
+     only learns once their profile loads, so it tells us (AIS_USE_LANG) rather
+     than us guessing from this device. */
+  var WAIT = !!(SCRIPT && SCRIPT.hasAttribute('data-i18n-wait'));
 
   function remember(code) {
     try { localStorage.setItem(STORE, code); } catch (e) {}
   }
 
-  var LANG = chosen();
+  /* English unless the person asked for something else: ?lang= on the link
+     they came from, or what they picked on the switcher last time.
+     Deliberately NOT the browser's language. The ads run in English, and a
+     visitor who clicked an English ad should land on the English page even
+     if their phone happens to be set to Spanish (Mariam, Sep 16). */
+  function fromLink() {
+    var q = '';
+    try { q = (new URLSearchParams(location.search).get('lang') || '').toLowerCase().slice(0, 2); } catch (e) {}
+    if (q && SUPPORTED.indexOf(q) > -1) { remember(q); return q; }
+    return '';
+  }
+  function fromDevice() {
+    try {
+      var saved = localStorage.getItem(STORE);
+      if (saved && SUPPORTED.indexOf(saved) > -1) return saved;
+    } catch (e) {}
+    return '';
+  }
+
+  var LINK_LANG = fromLink();
+  var LANG = LINK_LANG || (WAIT ? '' : fromDevice()) || 'en';
   window.AIS_LANG = LANG;
-  try {
-    document.documentElement.lang = LANG;
-    if (LANG !== 'en') document.documentElement.className += ' ais-i18n';
-  } catch (e) {}
+
+  function markDocument(code) {
+    try {
+      document.documentElement.lang = code;
+      if (code !== 'en' && !/(^|\s)ais-i18n(\s|$)/.test(document.documentElement.className)) {
+        document.documentElement.className += ' ais-i18n';
+      }
+    } catch (e) {}
+  }
+  markDocument(LANG);
 
   /* ── Strings built from numbers or names ─────────────────────────────────
      A dictionary can only hold whole strings, and these are assembled at
@@ -92,13 +125,24 @@
       es: function (m) { return m[1] + ' — Encuentra reuniones cerca de ti'; },
       fr: function (m) { return m[1] + ' — Trouver des réunions près de chez vous'; },
       de: function (m) { return m[1] + ' — Meetings in deiner Nähe finden'; } }
-  ];
+  ].concat(window.AIS_I18N_PATTERNS || []);
 
   var dict = {};
+  var htmlDict = {};
   var regions = null;
 
   function norm(s) {
     return s.replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  /* Dictionary files add to what is there rather than replacing it, because the
+     main file and a page's extra one arrive in either order. */
+  function refreshDicts() {
+    dict = (window.AIS_I18N && window.AIS_I18N[LANG]) || {};
+    htmlDict = (window.AIS_I18N_HTML && window.AIS_I18N_HTML[LANG]) || {};
+    PATTERNS = PATTERNS.concat((window.AIS_I18N_PATTERNS || []).filter(function (p) {
+      return PATTERNS.indexOf(p) < 0;
+    }));
   }
 
   /* The 17 countries this site spells differently from the browser's own
@@ -156,22 +200,16 @@
     return r || null;
   }
 
-  /* Public helper for the few strings the page has to build itself: the web
-     chat's opening message and the prefilled WhatsApp hello. Those are looked
-     up exactly, spacing and line breaks and all, because the spacing is part
-     of the sentence. Anything else falls back to the same matching the page
-     text gets. */
+  /* Public helper for the few strings a page has to build itself: the web
+     chat's opening message, the prefilled WhatsApp hello, an alert. Those are
+     looked up exactly, spacing and line breaks and all, because the spacing is
+     part of the sentence. Anything else falls back to the same matching the
+     page text gets. */
   window.AIS_T = function (text) {
     if (LANG === 'en') return text;
     if (typeof dict[text] === 'string') return dict[text];
     return translate(text) || text;
   };
-
-  if (LANG === 'en') {
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountSwitchers);
-    else mountSwitchers();
-    return;
-  }
 
   /* ── Applying it ─────────────────────────────────────────────────────── */
   var SKIP = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, CODE: 1, PRE: 1, SVG: 1 };
@@ -179,6 +217,7 @@
      placeholder is copy, so the element itself still gets visited. */
   var TEXT_SKIP = { TEXTAREA: 1 };
   var ATTRS = ['placeholder', 'title', 'aria-label', 'alt'];
+  var BLOCKS = 'h1,h2,h3,h4,h5,p,li,td,th,dt,dd,figcaption,blockquote,summary';
 
   function skipped(node) {
     for (var el = node; el; el = el.parentNode) {
@@ -214,11 +253,32 @@
     }
   }
 
+  /* Whole paragraphs first, so a translated paragraph is never then picked
+     apart by the per-string pass. The HTML is our own, from our own
+     dictionary files, never anything a visitor typed. */
+  function doBlocks(root) {
+    if (!root.querySelectorAll) return;
+    var any = false;
+    for (var k in htmlDict) { if (Object.prototype.hasOwnProperty.call(htmlDict, k)) { any = true; break; } }
+    if (!any) return;
+    var list = [];
+    if (root.matches && root.matches(BLOCKS)) list.push(root);
+    var found = root.querySelectorAll(BLOCKS);
+    for (var i = 0; i < found.length; i++) list.push(found[i]);
+    for (var j = 0; j < list.length; j++) {
+      var el = list[j];
+      if (!el.isConnected || skipped(el)) continue;
+      var out = htmlDict[norm(el.innerHTML)];
+      if (typeof out === 'string') el.innerHTML = out;
+    }
+  }
+
   function walk(root) {
     if (!root) return;
     if (root.nodeType === 3) { if (!skipped(root.parentNode)) doText(root); return; }
     if (root.nodeType !== 1) return;
     if (skipped(root)) return;
+    doBlocks(root);
     doAttrs(root);
     /* FILTER_REJECT drops the whole branch, which is how <script>, the chat
        transcript and anything marked data-no-i18n stay untouched. */
@@ -239,8 +299,8 @@
     }
   }
 
-  /* Carry the choice across pages, so the sign-up page opens in the language
-     the homepage was being read in even before localStorage is consulted. */
+  /* Carry the choice across pages, so the next page opens in the language this
+     one was being read in even before localStorage is consulted. */
   function stampLinks() {
     var links;
     try { links = document.querySelectorAll('a[href]'); } catch (e) { return; }
@@ -258,6 +318,7 @@
   }
 
   var observer = null;
+  var started = false;
 
   function applyAll() {
     walk(document.body || document.documentElement);
@@ -270,7 +331,7 @@
   }
 
   function observe() {
-    if (!window.MutationObserver) return;
+    if (!window.MutationObserver || observer) return;
     observer = new MutationObserver(function (records) {
       for (var i = 0; i < records.length; i++) {
         var r = records[i];
@@ -346,12 +407,12 @@
       sel.appendChild(o);
     }
     sel.addEventListener('change', function () {
-      var code = sel.value;
-      if (SUPPORTED.indexOf(code) < 0) return;
-      remember(code);
+      var chosenCode = sel.value;
+      if (SUPPORTED.indexOf(chosenCode) < 0) return;
+      remember(chosenCode);
       var u;
       try { u = new URL(location.href); } catch (e) { location.reload(); return; }
-      u.searchParams.set('lang', code);
+      u.searchParams.set('lang', chosenCode);
       location.href = u.toString();
     });
 
@@ -402,8 +463,38 @@
     (document.head || document.documentElement).appendChild(s);
   }
 
+  /* ── Loading dictionaries ────────────────────────────────────────────── */
+  function dictFile(name, code) {
+    return HERE.replace(/i18n\.js(\?.*)?$/, 'i18n-' + (name ? name + '-' : '') + code + '.js');
+  }
+
+  function loadScript(src) {
+    return new Promise(function (resolve) {
+      var tag = document.createElement('script');
+      tag.src = src;
+      tag.onload = resolve;
+      tag.onerror = resolve; // a missing file means English for those strings, never a stuck page
+      (document.head || document.documentElement).appendChild(tag);
+    });
+  }
+
+  var extraLoads = {};
+
+  /* For a page that needs more strings later, such as the homepage opening the
+     Privacy Policy in a box. Resolves once they are in and applied. */
+  window.AIS_I18N_LOAD = function (name) {
+    if (LANG === 'en' || !name) return Promise.resolve();
+    if (!extraLoads[name]) {
+      extraLoads[name] = loadScript(dictFile(name, LANG)).then(function () {
+        refreshDicts();
+        if (started) applyAll();
+      });
+    }
+    return extraLoads[name];
+  };
+
   /* ── Boot ────────────────────────────────────────────────────────────── */
-  var revealed = false;
+  var revealed = true;
   function reveal() {
     if (revealed) return;
     revealed = true;
@@ -411,7 +502,8 @@
     el.className = (el.className || '').replace(/(^|\s)ais-i18n-pending(\s|$)/, ' ').trim();
   }
 
-  (function hide() {
+  function hide() {
+    revealed = false;
     var el = document.documentElement;
     el.className = (el.className ? el.className + ' ' : '') + 'ais-i18n-pending';
     var s = document.createElement('style');
@@ -419,25 +511,47 @@
     s.textContent = '.ais-i18n-pending body{visibility:hidden}';
     (document.head || el).appendChild(s);
     setTimeout(reveal, REVEAL_MS);
-  })();
-
-  function start() {
-    dict = (window.AIS_I18N && window.AIS_I18N[LANG]) || {};
-    var run = function () {
-      observe();
-      applyAll();
-      mountSwitchers();
-      reveal();
-    };
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
-    else run();
   }
 
-  var tag = document.createElement('script');
-  /* Relative to this file, so it works from / and from a subfolder alike. */
-  var here = (document.currentScript && document.currentScript.src) || 'i18n.js';
-  tag.src = here.replace(/i18n\.js(\?.*)?$/, 'i18n-' + LANG + '.js');
-  tag.onload = start;
-  tag.onerror = function () { start(); };
-  (document.head || document.documentElement).appendChild(tag);
+  function whenReady(fn) {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+    else fn();
+  }
+
+  var activated = false;
+  function activate(code, hideFirst) {
+    if (activated || code === 'en' || SUPPORTED.indexOf(code) < 0) return;
+    activated = true;
+    LANG = code;
+    window.AIS_LANG = code;
+    regions = null;
+    markDocument(code);
+    if (hideFirst) hide();
+    var names = [''].concat(EXTRAS);
+    Promise.all(names.map(function (n) {
+      extraLoads[n] = loadScript(dictFile(n, code));
+      return extraLoads[n];
+    })).then(function () {
+      refreshDicts();
+      whenReady(function () {
+        observe();
+        started = true;
+        applyAll();
+        mountSwitchers();
+        reveal();
+      });
+    });
+  }
+
+  /* The settings page calls this with the language their sponsor talks to
+     them in, once their profile is back. A ?lang= on the link still wins: that
+     is somebody who has just chosen. Translating in place is safe here because
+     the page is still the English it loaded as. */
+  window.AIS_USE_LANG = function (code) {
+    if (!WAIT || LINK_LANG) return;
+    activate(code, false);
+  };
+
+  if (LANG !== 'en') activate(LANG, true);
+  else whenReady(mountSwitchers);
 })();

@@ -1,7 +1,7 @@
 /* Français. Vouvoiement, comme le fait le service.
    Keys are the exact English on the page. See i18n.js. */
 window.AIS_I18N = window.AIS_I18N || {};
-window.AIS_I18N.fr = {
+window.AIS_I18N.fr = Object.assign(window.AIS_I18N.fr || {}, {
 
   /* ── Shared ── */
 
@@ -448,4 +448,4 @@ window.AIS_I18N.fr = {
   "Hi {sponsor}": "Bonjour {sponsor}",
   "Hi": "Bonjour",
   ", it's {name}": ", c'est {name}"
-};
+});

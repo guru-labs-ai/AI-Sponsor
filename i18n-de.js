@@ -1,7 +1,7 @@
 /* Deutsch. Du-Form, so wie ein Sponsor mit dir reden würde.
    Keys are the exact English on the page. See i18n.js. */
 window.AIS_I18N = window.AIS_I18N || {};
-window.AIS_I18N.de = {
+window.AIS_I18N.de = Object.assign(window.AIS_I18N.de || {}, {
 
   /* ── Shared ── */
 
@@ -448,4 +448,4 @@ window.AIS_I18N.de = {
   "Hi {sponsor}": "Hallo {sponsor}",
   "Hi": "Hallo",
   ", it's {name}": ", hier ist {name}"
-};
+});
