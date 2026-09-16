@@ -235,25 +235,44 @@ async function noteLanguage(db, userId, text, profile) {
   ]);
   const before = { language: known, languageAsked: asked };
   const next = decideLanguage(read, text, before);
-  const languageChanged = next.language !== before.language;
-  const askedChanged = JSON.stringify(before.languageAsked) !== JSON.stringify(next.languageAsked);
-
-  if (db && userId && typeof db.findAllIdentities === 'function' && (languageChanged || askedChanged)) {
-    db.findAllIdentities(userId)
-      .then((ids) => Promise.all(ids.map(async (id) => {
-        const change = {};
-        if (languageChanged) change.language = next.language;
-        if (next.languageAsked) change.languageAsked = next.languageAsked;
-        if (Object.keys(change).length) await db.saveProfile(id, change);
-        if (!next.languageAsked && before.languageAsked) await db.clearProfileField(id, 'languageAsked');
-      })))
-      .then(() => {
-        const note = next.languageAsked ? ` (asked for it, writing in ${next.languageAsked.from})` : '';
-        console.log(`[language] ${userId} now ${next.language}${note}`);
-      })
-      .catch((e) => console.warn('[language] could not save language:', e.message));
-  }
+  saveLanguageState(db, userId, before, next)
+    .catch((e) => console.warn('[language] could not save language:', e.message));
   return { read, replyLanguage: next.replyLanguage };
+}
+
+/* Writes whatever changed between two language states to every identity the
+   person holds. Returns once written, so a caller that has to report success
+   (the settings page) can wait on it; noteLanguage does not. */
+async function saveLanguageState(db, userId, before, next) {
+  const languageChanged = next.language !== before.language;
+  const askedChanged = JSON.stringify(before.languageAsked || null) !== JSON.stringify(next.languageAsked || null);
+  if (!db || !userId || typeof db.findAllIdentities !== 'function' || (!languageChanged && !askedChanged)) return false;
+  const ids = await db.findAllIdentities(userId);
+  await Promise.all(ids.map(async (id) => {
+    const change = {};
+    if (languageChanged) change.language = next.language;
+    if (next.languageAsked) change.languageAsked = next.languageAsked;
+    if (Object.keys(change).length) await db.saveProfile(id, change);
+    if (!next.languageAsked && before.languageAsked) await db.clearProfileField(id, 'languageAsked');
+  }));
+  const note = next.languageAsked ? ` (asked for it, writing in ${next.languageAsked.from})` : '';
+  console.log(`[language] ${userId} now ${next.language}${note}`);
+  return true;
+}
+
+/* Somebody picked a language on their settings page. Treated exactly as if
+   they had asked their sponsor for it in a message (Mariam, Sep 16: Bilal found
+   there was nowhere on the settings page to change it), so the replies, the
+   automatic messages and the page itself all follow, and their next message in
+   another language does not quietly undo the choice. */
+async function chooseLanguage(db, userId, want) {
+  if (!SUPPORTED.includes(want)) throw new Error('unsupported language');
+  const [known, asked] = await Promise.all([languageOf(db, userId), askedLanguageOf(db, userId, null)]);
+  const before = { language: known, languageAsked: asked };
+  const read = { language: 'unclear', asksForVoice: false, asksForTextOnly: false, asksForLanguage: want };
+  const next = decideLanguage(read, '', before);
+  await saveLanguageState(db, userId, before, next);
+  return next;
 }
 
 /* ─── Sending a template in their language ───────────────────────────────────
@@ -279,5 +298,5 @@ async function sendTemplateIn(mc, to, name, lang, paramsFor, urlParam = null) {
 module.exports = {
   SUPPORTED, NOTICE_LANGUAGES, META_TEMPLATE_CODE, LANGUAGE_NAMES,
   noticeLanguage, formatDay, readMessage, languageOf, rememberLanguage, sendTemplateIn,
-  decideLanguage, noteLanguage,
+  decideLanguage, noteLanguage, chooseLanguage,
 };

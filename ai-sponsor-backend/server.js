@@ -2039,6 +2039,11 @@ app.get('/api/sponsor-settings', async (req, res) => {
     sponsorVoice: profile.sponsorVoice || '',
     voices: voices.VOICES,
     defaultVoice: voices.DEFAULT_VOICE,
+    /* The language their sponsor talks to them in. The page shows itself in it
+       and offers to change it. Read across identities, like the automatic
+       messages do, so the page and the weekly note never disagree. */
+    language: await language.languageOf(db, userId),
+    languages: language.SUPPORTED,
     // Shown read-only, so somebody can see what their sponsor actually knows
     // about them rather than having to ask it.
     you: {
@@ -2459,6 +2464,34 @@ app.post('/api/sponsor-settings/undo-deactivate', async (req, res) => {
     console.error('[settings] undo-deactivate failed:', err.message);
     res.status(500).json({ error: 'Could not do that just now. Please try again.' });
   }
+});
+
+/* Changing language from the settings page. Bilal, Sep 16: there was no way to
+   do it there. Saved exactly as if they had asked their sponsor for it in a
+   message (language.chooseLanguage), so the replies, the automatic messages and
+   this page all follow. A separate endpoint from the one below on purpose: that
+   one answers a rename or a voice change with a voice note, and changing
+   language should not set one off. */
+app.post('/api/sponsor-settings/language', async (req, res) => {
+  const b = req.body || {};
+  const userId = await db.resolveSettingsToken(String(b.t || '')).catch(() => null);
+  if (!userId) {
+    return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
+  }
+  const want = String(b.language || '');
+  if (!language.SUPPORTED.includes(want)) {
+    return res.status(400).json({ error: 'That language is not available yet.' });
+  }
+  try {
+    await language.chooseLanguage(db, userId, want);
+  } catch (err) {
+    console.error('[settings] chooseLanguage failed:', err.message);
+    return res.status(500).json({ error: 'Could not save that. Please try again.' });
+  }
+  userProfiles.delete(userId);
+  res.json({ success: true, language: want });
+  db.recordEvent(userId, 'language_changed', { to: want }, 'settings-link')
+    .catch((e) => console.error('[settings] recordEvent failed:', e.message));
 });
 
 app.post('/api/sponsor-settings', async (req, res) => {

@@ -196,6 +196,22 @@ function crisisPattern(file, endMark) {
   check('and nothing is rewritten when nothing changed', d1.writes, []);
   if (saved) process.env.ANTHROPIC_API_KEY = saved;
 
+  group('choosing a language on the settings page (Bilal, Sep 16)');
+  const d2 = fakeDb({ 'wa-2': {}, 'reg-2': { language: 'de' } });
+  const c2 = await language.chooseLanguage(d2, 'wa-2', 'en');
+  check('signed up in German, picks English: English, kept as a request', [c2.language, c2.languageAsked], ['en', { want: 'en', from: 'de' }]);
+  check('and it is written to every identity they hold',
+    d2.writes.filter((w) => w[0] === 'save').map((w) => w[1]).sort(), ['reg-2', 'wa-2']);
+  const d3 = fakeDb({ 'wa-3': { language: 'es' } });
+  const c3 = await language.chooseLanguage(d3, 'wa-3', 'es');
+  check('picking the language they already have changes nothing', [c3.languageAsked, d3.writes], [null, []]);
+  const d4 = fakeDb({ 'wa-4': { language: 'en', languageAsked: { want: 'en', from: 'de' } } });
+  const c4 = await language.chooseLanguage(d4, 'wa-4', 'es');
+  check('a new choice replaces an older request', [c4.language, c4.languageAsked], ['es', { want: 'es', from: 'en' }]);
+  let refused = null;
+  try { await language.chooseLanguage(d4, 'wa-4', 'xx'); } catch (e) { refused = e.message; }
+  check('a language we do not have is refused', refused, 'unsupported language');
+
   group('the reply is told, and the note is never stored');
   const serverSrc = fs.readFileSync(path.resolve(__dirname, 'server.js'), 'utf8').replace(/\r\n/g, '\n');
   const cut = (name) => {
