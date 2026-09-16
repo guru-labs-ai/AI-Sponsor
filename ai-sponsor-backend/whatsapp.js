@@ -1183,12 +1183,12 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
 
          Their language is remembered for the automatic messages (trial ending,
          weekly note), but only from a message long enough to be sure of: an
-         "ok" must not turn somebody who writes in Spanish into English. */
-      const read = await language.readMessage(userMessageText);
+         "ok" must not turn somebody who writes in Spanish into English. And if
+         they ask for a language rather than just writing in it, that request is
+         kept and handed to the reply as replyLanguage, so asking for English in
+         German is not undone by their next German message. See noteLanguage. */
+      const { read, replyLanguage } = await language.noteLanguage(db, userId, userMessageText, profile);
       const notEnglish = !!read && read.language !== 'en' && read.language !== 'unclear';
-      if (read && String(userMessageText || '').trim().length >= 12) {
-        language.rememberLanguage(db, userId, read.language, profile && profile.language);
-      }
 
       /* Voice in, voice back. Asked for, voice back. Otherwise text, unless the
          sponsor itself decides this one is worth speaking. The model is told
@@ -1252,6 +1252,7 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
       const ctx = {
         channel: 'whatsapp', viaVoice: cameByVoice,
         replyIsSpoken: requestedVoice && !voiceUnavailable, textOnly, voiceUnavailable,
+        replyLanguage,
       };
       const replyText = await getSponsorReply(userId, userMessageText, ctx);
       console.log(`[WhatsApp] Claude reply to ${fromPhone}: "${replyText.substring(0, 80)}..."`);

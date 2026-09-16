@@ -86,8 +86,9 @@ async function readMessage(text) {
               language: { type: 'string', enum: [...SUPPORTED, 'other', 'unclear'] },
               asksForVoice: { type: 'boolean' },
               asksForTextOnly: { type: 'boolean' },
+              asksForLanguage: { type: 'string', enum: [...SUPPORTED, 'other', 'none'] },
             },
-            required: ['language', 'asksForVoice', 'asksForTextOnly'],
+            required: ['language', 'asksForVoice', 'asksForTextOnly', 'asksForLanguage'],
             additionalProperties: false,
           },
         },
@@ -97,6 +98,7 @@ async function readMessage(text) {
         'language: the code of the main language it is written in. "other" if it is clearly a language not in the list. "unclear" if there is too little to tell, such as an emoji, a number, a name, or a single word that several languages share.',
         'asksForVoice: true only if they are asking to be sent a voice note or audio, or to hear the sponsor speak. Saying they sent one, or asking for something else, is false.',
         'asksForTextOnly: true only if they are asking the sponsor to stop sending voice notes or to only write to them.',
+        'asksForLanguage: the code of the language they are asking the sponsor to talk to them in from now on, whatever language the request itself is written in. "Can we talk in English?" and "¿Me puedes escribir en inglés?" are both "en". "other" if they ask for a language not in the list. "none" if they are not asking to change language: mentioning a language, saying they speak it, or asking what a word means is "none".',
       ].join('\n'),
       messages: [{ role: 'user', content: t }],
     });
@@ -107,6 +109,7 @@ async function readMessage(text) {
       language: out.language,
       asksForVoice: out.asksForVoice === true,
       asksForTextOnly: out.asksForTextOnly === true,
+      asksForLanguage: out.asksForLanguage || 'none',
     };
   } catch (e) {
     console.warn('[language] could not read message, carrying on without it:', e.message);
@@ -145,6 +148,114 @@ async function rememberLanguage(db, userId, lang, known) {
   }
 }
 
+/* ─── Changing language after they have joined ───────────────────────────────
+   Mariam, Sep 16: English is the default, and anybody can change language
+   whenever they like, after registering as much as before. Somebody who signed
+   up in German and then writes in English, or asks for English, has to get
+   English from then on: the replies and the automatic messages both.
+
+   Two ways in:
+
+   - They just write in another language. The sponsor already follows them
+     (LANGUAGES in the master prompt), and the automatic messages follow from
+     the first message long enough to be sure of.
+   - They ask. "Können wir auf Englisch reden?" is the case following alone gets
+     wrong: the request is written in German, and so is everything after it, so
+     their next message would pull the replies and the weekly note straight back
+     to German. So a request is kept on the profile together with the language
+     it was asked from. Writing in either of those two keeps it. Writing a proper
+     message in a third language ends it, and so does asking for another one.
+
+   Pure, so every case can be tested without a database or a model. `read` is
+   what readMessage returned, or null when that failed. */
+const SURE_LENGTH = 12;
+
+function decideLanguage(read, text, profile) {
+  const p = profile || {};
+  const current = SUPPORTED.includes(p.language) ? p.language : 'en';
+  const asked = p.languageAsked && SUPPORTED.includes(p.languageAsked.want) ? p.languageAsked : null;
+  const out = { language: current, languageAsked: asked, replyLanguage: asked ? asked.want : null };
+  if (!read) return out;
+
+  const wrote = SUPPORTED.includes(read.language) ? read.language : null;
+  const want = SUPPORTED.includes(read.asksForLanguage) ? read.asksForLanguage : null;
+
+  // Asking is enough, however short the message. "English please" is clear.
+  if (want) {
+    const from = wrote || current;
+    out.language = want;
+    // Asked in the language they want: following them already does the job.
+    out.languageAsked = want === from ? null : { want, from };
+    out.replyLanguage = out.languageAsked ? want : null;
+    return out;
+  }
+
+  // An "ok" or a name tells us nothing, so it changes nothing.
+  if (!wrote || String(text || '').trim().length < SURE_LENGTH) return out;
+
+  if (asked && (wrote === asked.from || wrote === asked.want)) return out;
+
+  out.language = wrote;
+  out.languageAsked = null;
+  out.replyLanguage = null;
+  return out;
+}
+
+/* Reads the message, decides, and saves what changed to every identity they
+   hold, the same way "just text me" is saved. The save is not waited on: the
+   reply only needs the decision, and a failed write costs one automatic
+   message in the old language, not the conversation. */
+/* A standing request, read from the database across every identity. Not from
+   the profile the caller holds: the web chat keeps profiles in memory, and a
+   request saved a message ago would not be in that copy yet. */
+async function askedLanguageOf(db, userId, fallbackProfile) {
+  if (!db || !userId || typeof db.getProfile !== 'function') {
+    return (fallbackProfile && fallbackProfile.languageAsked) || null;
+  }
+  try {
+    const ids = db.findAllIdentities ? await db.findAllIdentities(userId) : [userId];
+    for (const id of [userId, ...ids.filter((x) => x !== userId)]) {
+      const p = await db.getProfile(id);
+      if (p && p.languageAsked && SUPPORTED.includes(p.languageAsked.want)) return p.languageAsked;
+    }
+  } catch (e) {
+    console.warn('[language] could not read a language request:', e.message);
+  }
+  return null;
+}
+
+async function noteLanguage(db, userId, text, profile) {
+  /* The language the automatic messages would use right now, read across
+     every identity. Not just the row passed in: somebody who registered in
+     German on the website can have 'de' on their reg- row and nothing on their
+     wa- row, and deciding from the wa- row alone would see English, see
+     nothing to change, and leave the weekly note in German. */
+  const [read, known, asked] = await Promise.all([
+    readMessage(text), languageOf(db, userId), askedLanguageOf(db, userId, profile),
+  ]);
+  const before = { language: known, languageAsked: asked };
+  const next = decideLanguage(read, text, before);
+  const languageChanged = next.language !== before.language;
+  const askedChanged = JSON.stringify(before.languageAsked) !== JSON.stringify(next.languageAsked);
+
+  if (db && userId && typeof db.findAllIdentities === 'function' && (languageChanged || askedChanged)) {
+    db.findAllIdentities(userId)
+      .then((ids) => Promise.all(ids.map(async (id) => {
+        const change = {};
+        if (languageChanged) change.language = next.language;
+        if (next.languageAsked) change.languageAsked = next.languageAsked;
+        if (Object.keys(change).length) await db.saveProfile(id, change);
+        if (!next.languageAsked && before.languageAsked) await db.clearProfileField(id, 'languageAsked');
+      })))
+      .then(() => {
+        const note = next.languageAsked ? ` (asked for it, writing in ${next.languageAsked.from})` : '';
+        console.log(`[language] ${userId} now ${next.language}${note}`);
+      })
+      .catch((e) => console.warn('[language] could not save language:', e.message));
+  }
+  return { read, replyLanguage: next.replyLanguage };
+}
+
 /* ─── Sending a template in their language ───────────────────────────────────
    paramsFor(lang) builds the variables for that language, because the English
    fallback needs English variables too: a Spanish date inside the English
@@ -168,4 +279,5 @@ async function sendTemplateIn(mc, to, name, lang, paramsFor, urlParam = null) {
 module.exports = {
   SUPPORTED, NOTICE_LANGUAGES, META_TEMPLATE_CODE, LANGUAGE_NAMES,
   noticeLanguage, formatDay, readMessage, languageOf, rememberLanguage, sendTemplateIn,
+  decideLanguage, noteLanguage,
 };

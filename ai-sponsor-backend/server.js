@@ -379,13 +379,15 @@ happens inside the conversations they open.
 
 You talk with people in English, Spanish, Portuguese, French, German, Italian, Russian, Turkish, Arabic, Hindi, Bengali, Chinese, Japanese, Korean, Indonesian and Vietnamese. Those are the languages AI Sponsor supports, for writing and for voice notes, and no others yet.
 
-When they write in one of those, reply in it, and switch when they switch. Use the words their fellowship uses in that language, not a word-for-word translation of the English.
+When they write in one of those, reply in it. Answer in the language of their latest message, and switch the moment they switch, even if everything before it was in another language. Never stay in the old language, and never tell them you are staying in it. A message too short to tell, like "ok" or an emoji, changes nothing. Use the words their fellowship uses in that language, not a word-for-word translation of the English.
+
+If they ask you to talk to them in one of those languages, switch to it in that same reply. They can change their mind whenever they like, however they signed up.
 
 When they write in any other language, reply in English. Open with one short sentence in their language saying their language is not supported yet, so you will write in English. Say that once. If you already told them earlier in the conversation, just reply in English.
 
 If they ask you to use a language that is not on the list, tell them kindly it is not supported yet, and carry on in the supported language you were using.
 
-Their very first message is often pre-written for them in English when they join, so on its own it tells you nothing about their language.
+Their very first message is often pre-written for them when they join, in the language the website was showing, which is English unless they changed it. So an English first message on its own does not tell you they want English.
 
 ---
 
@@ -698,6 +700,55 @@ function buildIdentityBlock(profile) {
     `If anything earlier in this conversation, or anything in your own notes above, calls you by a different name, they renamed you and that older name is out of date. Do not use it and do not correct them about it.`,
     `Asked what you are called, the answer is ${profile.sponsorName}.`,
   ].join('\n');
+}
+
+/* ── The language they asked for ─────────────────────────────────────────────
+   Mariam, Sep 16: somebody who registered in German and asks to talk in English
+   has to get English, and keep getting it. LANGUAGES in the master prompt
+   already follows whatever language they write in, which covers somebody who
+   simply switches. It gets the other case wrong: a request for English written
+   in German, followed by more German, reads as "keep answering in German".
+
+   So when a request stands (language.decideLanguage keeps it on the profile),
+   it is stated here on every reply. From the profile rather than the history,
+   because the request scrolls out of the recent window long before the wish
+   expires. After the memory for the same reason as the name above: this is the
+   answer, whatever the transcript or the notes suggest. */
+function buildLanguageBlock(replyLanguage) {
+  const name = replyLanguage && language.LANGUAGE_NAMES[replyLanguage];
+  if (!name) return '';
+  return [
+    '## THE LANGUAGE THEY ASKED FOR',
+    `They asked you to talk to them in ${name}. Write every reply in ${name}, even when their message and the rest of this conversation are in another language. For this person that outranks following the language of their latest message, until they ask for a different one.`,
+    `Do not mention this, and do not keep confirming the switch. Just write in ${name}.`,
+  ].join('\n');
+}
+
+/* ⚠️ THE BLOCK ABOVE IS NOT ENOUGH ON ITS OWN. Measured Sep 16 on
+   claude-opus-4-8 with the real prompt: a German conversation, a request for
+   English that had scrolled out of the window, a German message. With the
+   block alone, in either position, the reply came back German 6 times out of
+   6. With this note beside their message as well, English 12 out of 12 across
+   four cases, and somebody who never asked still got German 3 out of 3.
+
+   So the note goes on the message being answered, in the copy sent to the
+   API only. It is never stored: `updatedHistory` is what gets persisted and
+   digested, and this returns a new array like withCachedHistory does. */
+function withLanguageNote(messages, replyLanguage) {
+  const name = replyLanguage && language.LANGUAGE_NAMES[replyLanguage];
+  const last = messages[messages.length - 1];
+  if (!name || !last || last.role !== 'user') return messages;
+  const parts = typeof last.content === 'string'
+    ? [{ type: 'text', text: last.content }]
+    : Array.isArray(last.content) ? last.content.slice() : null;
+  if (!parts) return messages;
+  parts.push({
+    type: 'text',
+    text: `(A note from the app, not from them: earlier they asked you to talk to them in ${name}. Reply in ${name}. Do not mention this note.)`,
+  });
+  const copy = messages.slice();
+  copy[copy.length - 1] = { role: 'user', content: parts };
+  return copy;
 }
 
 function buildProgramChangeBlock(profile) {
@@ -1468,6 +1519,12 @@ async function getSponsorReply(userId, message, context) {
     ].join('\n') });
   }
 
+  /* Last, below the cache marker: it can start or stop on any message, and
+     the last block is the one that held in testing. See buildLanguageBlock. */
+  const replyLanguage = context && context.replyLanguage;
+  const languageBlock = buildLanguageBlock(replyLanguage);
+  if (languageBlock) systemBlocks.push({ type: 'text', text: languageBlock });
+
   /* The window is sliding once there is more history than fits in it, which is
      the moment caching the conversation stops paying. See withCachedHistory. */
   const windowSliding = updatedHistory.length > RECENT_TURNS;
@@ -1476,7 +1533,7 @@ async function getSponsorReply(userId, message, context) {
     max_tokens: 1024,
     system: systemBlocks,
     // recent window; older turns live in the digest + DB
-    messages: withCachedHistory(updatedHistory.slice(-RECENT_TURNS), windowSliding),
+    messages: withLanguageNote(withCachedHistory(updatedHistory.slice(-RECENT_TURNS), windowSliding), replyLanguage),
   });
 
   let rawReply = response.content
@@ -2984,6 +3041,13 @@ app.post('/api/chat', async (req, res) => {
   const identityBlock = buildIdentityBlock(profile);
   if (identityBlock) systemBlocks.push({ type: 'text', text: identityBlock });
 
+  /* The same language handling as WhatsApp, so changing language works on the
+     website chat too: follow what they write, keep what they ask for, and let
+     the automatic messages follow either. See language.noteLanguage. */
+  const { replyLanguage } = await language.noteLanguage(db, userId, message, profile);
+  const languageBlock = buildLanguageBlock(replyLanguage);
+  if (languageBlock) systemBlocks.push({ type: 'text', text: languageBlock });
+
   // Add the new user message
   const updatedHistory = [...history, { role: 'user', content: message }];
 
@@ -3000,7 +3064,7 @@ app.post('/api/chat', async (req, res) => {
       max_tokens: 1024,
       stream: true,
       system: systemBlocks,
-      messages: updatedHistory.slice(-RECENT_TURNS), // recent window; older turns live in the digest + DB
+      messages: withLanguageNote(updatedHistory.slice(-RECENT_TURNS), replyLanguage), // recent window; older turns live in the digest + DB
     });
 
     for await (const event of stream) {

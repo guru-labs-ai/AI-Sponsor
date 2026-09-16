@@ -138,6 +138,87 @@ function crisisPattern(file, endMark) {
   check('a remembered language is found on another identity',
     await language.languageOf({ getProfile: async (id) => (id === 'reg-1' ? { language: 'ru' } : {}), findAllIdentities: async () => ['wa-1', 'reg-1'] }, 'wa-1'), 'ru');
 
+  group('changing language after joining (Mariam, Sep 16)');
+  const R = (lang, asks = 'none') => ({ language: lang, asksForVoice: false, asksForTextOnly: false, asksForLanguage: asks });
+  const decide = language.decideLanguage;
+  const long = 'this is a proper sentence';
+
+  check('signed up in German, just writes in English: English, nothing kept',
+    decide(R('en'), long, { language: 'de' }), { language: 'en', languageAsked: null, replyLanguage: null });
+  check('signed up in German, asks in English for English: English, nothing to keep',
+    decide(R('en', 'en'), 'Can we talk in English?', { language: 'de' }), { language: 'en', languageAsked: null, replyLanguage: null });
+  check('signed up in German, asks in German for English: English, and the request is kept',
+    decide(R('de', 'en'), 'Können wir auf Englisch reden?', { language: 'de' }),
+    { language: 'en', languageAsked: { want: 'en', from: 'de' }, replyLanguage: 'en' });
+  check('after asking, more German does not pull it back to German',
+    decide(R('de'), 'Heute war ein schwerer Tag für mich', { language: 'en', languageAsked: { want: 'en', from: 'de' } }),
+    { language: 'en', languageAsked: { want: 'en', from: 'de' }, replyLanguage: 'en' });
+  check('after asking, writing in English keeps English',
+    decide(R('en'), long, { language: 'en', languageAsked: { want: 'en', from: 'de' } }),
+    { language: 'en', languageAsked: { want: 'en', from: 'de' }, replyLanguage: 'en' });
+  check('after asking, a proper message in a third language switches to it',
+    decide(R('es'), 'Hoy fue un día muy difícil para mí', { language: 'en', languageAsked: { want: 'en', from: 'de' } }),
+    { language: 'es', languageAsked: null, replyLanguage: null });
+  check('asking to go back to German works the same way',
+    decide(R('en', 'de'), 'Can we go back to German?', { language: 'en', languageAsked: { want: 'en', from: 'de' } }),
+    { language: 'de', languageAsked: { want: 'de', from: 'en' }, replyLanguage: 'de' });
+  check('a one-word request with no clear language is kept against the language they were in',
+    decide(R('unclear', 'en'), 'English?', { language: 'de' }),
+    { language: 'en', languageAsked: { want: 'en', from: 'de' }, replyLanguage: 'en' });
+  check('an "ok" changes nothing',
+    decide(R('en'), 'ok', { language: 'de' }), { language: 'de', languageAsked: null, replyLanguage: null });
+  check('asking for a language we do not support changes nothing',
+    decide(R('en', 'other'), 'Can we speak Polish?', { language: 'en' }), { language: 'en', languageAsked: null, replyLanguage: null });
+  check('when the message could not be read, a standing request still holds',
+    decide(null, long, { language: 'en', languageAsked: { want: 'en', from: 'de' } }),
+    { language: 'en', languageAsked: { want: 'en', from: 'de' }, replyLanguage: 'en' });
+  check('nobody who never chose anything is English',
+    decide(R('unclear'), '👍', {}), { language: 'en', languageAsked: null, replyLanguage: null });
+
+  /* noteLanguage against a fake database: what gets saved, and to whom. The
+     model is not called (no key), so these run the "read failed" path with the
+     language already on the profile. */
+  const fakeDb = (rows) => {
+    const writes = [];
+    return {
+      writes,
+      getProfile: async (id) => rows[id] || null,
+      findAllIdentities: async () => Object.keys(rows),
+      saveProfile: async (id, change) => { writes.push(['save', id, change]); rows[id] = { ...(rows[id] || {}), ...change }; },
+      clearProfileField: async (id, key) => { writes.push(['clear', id, key]); if (rows[id]) delete rows[id][key]; },
+    };
+  };
+  delete process.env.ANTHROPIC_API_KEY;
+  const d1 = fakeDb({ 'wa-1': {}, 'reg-1': { language: 'en', languageAsked: { want: 'en', from: 'de' } } });
+  const n1 = await language.noteLanguage(d1, 'wa-1', long, { /* stale copy, no request on it */ });
+  check('a request saved on another identity is honoured even when the caller holds a stale profile', n1.replyLanguage, 'en');
+  await new Promise((r) => setTimeout(r, 10));
+  check('and nothing is rewritten when nothing changed', d1.writes, []);
+  if (saved) process.env.ANTHROPIC_API_KEY = saved;
+
+  group('the reply is told, and the note is never stored');
+  const serverSrc = fs.readFileSync(path.resolve(__dirname, 'server.js'), 'utf8').replace(/\r\n/g, '\n');
+  const cut = (name) => {
+    const at = serverSrc.indexOf(`function ${name}(`);
+    return serverSrc.slice(at, serverSrc.indexOf('\n}\n', at) + 3);
+  };
+  const { buildLanguageBlock, withLanguageNote } = new Function('language',
+    `${cut('buildLanguageBlock')}\n${cut('withLanguageNote')}\nreturn { buildLanguageBlock, withLanguageNote };`)(language);
+
+  check('no request, no block', buildLanguageBlock(null), '');
+  check('a request names the language in the block', /talk to them in English/.test(buildLanguageBlock('en')), true);
+  const convo = [{ role: 'user', content: 'Hallo' }, { role: 'assistant', content: 'Hallo Anna' }, { role: 'user', content: 'Heute war schwer' }];
+  const frozen = JSON.stringify(convo);
+  check('no request, the messages go out untouched', withLanguageNote(convo, null), convo);
+  const noted = withLanguageNote(convo, 'en');
+  check('a request adds the note beside the message being answered',
+    noted[2].content.map((p) => p.text), ['Heute war schwer', '(A note from the app, not from them: earlier they asked you to talk to them in English. Reply in English. Do not mention this note.)']);
+  check('the earlier turns are the same objects', [noted[0] === convo[0], noted[1] === convo[1]], [true, true]);
+  check('the stored history is not changed', JSON.stringify(convo), frozen);
+  const cached = [{ role: 'user', content: [{ type: 'text', text: 'Heute war schwer', cache_control: { type: 'ephemeral' } }] }];
+  check('a message already split into parts keeps its parts',
+    withLanguageNote(cached, 'de')[0].content.length === 2 && cached[0].content.length === 1, true);
+
   console.log(`\n${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });
