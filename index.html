@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="google-site-verification" content="V0CTJsH70HoSC152dPseRA2JxtZ3ofjaVdNm7GJ-5mc" />
 
+  <!-- Site language. Reads the English on this page and swaps it for the
+       visitor's language, so the source stays English and a missing line
+       falls back to English rather than to a blank. English is the default;
+       it only changes on a ?lang= link or when someone picks a language on
+       the switcher. English visitors get the switcher and nothing else. -->
+  <script src="i18n.js"></script>
+
   <!-- Google Analytics GA4 Tag -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-S6Y7JPLC0G"></script>
   <script>
@@ -880,6 +887,7 @@
   </div>
   <a href="#" class="nav-logo">AI Sponsor</a>
   <div class="nav-right">
+    <div data-lang-switcher="dark"></div>
     <a href="ai-sponsor-registration.html" class="nav-cta">Get Started Free</a>
   </div>
 </nav>
@@ -1227,13 +1235,16 @@
         <div class="contact-field" id="cff-subject">
           <label>Subject</label>
           <select id="cf-subject">
+            <!-- Every option carries its value, so the label can be shown in
+                 the reader's language without changing what gets submitted or
+                 what the #delete-my-data link selects. -->
             <option value="">Choose a topic…</option>
-            <option>Account help</option>
-            <option>Billing / subscription</option>
-            <option>Cancel my subscription</option>
-            <option>Delete my data</option>
-            <option>Technical issue</option>
-            <option>Something else</option>
+            <option value="Account help">Account help</option>
+            <option value="Billing / subscription">Billing / subscription</option>
+            <option value="Cancel my subscription">Cancel my subscription</option>
+            <option value="Delete my data">Delete my data</option>
+            <option value="Technical issue">Technical issue</option>
+            <option value="Something else">Something else</option>
           </select>
           <div class="contact-field-err">Please choose a topic.</div>
         </div>
@@ -1420,6 +1431,10 @@
          handler and the support-form topic below it stay for that reason. -->
     <a href="/privacy" class="footer-nav-link">Privacy</a>
     <a href="/terms" class="footer-nav-link">Terms</a>
+    <!-- The same switcher as the nav. On a narrow phone the nav one is
+         hidden so the sign-up button keeps its room, and this is where the
+         language then lives. -->
+    <div data-lang-switcher="dark"></div>
   </nav>
   <p class="footer-disclaimer">AI Sponsor is a private product and is not affiliated with, endorsed by, or connected to Alcoholics Anonymous, Narcotics Anonymous, or any 12-step program or organisation. If you are in crisis, please contact the Crisis Text Line (text HOME to 741741) or call 988.</p>
 </footer>
@@ -1811,7 +1826,9 @@
       console.warn('[AI Sponsor] Support send failed:', err);
       btn.disabled = false;
       btn.textContent = 'Send message →';
-      alert('Something went wrong. Please try again or email us directly.');
+      /* An alert is not in the DOM, so the page translator cannot reach it.
+         This one asks for its own translation. See i18n.js. */
+      alert(window.AIS_T ? window.AIS_T('Something went wrong. Please try again or email us directly.') : 'Something went wrong. Please try again or email us directly.');
     }
   };
 </script>

@@ -4,6 +4,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Site language. Reads the English on this page and swaps it for the
+     visitor's language. English is the default; it only changes on a ?lang=
+     link or when someone picks a language on the switcher. English visitors
+     get the switcher and nothing else. The
+     language they read this in is sent to /register, so their sponsor's
+     automatic messages arrive in it too. See i18n.js. -->
+<script src="i18n.js"></script>
 <!-- Same first-touch attribution capture as the landing page — people can arrive
      here directly (an ad straight to signup), so this page has to record it too.
      First touch wins, so arriving via the landing page won't overwrite it. -->
@@ -666,12 +673,15 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 <body>
 <div class="container">
 
-  <a href="index.html" class="back-home">
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M10 13L5 8L10 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-    Back to Home
-  </a>
+  <div class="ais-top-row">
+    <a href="index.html" class="back-home">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 13L5 8L10 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Back to Home
+    </a>
+    <div data-lang-switcher="light"></div>
+  </div>
 
   <div class="brand">
     <div class="brand-logo">AI Sponsor</div>
@@ -728,9 +738,11 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
       <div class="fg">
         <label>Gender</label>
         <select id="f-gender">
+          <!-- Every option carries its value, so the label can be shown in
+               the reader's language while the stored answer stays the same. -->
           <option value="" disabled selected>Select...</option>
-          <option>Male</option><option>Female</option>
-          <option>Non-binary</option><option>Prefer not to say</option>
+          <option value="Male">Male</option><option value="Female">Female</option>
+          <option value="Non-binary">Non-binary</option><option value="Prefer not to say">Prefer not to say</option>
         </select>
       </div>
 
@@ -1257,7 +1269,9 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
     </div>
     <a id="dayPill" href="ai-sponsor-journey.html" style="display:none;margin-left:auto;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.35);color:#fff;text-decoration:none;font-size:12.5px;font-weight:700;padding:6px 12px;border-radius:99px;white-space:nowrap"></a>
   </div>
-  <div class="chat-messages" id="chatMessages"></div>
+  <!-- Never translated. What the sponsor says already comes back in the
+       person's own language, and what they type is theirs. -->
+  <div class="chat-messages" id="chatMessages" data-no-i18n></div>
   <div class="chat-bar">
     <textarea class="chat-input" id="chatInput" placeholder="Type or tap the mic to speak..." rows="1"
       onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"
@@ -1272,6 +1286,11 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 </div>
 
 <script>
+/* Short local name for the site translator, for the handful of strings this
+   page builds itself instead of leaving in the HTML. Falls through to English
+   when i18n.js has not loaded. */
+const T = (s) => (window.AIS_T ? window.AIS_T(s) : s);
+
 const D = {
   name:'',email:'',pw:'',gender:'',country:'',state:'',
   program:[],otherProgram:'',stage:'',why:'',goals:[],
@@ -1929,6 +1948,10 @@ async function registerUser(paymentStatus) {
     amendsWho:   D.amendsWho     || '',
     paymentStatus: paymentStatus || 'Unpaid',
     source:      'ai-sponsor-registration',
+    /* The language they read this page in. The backend stores it on the
+       profile so the automatic messages, the trial reminder, the weekly note
+       and the check-in, go out in the same language as their conversation. */
+    language:    (window.AIS_LANG || 'en'),
     /* Stored, not just shown. "They agreed" is only defensible if we can say
        when and to what, so the version travels with the timestamp. */
     consent:     consentPayload(),
@@ -2036,7 +2059,8 @@ function copyScholarship(){
 
 function sendScholarship(){
   const contact=document.getElementById('f-scholar-contact').value.trim();
-  if(!contact){ alert('Please enter a name, phone number, or email.'); return; }
+  /* Alerts sit outside the DOM, so they ask for their own translation. */
+  if(!contact){ alert(T('Please enter a name, phone number, or email.')); return; }
   const btn=event.target;
   btn.textContent='Sent ✓';
   btn.style.background='#166534';
@@ -2069,6 +2093,10 @@ document.addEventListener('DOMContentLoaded', ()=>{ setupValidation(); restoreSt
    country name or dial code, so "morocco", "ma" and "212" all find the same
    row, and somebody who only knows their code does not have to know what the
    country is called in English. */
+/* Lower case with the accents taken off, so typing without them still
+   matches. Both sides of the comparison go through it. */
+const fold = (s) => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
 (function buildDialDD(){
   const dd=document.getElementById('codeDD');
 
@@ -2092,7 +2120,11 @@ document.addEventListener('DOMContentLoaded', ()=>{ setupValidation(); restoreSt
     el.innerHTML=`<span class="cf">${d.f}</span><span class="cn">${d.n}</span><span class="cd">${d.c}</span>`;
     el.onclick=()=>selectDialCode(d.f,d.c);
     list.appendChild(el);
-    return { el, hay:(d.n+' '+d.c).toLowerCase() };
+    /* Read back off the row rather than off d.n, so on a translated page
+       somebody can search their own word for their country. The English
+       name stays in the haystack too, and accents are folded, so "espana",
+       "España" and "Spain" all find the same row. */
+    return { el, get hay(){ return fold(el.textContent+' '+d.n+' '+d.c); } };
   });
 
   const empty=document.createElement('div');
@@ -2102,7 +2134,7 @@ document.addEventListener('DOMContentLoaded', ()=>{ setupValidation(); restoreSt
   list.appendChild(empty);
 
   search.oninput=()=>{
-    const q=search.value.trim().toLowerCase().replace(/^\+/,'');
+    const q=fold(search.value.trim()).replace(/^\+/,'');
     let shown=0;
     rows.forEach(r=>{
       const hit = !q || r.hay.replace(/\+/g,'').indexOf(q)>-1;
@@ -2423,8 +2455,10 @@ function setupSuccessActions(){
   if (!wa || !web) return;
   const who     = (D.name || '').trim().split(/\s+/)[0];
   const sponsor = (D.sponsorName || '').trim();
-  let hello = sponsor ? 'Hi ' + sponsor : 'Hi';
-  if (who) hello += ", it's " + who;
+  /* Their language too. This is the first thing their sponsor ever receives
+     from them, and opening in English would undo the whole page. */
+  let hello = sponsor ? T('Hi {sponsor}').replace('{sponsor}', sponsor) : T('Hi');
+  if (who) hello += T(", it's {name}").replace('{name}', who);
   /* No verification code in here. It used to ride along in brackets, and the
      very first thing anybody ever sent their sponsor read "Hi Mimi, it's Mariam
      (764764)", which is a machine's idea of hello. The code only ever earned
@@ -2553,25 +2587,33 @@ async function initSession() {
 
 function buildChatOpening() {
   const name  = D.name ? D.name.split(' ')[0] : 'friend';
-  const prog  = D.program || 'your program';
+  const prog  = D.program || T('your program');
   const stage = D.stage;
-  const goals = D.goals && D.goals.length ? D.goals[0].toLowerCase() : null;
+  /* The goal is stored in English, so it gets translated here before it
+     goes into a sentence. Lower case mid-sentence everywhere except German,
+     which capitalises its nouns wherever they sit. */
+  const goalRaw = D.goals && D.goals.length ? D.goals[0] : null;
+  const goals = goalRaw ? (window.AIS_LANG === 'de' ? T(goalRaw) : T(goalRaw).toLowerCase()) : null;
 
-  let opener = `Hey ${name} — I'm really glad you're here. Welcome to ${prog}.`;
+  /* Whole sentences with placeholders rather than fragments glued together,
+     because the word order is not the same in every language. The spacing is
+     part of each string, so these are looked up exactly. See i18n.js. */
+  let opener = T("Hey {name} — I'm really glad you're here. Welcome to {prog}.")
+    .replace('{name}', name).replace('{prog}', prog);
 
   if (stage === 'just-starting') {
-    opener += ` Starting is one of the hardest parts — and you just did it.`;
+    opener += T(` Starting is one of the hardest parts — and you just did it.`);
   } else if (stage === 'returning') {
-    opener += ` Coming back takes real courage. Whatever brought you here today, I'm here.`;
+    opener += T(` Coming back takes real courage. Whatever brought you here today, I'm here.`);
   } else if (stage === 'active') {
-    opener += ` It's great to connect with you.`;
+    opener += T(` It's great to connect with you.`);
   }
 
   if (goals) {
-    opener += `\n\nYou mentioned wanting to work on ${goals}. That's a solid place to start.`;
+    opener += T(`\n\nYou mentioned wanting to work on {goals}. That's a solid place to start.`).replace('{goals}', goals);
   }
 
-  opener += `\n\nWhat's on your mind right now?`;
+  opener += T(`\n\nWhat's on your mind right now?`);
   return opener;
 }
 
@@ -2695,7 +2737,7 @@ async function sendChat() {
 
 function toggleVoice() {
   if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    alert('Voice input is not supported in this browser. Try Chrome.');
+    alert(T('Voice input is not supported in this browser. Try Chrome.'));
     return;
   }
 
