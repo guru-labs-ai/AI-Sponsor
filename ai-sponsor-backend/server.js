@@ -1977,13 +1977,16 @@ app.get('/api/voice/preview', async (req, res) => {
   if (!voices.enabled) {
     return res.status(503).json({ error: 'voice previews are not configured' });
   }
+  /* The language the sign-up page is showing. Anything voices.js has no line
+     for is English, so an old page without ?lang= hears exactly what it did. */
+  const lang = voices.previewLanguage(String(req.query.lang || 'en'));
   try {
-    const buffer = await voices.preview(voice);
+    const buffer = await voices.preview(voice, lang);
     res.set('Content-Type', voices.CONTENT_TYPE);
     res.set('Cache-Control', 'public, max-age=86400');
     res.send(buffer);
   } catch (err) {
-    console.error(`[voice] preview failed for ${voice}:`, err.message);
+    console.error(`[voice] preview failed for ${voice} (${lang}):`, err.message);
     res.status(502).json({ error: 'preview failed' });
   }
 });

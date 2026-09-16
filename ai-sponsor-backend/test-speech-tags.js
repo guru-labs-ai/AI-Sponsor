@@ -98,6 +98,12 @@ const HARDCODED = [
   "[breath] This is how I sound now. <soft>I'm right here whenever you need me.</soft>",
 ];
 HARDCODED.forEach((line, i) => check(`hard-coded line ${i + 1} unchanged`, voices.forSpeech(line), line));
+Object.entries(voices.PREVIEW_LINES).forEach(([lang, line]) =>
+  check(`the ${lang} preview line passes the allow-list unchanged`, voices.forSpeech(line), line));
+check('the English preview is the line it always was', voices.PREVIEW_LINES.en, voices.PREVIEW_LINE);
+check('a page language with no preview line hears English', voices.previewLanguage('ja'), 'en');
+check('a missing language hears English', voices.previewLanguage(undefined), 'en');
+check('German is German', voices.previewLanguage('de'), 'de');
 check('the spoken hello is still in whatsapp.js', src('whatsapp.js').includes(HARDCODED[1].slice(0, 40)), true);
 check('the voice-change line is still in server.js', src('server.js').includes(HARDCODED[2].slice(0, 40)), true);
 

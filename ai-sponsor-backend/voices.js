@@ -158,6 +158,23 @@ function stripSpeechTags(text) {
 const PREVIEW_LINE =
   "Hey. [breath] It's good to hear from you. <soft>We can take this at your pace.</soft>";
 
+/* The same line in every language the website can be read in (i18n.js), so
+   somebody signing up in Spanish hears their sponsor speak Spanish. Bilal
+   caught it, Sep 16: the page was translated and the voice was not. The
+   sponsor talking, so informal everywhere, as in notice-copy.js.
+
+   Checked Sep 16 before shipping: each line synthesized with carina and rigel
+   and transcribed back with whisper-1 came out as this sentence in this
+   language, with no tag read aloud. Anything not listed gets English. */
+const PREVIEW_LINES = {
+  en: PREVIEW_LINE,
+  es: 'Hola. [breath] Qué bueno saber de ti. <soft>Podemos ir a tu ritmo.</soft>',
+  fr: "Salut. [breath] Ça fait du bien d'avoir de tes nouvelles. <soft>On peut avancer à ton rythme.</soft>",
+  de: 'Hey. [breath] Schön, von dir zu hören. <soft>Wir gehen das in deinem Tempo an.</soft>',
+};
+
+const previewLanguage = (lang) => (Object.prototype.hasOwnProperty.call(PREVIEW_LINES, lang) ? lang : 'en');
+
 const enabled = !!process.env.XAI_API_KEY;
 
 function resolve(voice) {
@@ -203,28 +220,30 @@ async function canSpeak(text) {
   return !read || read.language !== 'other';
 }
 
-/* Previews are generated once per voice per process and held in memory. The
-   line never changes, so paying for it on every signup would be pure waste, and
-   the second visitor onwards gets it instantly. In-flight requests share one
-   promise so six quick taps don't become six API calls. */
+/* Previews are generated once per voice and language per process and held in
+   memory. The lines never change, so paying for them on every signup would be
+   pure waste, and the second visitor onwards gets one instantly. In-flight
+   requests share one promise so six quick taps don't become six API calls. */
 const previewCache = new Map();
 
-function preview(voice) {
+function preview(voice, lang = 'en') {
   const v = resolve(voice);
-  if (!previewCache.has(v)) {
+  const l = previewLanguage(lang);
+  const key = `${v}|${l}`;
+  if (!previewCache.has(key)) {
     previewCache.set(
-      v,
-      synthesize(PREVIEW_LINE, v).catch((e) => {
-        previewCache.delete(v); // let the next request retry
+      key,
+      synthesize(PREVIEW_LINES[l], v).catch((e) => {
+        previewCache.delete(key); // let the next request retry
         throw e;
       })
     );
   }
-  return previewCache.get(v);
+  return previewCache.get(key);
 }
 
 module.exports = {
-  VOICES, DEFAULT_VOICE, PREVIEW_LINE, CONTENT_TYPE, FILE_EXT,
+  VOICES, DEFAULT_VOICE, PREVIEW_LINE, PREVIEW_LINES, previewLanguage, CONTENT_TYPE, FILE_EXT,
   INLINE_TAGS, WRAPPING_TAGS,
   enabled, resolve, synthesize, preview, forSpeech, stripSpeechTags, canSpeak,
 };

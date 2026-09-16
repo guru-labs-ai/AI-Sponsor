@@ -1891,7 +1891,11 @@ function playVoicePreview(el, val){
   document.querySelectorAll('.voice-card').forEach(c=>c.classList.remove('loading','playing'));
   el.classList.add('loading');
 
-  const a = new Audio(BACKEND_URL + '/api/voice/preview?voice=' + encodeURIComponent(val));
+  /* In the language the page is showing, so the voice they audition speaks
+     to them the way their sponsor will. The backend falls back to English for
+     anything it has no line for. */
+  const a = new Audio(BACKEND_URL + '/api/voice/preview?voice=' + encodeURIComponent(val)
+    + '&lang=' + encodeURIComponent(window.AIS_LANG || 'en'));
   voiceAudio = a;
   const clear = ()=>{ el.classList.remove('loading','playing'); if(voiceAudio===a) voiceAudio=null; };
   a.onplaying = ()=>{ if(voiceAudio===a){ el.classList.remove('loading'); el.classList.add('playing'); } };
