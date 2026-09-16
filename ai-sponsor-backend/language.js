@@ -282,9 +282,9 @@ async function chooseLanguage(db, userId, want) {
    translation in that language, which is the normal state for a few minutes
    to a day after submitting one, so that one error drops to English. Anything
    else is thrown to the caller exactly as before. */
-async function sendTemplateIn(mc, to, name, lang, paramsFor, urlParam = null) {
+async function sendTemplateIn(mc, to, name, lang, paramsFor, urlParam = null, opts = {}) {
   const l = noticeLanguage(lang);
-  if (l !== 'en') {
+  if (l !== 'en' && (!opts.mustArrive || await deliverableTranslation(mc, name, l))) {
     try {
       return await mc.sendTemplate(to, name, paramsFor(l), urlParam, META_TEMPLATE_CODE[l]);
     } catch (e) {
@@ -293,6 +293,25 @@ async function sendTemplateIn(mc, to, name, lang, paramsFor, urlParam = null) {
     }
   }
   return mc.sendTemplate(to, name, paramsFor('en'), urlParam, META_TEMPLATE_CODE.en);
+}
+
+/* For a message that has to arrive whatever language the person reads (opts
+   .mustArrive). Mariam, Sep 17: "everyone should get trial reminders regardless
+   of their language". Meta filed some trial_ending translations as MARKETING
+   while the English is UTILITY, and MARKETING templates are not delivered to US
+   numbers. So a translation is only used while Meta has it as UTILITY; anything
+   else, including not being able to find out, sends the English, which always
+   goes. The person gets the reminder in English rather than not at all. */
+async function deliverableTranslation(mc, name, l) {
+  let category = null;
+  try {
+    category = mc.templateCategory ? await mc.templateCategory(name, META_TEMPLATE_CODE[l]) : null;
+  } catch (e) {
+    console.warn(`[language] could not read the category of ${name} ${l}: ${e.message}`);
+  }
+  if (category === 'UTILITY') return true;
+  console.log(`[language] ${name} in ${l} is ${category || 'unknown'} at Meta, sending the English UTILITY template so it arrives`);
+  return false;
 }
 
 module.exports = {

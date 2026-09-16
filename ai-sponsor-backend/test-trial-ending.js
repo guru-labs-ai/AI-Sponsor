@@ -172,6 +172,33 @@ const base = { user: { user_id: 'reg-abc', name: 'Lindsay Jacobi', phone: '+1973
     check('and stays silent on both channels', whatsapp.calls.length + metacloud.calls.length, 0);
   }
 
+  /* Mariam, Sep 17: everyone gets the trial reminder, whatever their language.
+     Meta moved some translations of trial_ending to MARKETING, which is not
+     delivered to US numbers, so those people must get the English. */
+  {
+    const spanishDb = () => ({ ...stubDb(), getProfile: async () => ({ language: 'es' }), findAllIdentities: async (id) => [id] });
+    const categorised = (category) => {
+      const m = templater();
+      m.templateCategory = async () => category;
+      return m;
+    };
+
+    const marketing = categorised('MARKETING');
+    const r1 = await t.notifyTrialEnding({ ...base, db: spanishDb(), whatsapp: sender('131047'), metacloud: marketing });
+    check('a Spanish reader whose translation is MARKETING still gets the reminder', r1, { sent: true, via: 'template' });
+    check('in English, with the English date, so it is delivered',
+      [marketing.calls.length, marketing.calls[0].params[1], marketing.calls[0].params[0]], [1, '29 September', 'Lindsay']);
+
+    const utility = categorised('UTILITY');
+    utility.sendTemplate = async (to, name, params, urlParam, code) => {
+      utility.calls.push({ name, params, code });
+      return { messageId: 'wamid.y' };
+    };
+    await t.notifyTrialEnding({ ...base, db: spanishDb(), whatsapp: sender('131047'), metacloud: utility });
+    check('a translation Meta kept as UTILITY goes out in Spanish',
+      [utility.calls[0].code, utility.calls[0].params[1]], ['es', '29 de septiembre']);
+  }
+
   console.log(`\n${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);
 })();

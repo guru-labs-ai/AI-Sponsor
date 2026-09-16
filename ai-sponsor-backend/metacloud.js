@@ -348,6 +348,39 @@ async function sendTemplate(toPhone, name, bodyParams = [], urlParam = null, lan
   return { messageId: (res.messages && res.messages[0] && res.messages[0].id) || null };
 }
 
+/* ─── Which category Meta filed a template translation under ─────────────────
+   Meta decides the category of every language separately, and can move a
+   translation to MARKETING even when the English is UTILITY. It did on Sep 16:
+   trial_ending in Spanish, French and German. That matters because MARKETING
+   templates are not delivered to US numbers at all, and a trial reminder that
+   never arrives is somebody charged without warning.
+
+   Read from Meta, not remembered, because Meta can change it again after a
+   category review. Cached for six hours per template name: this runs once per
+   notice, and the answer changes in days, not minutes. Returns null when it
+   cannot tell. */
+const CATEGORY_TTL_MS = 6 * 60 * 60 * 1000;
+const categoryCache = new Map();
+
+async function templateCategory(name, languageCode) {
+  if (!TOKEN || !WABA_ID || !name) return null;
+  const hit = categoryCache.get(name);
+  if (!hit || Date.now() - hit.at > CATEGORY_TTL_MS) {
+    const body = await graph(
+      `${WABA_ID}/message_templates?name=${encodeURIComponent(name)}&fields=name,language,category,status&limit=100`,
+      { method: 'GET' }
+    );
+    const byLanguage = {};
+    // Meta's name filter also matches longer names, so keep exact matches only.
+    (body.data || []).filter((t) => t.name === name).forEach((t) => {
+      byLanguage[t.language] = { category: t.category, status: t.status };
+    });
+    categoryCache.set(name, { at: Date.now(), byLanguage });
+  }
+  const entry = categoryCache.get(name).byLanguage[languageCode];
+  return entry ? entry.category : null;
+}
+
 /* ─── Reactions ──────────────────────────────────────────────────────────────
    Impossible until Aug 25 2026 and worth saying why. A reaction has to name the
    message it is reacting to, using WhatsApp's own id (`wamid.…`). Twilio's
@@ -451,6 +484,6 @@ async function sendVoiceNoteFile(toPhone, audioFilePath) {
 module.exports = {
   enabled, inbound, outbound, APP_SECRET, GRAPH_VERSION, AUDIO_MIME, PHONE_NUMBER_ID, WABA_ID,
   toE164, uploadAudio, sendVoiceNote, sendVoiceNoteFile, preflight,
-  sendText, markRead, downloadMedia, sendReaction, REACTION_EMOJI, sendTemplate, graph,
+  sendText, markRead, downloadMedia, sendReaction, REACTION_EMOJI, sendTemplate, templateCategory, graph,
   sendContactCard, selfPhoneNumber,
 };

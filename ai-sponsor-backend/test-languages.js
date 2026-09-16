@@ -122,6 +122,29 @@ function crisisPattern(file, endMark) {
   await language.sendTemplateIn(mc(null), 'to', 'weekly_review', 'ja', paramsFor);
   check('a language with no translated templates goes straight to English', calls.map((c) => c.code), ['en_US']);
 
+  group('a message that must arrive never rides a MARKETING translation (Mariam, Sep 17)');
+  const withCategory = (category, fail) => {
+    const m = mc(null);
+    m.templateCategory = async (n, code) => { if (fail) throw new Error('Meta 500'); return typeof category === 'function' ? category(code) : category; };
+    return m;
+  };
+  calls.length = 0;
+  await language.sendTemplateIn(withCategory('UTILITY'), 'to', 'trial_ending', 'ru', paramsFor, null, { mustArrive: true });
+  check('a translation Meta kept as UTILITY is used', calls.map((c) => c.code), ['ru']);
+  calls.length = 0;
+  await language.sendTemplateIn(withCategory('MARKETING'), 'to', 'trial_ending', 'es', paramsFor, null, { mustArrive: true });
+  check('a translation Meta moved to MARKETING sends the English instead, with English variables',
+    calls, [{ name: 'trial_ending', params: ['there', '29 September'], code: 'en_US' }]);
+  calls.length = 0;
+  await language.sendTemplateIn(withCategory(null, true), 'to', 'trial_ending', 'de', paramsFor, null, { mustArrive: true });
+  check('when the category cannot be read, English goes', calls.map((c) => c.code), ['en_US']);
+  calls.length = 0;
+  await language.sendTemplateIn(mc(null), 'to', 'trial_ending', 'fr', paramsFor, null, { mustArrive: true });
+  check('a sender that cannot tell categories sends English', calls.map((c) => c.code), ['en_US']);
+  calls.length = 0;
+  await language.sendTemplateIn(withCategory('MARKETING'), 'to', 'weekly_review_quiet', 'es', paramsFor);
+  check('messages that do not have to arrive are unchanged: the translation is still used', calls.map((c) => c.code), ['es']);
+
   group('English is untouched');
   const trial = require('./trialnotice');
   check('the English trial notice has its old wording',

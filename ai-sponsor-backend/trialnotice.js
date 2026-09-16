@@ -79,7 +79,11 @@ async function sendTemplate({ metacloud, phone, first, trialEndUnix, lang, token
       TRIAL_ENDING_TEMPLATE,
       lang,
       (l) => [String(first || '').trim() || copy.SERVICE_NAME_FALLBACK[l], formatTrialEnd(trialEndUnix, l)],
-      `${token}#plan`
+      `${token}#plan`,
+      /* Everyone gets this one, whatever their language (Mariam, Sep 17): a
+         translation Meta moved to MARKETING would not reach a US number, so
+         that person gets the English instead. See language.sendTemplateIn. */
+      { mustArrive: true }
     );
     return true;
   } catch (err) {
