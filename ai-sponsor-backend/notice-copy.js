@@ -315,6 +315,16 @@ function weeklyBody(lang, tone, { first, link }) {
    template, so that the notice reaches everyone, US numbers included. Plain on
    purpose: no tone, no persuasion, just the update and the button. English is
    in weekly.js. Must match what Meta holds, word for word. */
+/* weekly_summary_ready. The same notice again, drier still, for the three
+   languages where both earlier wordings came back as MARKETING (Sep 17). Kept
+   here with the others so the approved wording can be read without opening
+   WhatsApp Manager. */
+const WEEKLY_SUMMARY_READY = {
+  fr: { template: 'Bonjour {{1}}, votre récapitulatif hebdomadaire est disponible sur la page de votre compte. Ouvrez-le avec le bouton ci-dessous.', button: 'Voir le récapitulatif' },
+  it: { template: 'Ciao {{1}}, il tuo riepilogo settimanale è disponibile nella pagina del tuo account. Aprilo con il pulsante qui sotto.', button: 'Vedi il riepilogo' },
+  ru: { template: 'Здравствуйте, {{1}}. Ваш еженедельный отчёт доступен на странице вашего аккаунта. Откройте его по кнопке ниже.', button: 'Открыть отчёт' },
+};
+
 const WEEKLY_READY = {
   es: { template: 'Hola {{1}}, tu nota semanal de AI Sponsor está lista. Puedes leerla en la página de tu cuenta con el botón de abajo.', button: 'Ver tu semana' },
   fr: { template: 'Bonjour {{1}}, votre note de la semaine AI Sponsor est prête. Vous pouvez la lire sur la page de votre compte avec le bouton ci-dessous.', button: 'Voir votre semaine' },
@@ -398,6 +408,6 @@ function checkinBody(lang, first) {
 
 module.exports = {
   SERVICE_NAME_FALLBACK, SPONSOR_NAME_FALLBACK,
-  OPENER, LEAVING, TRIAL, WEEKLY, WEEKLY_READY, QUIET_CARD, CHECKIN, CHECKIN_REQUESTED,
+  OPENER, LEAVING, TRIAL, WEEKLY, WEEKLY_READY, WEEKLY_SUMMARY_READY, QUIET_CARD, CHECKIN, CHECKIN_REQUESTED,
   leavingBody, trialBody, weeklyBody, checkinBody,
 };

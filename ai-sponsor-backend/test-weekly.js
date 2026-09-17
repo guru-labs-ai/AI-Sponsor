@@ -210,7 +210,10 @@ check('the quiet card only mentions score to disclaim it',
      nameless greeting comes from SERVICE_NAME_FALLBACK; the tone templates keep
      the sponsor's. Both have to be non-empty in every language. */
   check('a nameless person still gets a greeting Meta will accept',
-    wk.includes('first || (n === WEEKLY_READY_TEMPLATE ? copy.SERVICE_NAME_FALLBACK[l] : copy.SPONSOR_NAME_FALLBACK[l])') &&
+    /* Both plain notices speak as the service, so a missing name gets the
+       service greeting; the tone templates speak as the sponsor. */
+    wk.includes('n === WEEKLY_READY_TEMPLATE || n === WEEKLY_SUMMARY_TEMPLATE') &&
+    wk.includes('copy.SERVICE_NAME_FALLBACK[l]') && wk.includes('copy.SPONSOR_NAME_FALLBACK[l]') &&
     fallbacks.en === 'there' && serviceFallbacks.en === 'there' &&
     require('./language').NOTICE_LANGUAGES.every((l) =>
       String(fallbacks[l] || '').trim().length > 0 && String(serviceFallbacks[l] || '').trim().length > 0), true);
