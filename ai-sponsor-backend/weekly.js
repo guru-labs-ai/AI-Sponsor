@@ -526,7 +526,13 @@ async function deliverTemplate(phone, payload, theirName, token, lang = 'en') {
     const sent = await language.sendTemplateIn(metacloud, `whatsapp:${phone}`, name, lang,
       (l, n) => [first || (n === WEEKLY_READY_TEMPLATE ? copy.SERVICE_NAME_FALLBACK[l] : copy.SPONSOR_NAME_FALLBACK[l])],
       `${token}#week`,
-      { mustArrive: true, alsoTry: [WEEKLY_READY_TEMPLATE] });
+      /* Meta's answer, Sep 17: it kept weekly_note_ready as UTILITY only in
+         German and Portuguese, but weekly_review, the everyday wording, is
+         UTILITY in English and Spanish. So that is the last thing tried, and
+         between the three every reader gets something that is delivered: the
+         plain notice in German and Portuguese, the everyday wording in Spanish,
+         and the English everyday wording for the rest. */
+      { mustArrive: true, alsoTry: [WEEKLY_READY_TEMPLATE, WEEKLY_TEMPLATES.good] });
     console.log(`[weekly] delivered via template${sent && sent.messageId ? ' ' + sent.messageId : ''} (tone ${payload.tone || 'good'}, ${lang})`);
     return true;
   } catch (err) {

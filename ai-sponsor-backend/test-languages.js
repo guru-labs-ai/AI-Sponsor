@@ -181,21 +181,22 @@ function crisisPattern(file, endMark) {
 
   group('the weekly note reaches everyone in their language (Mariam, Sep 17)');
   // What Meta holds on Sep 17, plus the plain notice once approved.
+  const U = { category: 'UTILITY', status: 'APPROVED' };
+  const M = { category: 'MARKETING', status: 'APPROVED' };
+  // Exactly what Meta decided, read back from the WABA on Sep 17.
   const meta = {
-    'weekly_review_hard|de': { category: 'MARKETING', status: 'APPROVED' },
-    'weekly_review_hard|en_US': { category: 'MARKETING', status: 'APPROVED' },
-    'weekly_review|es': { category: 'UTILITY', status: 'APPROVED' },
-    'weekly_review|de': { category: 'MARKETING', status: 'APPROVED' },
-    'weekly_review|en_US': { category: 'UTILITY', status: 'APPROVED' },
-    'weekly_note_ready|de': { category: 'UTILITY', status: 'APPROVED' },
-    'weekly_note_ready|es': { category: 'UTILITY', status: 'APPROVED' },
-    'weekly_note_ready|en_US': { category: 'UTILITY', status: 'APPROVED' },
+    'weekly_review_hard|de': M, 'weekly_review_hard|en_US': M, 'weekly_review_hard|fr': M,
+    'weekly_review|en_US': U, 'weekly_review|es': U,
+    'weekly_review|de': M, 'weekly_review|fr': M, 'weekly_review|it': M, 'weekly_review|ru': M,
+    'weekly_note_ready|de': U, 'weekly_note_ready|pt_BR': U,
+    'weekly_note_ready|en_US': M, 'weekly_note_ready|es': M, 'weekly_note_ready|fr': M,
+    'weekly_note_ready|it': M, 'weekly_note_ready|ru': M,
   };
   const weekly = (lang, name, table = meta) => {
     calls.length = 0;
     return language.sendTemplateIn(withInfo(table), 'to', name, lang,
       (l, n) => [n === 'weekly_note_ready' ? copy.SERVICE_NAME_FALLBACK[l] : copy.SPONSOR_NAME_FALLBACK[l]],
-      'tok#week', { mustArrive: true, alsoTry: ['weekly_note_ready'] })
+      'tok#week', { mustArrive: true, alsoTry: ['weekly_note_ready', 'weekly_review'] })
       .then(() => calls.map((c) => [c.name, c.code, c.params[0]]));
   };
   check('German, hard week: the tone template is MARKETING, so the plain notice goes, in German',
@@ -204,14 +205,20 @@ function crisisPattern(file, endMark) {
     await weekly('es', 'weekly_review'), [['weekly_review', 'es', 'a ti']]);
   check('English, good week: unchanged, weekly_review',
     await weekly('en', 'weekly_review'), [['weekly_review', 'en_US', 'there']]);
-  check('English, hard week: the plain notice, which reaches a US number',
-    await weekly('en', 'weekly_review_hard'), [['weekly_note_ready', 'en_US', 'there']]);
-  const beforeApproval = Object.assign({}, meta, {
+  check('English, hard week: the everyday English wording, which reaches a US number',
+    await weekly('en', 'weekly_review_hard'), [['weekly_review', 'en_US', 'there']]);
+  check('French, hard week: nothing French is UTILITY, so the English everyday wording goes',
+    await weekly('fr', 'weekly_review_hard'), [['weekly_review', 'en_US', 'there']]);
+  /* Nothing approved as UTILITY anywhere: the last resort is what was sent
+     before any of this, so a stalled review never costs somebody their note. */
+  const nothingUtility = {
+    'weekly_review_hard|de': M, 'weekly_review_hard|en_US': M,
+    'weekly_review|de': M, 'weekly_review|en_US': M,
     'weekly_note_ready|de': { category: 'UTILITY', status: 'PENDING' },
     'weekly_note_ready|en_US': { category: 'UTILITY', status: 'PENDING' },
-  });
-  check('German, hard week, before Meta approves the notice: exactly what was sent before',
-    await weekly('de', 'weekly_review_hard', beforeApproval), [['weekly_review_hard', 'en_US', 'there']]);
+  };
+  check('nothing approved as UTILITY: exactly what was sent before',
+    await weekly('de', 'weekly_review_hard', nothingUtility), [['weekly_review_hard', 'en_US', 'there']]);
   check('the service notice greets a nameless French reader as the service does',
     copy.SERVICE_NAME_FALLBACK.fr, 'à vous');
 
