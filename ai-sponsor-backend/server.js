@@ -2277,51 +2277,83 @@ app.get('/api/sponsor-settings', async (req, res) => {
   if (!userId) {
     return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
   }
-  const profile = (await db.getProfile(userId).catch(() => null)) || {};
-  const user = (await db.getUser(userId).catch(() => null)) || {};
-  const stats = (await db.getPersonStats(userId).catch(() => null)) || {};
-  const days = stats.daysHere || null;
 
-  /* Read-only, and fast. If the last closed week has no summary yet we say so
-     and let the page fetch it from the endpoint that is allowed to take its
-     time, rather than making everybody wait on a model call. */
+  /* All independent DB reads run in parallel. Previously these were sequential
+     awaits — up to 8 round-trips to Postgres one-after-another. On Render's
+     free tier a cold pool reconnect on each query easily pushed total latency
+     past the browser's fetch timeout, which showed up on WhatsApp as "timed
+     out" when tapping the settings link. Running them together cuts wall time
+     to roughly the slowest single query. */
   const lastWeek = weekly.lastCompletedWeek();
-  const [latestWeek, weeks] = await Promise.all([
+  const [
+    profile,
+    user,
+    stats,
+    latestWeek,
+    weeks,
+    deletion_,
+    privacyNoticeSeen,
+    lang,
+  ] = await Promise.all([
+    db.getProfile(userId).catch(() => null),
+    db.getUser(userId).catch(() => null),
+    db.getPersonStats(userId).catch(() => null),
     db.getWeeklySummary(userId).catch(() => null),
     db.listWeeklySummaries(userId).catch(() => []),
+    db.getDeletionRequest(userId).catch(() => null),
+    db.hasEvent(userId, 'privacy_notice_seen').catch(() => true),
+    language.languageOf(db, userId).catch(() => null),
   ]);
+
+  const profileData = profile || {};
+  const userData    = user    || {};
+  const statsData   = stats   || {};
   const weekPending = !(weeks || []).some((w) => w.start === lastWeek.start);
 
+  /* Stripe is an external API call on top of everything above. Cap it at 4 s
+     so a slow or unresponsive Stripe never holds up the whole page load — the
+     plan pane is the last thing most people look at, and a null there is safe:
+     the page shows nothing rather than hanging. */
+  const billing = await (async () => {
+    const subscriptionId = await subscriptionForPerson(userId, userData).catch(() => null);
+    if (!subscriptionId) return null;
+    const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 4000));
+    return Promise.race([
+      stripeModule.getSubscriptionSummary(subscriptionId).catch(() => null),
+      timeout,
+    ]);
+  })();
+
   res.json({
-    sponsorName: profile.sponsorName || '',
-    sponsorVoice: profile.sponsorVoice || '',
+    sponsorName: profileData.sponsorName || '',
+    sponsorVoice: profileData.sponsorVoice || '',
     voices: voices.VOICES,
     defaultVoice: voices.DEFAULT_VOICE,
     /* The language their sponsor talks to them in. The page shows itself in it
        and offers to change it. Read across identities, like the automatic
        messages do, so the page and the weekly note never disagree. */
-    language: await language.languageOf(db, userId),
+    language: lang,
     languages: language.SUPPORTED,
     /* Check-ins on request (Mariam, Sep 17). The switch is only offered while
        the feature is on, because a switch for something that never happens is
        a promise nobody keeps. */
-    checkins: { available: checkin.enabled, on: checkin.wantsCheckins(profile) },
+    checkins: { available: checkin.enabled, on: checkin.wantsCheckins(profileData) },
     // Shown read-only, so somebody can see what their sponsor actually knows
     // about them rather than having to ask it.
     you: {
-      name: profile.name || user.name || '',
-      program: profile.program || user.program || '',
-      stage: profile.stage || user.stage || '',
-      days,
-      hasEmail: !!(user.email && user.email.trim()),
+      name: profileData.name || userData.name || '',
+      program: profileData.program || userData.program || '',
+      stage: profileData.stage || userData.stage || '',
+      days: statsData.daysHere || null,
+      hasEmail: !!(userData.email && userData.email.trim()),
     },
     // Their own numbers, for the overview. Counts only, never content.
     stats: {
-      daysHere: stats.daysHere || null,
-      joined: stats.joined || null,
-      messages: stats.messages || 0,
-      activeDays: stats.activeDays || 0,
-      lastActive: stats.lastActive || null,
+      daysHere: statsData.daysHere || null,
+      joined: statsData.joined || null,
+      messages: statsData.messages || 0,
+      activeDays: statsData.activeDays || 0,
+      lastActive: statsData.lastActive || null,
     },
     /* The weekly review, if one has been written. Deliberately only READ here:
        generating it means an Opus call taking several seconds, and blocking the
@@ -2334,24 +2366,20 @@ app.get('/api/sponsor-settings', async (req, res) => {
     weekPending,
     /* So the Deactivate pane can show a real state instead of the button they
        already pressed. Null for almost everybody. */
-    deletion: await db.getDeletionRequest(userId).catch(() => null),
+    deletion: deletion_,
     /* Whether anything will actually happen on that date. The page must not
        promise a day the sweep is not running to honour. */
     deletionAutomatic: deletion.enabled,
     /* Whether they have already been shown the privacy notice. One event per
        person, so it appears once and then never nags. */
-    privacyNoticeSeen: await db.hasEvent(userId, 'privacy_notice_seen').catch(() => true),
+    privacyNoticeSeen,
     /* What the plan pane shows. Null for almost everybody, because almost
        everybody is on a beta code and no Stripe call is made for them at all.
        This exists because the "your trial ends in three days" message links
        straight here promising a way to stop the charge, and until now there was
        no such page: the link fell back to the overview and the person was told
        they could stop something they then could not find. */
-    billing: await (async () => {
-      const subscriptionId = await subscriptionForPerson(userId, user);
-      if (!subscriptionId) return null;
-      return stripeModule.getSubscriptionSummary(subscriptionId);
-    })(),
+    billing,
   });
 });
 
