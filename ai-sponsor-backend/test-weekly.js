@@ -22,37 +22,45 @@ function check(name, actual, expected) {
 /* ── The window ───────────────────────────────────────────────────────────── */
 const wk = (iso) => w.lastCompletedWeek(new Date(iso));
 
-check('Tuesday reports the week that closed on Sunday',
-  wk('2026-08-18T10:00:00Z'), { start: '2026-08-10', end: '2026-08-16' });
+/* ⭐ THE WEEK RUNS SUNDAY TO SATURDAY, and these tests said Monday to Sunday
+   until Sep 17. The window moved when Matt moved delivery from Monday to
+   Sunday morning (see lastCompletedWeek in weekly.js): a note sent on Sunday
+   morning has to describe the week that ended on Saturday night, because the
+   Sunday it is sent on has not happened yet. The tests were simply left
+   behind, and read as six failures for weeks. */
+check('Tuesday reports the week that closed on Saturday',
+  wk('2026-08-18T10:00:00Z'), { start: '2026-08-09', end: '2026-08-15' });
 
-check('Monday 00:00:01, the week is available the instant it closes',
-  wk('2026-08-17T00:00:01Z'), { start: '2026-08-10', end: '2026-08-16' });
+/* The note goes out on Sunday morning, so the week it describes has to be
+   ready the moment Sunday begins. */
+check('Sunday 00:00:01, the week is available the instant it closes',
+  wk('2026-08-16T00:00:01Z'), { start: '2026-08-09', end: '2026-08-15' });
 
-/* The one that would be easy to get wrong: on Sunday the current week has NOT
+/* The one that would be easy to get wrong: on Saturday the current week has NOT
    closed, so the answer must still be the week before. A summary of a week that
-   is still happening would be wrong by Monday and would have to be rewritten,
+   is still happening would be wrong by Sunday and would have to be rewritten,
    which breaks the "the row either exists or it doesn't" model entirely. */
-check('Sunday 23:59 still reports the PREVIOUS week, not the one in progress',
-  wk('2026-08-16T23:59:59Z'), { start: '2026-08-03', end: '2026-08-09' });
+check('Saturday 23:59 still reports the PREVIOUS week, not the one about to close',
+  wk('2026-08-15T23:59:59Z'), { start: '2026-08-02', end: '2026-08-08' });
 
-check('a week late still names the same window (sleeping instance catches up)',
-  wk('2026-08-23T23:59:59Z'), { start: '2026-08-10', end: '2026-08-16' });
+check('every day of the week names the same window (sleeping instance catches up)',
+  wk('2026-08-22T23:59:59Z'), { start: '2026-08-09', end: '2026-08-15' });
 
 check('crossing into a new year', wk('2026-01-01T12:00:00Z'),
-  { start: '2025-12-22', end: '2025-12-28' });
+  { start: '2025-12-21', end: '2025-12-27' });
 
-// Every window must be Monday..Sunday, checked across a full year of dates
+// Every window must be Sunday..Saturday, checked across a full year of dates
 // rather than the handful above.
 let badShape = 0;
 for (let i = 0; i < 400; i++) {
   const d = new Date(Date.UTC(2026, 0, 1) + i * 86400000);
   const r = w.lastCompletedWeek(d);
   const s = new Date(r.start + 'T00:00:00Z'), e = new Date(r.end + 'T00:00:00Z');
-  if (s.getUTCDay() !== 1 || e.getUTCDay() !== 0) badShape++;
+  if (s.getUTCDay() !== 0 || e.getUTCDay() !== 6) badShape++;
   if ((e - s) / 86400000 !== 6) badShape++;
   if (e >= d) badShape++; // never describes a day that hasn't finished
 }
-check('400 consecutive days all give a closed Mon..Sun window', badShape, 0);
+check('400 consecutive days all give a closed Sun..Sat window', badShape, 0);
 
 /* ── Model output ─────────────────────────────────────────────────────────── */
 const good = JSON.stringify({
