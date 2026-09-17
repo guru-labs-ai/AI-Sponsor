@@ -62,7 +62,7 @@ function formatDay(value, lang = 'en') {
    treats null as "carry on exactly as before this existed". */
 let client = null;
 
-async function readMessage(text) {
+async function readMessage(text, opts = {}) {
   const t = String(text || '').trim();
   if (!t || !process.env.ANTHROPIC_API_KEY) return null;
   if (!client) {
@@ -72,7 +72,7 @@ async function readMessage(text) {
   try {
     const res = await client.beta.messages.create({
       model: 'claude-opus-5',
-      max_tokens: 128,
+      max_tokens: 160,
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
       thinking: { type: 'disabled' },
@@ -87,8 +87,9 @@ async function readMessage(text) {
               asksForVoice: { type: 'boolean' },
               asksForTextOnly: { type: 'boolean' },
               asksForLanguage: { type: 'string', enum: [...SUPPORTED, 'other', 'none'] },
+              checkins: { type: 'string', enum: ['start', 'stop', 'none'] },
             },
-            required: ['language', 'asksForVoice', 'asksForTextOnly', 'asksForLanguage'],
+            required: ['language', 'asksForVoice', 'asksForTextOnly', 'asksForLanguage', 'checkins'],
             additionalProperties: false,
           },
         },
@@ -99,7 +100,14 @@ async function readMessage(text) {
         'asksForVoice: true only if they are asking to be sent a voice note or audio, or to hear the sponsor speak. Saying they sent one, or asking for something else, is false.',
         'asksForTextOnly: true only if they are asking the sponsor to stop sending voice notes or to only write to them.',
         'asksForLanguage: the code of the language they are asking the sponsor to talk to them in from now on, whatever language the request itself is written in. "Can we talk in English?" and "¿Me puedes escribir en inglés?" are both "en". "other" if they ask for a language not in the list. "none" if they are not asking to change language: mentioning a language, saying they speak it, or asking what a word means is "none".',
-      ].join('\n'),
+        'checkins: "start" only if they ask the sponsor to message them or check in on them when they go quiet for a while. "stop" only if they ask the sponsor to stop those check-ins or not to message them first. Otherwise "none": talking about check-ins, meetings or other people checking in on them is "none".',
+        /* Mariam, Sep 17: the sponsor offers check-ins once. The answer to that
+           offer is usually a bare "yes please", which means nothing without
+           the question, so the question is given as context. */
+        opts.checkinOffered
+          ? 'Context: the sponsor\'s previous message offered to send them a message if it has not heard from them for a few days. A reply that accepts that ("yes please", "sure", "that would help") is "start". One that declines ("no thanks", "I\'m fine") is "stop". A reply that does not answer it is "none".'
+          : '',
+      ].filter(Boolean).join('\n'),
       messages: [{ role: 'user', content: t }],
     });
     if (res.stop_reason !== 'end_turn') return null;
@@ -110,6 +118,7 @@ async function readMessage(text) {
       asksForVoice: out.asksForVoice === true,
       asksForTextOnly: out.asksForTextOnly === true,
       asksForLanguage: out.asksForLanguage || 'none',
+      checkins: out.checkins || 'none',
     };
   } catch (e) {
     console.warn('[language] could not read message, carrying on without it:', e.message);
@@ -224,14 +233,14 @@ async function askedLanguageOf(db, userId, fallbackProfile) {
   return null;
 }
 
-async function noteLanguage(db, userId, text, profile) {
+async function noteLanguage(db, userId, text, profile, readOpts = {}) {
   /* The language the automatic messages would use right now, read across
      every identity. Not just the row passed in: somebody who registered in
      German on the website can have 'de' on their reg- row and nothing on their
      wa- row, and deciding from the wa- row alone would see English, see
      nothing to change, and leave the weekly note in German. */
   const [read, known, asked] = await Promise.all([
-    readMessage(text), languageOf(db, userId), askedLanguageOf(db, userId, profile),
+    readMessage(text, readOpts), languageOf(db, userId), askedLanguageOf(db, userId, profile),
   ]);
   const before = { language: known, languageAsked: asked };
   const next = decideLanguage(read, text, before);

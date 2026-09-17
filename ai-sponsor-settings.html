@@ -345,6 +345,20 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
       <button class="btn" id="btn-lang" onclick="saveLanguage()">Save language</button>
     </div>
 
+    <!-- Check-ins are on request (Mariam, Sep 17). Hidden unless the feature is
+         switched on: a switch for something that never happens is a promise
+         nobody keeps. Saves the moment it is flipped. -->
+    <div class="card plain" id="checkinCard" style="display:none">
+      <h2>Check-ins</h2>
+      <p class="note">If you go quiet for a few days, your sponsor sends you one message to see how you are. Only if you want it.</p>
+      <div class="msg err" id="errCheckin"></div>
+      <div class="msg ok" id="okCheckin"></div>
+      <label for="f-checkins" style="display:flex;align-items:center;gap:12px;font-size:15px;cursor:pointer;min-height:44px">
+        <input type="checkbox" id="f-checkins" onchange="saveCheckins()" style="width:22px;height:22px;flex:0 0 auto;accent-color:var(--blue)">
+        <span>Check in on me if I go quiet</span>
+      </label>
+    </div>
+
     </div>
 
     <!-- Support -->
@@ -537,6 +551,7 @@ async function load(){
        built below come out in their language. */
     if (window.AIS_USE_LANG && data.language) window.AIS_USE_LANG(data.language);
     renderLanguage(data.language || 'en', data.languages);
+    renderCheckins(data.checkins);
     VOICES = data.voices || [];
     selectedVoice = data.sponsorVoice || '';
     $('f-name').value = data.sponsorName || '';
@@ -814,6 +829,32 @@ function renderLanguage(current, available){
     sel.appendChild(o);
   });
   sel.dataset.current = current;
+}
+
+/* The check-in switch. Shown only while check-ins are switched on. */
+function renderCheckins(c){
+  const card = $('checkinCard');
+  if (!card) return;
+  if (!c || !c.available) { card.style.display = 'none'; return; }
+  card.style.display = '';
+  $('f-checkins').checked = !!c.on;
+}
+
+async function saveCheckins(){
+  const box = $('f-checkins'), on = box.checked;
+  clearFlash('errCheckin','okCheckin');
+  box.disabled = true;
+  try{
+    await api('/api/sponsor-settings/checkins', { on });
+    flash('okCheckin', on
+      ? 'Saved. Your sponsor will check in if you go quiet for a few days.'
+      : 'Saved. Your sponsor will not message you first.');
+  }catch(e){
+    // Put the switch back where it really is.
+    box.checked = !on;
+    flash('errCheckin', e.message);
+  }
+  box.disabled = false;
 }
 
 async function saveLanguage(){

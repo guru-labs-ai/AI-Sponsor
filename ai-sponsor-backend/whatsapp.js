@@ -1187,7 +1187,15 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
          they ask for a language rather than just writing in it, that request is
          kept and handed to the reply as replyLanguage, so asking for English in
          German is not undone by their next German message. See noteLanguage. */
-      const { read, replyLanguage } = await language.noteLanguage(db, userId, userMessageText, profile);
+      /* The same read also says whether they want check-ins (Mariam, Sep 17:
+         check-ins are on request). If the sponsor offered them last time and
+         they have not answered yet, the offer is given as context, because the
+         answer is usually just "yes please". */
+      const checkinOfferWaiting = !!(profile && profile.checkinOffered &&
+        profile.checkinOptIn !== true && profile.checkinOptIn !== false);
+      const { read, replyLanguage } = await language.noteLanguage(db, userId, userMessageText, profile,
+        { checkinOffered: checkinOfferWaiting });
+      await require('./checkin').noteWish(db, userId, read, profile);
       const notEnglish = !!read && read.language !== 'en' && read.language !== 'unclear';
 
       /* Voice in, voice back. Asked for, voice back. Otherwise text, unless the

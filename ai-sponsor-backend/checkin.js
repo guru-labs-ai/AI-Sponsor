@@ -31,7 +31,77 @@ const copy = require('./notice-copy');   // the check-in in six other languages
 
 const ON = String(process.env.QUIET_CHECKIN || '').toLowerCase() === 'on';
 const QUIET_DAYS = Math.max(1, parseInt(process.env.QUIET_CHECKIN_DAYS, 10) || 5);
-const TEMPLATE = 'quiet_checkin';
+
+/* ── Check-ins are on request (Mariam, Sep 17) ───────────────────────────────
+   A check-in nobody asked for is MARKETING by Meta's rules, and WhatsApp does
+   not deliver MARKETING to US numbers, which is most of the people here. So
+   the check-in is now something a person asks for: their sponsor offers once
+   in chat, they can ask for it or stop it in their own words any time, and
+   there is a switch on the settings page. Only people who said yes are ever
+   checked in on, and the message says it is the check-in they asked for, which
+   is what lets it be a UTILITY template that reaches every number.
+
+   The old unrequested quiet_checkin template stays on the WABA, unused. */
+const TEMPLATE = 'checkin_requested';
+const CHECKIN_REQUESTED_EN = "Hi {{1}}, you asked me to check in if I hadn't heard from you for a few days, so here I am. Reply whenever you want to talk. You can turn check-ins off on your settings page.";
+
+/* The offer comes once there is some real conversation to stand on, never in
+   the first few messages. */
+const OFFER_AFTER_MESSAGES = 10;
+
+/* Whether this person has said yes. Stored on every identity they hold. */
+function wantsCheckins(profile) {
+  return !!(profile && profile.checkinOptIn === true);
+}
+
+/* Whether the sponsor should offer check-ins in this reply. Only while the
+   feature is switched on (an offer nobody can honour is a broken promise),
+   only if they have never answered and never been offered, and only once the
+   conversation has some history. The prompt decides whether this particular
+   moment is calm enough; this decides whether it is allowed at all. */
+function offerDue(profile, historyLength) {
+  if (!ON || !profile) return false;
+  if (profile.checkinOptIn === true || profile.checkinOptIn === false) return false;
+  if (profile.checkinOffered) return false;
+  return (historyLength || 0) >= OFFER_AFTER_MESSAGES;
+}
+
+async function saveToEveryIdentity(dbh, userId, change) {
+  const ids = dbh.findAllIdentities ? await dbh.findAllIdentities(userId) : [userId];
+  await Promise.all(ids.map((id) => dbh.saveProfile(id, change)));
+  return ids;
+}
+
+/* Yes or no, from wherever it came: an answer in chat, a request in their own
+   words, or the settings switch. Written to every identity and recorded as an
+   event, so there is a record of who asked for these and when. */
+async function setWish(dbh, userId, on, source) {
+  await saveToEveryIdentity(dbh, userId, { checkinOptIn: !!on, checkinOptInAt: new Date().toISOString() });
+  await dbh.recordEvent(userId, on ? 'checkin_opt_in' : 'checkin_opt_out', { source }, 'checkin')
+    .catch((e) => console.error('[checkin] recordEvent failed:', e.message));
+  console.log(`[checkin] ${userId} ${on ? 'wants' : 'does not want'} check-ins (${source})`);
+}
+
+/* The sponsor just asked. Recorded so it never asks again. */
+async function recordOffer(dbh, userId) {
+  await saveToEveryIdentity(dbh, userId, { checkinOffered: new Date().toISOString() });
+}
+
+/* What their message said about check-ins (language.readMessage reads it, with
+   the offer as context when one is waiting for an answer). Only a change is
+   written. Never throws: a missed yes costs one check-in, not the reply. */
+async function noteWish(dbh, userId, read, profile) {
+  try {
+    if (!read || !read.checkins || read.checkins === 'none') return null;
+    const on = read.checkins === 'start';
+    if (profile && profile.checkinOptIn === on) return null;
+    await setWish(dbh, userId, on, 'chat');
+    return on;
+  } catch (e) {
+    console.warn('[checkin] could not save the check-in wish:', e.message);
+    return null;
+  }
+}
 
 /* How far from their usual hour we will still send. Three either side of the
    hour they normally write turns a 24-hour window into about a seven-hour one,
@@ -53,11 +123,9 @@ function firstName(name) {
 /* Kept in one place because it is both the message and the thing Meta approves.
    If this wording changes the template has to be resubmitted, not edited here. */
 function checkinText(name, lang = 'en') {
-  if (lang !== 'en' && copy.CHECKIN[lang]) return copy.checkinBody(lang, firstName(name));
-  const hi = firstName(name);
-  return hi
-    ? `Hi ${hi}, it has been a few days. No agenda, I just wanted to see how you are.`
-    : `It has been a few days. No agenda, I just wanted to see how you are.`;
+  const hi = firstName(name) || copy.SPONSOR_NAME_FALLBACK[lang] || copy.SPONSOR_NAME_FALLBACK.en;
+  const t = lang !== 'en' && copy.CHECKIN_REQUESTED[lang] ? copy.CHECKIN_REQUESTED[lang].template : CHECKIN_REQUESTED_EN;
+  return t.replace('{{1}}', hi);
 }
 
 /* Resolved here rather than handed in from server.js, which does not hold a
@@ -74,13 +142,21 @@ async function runCheckinSweep({ limit = 3, whatsapp = null, metacloud, now = ne
   if (!db.enabled) return { ok: false, reason: 'no-db' };
   const sender = resolveSender(metacloud);
 
-  /* Mariam, Sep 17: people get it in their own language, safely. The check-in
-     is approved in all seven languages, but as MARKETING, which WhatsApp does
-     not deliver to US numbers, so those are left out rather than sent into
-     nothing (see db.quietCheckinCandidates). It cannot honestly be a UTILITY
-     template: a "how are you" nobody asked for is marketing by Meta's rules. */
-  const people = await db.quietCheckinCandidates({ quietDays: QUIET_DAYS, limit, excludeUsNumbers: true })
-    .catch((e) => { console.error('[checkin] candidate query failed:', e.message); return []; });
+  /* Only people who asked for check-ins. US numbers are included once Meta has
+     the English checkin_requested approved as UTILITY, which is the version
+     every reader can fall back to; until then they are left out rather than
+     sent into nothing, and left out in the query so they cannot starve the
+     queue (see db.quietCheckinCandidates). */
+  let englishIsUtility = false;
+  try {
+    const info = sender && sender.templateInfo ? await sender.templateInfo(TEMPLATE, 'en_US') : null;
+    englishIsUtility = !!(info && info.category === 'UTILITY' && info.status === 'APPROVED');
+  } catch (e) {
+    console.warn('[checkin] could not read the template category, leaving US numbers out:', e.message);
+  }
+  const people = await db.quietCheckinCandidates({
+    quietDays: QUIET_DAYS, limit, optedInOnly: true, excludeUsNumbers: !englishIsUtility,
+  }).catch((e) => { console.error('[checkin] candidate query failed:', e.message); return []; });
 
   const out = { considered: people.length, sent: 0, skippedHour: 0, failed: 0 };
   const nowHour = now.getUTCHours();
@@ -102,8 +178,15 @@ async function runCheckinSweep({ limit = 3, whatsapp = null, metacloud, now = ne
 
     try {
       const lang = language.noticeLanguage(await language.languageOf(db, p.user_id));
+      /* The button opens their settings page on the sponsor pane, where the
+         check-in switch is, so turning these off is one tap from the message. */
+      const token = db.getOrCreateSettingsToken ? await db.getOrCreateSettingsToken(p.user_id).catch(() => null) : null;
+      if (!token) { out.failed++; console.warn(`[checkin] no settings token for ${p.user_id}, not sending`); continue; }
+      /* mustArrive: their language where Meta has it as approved UTILITY,
+         otherwise the English, so a US number is never sent a translation Meta
+         moved to MARKETING. */
       await language.sendTemplateIn(sender, phone, TEMPLATE, lang,
-        (l) => [firstName(p.name) || copy.SPONSOR_NAME_FALLBACK[l]]);
+        (l) => [firstName(p.name) || copy.SPONSOR_NAME_FALLBACK[l]], `${token}#sponsor`, { mustArrive: true });
       /* Written AFTER the send. A row written first would silence this person
          for thirty days on a message that never left. */
       await db.recordEvent(p.user_id, 'quiet_checkin', { quietDays: QUIET_DAYS }, 'checkin')
@@ -137,4 +220,7 @@ function maybeSweep(whatsapp) {
     .catch((e) => console.error('[checkin] piggyback failed:', e.message));
 }
 
-module.exports = { runCheckinSweep, maybeSweep, checkinText, withinTheirHours, enabled: ON, TEMPLATE };
+module.exports = {
+  runCheckinSweep, maybeSweep, checkinText, withinTheirHours, enabled: ON, TEMPLATE,
+  CHECKIN_REQUESTED_EN, OFFER_AFTER_MESSAGES, wantsCheckins, offerDue, setWish, recordOffer, noteWish,
+};

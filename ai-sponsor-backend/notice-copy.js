@@ -377,6 +377,20 @@ const CHECKIN = {
     template: 'Привет, {{1}}. Прошло несколько дней. Ничего особенного, просто хотелось узнать, как ты.' },
 };
 
+/* ── The check-in they asked for (Mariam, Sep 17) ───────────────────────────
+   checkin_requested, submitted as UTILITY in all seven languages: check-ins
+   are on request, and the message says so. The sponsor talking, informal,
+   Russian without gendered past tense. English is in checkin.js. Must match
+   what Meta holds, word for word. */
+const CHECKIN_REQUESTED = {
+  es: { template: "Hola {{1}}, me pediste que te escribiera si pasaban unos días sin saber de ti, así que aquí estoy. Respóndeme cuando quieras hablar. Puedes desactivar estos mensajes en tus ajustes.", button: "Gestionar mensajes" },
+  fr: { template: "Salut {{1}}, tu m'as demandé de prendre de tes nouvelles si je n'avais pas de nouvelles de toi pendant quelques jours, alors me voilà. Réponds-moi quand tu veux parler. Tu peux désactiver ces messages dans tes réglages.", button: "Gérer ces messages" },
+  de: { template: "Hallo {{1}}, du hast mich gebeten, mich zu melden, wenn ich ein paar Tage nichts von dir höre, also bin ich hier. Antworte, wann immer du reden möchtest. Du kannst diese Nachrichten in deinen Einstellungen ausschalten.", button: "Nachrichten verwalten" },
+  it: { template: "Ciao {{1}}, mi avevi chiesto di scriverti se per qualche giorno non avessi avuto tue notizie, quindi eccomi. Rispondimi quando vuoi parlare. Puoi disattivare questi messaggi nelle tue impostazioni.", button: "Gestisci i messaggi" },
+  pt: { template: "Oi {{1}}, você me pediu para mandar mensagem se eu ficasse alguns dias sem notícias suas, então aqui estou. Me responda quando quiser conversar. Você pode desativar essas mensagens nas suas configurações.", button: "Gerenciar mensagens" },
+  ru: { template: "Привет, {{1}}. По твоей просьбе пишу, если несколько дней от тебя нет вестей. Я здесь, отвечай, когда захочешь поговорить. Эти сообщения можно отключить в настройках.", button: "Настроить сообщения" },
+};
+
 function checkinBody(lang, first) {
   const c = CHECKIN[lang];
   return first ? c.hi(first) + c.text : cap(c.text);
@@ -384,6 +398,6 @@ function checkinBody(lang, first) {
 
 module.exports = {
   SERVICE_NAME_FALLBACK, SPONSOR_NAME_FALLBACK,
-  OPENER, LEAVING, TRIAL, WEEKLY, WEEKLY_READY, QUIET_CARD, CHECKIN,
+  OPENER, LEAVING, TRIAL, WEEKLY, WEEKLY_READY, QUIET_CARD, CHECKIN, CHECKIN_REQUESTED,
   leavingBody, trialBody, weeklyBody, checkinBody,
 };

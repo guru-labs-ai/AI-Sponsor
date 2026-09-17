@@ -219,8 +219,9 @@ function crisisPattern(file, endMark) {
   const trial = require('./trialnotice');
   check('the English trial notice has its old wording',
     trial.trialEndingBody({ first: 'Lindsay', when: '29 September', link: 'L' }).startsWith('Lindsay, quick note about your account, not a message from your sponsor.'), true);
-  check('the English check-in has its old wording', require('./checkin').checkinText('Dara Nwosu'),
-    'Hi Dara, it has been a few days. No agenda, I just wanted to see how you are.');
+  /* Sep 17: check-ins are on request, and the message now says so. */
+  check('the English check-in is the one they asked for', require('./checkin').checkinText('Dara Nwosu'),
+    "Hi Dara, you asked me to check in if I hadn't heard from you for a few days, so here I am. Reply whenever you want to talk. You can turn check-ins off on your settings page.");
 
   group('reading a message never blocks anything');
   const saved = process.env.ANTHROPIC_API_KEY;

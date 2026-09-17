@@ -1047,6 +1047,24 @@ function correctFalseVoiceClaims(history) {
    function only reports what was asked for; it never decides anything. */
 const VOICE_MARKER = /\[\[\s*voice\s*\]\]/gi;
 
+/* ── Offering check-ins, once ─────────────────────────────────────────────────
+   Mariam, Sep 17: check-ins are on request. A check-in nobody asked for is
+   MARKETING by Meta's rules and never reaches a US number; one the person asked
+   for is a service they requested. So the sponsor asks, once, at a calm moment,
+   and marks the reply so the server can record that it asked and read the
+   answer with the question in mind. The marker is stripped exactly like
+   [[voice]] and for the same reasons. */
+const CHECKIN_OFFER_MARKER = /\[\[\s*checkin-offer\s*\]\]/gi;
+
+function buildCheckinOfferBlock() {
+  return [
+    '## OFFER TO CHECK IN ON THEM',
+    'You have never asked whether they would like you to check in on them if they go quiet. If this reply is a calm, natural moment for it, end the reply by asking once, in your own words and in the language you are writing in, whether they would like you to send them a message if you have not heard from them for a few days. Keep it short, make it easy to say no, and do not explain how it works.',
+    'Then put [[checkin-offer]] at the very end of the reply, after everything else. It is removed before they see it. Never mention it.',
+    'Do not ask in this reply if they are in crisis, have just told you something painful or frightening, are mid-way through something hard, or if it would interrupt what they need from you right now. In that case do not ask and do not add the marker; there will be a better moment.',
+  ].join('\n');
+}
+
 function stripVoiceMarker(raw) {
   const text = String(raw).replace(VOICE_MARKER, '').trim();
   return { wanted: text !== String(raw).trim(), text };
@@ -1733,6 +1751,18 @@ async function getSponsorReply(userId, message, context) {
   const languageBlock = buildLanguageBlock(replyLanguage);
   if (languageBlock) systemBlocks.push({ type: 'text', text: languageBlock });
 
+  /* Check-ins are on request (Mariam, Sep 17), so the sponsor offers them once.
+     WhatsApp only, since that is where a check-in arrives; never straight after
+     a question, because the offer is one; and decided on the profile as the
+     database has it, not the copy in memory, which does not see a yes given a
+     message ago. checkin.offerDue says whether it is allowed at all. */
+  let offerCheckins = false;
+  if (context && context.channel === 'whatsapp' && !askedLastTime && checkin.offerDue(profile, history.length)) {
+    const fresh = await db.getProfile(userId).catch(() => null);
+    offerCheckins = checkin.offerDue(fresh || profile, history.length);
+  }
+  if (offerCheckins) systemBlocks.push({ type: 'text', text: buildCheckinOfferBlock() });
+
   /* The window is sliding once there is more history than fits in it, which is
      the moment caching the conversation stops paying. See withCachedHistory. */
   const windowSliding = updatedHistory.length > RECENT_TURNS;
@@ -1749,6 +1779,13 @@ async function getSponsorReply(userId, message, context) {
     .map((block) => block.text)
     .join('');
 
+  /* Did it make the check-in offer? Read before the length rewrite below,
+     which would happily cut the question or the marker, and that rewrite is
+     skipped for this one reply: an offer that loses its question is an offer
+     nobody can answer. */
+  const madeCheckinOffer = offerCheckins && CHECKIN_OFFER_MARKER.test(rawReply);
+  CHECKIN_OFFER_MARKER.lastIndex = 0;
+
   /* ── Enforcement, because asking is not the same as getting ────────────────
      The prompt has asked for shorter replies for weeks and gets them 5% of the
      time, so these two run on the way out.
@@ -1757,7 +1794,7 @@ async function getSponsorReply(userId, message, context) {
      only once. It costs a second call on the messages that earn it. Falls back
      to the original on any failure: a long reply is worse than a short one, and
      both are far better than no reply at all. */
-  if (budget.ceiling && words(rawReply) > budget.ceiling) {
+  if (budget.ceiling && !madeCheckinOffer && words(rawReply) > budget.ceiling) {
     const before = words(rawReply);
     try {
       const tighter = await client.messages.create({
@@ -1798,6 +1835,19 @@ async function getSponsorReply(userId, message, context) {
      including the web chat, is untouched and never learns this exists.
      Stripping runs on every channel, so a stray marker can never reach anyone
      even if the model produces one where it was never told about it. */
+  /* The check-in offer marker never reaches anyone and never enters history,
+     on any channel. The offer is recorded only if it really went out, and not
+     on a reply carrying crisis lines: that is not a moment to have asked, and
+     recording it would mean never asking again at a better one. */
+  rawReply = String(rawReply).replace(CHECKIN_OFFER_MARKER, '').trim();
+  CHECKIN_OFFER_MARKER.lastIndex = 0;
+  if (madeCheckinOffer && !CRISIS_RESOURCE.test(rawReply)) {
+    checkin.recordOffer(db, userId)
+      .then(() => { userProfiles.delete(userId); })
+      .catch((e) => console.error('[checkin] recordOffer failed:', e.message));
+    console.log(`[checkin] offered check-ins to ${userId}`);
+  }
+
   const { wanted: modelWantsVoice, text: markerFree } = stripVoiceMarker(rawReply);
   if (context && modelWantsVoice) context.modelWantsVoice = true;
 
@@ -2252,6 +2302,10 @@ app.get('/api/sponsor-settings', async (req, res) => {
        messages do, so the page and the weekly note never disagree. */
     language: await language.languageOf(db, userId),
     languages: language.SUPPORTED,
+    /* Check-ins on request (Mariam, Sep 17). The switch is only offered while
+       the feature is on, because a switch for something that never happens is
+       a promise nobody keeps. */
+    checkins: { available: checkin.enabled, on: checkin.wantsCheckins(profile) },
     // Shown read-only, so somebody can see what their sponsor actually knows
     // about them rather than having to ask it.
     you: {
@@ -2700,6 +2754,26 @@ app.post('/api/sponsor-settings/language', async (req, res) => {
   res.json({ success: true, language: want });
   db.recordEvent(userId, 'language_changed', { to: want }, 'settings-link')
     .catch((e) => console.error('[settings] recordEvent failed:', e.message));
+});
+
+/* The check-in switch on the settings page. Same record as a yes or no given in
+   chat (checkin.setWish), so whichever they used last is what holds. */
+app.post('/api/sponsor-settings/checkins', async (req, res) => {
+  const b = req.body || {};
+  const userId = await db.resolveSettingsToken(String(b.t || '')).catch(() => null);
+  if (!userId) {
+    return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
+  }
+  if (typeof b.on !== 'boolean') return res.status(400).json({ error: 'Nothing to change' });
+  if (!checkin.enabled) return res.status(400).json({ error: 'Check-ins are not available yet.' });
+  try {
+    await checkin.setWish(db, userId, b.on, 'settings');
+  } catch (err) {
+    console.error('[settings] setWish failed:', err.message);
+    return res.status(500).json({ error: 'Could not save that. Please try again.' });
+  }
+  userProfiles.delete(userId);
+  res.json({ success: true, on: b.on });
 });
 
 app.post('/api/sponsor-settings', async (req, res) => {
@@ -3288,7 +3362,10 @@ app.post('/api/chat', async (req, res) => {
   /* The same language handling as WhatsApp, so changing language works on the
      website chat too: follow what they write, keep what they ask for, and let
      the automatic messages follow either. See language.noteLanguage. */
-  const { replyLanguage } = await language.noteLanguage(db, userId, message, profile);
+  const { read: webRead, replyLanguage } = await language.noteLanguage(db, userId, message, profile);
+  /* "Check in on me if I go quiet" said here counts too. The sponsor only
+     offers on WhatsApp, where check-ins arrive, so there is no offer to answer. */
+  await checkin.noteWish(db, userId, webRead, profile);
   const languageBlock = buildLanguageBlock(replyLanguage);
   if (languageBlock) systemBlocks.push({ type: 'text', text: languageBlock });
 

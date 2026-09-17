@@ -137,7 +137,9 @@ check('the budget is computed and put in front of the model', () => {
 });
 
 check('an overshoot is actually rewritten, not just noted', () => {
-  assert.ok(/if \(budget\.ceiling && words\(rawReply\) > budget\.ceiling\)/.test(src),
+  /* Sep 17: one exception, the reply that offers check-ins. Shortening that one
+     can cut the question it is asking, and then nobody can answer it. */
+  assert.ok(/if \(budget\.ceiling && !madeCheckinOffer && words\(rawReply\) > budget\.ceiling\)/.test(src),
     'nothing acts on the ceiling');
   assert.ok(/rawReply = cut;/.test(src), 'the tightened copy is never used');
 });

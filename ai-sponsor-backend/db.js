@@ -657,7 +657,9 @@ async function purgeMessagesOnly(userId) {
    everyone behind it. All +1 numbers, since telling the US apart from Canada
    and the Caribbean needs area codes, and missing a Canadian is the safer
    mistake than messaging into nothing. */
-async function quietCheckinCandidates({ quietDays = 5, giveUpDays = 14, cooloffDays = 30, limit = 5, excludeUsNumbers = false } = {}) {
+/* optedInOnly: Mariam, Sep 17, check-ins are on request. Only people whose
+   profile says checkinOptIn true, which is written to every identity. */
+async function quietCheckinCandidates({ quietDays = 5, giveUpDays = 14, cooloffDays = 30, limit = 5, excludeUsNumbers = false, optedInOnly = false } = {}) {
   if (!enabled) return [];
   const r = await pool.query(
     `SELECT u.user_id, u.name, u.last_active,
@@ -679,9 +681,12 @@ async function quietCheckinCandidates({ quietDays = 5, giveUpDays = 14, cooloffD
                          WHERE e.user_id = u.user_id AND e.event = 'quiet_checkin'
                            AND e.created_at > now() - ($3 || ' days')::interval)
         AND ($5::boolean IS NOT TRUE OR u.user_id NOT LIKE 'wa-+1%')
+        AND ($6::boolean IS NOT TRUE OR EXISTS (
+              SELECT 1 FROM profiles pr
+               WHERE pr.user_id = u.user_id AND (pr.profile->>'checkinOptIn') = 'true'))
       ORDER BY u.last_active
       LIMIT $4`,
-    [String(quietDays), String(giveUpDays), String(cooloffDays), limit, !!excludeUsNumbers]
+    [String(quietDays), String(giveUpDays), String(cooloffDays), limit, !!excludeUsNumbers, !!optedInOnly]
   );
   return r.rows;
 }
