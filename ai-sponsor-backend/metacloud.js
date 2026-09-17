@@ -362,7 +362,8 @@ async function sendTemplate(toPhone, name, bodyParams = [], urlParam = null, lan
 const CATEGORY_TTL_MS = 6 * 60 * 60 * 1000;
 const categoryCache = new Map();
 
-async function templateCategory(name, languageCode) {
+/* { category, status } for one language of one template, or null. */
+async function templateInfo(name, languageCode) {
   if (!TOKEN || !WABA_ID || !name) return null;
   const hit = categoryCache.get(name);
   if (!hit || Date.now() - hit.at > CATEGORY_TTL_MS) {
@@ -377,8 +378,12 @@ async function templateCategory(name, languageCode) {
     });
     categoryCache.set(name, { at: Date.now(), byLanguage });
   }
-  const entry = categoryCache.get(name).byLanguage[languageCode];
-  return entry ? entry.category : null;
+  return categoryCache.get(name).byLanguage[languageCode] || null;
+}
+
+async function templateCategory(name, languageCode) {
+  const info = await templateInfo(name, languageCode);
+  return info ? info.category : null;
 }
 
 /* ─── Reactions ──────────────────────────────────────────────────────────────
@@ -484,6 +489,6 @@ async function sendVoiceNoteFile(toPhone, audioFilePath) {
 module.exports = {
   enabled, inbound, outbound, APP_SECRET, GRAPH_VERSION, AUDIO_MIME, PHONE_NUMBER_ID, WABA_ID,
   toE164, uploadAudio, sendVoiceNote, sendVoiceNoteFile, preflight,
-  sendText, markRead, downloadMedia, sendReaction, REACTION_EMOJI, sendTemplate, templateCategory, graph,
+  sendText, markRead, downloadMedia, sendReaction, REACTION_EMOJI, sendTemplate, templateInfo, templateCategory, graph,
   sendContactCard, selfPhoneNumber,
 };

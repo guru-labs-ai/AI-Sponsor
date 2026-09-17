@@ -284,12 +284,24 @@ async function chooseLanguage(db, userId, want) {
    else is thrown to the caller exactly as before. */
 async function sendTemplateIn(mc, to, name, lang, paramsFor, urlParam = null, opts = {}) {
   const l = noticeLanguage(lang);
-  if (l !== 'en' && (!opts.mustArrive || await deliverableTranslation(mc, name, l))) {
-    try {
-      return await mc.sendTemplate(to, name, paramsFor(l), urlParam, META_TEMPLATE_CODE[l]);
-    } catch (e) {
-      if (!/\b132001\b/.test(e.message || '')) throw e;
-      console.warn(`[language] template ${name} has no approved ${l} translation yet, sending English`);
+  if (l !== 'en') {
+    /* A message that must arrive can have more than one translation to try:
+       Meta refuses to change the category of an existing translation, so a
+       rewrite asked for as UTILITY has to live under its own name
+       (opts.alsoTry). Same variables and button, so only the name differs. */
+    const names = opts.mustArrive ? [name].concat(opts.alsoTry || []) : [name];
+    for (const n of names) {
+      if (opts.mustArrive && !(await deliverableTranslation(mc, n, l))) continue;
+      try {
+        return await mc.sendTemplate(to, n, paramsFor(l), urlParam, META_TEMPLATE_CODE[l]);
+      } catch (e) {
+        /* Normally only "no approved translation" (132001) drops to English and
+           anything else is the caller's to see. A message that must arrive
+           drops to English on any failure: a second attempt in English is a
+           far smaller harm than a reminder that never came. */
+        if (!opts.mustArrive && !/\b132001\b/.test(e.message || '')) throw e;
+        console.warn(`[language] template ${n} in ${l} did not send (${e.message}), trying the next option`);
+      }
     }
   }
   return mc.sendTemplate(to, name, paramsFor('en'), urlParam, META_TEMPLATE_CODE.en);
@@ -299,18 +311,22 @@ async function sendTemplateIn(mc, to, name, lang, paramsFor, urlParam = null, op
    .mustArrive). Mariam, Sep 17: "everyone should get trial reminders regardless
    of their language". Meta filed some trial_ending translations as MARKETING
    while the English is UTILITY, and MARKETING templates are not delivered to US
-   numbers. So a translation is only used while Meta has it as UTILITY; anything
-   else, including not being able to find out, sends the English, which always
-   goes. The person gets the reminder in English rather than not at all. */
+   numbers. So a translation is only used once Meta has it APPROVED as UTILITY;
+   anything else, including not being able to find out, moves on, and in the end
+   the English goes, which always arrives. English rather than nothing. */
 async function deliverableTranslation(mc, name, l) {
-  let category = null;
+  let info = null;
   try {
-    category = mc.templateCategory ? await mc.templateCategory(name, META_TEMPLATE_CODE[l]) : null;
+    if (mc.templateInfo) info = await mc.templateInfo(name, META_TEMPLATE_CODE[l]);
+    else if (mc.templateCategory) info = { category: await mc.templateCategory(name, META_TEMPLATE_CODE[l]) };
   } catch (e) {
     console.warn(`[language] could not read the category of ${name} ${l}: ${e.message}`);
   }
-  if (category === 'UTILITY') return true;
-  console.log(`[language] ${name} in ${l} is ${category || 'unknown'} at Meta, sending the English UTILITY template so it arrives`);
+  const category = info && info.category;
+  // Status is checked when Meta told us one; an older sender that only knows the category is trusted on that.
+  const approved = !info || !info.status || info.status === 'APPROVED';
+  if (category === 'UTILITY' && approved) return true;
+  console.log(`[language] ${name} in ${l} is ${category || 'unknown'}${info && info.status ? ' / ' + info.status : ''} at Meta, not using it`);
   return false;
 }
 

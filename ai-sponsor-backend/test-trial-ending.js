@@ -197,6 +197,19 @@ const base = { user: { user_id: 'reg-abc', name: 'Lindsay Jacobi', phone: '+1973
     await t.notifyTrialEnding({ ...base, db: spanishDb(), whatsapp: sender('131047'), metacloud: utility });
     check('a translation Meta kept as UTILITY goes out in Spanish',
       [utility.calls[0].code, utility.calls[0].params[1]], ['es', '29 de septiembre']);
+
+    // The billing-notice rewrite, once Meta approves it as UTILITY.
+    const rewrite = templater();
+    rewrite.templateInfo = async (name) => (name === 'trial_ending_v2'
+      ? { category: 'UTILITY', status: 'APPROVED' } : { category: 'MARKETING', status: 'APPROVED' });
+    rewrite.sendTemplate = async (to, name, params, urlParam, code) => {
+      rewrite.calls.push({ name, params, code, urlParam });
+      return { messageId: 'wamid.z' };
+    };
+    const r3 = await t.notifyTrialEnding({ ...base, db: spanishDb(), whatsapp: sender('131047'), metacloud: rewrite });
+    check('with the rewrite approved as UTILITY, a Spanish reader gets it in Spanish',
+      [r3.sent, rewrite.calls[0].name, rewrite.calls[0].code, rewrite.calls[0].params[1], rewrite.calls[0].urlParam],
+      [true, 'trial_ending_v2', 'es', '29 de septiembre', 'tok123#plan']);
   }
 
   console.log(`\n${pass} passed, ${fail} failed`);

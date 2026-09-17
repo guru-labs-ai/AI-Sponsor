@@ -176,16 +176,25 @@ const TRIAL = {
   es: {
     body: (when, link) => `Tus 30 días gratis terminan el ${when}, y entonces empieza el plan de $5 al mes. Si prefieres que no empiece, puedes detenerlo aquí:\n\n${link}\n\nEn cualquier caso, hoy no cambia nada en cómo hablas con tu padrino.`,
     button: 'Gestionar mi plan',
+    /* trial_ending_v2, submitted as UTILITY Sep 17: Meta filed "template" above as
+       MARKETING and will not change it, so this is the billing-notice rewrite. */
+    templateV2: "Hola {{1}}, tu prueba gratuita de AI Sponsor termina el {{2}}. Ese día se cobrará en tu tarjeta la suscripción mensual de 5 USD. Puedes cambiar o cancelar tu plan antes de esa fecha con el botón de abajo. Este es un aviso de tu cuenta, no un mensaje de tu padrino.",
     template: 'Hola {{1}}, una nota rápida sobre tu cuenta de AI Sponsor, no es un mensaje de tu padrino. Tus 30 días gratis terminan el {{2}} y entonces empieza el plan mensual de $5. Puedes cambiarlo o cancelarlo en cualquier momento.',
   },
   fr: {
     body: (when, link) => `Vos 30 jours gratuits se terminent le ${when}, et l'abonnement à 5 $ par mois commence alors. Si vous préférez qu'il ne commence pas, vous pouvez l'arrêter ici :\n\n${link}\n\nDans tous les cas, rien ne change aujourd'hui dans vos échanges avec votre parrain.`,
     button: 'Gérer mon abonnement',
+    /* trial_ending_v2, submitted as UTILITY Sep 17: Meta filed "template" above as
+       MARKETING and will not change it, so this is the billing-notice rewrite. */
+    templateV2: "Bonjour {{1}}, votre essai gratuit AI Sponsor se termine le {{2}}. Ce jour-là, l'abonnement mensuel de 5 USD sera prélevé sur votre carte. Vous pouvez modifier ou annuler votre formule avant cette date avec le bouton ci-dessous. Ceci est un avis concernant votre compte, pas un message de votre parrain.",
     template: "Bonjour {{1}}, petit message au sujet de votre compte AI Sponsor, ce n'est pas votre parrain qui vous écrit. Vos 30 jours gratuits se terminent le {{2}} et l'abonnement mensuel à 5 $ commence alors. Vous pouvez le modifier ou l'annuler à tout moment.",
   },
   de: {
     body: (when, link) => `Deine kostenlosen 30 Tage enden am ${when}, dann startet der Plan für 5 $ im Monat. Wenn du das nicht möchtest, kannst du ihn hier stoppen:\n\n${link}\n\nSo oder so ändert sich heute nichts daran, wie du mit deinem Sponsor sprichst.`,
     button: 'Plan verwalten',
+    /* trial_ending_v2, submitted as UTILITY Sep 17: Meta filed "template" above as
+       MARKETING and will not change it, so this is the billing-notice rewrite. */
+    templateV2: "Hallo {{1}}, dein kostenloser Testzeitraum bei AI Sponsor endet am {{2}}. An diesem Tag wird das Monatsabo über 5 USD von deiner Karte abgebucht. Du kannst deinen Tarif vor diesem Datum über den Button unten ändern oder kündigen. Dies ist eine Kontoinformation, keine Nachricht von deinem Sponsor.",
     template: 'Hallo {{1}}, kurze Info zu deinem AI Sponsor Konto, keine Nachricht von deinem Sponsor. Deine kostenlosen 30 Tage enden am {{2}}, dann startet der Monatsplan für 5 $. Du kannst ihn jederzeit ändern oder kündigen.',
   },
   it: {

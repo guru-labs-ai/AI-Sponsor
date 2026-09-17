@@ -26,6 +26,9 @@
    database, a Meta token or a live Express app to run. */
 
 const TRIAL_ENDING_TEMPLATE = 'trial_ending';
+/* es / fr / de only, billing-notice wording, submitted as UTILITY Sep 17. The
+   wording lives in notice-copy.js (TRIAL[lang].templateV2). */
+const TRIAL_ENDING_TEMPLATE_V2 = 'trial_ending_v2';
 
 /* Meta's own code for "outside the 24-hour window" is 131047. 63016 was
    Twilio's and is kept because the number only moved in August and an old error
@@ -83,7 +86,11 @@ async function sendTemplate({ metacloud, phone, first, trialEndUnix, lang, token
       /* Everyone gets this one, whatever their language (Mariam, Sep 17): a
          translation Meta moved to MARKETING would not reach a US number, so
          that person gets the English instead. See language.sendTemplateIn. */
-      { mustArrive: true }
+      /* trial_ending_v2: the same reminder reworded as a billing notice for
+         Spanish, French and German, submitted as UTILITY on Sep 17 because
+         Meta will not recategorise the originals. Used once Meta approves it
+         as UTILITY; until then those readers get the English. */
+      { mustArrive: true, alsoTry: [TRIAL_ENDING_TEMPLATE_V2] }
     );
     return true;
   } catch (err) {
@@ -149,4 +156,4 @@ async function notifyTrialEnding({ user, trialEndUnix, db, whatsapp, metacloud, 
   }
 }
 
-module.exports = { notifyTrialEnding, formatTrialEnd, trialEndingBody, TRIAL_ENDING_TEMPLATE };
+module.exports = { notifyTrialEnding, formatTrialEnd, trialEndingBody, TRIAL_ENDING_TEMPLATE, TRIAL_ENDING_TEMPLATE_V2 };

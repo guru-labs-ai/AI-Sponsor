@@ -145,6 +145,40 @@ function crisisPattern(file, endMark) {
   await language.sendTemplateIn(withCategory('MARKETING'), 'to', 'weekly_review_quiet', 'es', paramsFor);
   check('messages that do not have to arrive are unchanged: the translation is still used', calls.map((c) => c.code), ['es']);
 
+  // The rewrite under its own name (trial_ending_v2), because Meta will not recategorise the original.
+  const withInfo = (table) => {
+    const m = mc(null);
+    m.templateInfo = async (n, code) => table[`${n}|${code}`] || null;
+    return m;
+  };
+  calls.length = 0;
+  await language.sendTemplateIn(withInfo({
+    'trial_ending|es': { category: 'MARKETING', status: 'APPROVED' },
+    'trial_ending_v2|es': { category: 'UTILITY', status: 'APPROVED' },
+  }), 'to', 'trial_ending', 'es', paramsFor, null, { mustArrive: true, alsoTry: ['trial_ending_v2'] });
+  check('original MARKETING, rewrite approved as UTILITY: the rewrite goes, in Spanish',
+    calls.map((c) => [c.name, c.code]), [['trial_ending_v2', 'es']]);
+  calls.length = 0;
+  await language.sendTemplateIn(withInfo({
+    'trial_ending|es': { category: 'MARKETING', status: 'APPROVED' },
+    'trial_ending_v2|es': { category: 'UTILITY', status: 'PENDING' },
+  }), 'to', 'trial_ending', 'es', paramsFor, null, { mustArrive: true, alsoTry: ['trial_ending_v2'] });
+  check('rewrite still in review: English goes, and nothing is attempted in review',
+    calls.map((c) => [c.name, c.code]), [['trial_ending', 'en_US']]);
+  calls.length = 0;
+  await language.sendTemplateIn(withInfo({ 'trial_ending|ru': { category: 'UTILITY', status: 'APPROVED' } }),
+    'to', 'trial_ending', 'ru', paramsFor, null, { mustArrive: true, alsoTry: ['trial_ending_v2'] });
+  check('an original still UTILITY is used first', calls.map((c) => [c.name, c.code]), [['trial_ending', 'ru']]);
+  calls.length = 0;
+  let mustThrown = null;
+  try {
+    const m = mc('Meta 400 (131026): message undeliverable');
+    m.templateCategory = async () => 'UTILITY';
+    await language.sendTemplateIn(m, 'to', 'trial_ending', 'it', paramsFor, null, { mustArrive: true });
+  } catch (e) { mustThrown = e.message; }
+  check('a must-arrive translation that fails for any reason is retried in English, not given up on',
+    [calls.map((c) => c.code), mustThrown], [['it', 'en_US'], null]);
+
   group('English is untouched');
   const trial = require('./trialnotice');
   check('the English trial notice has its old wording',
