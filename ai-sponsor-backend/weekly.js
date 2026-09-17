@@ -512,6 +512,13 @@ const WEEKLY_READY_TEMPLATE = 'weekly_note_ready';
    notice, submitted as UTILITY on Sep 17. It is tried after the other two, so a
    language that already has a warmer approved notice keeps it. */
 const WEEKLY_SUMMARY_TEMPLATE = 'weekly_summary_ready';
+
+/* Meta approved that one as UTILITY in Italian and Russian within the hour and
+   called the French translation marketing for the third time. So French gets a
+   fourth wording, leading with the account update itself and saying nothing
+   about what is in the note. If this one is refused too, French needs the
+   category review in WhatsApp Manager, which only a person can file. */
+const WEEKLY_ACCOUNT_TEMPLATE = 'weekly_account_update';
 const WEEKLY_READY_EN = 'Hi {{1}}, your weekly note from AI Sponsor is ready. You can read it on your account page with the button below.';
 
 /* Returns true only if it actually sent. Every failure is swallowed and logged:
@@ -533,9 +540,9 @@ async function deliverTemplate(phone, payload, theirName, token, lang = 'en') {
     /* The plain notice speaks as the service, so a missing name gets the
        service greeting ("Bonjour à vous"), not the sponsor's ("Salut toi"). */
     const sent = await language.sendTemplateIn(metacloud, `whatsapp:${phone}`, name, lang,
-      (l, n) => [first || (n === WEEKLY_READY_TEMPLATE || n === WEEKLY_SUMMARY_TEMPLATE
-        ? copy.SERVICE_NAME_FALLBACK[l]
-        : copy.SPONSOR_NAME_FALLBACK[l])],
+      (l, n) => [first || (n === WEEKLY_TEMPLATES[payload.tone] || n === WEEKLY_TEMPLATES.good
+        ? copy.SPONSOR_NAME_FALLBACK[l]
+        : copy.SERVICE_NAME_FALLBACK[l])],
       `${token}#week`,
       /* Meta's answer, Sep 17: it kept weekly_note_ready as UTILITY only in
          German and Portuguese, but weekly_review, the everyday wording, is
@@ -544,7 +551,8 @@ async function deliverTemplate(phone, payload, theirName, token, lang = 'en') {
          translation approved as UTILITY, so the warmest approved wording in
          each language wins, and English is the floor nobody should reach. */
       { mustArrive: true,
-        alsoTry: [WEEKLY_READY_TEMPLATE, WEEKLY_SUMMARY_TEMPLATE, WEEKLY_TEMPLATES.good] });
+        alsoTry: [WEEKLY_READY_TEMPLATE, WEEKLY_SUMMARY_TEMPLATE, WEEKLY_ACCOUNT_TEMPLATE,
+          WEEKLY_TEMPLATES.good] });
     console.log(`[weekly] delivered via template${sent && sent.messageId ? ' ' + sent.messageId : ''} (tone ${payload.tone || 'good'}, ${lang})`);
     return true;
   } catch (err) {
