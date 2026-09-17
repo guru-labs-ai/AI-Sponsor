@@ -560,6 +560,13 @@ async function load(){
     const res = await fetch(BACKEND_URL + '/api/sponsor-settings?t=' + encodeURIComponent(TOKEN));
     if(!res.ok){
       const b = await res.json().catch(()=>({}));
+      /* 503 means the DB is still waking up (Render cold start), not that the
+         link is broken. Show a friendlier message and retry automatically. */
+      if(res.status === 503){
+        fail(b.error || 'Could not reach your sponsor just now. Give it a moment and refresh.');
+        setTimeout(() => location.reload(), 5000);
+        return;
+      }
       return fail(b.error || 'This link has expired. Ask your sponsor for a new one.');
     }
     const data = await res.json();

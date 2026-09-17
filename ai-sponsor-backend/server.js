@@ -2273,7 +2273,18 @@ async function subscriptionForPerson(userId, userRow) {
 }
 
 app.get('/api/sponsor-settings', async (req, res) => {
-  const userId = await db.resolveSettingsToken(String(req.query.t || '')).catch(() => null);
+  /* Distinguish a genuine expired/unknown token from a DB connection failure.
+     On Render's free tier the pool may not be up yet on a cold start, which
+     makes resolveSettingsToken throw. Swallowing that as null and returning
+     404 "link expired" was the wrong message — the link is fine, the DB just
+     needs a moment. Catch the error explicitly so we can return 503 instead. */
+  let userId;
+  try {
+    userId = await db.resolveSettingsToken(String(req.query.t || ''));
+  } catch (dbErr) {
+    console.error('[settings] DB error resolving token:', dbErr.message);
+    return res.status(503).json({ error: 'Could not reach your sponsor just now. Give it a moment and refresh.' });
+  }
   if (!userId) {
     return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
   }
