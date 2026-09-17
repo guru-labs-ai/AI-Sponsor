@@ -650,7 +650,14 @@ async function purgeMessagesOnly(userId) {
    usual_hour is the hour of day THEY normally write, so the message does not
    arrive at four in the morning. We hold no timezone for anyone, and their own
    history is a better guess than ours. */
-async function quietCheckinCandidates({ quietDays = 5, giveUpDays = 14, cooloffDays = 30, limit = 5 } = {}) {
+/* excludeUsNumbers: the check-in is a nudge, which Meta counts as MARKETING in
+   every language, and WhatsApp does not deliver MARKETING templates to US
+   numbers. Filtered here rather than skipped in the loop, because the loop only
+   takes a few people per run and a queue head of US numbers would starve
+   everyone behind it. All +1 numbers, since telling the US apart from Canada
+   and the Caribbean needs area codes, and missing a Canadian is the safer
+   mistake than messaging into nothing. */
+async function quietCheckinCandidates({ quietDays = 5, giveUpDays = 14, cooloffDays = 30, limit = 5, excludeUsNumbers = false } = {}) {
   if (!enabled) return [];
   const r = await pool.query(
     `SELECT u.user_id, u.name, u.last_active,
@@ -671,9 +678,10 @@ async function quietCheckinCandidates({ quietDays = 5, giveUpDays = 14, cooloffD
         AND NOT EXISTS (SELECT 1 FROM account_events e
                          WHERE e.user_id = u.user_id AND e.event = 'quiet_checkin'
                            AND e.created_at > now() - ($3 || ' days')::interval)
+        AND ($5::boolean IS NOT TRUE OR u.user_id NOT LIKE 'wa-+1%')
       ORDER BY u.last_active
       LIMIT $4`,
-    [String(quietDays), String(giveUpDays), String(cooloffDays), limit]
+    [String(quietDays), String(giveUpDays), String(cooloffDays), limit, !!excludeUsNumbers]
   );
   return r.rows;
 }

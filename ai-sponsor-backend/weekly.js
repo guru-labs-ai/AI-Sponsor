@@ -492,6 +492,19 @@ const WEEKLY_TEMPLATES = {
   good:  'weekly_review',
 };
 
+/* Mariam, Sep 17: everyone gets told their weekly note is there, in their own
+   language, safely. Meta filed weekly_review_quiet and _hard as MARKETING in
+   every language, and weekly_review too in German, French, Italian, Portuguese
+   and Russian. WhatsApp does not deliver MARKETING templates to US numbers and
+   caps them per person everywhere else (error 131049), and the cap fails
+   silently. So a tone template is only used where Meta has it as an approved
+   UTILITY template; otherwise this plain notice goes, which says only that the
+   note is ready and links to it. The warmth is in the note itself, on the page.
+   Submitted as UTILITY in all seven languages on Sep 17; the wording is in
+   notice-copy.js (WEEKLY_READY) and, for English, here. */
+const WEEKLY_READY_TEMPLATE = 'weekly_note_ready';
+const WEEKLY_READY_EN = 'Hi {{1}}, your weekly note from AI Sponsor is ready. You can read it on your account page with the button below.';
+
 /* Returns true only if it actually sent. Every failure is swallowed and logged:
    this is already the fallback path, and there is nothing further to fall back
    to. A person not receiving a nudge is a missed warmth, not a broken product,
@@ -508,9 +521,13 @@ async function deliverTemplate(phone, payload, theirName, token, lang = 'en') {
   const first = String(theirName || '').trim();
 
   try {
-    await language.sendTemplateIn(metacloud, `whatsapp:${phone}`, name, lang,
-      (l) => [first || copy.SPONSOR_NAME_FALLBACK[l]], `${token}#week`);
-    console.log(`[weekly] delivered via template ${name}`);
+    /* The plain notice speaks as the service, so a missing name gets the
+       service greeting ("Bonjour à vous"), not the sponsor's ("Salut toi"). */
+    const sent = await language.sendTemplateIn(metacloud, `whatsapp:${phone}`, name, lang,
+      (l, n) => [first || (n === WEEKLY_READY_TEMPLATE ? copy.SERVICE_NAME_FALLBACK[l] : copy.SPONSOR_NAME_FALLBACK[l])],
+      `${token}#week`,
+      { mustArrive: true, alsoTry: [WEEKLY_READY_TEMPLATE] });
+    console.log(`[weekly] delivered via template${sent && sent.messageId ? ' ' + sent.messageId : ''} (tone ${payload.tone || 'good'}, ${lang})`);
     return true;
   } catch (err) {
     console.warn(`[weekly] template ${name} failed: ${err.message}`);
@@ -629,4 +646,5 @@ module.exports = {
   _parseModelJSON: parseModelJSON, _coerce: coerce, _quietWeekCard: quietWeekCard,
   _planWeek: planWeek,
   _SYSTEM_PROMPT: SYSTEM_PROMPT, _WEEKLY_MODEL: WEEKLY_MODEL,
+  WEEKLY_TEMPLATES, WEEKLY_READY_TEMPLATE, WEEKLY_READY_EN,
 };

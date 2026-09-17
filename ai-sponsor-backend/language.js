@@ -293,7 +293,7 @@ async function sendTemplateIn(mc, to, name, lang, paramsFor, urlParam = null, op
     for (const n of names) {
       if (opts.mustArrive && !(await deliverableTranslation(mc, n, l))) continue;
       try {
-        return await mc.sendTemplate(to, n, paramsFor(l), urlParam, META_TEMPLATE_CODE[l]);
+        return await mc.sendTemplate(to, n, paramsFor(l, n), urlParam, META_TEMPLATE_CODE[l]);
       } catch (e) {
         /* Normally only "no approved translation" (132001) drops to English and
            anything else is the caller's to see. A message that must arrive
@@ -304,7 +304,22 @@ async function sendTemplateIn(mc, to, name, lang, paramsFor, urlParam = null, op
       }
     }
   }
-  return mc.sendTemplate(to, name, paramsFor('en'), urlParam, META_TEMPLATE_CODE.en);
+  /* English, and for a message that must arrive, the first English version
+     Meta has as an APPROVED UTILITY template, in the same order. The weekly
+     note needs this: after a hard week its own English template is MARKETING,
+     and the plain weekly_note_ready is the one that reaches a US number. */
+  if (opts.mustArrive) {
+    for (const n of [name].concat(opts.alsoTry || [])) {
+      if (!(await deliverableTranslation(mc, n, 'en'))) continue;
+      try {
+        return await mc.sendTemplate(to, n, paramsFor('en', n), urlParam, META_TEMPLATE_CODE.en);
+      } catch (e) {
+        console.warn(`[language] template ${n} in en did not send (${e.message}), trying the next option`);
+      }
+    }
+  }
+  // Last resort, and the only path for everything else: exactly what was sent before any of this.
+  return mc.sendTemplate(to, name, paramsFor('en', name), urlParam, META_TEMPLATE_CODE.en);
 }
 
 /* For a message that has to arrive whatever language the person reads (opts

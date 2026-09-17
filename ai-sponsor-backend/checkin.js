@@ -74,7 +74,12 @@ async function runCheckinSweep({ limit = 3, whatsapp = null, metacloud, now = ne
   if (!db.enabled) return { ok: false, reason: 'no-db' };
   const sender = resolveSender(metacloud);
 
-  const people = await db.quietCheckinCandidates({ quietDays: QUIET_DAYS, limit })
+  /* Mariam, Sep 17: people get it in their own language, safely. The check-in
+     is approved in all seven languages, but as MARKETING, which WhatsApp does
+     not deliver to US numbers, so those are left out rather than sent into
+     nothing (see db.quietCheckinCandidates). It cannot honestly be a UTILITY
+     template: a "how are you" nobody asked for is marketing by Meta's rules. */
+  const people = await db.quietCheckinCandidates({ quietDays: QUIET_DAYS, limit, excludeUsNumbers: true })
     .catch((e) => { console.error('[checkin] candidate query failed:', e.message); return []; });
 
   const out = { considered: people.length, sent: 0, skippedHour: 0, failed: 0 };

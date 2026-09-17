@@ -309,6 +309,21 @@ function weeklyBody(lang, tone, { first, link }) {
   return first ? c.greet(first) + text : cap(text);
 }
 
+/* ── "Your weekly note is ready" (the service, not the sponsor) ─────────────
+   weekly_note_ready, submitted as UTILITY on Sep 17 in all seven languages.
+   Sent when the tone template in their language is not an approved UTILITY
+   template, so that the notice reaches everyone, US numbers included. Plain on
+   purpose: no tone, no persuasion, just the update and the button. English is
+   in weekly.js. Must match what Meta holds, word for word. */
+const WEEKLY_READY = {
+  es: { template: 'Hola {{1}}, tu nota semanal de AI Sponsor está lista. Puedes leerla en la página de tu cuenta con el botón de abajo.', button: 'Ver tu semana' },
+  fr: { template: 'Bonjour {{1}}, votre note de la semaine AI Sponsor est prête. Vous pouvez la lire sur la page de votre compte avec le bouton ci-dessous.', button: 'Voir votre semaine' },
+  de: { template: 'Hallo {{1}}, deine Wochennotiz von AI Sponsor ist fertig. Du kannst sie über den Button unten auf deiner Kontoseite lesen.', button: 'Deine Woche ansehen' },
+  it: { template: 'Ciao {{1}}, la tua nota settimanale di AI Sponsor è pronta. Puoi leggerla nella pagina del tuo account con il pulsante qui sotto.', button: 'Vedi la tua settimana' },
+  pt: { template: 'Olá {{1}}, sua nota semanal do AI Sponsor está pronta. Você pode lê-la na página da sua conta pelo botão abaixo.', button: 'Ver sua semana' },
+  ru: { template: 'Здравствуйте, {{1}}. Ваша еженедельная заметка от AI Sponsor готова. Её можно прочитать на странице вашего аккаунта по кнопке ниже.', button: 'Посмотреть неделю' },
+};
+
 /* ── The quiet-week card ─────────────────────────────────────────────────────
    What weekly.js writes in code when there was too little to summarise. No
    message counts here: plurals differ in every language, and the English
@@ -369,6 +384,6 @@ function checkinBody(lang, first) {
 
 module.exports = {
   SERVICE_NAME_FALLBACK, SPONSOR_NAME_FALLBACK,
-  OPENER, LEAVING, TRIAL, WEEKLY, QUIET_CARD, CHECKIN,
+  OPENER, LEAVING, TRIAL, WEEKLY, WEEKLY_READY, QUIET_CARD, CHECKIN,
   leavingBody, trialBody, weeklyBody, checkinBody,
 };

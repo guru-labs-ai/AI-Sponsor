@@ -82,6 +82,25 @@ function fresh() {
   out = await c.runCheckinSweep({ metacloud: w.metacloud });
   check('disabled by default', out, { ok: false, reason: 'checkin-disabled' });
 
+  /* Mariam, Sep 17: the check-in is MARKETING in every language and WhatsApp
+     does not deliver MARKETING to US numbers, so the query must leave +1 numbers
+     out. Asserted on what is asked of the database, where the filter lives. */
+  process.env.QUIET_CHECKIN = 'on';
+  w = world([{ user_id: 'wa-+447700900123', name: 'Amelia', usual_hour: 14 }]);
+  let asked = null;
+  require.cache[require.resolve('./db.js')].exports.quietCheckinCandidates = async (opts) => {
+    asked = opts;
+    return [{ user_id: 'wa-+447700900123', name: 'Amelia', usual_hour: 14 }];
+  };
+  c = fresh();
+  out = await c.runCheckinSweep({ metacloud: w.metacloud, now: new Date(Date.UTC(2026, 8, 1, 14)) });
+  check('the sweep asks the database to leave US numbers out', asked && asked.excludeUsNumbers, true);
+  check('a UK number still gets its check-in', [out.sent, w.sent[0] && w.sent[0].tpl], [1, 'quiet_checkin']);
+
+  // The SQL itself: the clause and its parameter, read from db.js.
+  const dbSrc = require('fs').readFileSync(require.resolve('./db.js'), 'utf8');
+  check('the query carries the +1 filter', /\$5::boolean IS NOT TRUE OR u\.user_id NOT LIKE 'wa-\+1%'/.test(dbSrc), true);
+
   console.log(`\n${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

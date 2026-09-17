@@ -205,9 +205,15 @@ check('the quiet card only mentions score to disclaim it',
      name: Meta rejects an empty variable, and "there" inside a Spanish
      template is its own kind of broken. */
   const fallbacks = require('./notice-copy').SPONSOR_NAME_FALLBACK;
+  const serviceFallbacks = require('./notice-copy').SERVICE_NAME_FALLBACK;
+  /* Sep 17: the plain weekly_note_ready notice speaks as the service, so its
+     nameless greeting comes from SERVICE_NAME_FALLBACK; the tone templates keep
+     the sponsor's. Both have to be non-empty in every language. */
   check('a nameless person still gets a greeting Meta will accept',
-    wk.includes('first || copy.SPONSOR_NAME_FALLBACK[l]') && fallbacks.en === 'there' &&
-    require('./language').NOTICE_LANGUAGES.every((l) => String(fallbacks[l] || '').trim().length > 0), true);
+    wk.includes('first || (n === WEEKLY_READY_TEMPLATE ? copy.SERVICE_NAME_FALLBACK[l] : copy.SPONSOR_NAME_FALLBACK[l])') &&
+    fallbacks.en === 'there' && serviceFallbacks.en === 'there' &&
+    require('./language').NOTICE_LANGUAGES.every((l) =>
+      String(fallbacks[l] || '').trim().length > 0 && String(serviceFallbacks[l] || '').trim().length > 0), true);
   check('the settings token rides on the button with the week anchor',
     wk.includes('`${token}#week`'), true);
   check('a template failure is swallowed, never thrown',
