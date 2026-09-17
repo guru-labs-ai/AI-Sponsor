@@ -71,8 +71,13 @@
   }
 
   var LINK_LANG = fromLink();
-  var LANG = LINK_LANG || (WAIT ? '' : fromDevice()) || 'en';
+  var DEVICE_LANG = fromDevice();
+  var LANG = LINK_LANG || (WAIT ? '' : DEVICE_LANG) || 'en';
   window.AIS_LANG = LANG;
+  /* What this device last picked on the switcher. A page that waits for a
+     profile needs it for the case where no profile is coming: an expired or
+     codeless settings link still has somebody reading it. */
+  window.AIS_DEVICE_LANG = DEVICE_LANG;
 
   function markDocument(code) {
     try {

@@ -274,6 +274,9 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
       <button class="on" data-pane="overview"><span class="ico">📊</span>Overview</button>
       <button data-pane="week"><span class="ico">🗓️</span>Your week</button>
       <button data-pane="sponsor"><span class="ico">💬</span>Your sponsor</button>
+      <!-- Its own place in the nav. Bilal, Sep 17: inside "Your sponsor" it was
+           there, but nobody looking for it found it. -->
+      <button data-pane="language"><span class="ico">🌐</span>Language</button>
       <button data-pane="help"><span class="ico">🤝</span>Need a hand?</button>
       <button data-pane="restart"><span class="ico">↺</span>Start over</button>
       <button data-pane="plan"><span class="ico">💳</span>Your plan</button>
@@ -329,22 +332,6 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
       <button class="btn" id="btn-save" onclick="saveSponsor()">Save changes</button>
     </div>
 
-    <!-- Bilal, Sep 16: there was nowhere here to change language. Saved as if
-         they had asked their sponsor for it, so replies, automatic messages
-         and this page all follow. -->
-    <div class="card plain">
-      <h2>Language</h2>
-      <p class="note">The language your sponsor talks to you in. Your automatic messages and this page follow it too.</p>
-      <div class="msg err" id="errLang"></div>
-      <div class="msg ok" id="okLang"></div>
-      <div class="fg">
-        <label for="f-lang">Language</label>
-        <!-- Each language in its own name, never translated. -->
-        <select id="f-lang" data-no-i18n></select>
-      </div>
-      <button class="btn" id="btn-lang" onclick="saveLanguage()">Save language</button>
-    </div>
-
     <!-- Check-ins are on request (Mariam, Sep 17). Hidden unless the feature is
          switched on: a switch for something that never happens is a promise
          nobody keeps. Saves the moment it is flipped. -->
@@ -359,6 +346,24 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
       </label>
     </div>
 
+    </div>
+
+    <!-- Language. Bilal, Sep 16: there was nowhere here to change it. Saved as
+         if they had asked their sponsor for it, so replies, automatic messages
+         and this page all follow. -->
+    <div class="pane" id="pane-language">
+    <div class="card plain">
+      <h2>Language</h2>
+      <p class="note">The language your sponsor talks to you in. Your automatic messages and this page follow it too.</p>
+      <div class="msg err" id="errLang"></div>
+      <div class="msg ok" id="okLang"></div>
+      <div class="fg">
+        <label for="f-lang">Language</label>
+        <!-- Each language in its own name, never translated. -->
+        <select id="f-lang" data-no-i18n></select>
+      </div>
+      <button class="btn" id="btn-lang" onclick="saveLanguage()">Save language</button>
+    </div>
     </div>
 
     <!-- Support -->
@@ -513,7 +518,7 @@ function show(id){ ['s-load','s-bad','s-dash'].forEach(s => $(s).style.display =
 /* Nav. The pane is in the URL hash so a reload, or a link someone sent
    themselves, comes back to the same place instead of the overview. */
 function openPane(name, push){
-  const panes = ['overview','week','sponsor','help','restart','plan','danger'];
+  const panes = ['overview','week','sponsor','language','help','restart','plan','danger'];
   if (!panes.includes(name)) name = 'overview';
   panes.forEach(p => $('pane-' + p).classList.toggle('on', p === name));
   [...document.querySelectorAll('#nav button')].forEach(b => b.classList.toggle('on', b.dataset.pane === name));
@@ -526,7 +531,18 @@ document.getElementById('nav').addEventListener('click', (e) => {
 });
 function flash(id, text){ const el=$(id); el.textContent=text; el.classList.add('show'); }
 function clearFlash(...ids){ ids.forEach(i => $(i).classList.remove('show')); }
-function fail(msg){ if(msg) $('badMsg').textContent = msg; show('s-bad'); }
+/* There is no profile to take the language from, so fall back to what they
+   picked on the site. Otherwise somebody who reads the site in Spanish is told
+   in English that their link needs replacing, which is the one message they
+   have to understand. */
+let knowsTheirLanguage = false;
+function fail(msg){
+  if(msg) $('badMsg').textContent = msg;
+  if (!knowsTheirLanguage && window.AIS_USE_LANG && window.AIS_DEVICE_LANG) {
+    window.AIS_USE_LANG(window.AIS_DEVICE_LANG);
+  }
+  show('s-bad');
+}
 
 async function api(path, body){
   const res = await fetch(BACKEND_URL + path, {
@@ -549,6 +565,7 @@ async function load(){
     const data = await res.json();
     /* First, before anything is written to the page, so dates and anything
        built below come out in their language. */
+    if (data.language) knowsTheirLanguage = true;
     if (window.AIS_USE_LANG && data.language) window.AIS_USE_LANG(data.language);
     renderLanguage(data.language || 'en', data.languages);
     renderCheckins(data.checkins);
@@ -870,7 +887,7 @@ async function saveLanguage(){
     const u = new URL(location.href);
     if (PAGE_LANGUAGES.includes(want)) u.searchParams.set('lang', want);
     else u.searchParams.delete('lang');
-    u.hash = 'sponsor';
+    u.hash = 'language';
     const withoutHash = (s) => s.split('#')[0];
     if (withoutHash(u.toString()) !== withoutHash(location.href)) { location.href = u.toString(); return; }
     /* Nothing about the page changes (a language it is not translated into,
