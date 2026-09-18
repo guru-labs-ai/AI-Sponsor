@@ -1864,7 +1864,27 @@ async function getSponsorReply(userId, message, context) {
      its past turns starts writing them where there is no voice at all. Same
      reasoning, and the same place in the pipeline, as [[voice]]. */
   if (context) context.spokenText = voices.forSpeech(markerFree);
-  const replyText = stripEmojiNearCrisis(voices.stripSpeechTags(markerFree));
+  let replyText = stripEmojiNearCrisis(voices.stripSpeechTags(markerFree));
+
+  /* The model sometimes retypes an OLD settings link instead of the live one it
+     was just handed in settingsBlock above — its own past reply already has a
+     working-looking link in the visible history, and copying that beats
+     regenerating a fresh one from a single system-prompt instruction. Caught
+     live 18 Sep 2026: the same person got an identical, by-then-expired token
+     across six replies spanning Sep 4 to Sep 18, while a real live token sat
+     unused in sponsor_tokens the whole time. Every one of those replies landed
+     as "this link has expired" for no reason anyone could see from outside.
+     Force it at the source: whatever token the model wrote, replace it with
+     the one actually live right now. Also fixes it going forward on its own —
+     once a stale token stops appearing in persisted history, there is nothing
+     left to copy from. */
+  const liveToken = (settingsBlock.match(/ai-sponsor-settings\.html\?t=([A-Za-z0-9_-]+)/) || [])[1];
+  if (liveToken) {
+    replyText = replyText.replace(
+      /ai-sponsor-settings\.html\?t=[A-Za-z0-9_-]+/g,
+      `ai-sponsor-settings.html?t=${liveToken}`
+    );
+  }
 
   /* The programme change has now been put in front of them once, which is all
      it was for. Clear the flag or the sponsor reopens it in every message from
