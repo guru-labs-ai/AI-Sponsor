@@ -46,15 +46,13 @@
 <meta name="description" content="Sign up for AI Sponsor in a few minutes — pick your 12-step program (AA, NA, OA and more), name your sponsor, and start talking right away. 30-day free trial.">
 <link rel="canonical" href="https://getaisponsor.com/ai-sponsor-registration.html">
 
-<!-- Google Analytics GA4 Tag -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-S6Y7JPLC0G"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-S6Y7JPLC0G');
-</script>
+<!-- Cookie consent gate. GA4, the Meta pixel and Clarity (below) all load
+     through this instead of firing on their own — nothing sets a cookie
+     until somebody has actually accepted. See cookie-consent.js. The later
+     fbq/gtag calls in handlePaymentReturn() are already wrapped in
+     try/catch, so a decline there costs a conversion event, not a crash. -->
+<script src="/cookie-consent.js"></script>
+<script>AISCookieConsent.init({ clarity: true });</script>
 
 <!-- HYROS Universal Tracking Script -->
 <script>
@@ -64,20 +62,6 @@
   script.src = "https://215466.t.hyros.com/v1/lst/universal-script?ph=395a23f1c62bf26a497b91f272b6fc6b27906736d5a140cd7a9e220d722c2456&tag=!ai_sponsor&ref_url=" + encodeURI(document.URL);
   head.appendChild(script);
 </script>
-
-<!-- Meta Pixel — AI Sponsor's own. The Purchase event fires from
-     handlePaymentReturn() further down, on the real return from Stripe. -->
-<script>
-  !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-  n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
-  n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
-  t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
-  document,'script','https://connect.facebook.net/en_US/fbevents.js');
-  fbq('init', '1018553221183175');
-  fbq('track', 'PageView');
-</script>
-<noscript><img height="1" width="1" style="display:none"
-  src="https://www.facebook.com/tr?id=1018553221183175&ev=PageView&noscript=1"/></noscript>
 
 <!-- OpenAI Ads measurement pixel (ChatGPT ads).
      ⚠️ NOT WIRED UP YET — needs AI Sponsor's own pixelId. Confirm the ads
@@ -654,21 +638,10 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 .modal-confirm{width:100%;padding:13px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:background .15s}
 @media (hover:hover){.modal-confirm:hover{background:var(--blue-dark)}}
 </style>
-<!-- Microsoft Clarity - session recordings and heatmaps.
-     AI Sponsor's OWN project id (ygsnblpdd3). DRM's is xg873kn00q and the two
-     must never be shared: one project would merge both products' recordings and
-     heatmaps into a single view, the same mix-up the separate Meta pixel above
-     exists to avoid.
-     Marketing pages only. Deliberately absent from ai-sponsor-settings.html,
-     which authenticates off a 30-day bearer token in its URL that every tracker
-     would transmit, and from ai-sponsor-chat.html. -->
-<script type="text/javascript">
-  (function(c,l,a,r,i,t,y){
-      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-      t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-      y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-  })(window, document, "clarity", "script", "ygsnblpdd3");
-</script>
+<!-- Microsoft Clarity now loads through cookie-consent.js above, along with
+     GA4 and the Meta pixel. Still marketing pages only, deliberately absent
+     from ai-sponsor-settings.html (30-day bearer token in the URL) and from
+     ai-sponsor-chat.html — see clarity:false on that page's init call. -->
 </head>
 <body>
 <div class="container">
