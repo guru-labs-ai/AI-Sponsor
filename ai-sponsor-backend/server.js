@@ -2272,22 +2272,33 @@ async function subscriptionForPerson(userId, userRow) {
   return null;
 }
 
-app.get('/api/sponsor-settings', async (req, res) => {
-  /* Distinguish a genuine expired/unknown token from a DB connection failure.
-     On Render's free tier the pool may not be up yet on a cold start, which
-     makes resolveSettingsToken throw. Swallowing that as null and returning
-     404 "link expired" was the wrong message — the link is fine, the DB just
-     needs a moment. Catch the error explicitly so we can return 503 instead. */
+/* Shared by every settings-link route below: distinguishes a genuine
+   expired/unknown token from a DB connection failure. On Render's free tier
+   the pool may not be up yet on a cold start, which makes resolveSettingsToken
+   throw. Swallowing that as null and returning 404 "link expired" told people
+   a valid link was dead when the database just needed a moment. Sends the
+   response itself and returns null on either failure, so every call site is:
+     const userId = await resolveTokenOrFail(res, token);
+     if (!userId) return; */
+async function resolveTokenOrFail(res, token) {
   let userId;
   try {
-    userId = await db.resolveSettingsToken(String(req.query.t || ''));
+    userId = await db.resolveSettingsToken(token);
   } catch (dbErr) {
     console.error('[settings] DB error resolving token:', dbErr.message);
-    return res.status(503).json({ error: 'Could not reach your sponsor just now. Give it a moment and refresh.' });
+    res.status(503).json({ error: 'Could not reach your sponsor just now. Give it a moment and refresh.' });
+    return null;
   }
   if (!userId) {
-    return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
+    res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
+    return null;
   }
+  return userId;
+}
+
+app.get('/api/sponsor-settings', async (req, res) => {
+  const userId = await resolveTokenOrFail(res, String(req.query.t || ''));
+  if (!userId) return;
 
   /* All independent DB reads run in parallel. Previously these were sequential
      awaits — up to 8 round-trips to Postgres one-after-another. On Render's
@@ -2400,10 +2411,8 @@ app.get('/api/sponsor-settings', async (req, res) => {
    the most reliable wake-up this product gets, because it is the only one that
    coincides with a person actually wanting the thing. */
 app.get('/api/sponsor-settings/week', async (req, res) => {
-  const userId = await db.resolveSettingsToken(String(req.query.t || '')).catch(() => null);
-  if (!userId) {
-    return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
-  }
+  const userId = await resolveTokenOrFail(res, String(req.query.t || ''));
+  if (!userId) return;
   const start = String(req.query.start || '').trim();
 
   // An explicit week is a lookup, never a generation — the picker must not be
@@ -2466,8 +2475,8 @@ app.post('/api/cron/weekly-summaries', async (req, res) => {
    leave, and making them the same button would mean the only way to reset is to
    destroy everything. */
 app.post('/api/sponsor-settings/restart', async (req, res) => {
-  const userId = await db.resolveSettingsToken(String((req.body || {}).t || '')).catch(() => null);
-  if (!userId) return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
+  const userId = await resolveTokenOrFail(res, String((req.body || {}).t || ''));
+  if (!userId) return;
   try {
     const removed = await db.clearConversation(userId);
     userProfiles.delete(userId);
@@ -2488,8 +2497,8 @@ app.post('/api/sponsor-settings/restart', async (req, res) => {
    from here land in the same place as every other one. */
 app.post('/api/sponsor-settings/support', async (req, res) => {
   const b = req.body || {};
-  const userId = await db.resolveSettingsToken(String(b.t || '')).catch(() => null);
-  if (!userId) return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
+  const userId = await resolveTokenOrFail(res, String(b.t || ''));
+  if (!userId) return;
 
   const message = String(b.message || '').trim().slice(0, 4000);
   if (!message) return res.status(400).json({ error: 'Please write your message first.' });
@@ -2557,8 +2566,8 @@ app.post('/api/sponsor-settings/support', async (req, res) => {
    are a free trial until day 31, so "keep what you paid for" describes nobody
    yet, and a person pressing stop means stop. */
 app.post('/api/sponsor-settings/cancel-subscription', async (req, res) => {
-  const userId = await db.resolveSettingsToken(String((req.body || {}).t || '')).catch(() => null);
-  if (!userId) return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
+  const userId = await resolveTokenOrFail(res, String((req.body || {}).t || ''));
+  if (!userId) return;
 
   const user = (await db.getUser(userId).catch(() => null)) || {};
   const subscriptionId = await subscriptionForPerson(userId, user);
@@ -2589,8 +2598,8 @@ app.post('/api/sponsor-settings/cancel-subscription', async (req, res) => {
 
 app.post('/api/sponsor-settings/deactivate', async (req, res) => {
   const b = req.body || {};
-  const userId = await db.resolveSettingsToken(String(b.t || '')).catch(() => null);
-  if (!userId) return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
+  const userId = await resolveTokenOrFail(res, String(b.t || ''));
+  if (!userId) return;
 
   const user = (await db.getUser(userId).catch(() => null)) || {};
   const email = (user.email && user.email.trim()) || `${userId.replace(/[^a-z0-9]/gi, '-')}@no-email.aisponsor`;
@@ -2730,8 +2739,8 @@ app.post('/api/sponsor-settings/deactivate', async (req, res) => {
    with a row rather than an assumption. Idempotent: closing it twice is one
    event, so a double tap cannot inflate the number. */
 app.post('/api/sponsor-settings/privacy-notice-seen', async (req, res) => {
-  const userId = await db.resolveSettingsToken(String((req.body || {}).t || '')).catch(() => null);
-  if (!userId) return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
+  const userId = await resolveTokenOrFail(res, String((req.body || {}).t || ''));
+  if (!userId) return;
   const already = await db.hasEvent(userId, 'privacy_notice_seen').catch(() => false);
   if (!already) {
     await db.recordEvent(userId, 'privacy_notice_seen', { version: '2026-09-01' }, 'settings-link')
@@ -2746,8 +2755,8 @@ app.post('/api/sponsor-settings/privacy-notice-seen', async (req, res) => {
    that is mid-flight. */
 app.post('/api/sponsor-settings/undo-deactivate', async (req, res) => {
   const b = req.body || {};
-  const userId = await db.resolveSettingsToken(String(b.t || '')).catch(() => null);
-  if (!userId) return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
+  const userId = await resolveTokenOrFail(res, String(b.t || ''));
+  if (!userId) return;
 
   try {
     const stopped = await db.cancelDeletion(userId);
@@ -2775,10 +2784,8 @@ app.post('/api/sponsor-settings/undo-deactivate', async (req, res) => {
    language should not set one off. */
 app.post('/api/sponsor-settings/language', async (req, res) => {
   const b = req.body || {};
-  const userId = await db.resolveSettingsToken(String(b.t || '')).catch(() => null);
-  if (!userId) {
-    return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
-  }
+  const userId = await resolveTokenOrFail(res, String(b.t || ''));
+  if (!userId) return;
   const want = String(b.language || '');
   if (!language.SUPPORTED.includes(want)) {
     return res.status(400).json({ error: 'That language is not available yet.' });
@@ -2799,10 +2806,8 @@ app.post('/api/sponsor-settings/language', async (req, res) => {
    chat (checkin.setWish), so whichever they used last is what holds. */
 app.post('/api/sponsor-settings/checkins', async (req, res) => {
   const b = req.body || {};
-  const userId = await db.resolveSettingsToken(String(b.t || '')).catch(() => null);
-  if (!userId) {
-    return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
-  }
+  const userId = await resolveTokenOrFail(res, String(b.t || ''));
+  if (!userId) return;
   if (typeof b.on !== 'boolean') return res.status(400).json({ error: 'Nothing to change' });
   if (!checkin.enabled) return res.status(400).json({ error: 'Check-ins are not available yet.' });
   try {
@@ -2817,10 +2822,8 @@ app.post('/api/sponsor-settings/checkins', async (req, res) => {
 
 app.post('/api/sponsor-settings', async (req, res) => {
   const b = req.body || {};
-  const userId = await db.resolveSettingsToken(String(b.t || '')).catch(() => null);
-  if (!userId) {
-    return res.status(404).json({ error: 'This link has expired. Ask your sponsor for a new one.' });
-  }
+  const userId = await resolveTokenOrFail(res, String(b.t || ''));
+  if (!userId) return;
 
   // Same 30-char cap the registration field enforces, and the voice goes through
   // the same allow-list as everywhere else.
