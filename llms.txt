@@ -15,7 +15,7 @@ AI Sponsor is a private project. It is **not affiliated with, endorsed by, or co
 - People in early recovery, long-term recovery, or starting over.
 
 ## Programs supported
-Alcoholics Anonymous (AA), Narcotics Anonymous (NA), Al-Anon/Alateen, Overeaters Anonymous (OA), Debtors Anonymous (DA), Gamblers Anonymous (GA), Underearners Anonymous (UA), Adult Children of Alcoholics (ACA), Sex and Love Addicts Anonymous (SLAA), Business Debtors Anonymous (BDA), plus "Other/Multiple" and "New / Not sure."
+Alcoholics Anonymous (AA), Narcotics Anonymous (NA), Al-Anon/Alateen, Overeaters Anonymous (OA), Debtors Anonymous (DA), Gamblers Anonymous (GA), Underearners Anonymous (UA), Adult Children of Alcoholics (ACA), Sex and Love Addicts Anonymous (SLAA), Business Debtors Anonymous (BDA), Workaholics Anonymous (WA), plus "Other/Multiple" and "New / Not sure."
 
 ## How it works
 1. Register and tell your AI sponsor your program, recovery stage, and goals.
@@ -24,7 +24,7 @@ Alcoholics Anonymous (AA), Narcotics Anonymous (NA), Al-Anon/Alateen, Overeaters
 
 ## Pricing
 - $5/month, starting with a 30-day free trial.
-- $49/year, billed straight away. The annual plan does not include a free trial.
+- $49/year, starting with a 30-day free trial.
 - **One-for-one model:** every paying subscriber gives one free access to someone in recovery who can't afford it.
 
 ## Safety

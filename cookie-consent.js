@@ -98,7 +98,7 @@
     el.innerHTML =
       '<div class="ais-cb-body">' +
         '<p>We use cookies for site analytics and ad measurement. This never touches your ' +
-        'WhatsApp conversation. <a href="/privacy#7">Read more</a></p>' +
+        'WhatsApp conversation. <a href="/privacy#cookies">Read more</a></p>' +
         '<div class="ais-cb-actions">' +
           '<button type="button" class="ais-cb-decline">Decline</button>' +
           '<button type="button" class="ais-cb-accept">Accept</button>' +
