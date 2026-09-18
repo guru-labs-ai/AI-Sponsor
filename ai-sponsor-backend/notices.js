@@ -266,8 +266,13 @@ async function sendViaTemplate({ metacloud, phone, spec, lang, filledIn }) {
     /* A template body cannot carry a URL inline, so the settings link rides the
        template's own button. The suffix is everything after ?t= in the approved
        url, which is how trial_ending already does it. */
+    /* mustArrive: a deletion notice that silently fails to reach a US number is
+       the worst one to lose, so a translation Meta has not approved as UTILITY
+       drops to the English rather than being sent into the dark. Both leaving
+       templates are UTILITY in all sixteen languages today; this holds if one
+       is ever recategorised. */
     await language.sendTemplateIn(mc, `whatsapp:${phone}`, spec.template, lang, paramsFor,
-      filledIn(lang).linkSuffix || null);
+      filledIn(lang).linkSuffix || null, { mustArrive: true });
     return true;
   } catch (err) {
     console.warn(`[notice] template ${spec.template} failed: ${err.message}`);

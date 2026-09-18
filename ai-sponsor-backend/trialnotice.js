@@ -30,6 +30,12 @@ const TRIAL_ENDING_TEMPLATE = 'trial_ending';
    wording lives in notice-copy.js (TRIAL[lang].templateV2). */
 const TRIAL_ENDING_TEMPLATE_V2 = 'trial_ending_v2';
 
+/* Turkish, Arabic, Hindi, Bengali, Chinese, Japanese, Korean, Indonesian and
+   Vietnamese, submitted Sep 17. A separate name because Meta refuses to add a
+   UTILITY translation to a name that already carries a MARKETING one, and
+   trial_ending_v2 does (Spanish). Wording is TRIAL[lang].templateV2. */
+const TRIAL_ENDING_NOTICE = 'trial_ending_notice';
+
 /* Meta's own code for "outside the 24-hour window" is 131047. 63016 was
    Twilio's and is kept because the number only moved in August and an old error
    string in a retry queue should still be understood. */
@@ -90,7 +96,11 @@ async function sendTemplate({ metacloud, phone, first, trialEndUnix, lang, token
          Spanish, French and German, submitted as UTILITY on Sep 17 because
          Meta will not recategorise the originals. Used once Meta approves it
          as UTILITY; until then those readers get the English. */
-      { mustArrive: true, alsoTry: [TRIAL_ENDING_TEMPLATE_V2] }
+      /* trial_ending_notice: the same billing wording again, under a name of
+         its own, because Meta ties one category to a template name and both
+         older names already carry a MARKETING translation. It is where the nine
+         languages added on Sep 17 live. */
+      { mustArrive: true, alsoTry: [TRIAL_ENDING_TEMPLATE_V2, TRIAL_ENDING_NOTICE] }
     );
     return true;
   } catch (err) {

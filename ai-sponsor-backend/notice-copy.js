@@ -406,6 +406,30 @@ function checkinBody(lang, first) {
   return first ? c.hi(first) + c.text : cap(c.text);
 }
 
+/* ── The other nine languages ───────────────────────────────────────────────
+   Turkish, Arabic, Hindi, Bengali, Chinese, Japanese, Korean, Indonesian and
+   Vietnamese, written as data and turned into these same shapes in
+   notice-copy-extra.js. Merged in rather than pasted here so the six languages
+   above, which were written and read line by line, stay separable from the nine
+   that were translated in one pass and have not been read by a native speaker.
+
+   Assigned, never overwritten: if a language somehow appears in both, the
+   handwritten one wins. */
+const extra = require('./notice-copy-extra');
+const merge = (into, from) => {
+  for (const [lang, value] of Object.entries(from)) if (!(lang in into)) into[lang] = value;
+};
+merge(SERVICE_NAME_FALLBACK, extra.SERVICE_NAME_FALLBACK);
+merge(SPONSOR_NAME_FALLBACK, extra.SPONSOR_NAME_FALLBACK);
+merge(OPENER, extra.OPENER);
+merge(LEAVING, extra.LEAVING);
+merge(TRIAL, extra.TRIAL);
+merge(WEEKLY, extra.WEEKLY);
+merge(WEEKLY_READY, extra.WEEKLY_READY);
+merge(QUIET_CARD, extra.QUIET_CARD);
+merge(CHECKIN, extra.CHECKIN);
+merge(CHECKIN_REQUESTED, extra.CHECKIN_REQUESTED);
+
 module.exports = {
   SERVICE_NAME_FALLBACK, SPONSOR_NAME_FALLBACK,
   OPENER, LEAVING, TRIAL, WEEKLY, WEEKLY_READY, WEEKLY_SUMMARY_READY, QUIET_CARD, CHECKIN, CHECKIN_REQUESTED,

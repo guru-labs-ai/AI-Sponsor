@@ -27,11 +27,27 @@
 const SUPPORTED = ['en', 'es', 'pt', 'fr', 'de', 'it', 'ru', 'tr', 'ar', 'hi',
   'bn', 'zh', 'ja', 'ko', 'id', 'vi'];
 
-/* The languages automatic messages are written in, and the code Meta files
-   each template translation under. Everyone else gets English. */
-const NOTICE_LANGUAGES = ['en', 'es', 'fr', 'de', 'it', 'pt', 'ru'];
-const META_TEMPLATE_CODE = { en: 'en_US', es: 'es', fr: 'fr', de: 'de', it: 'it', pt: 'pt_BR', ru: 'ru' };
-const DATE_LOCALE = { en: 'en-GB', es: 'es-ES', fr: 'fr-FR', de: 'de-DE', it: 'it-IT', pt: 'pt-BR', ru: 'ru-RU' };
+/* The languages automatic messages are written in, and the code Meta files each
+   template translation under.
+
+   ⭐ Sep 17: this is now every language the sponsor speaks, not seven of them.
+   Mariam: "why would users get english notes and reminders if they havent
+   chosen english? no logic in that". The copy for the other nine is in
+   notice-copy-extra.js. A template translation Meta has not approved still
+   falls back to English at send time, but nothing falls back because we never
+   wrote the words. */
+const NOTICE_LANGUAGES = ['en', 'es', 'fr', 'de', 'it', 'pt', 'ru',
+  'tr', 'ar', 'hi', 'bn', 'zh', 'ja', 'ko', 'id', 'vi'];
+const META_TEMPLATE_CODE = {
+  en: 'en_US', es: 'es', fr: 'fr', de: 'de', it: 'it', pt: 'pt_BR', ru: 'ru',
+  /* Meta's own codes. Simplified Chinese is zh_CN; there is no bare zh. */
+  tr: 'tr', ar: 'ar', hi: 'hi', bn: 'bn', zh: 'zh_CN', ja: 'ja', ko: 'ko', id: 'id', vi: 'vi',
+};
+const DATE_LOCALE = {
+  en: 'en-GB', es: 'es-ES', fr: 'fr-FR', de: 'de-DE', it: 'it-IT', pt: 'pt-BR', ru: 'ru-RU',
+  tr: 'tr-TR', ar: 'ar-EG', hi: 'hi-IN', bn: 'bn-BD', zh: 'zh-CN', ja: 'ja-JP', ko: 'ko-KR',
+  id: 'id-ID', vi: 'vi-VN',
+};
 
 /* For telling a model which language to write in. */
 const LANGUAGE_NAMES = {

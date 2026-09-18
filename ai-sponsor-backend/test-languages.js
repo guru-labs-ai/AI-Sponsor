@@ -83,15 +83,27 @@ function crisisPattern(file, endMark) {
       copy.leavingBody(l, true, { first: 'Ana', when: 'DATE', link: 'LINK' }).includes('DATE')
       && copy.leavingBody(l, false, { first: '', when: 'DATE', link: 'LINK' }).includes('LINK'), true);
     check(`${l}: the trial notice keeps the price`, /5/.test(copy.trialBody(l, { first: 'Ana', when: 'D', link: 'L' })), true);
-    check(`${l}: a nameless weekly nudge starts with a capital`,
-      /^\p{Lu}/u.test(copy.weeklyBody(l, 'good', { first: '', link: 'L' })), true);
+    /* Only where the script has capitals at all. Arabic, Hindi, Bengali,
+       Chinese, Japanese and Korean have no letter case, so the same sentence
+       is correct exactly as written, and asking for a capital would be asking
+       for something that does not exist. */
+    const opener = copy.weeklyBody(l, 'good', { first: '', link: 'L' });
+    const firstChar = [...opener][0] || '';
+    const hasCase = firstChar.toUpperCase() !== firstChar.toLowerCase();
+    check(`${l}: a nameless weekly nudge starts the way the script allows`,
+      hasCase ? /^\p{Lu}/u.test(opener) : opener.trim().length > 0, true);
   }
 
   group('dates');
   check('English is unchanged', language.formatDay('2026-09-29T00:00:00Z', 'en'), '29 September');
   check('Spanish', language.formatDay('2026-09-29T00:00:00Z', 'es'), '29 de septiembre');
   check('German', language.formatDay('2026-09-29T00:00:00Z', 'de'), '29. September');
-  check('a language without translated notices falls back to English dates', language.formatDay('2026-09-29T00:00:00Z', 'ja'), '29 September');
+  /* Sep 17: every language the sponsor speaks now has its own notices, so the
+     example here has to be a language it does not speak at all. */
+  check('Japanese now has its own dates, like every language the sponsor speaks',
+    language.formatDay('2026-09-29T00:00:00Z', 'ja'), '9月29日');
+  check('a language the sponsor does not speak falls back to English dates',
+    language.formatDay('2026-09-29T00:00:00Z', 'pl'), '29 September');
 
   group('templates fall back to English while a translation waits on Meta');
   const calls = [];
@@ -118,9 +130,12 @@ function crisisPattern(file, endMark) {
   try { await language.sendTemplateIn(mc('Meta 400 (131047): outside window'), 'to', 'trial_ending', 'fr', paramsFor); } catch (e) { thrown = e.message; }
   check('any other error is thrown, not hidden behind English', [calls.length, /131047/.test(thrown || '')], [1, true]);
 
+  /* Sep 17: every SUPPORTED language now has notice translations, so the
+     example of one that does not has to be a language the sponsor does not
+     speak at all, same as the date test above. */
   calls.length = 0;
-  await language.sendTemplateIn(mc(null), 'to', 'weekly_review', 'ja', paramsFor);
-  check('a language with no translated templates goes straight to English', calls.map((c) => c.code), ['en_US']);
+  await language.sendTemplateIn(mc(null), 'to', 'weekly_review', 'pl', paramsFor);
+  check('a language the sponsor does not speak goes straight to English', calls.map((c) => c.code), ['en_US']);
 
   group('a message that must arrive never rides a MARKETING translation (Mariam, Sep 17)');
   const withCategory = (category, fail) => {

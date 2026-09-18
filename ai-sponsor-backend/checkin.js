@@ -43,6 +43,7 @@ const QUIET_DAYS = Math.max(1, parseInt(process.env.QUIET_CHECKIN_DAYS, 10) || 5
 
    The old unrequested quiet_checkin template stays on the WABA, unused. */
 const TEMPLATE = 'checkin_requested';
+const TEMPLATE_MORE_LANGUAGES = 'checkin_on_request';
 const CHECKIN_REQUESTED_EN = "Hi {{1}}, you asked me to check in if I hadn't heard from you for a few days, so here I am. Reply whenever you want to talk. You can turn check-ins off on your settings page.";
 
 /* The offer comes once there is some real conversation to stand on, never in
@@ -186,7 +187,11 @@ async function runCheckinSweep({ limit = 3, whatsapp = null, metacloud, now = ne
          otherwise the English, so a US number is never sent a translation Meta
          moved to MARKETING. */
       await language.sendTemplateIn(sender, phone, TEMPLATE, lang,
-        (l) => [firstName(p.name) || copy.SPONSOR_NAME_FALLBACK[l]], `${token}#sponsor`, { mustArrive: true });
+        (l) => [firstName(p.name) || copy.SPONSOR_NAME_FALLBACK[l]], `${token}#sponsor`,
+        /* checkin_on_request carries the nine languages added on Sep 17. Its
+           own name because Meta ties a category to a name and checkin_requested
+           already has a MARKETING translation (Russian). */
+        { mustArrive: true, alsoTry: [TEMPLATE_MORE_LANGUAGES] });
       /* Written AFTER the send. A row written first would silence this person
          for thirty days on a message that never left. */
       await db.recordEvent(p.user_id, 'quiet_checkin', { quietDays: QUIET_DAYS }, 'checkin')

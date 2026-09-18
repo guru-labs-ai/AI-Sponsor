@@ -519,6 +519,12 @@ const WEEKLY_SUMMARY_TEMPLATE = 'weekly_summary_ready';
    about what is in the note. If this one is refused too, French needs the
    category review in WhatsApp Manager, which only a person can file. */
 const WEEKLY_ACCOUNT_TEMPLATE = 'weekly_account_update';
+
+/* The same plain notice in the nine languages the automatic messages did not
+   speak until Sep 17. Its own name for the same reason as the others: Meta ties
+   one category to a name, and weekly_note_ready already carries MARKETING
+   translations. Wording is WEEKLY_READY[lang] in notice-copy-extra.js. */
+const WEEKLY_NOTE_UPDATE_TEMPLATE = 'weekly_note_update';
 const WEEKLY_READY_EN = 'Hi {{1}}, your weekly note from AI Sponsor is ready. You can read it on your account page with the button below.';
 
 /* Returns true only if it actually sent. Every failure is swallowed and logged:
@@ -552,7 +558,7 @@ async function deliverTemplate(phone, payload, theirName, token, lang = 'en') {
          each language wins, and English is the floor nobody should reach. */
       { mustArrive: true,
         alsoTry: [WEEKLY_READY_TEMPLATE, WEEKLY_SUMMARY_TEMPLATE, WEEKLY_ACCOUNT_TEMPLATE,
-          WEEKLY_TEMPLATES.good] });
+          WEEKLY_NOTE_UPDATE_TEMPLATE, WEEKLY_TEMPLATES.good] });
     console.log(`[weekly] delivered via template${sent && sent.messageId ? ' ' + sent.messageId : ''} (tone ${payload.tone || 'good'}, ${lang})`);
     return true;
   } catch (err) {
