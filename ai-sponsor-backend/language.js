@@ -49,6 +49,18 @@ const DATE_LOCALE = {
   id: 'id-ID', vi: 'vi-VN',
 };
 
+/* The languages actively offered as a NEW choice on the settings page.
+   Mariam, Sep 18: only en/es/fr/de get the full build (site translation, every
+   notice type chased through Meta), so only these are held out as something to
+   pick. The other twelve are not turned off: the sponsor still speaks them,
+   chat still switches into them the moment someone writes in one, and someone
+   already using one keeps it (server.js adds their own current language back
+   in if it falls outside this list, so nobody is silently moved off what they
+   have). This list only shrinks the settings dropdown; SUPPORTED is what the
+   sponsor can actually speak and stays at sixteen. Add a language here once
+   its site translation and Meta template categories are done. */
+const OFFERED_LANGUAGES = ['en', 'es', 'fr', 'de'];
+
 /* For telling a model which language to write in. */
 const LANGUAGE_NAMES = {
   en: 'English', es: 'Spanish', pt: 'Portuguese', fr: 'French', de: 'German', it: 'Italian',
@@ -371,7 +383,7 @@ async function deliverableTranslation(mc, name, l) {
 }
 
 module.exports = {
-  SUPPORTED, NOTICE_LANGUAGES, META_TEMPLATE_CODE, LANGUAGE_NAMES,
+  SUPPORTED, OFFERED_LANGUAGES, NOTICE_LANGUAGES, META_TEMPLATE_CODE, LANGUAGE_NAMES,
   noticeLanguage, formatDay, readMessage, languageOf, rememberLanguage, sendTemplateIn,
   decideLanguage, noteLanguage, chooseLanguage,
 };

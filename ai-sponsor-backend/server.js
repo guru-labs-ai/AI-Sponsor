@@ -2373,7 +2373,13 @@ app.get('/api/sponsor-settings', async (req, res) => {
        and offers to change it. Read across identities, like the automatic
        messages do, so the page and the weekly note never disagree. */
     language: lang,
-    languages: language.SUPPORTED,
+    /* The settings page only offers a NEW choice among the four languages that
+       get the full build (Mariam, Sep 18). Someone already using one of the
+       other twelve keeps it, in its own name, rather than being silently
+       dropped off the list they are currently on. */
+    languages: language.OFFERED_LANGUAGES.includes(lang)
+      ? language.OFFERED_LANGUAGES
+      : [...language.OFFERED_LANGUAGES, lang],
     /* Check-ins on request (Mariam, Sep 17). The switch is only offered while
        the feature is on, because a switch for something that never happens is
        a promise nobody keeps. */
