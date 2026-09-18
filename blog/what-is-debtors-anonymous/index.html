@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Site language: shows this article in the language the visitor chose on the
+       homepage or sign-up (?lang= or their saved choice), English otherwise.
+       See i18n.js. -->
+  <script src="/i18n.js" data-i18n-extra="blogpost"></script>
+
+  <!-- Cookie consent gate. GA4, the Meta pixel and Clarity (below) all load
+       through this instead of firing on their own — nothing sets a cookie
+       until somebody has actually accepted. See /cookie-consent.js. -->
+  <script src="/cookie-consent.js"></script>
+  <script>AISCookieConsent.init({ clarity: true });</script>
+
+  <!-- HYROS Universal Tracking Script -->
+  <script>
+    var head = document.head;
+    var script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = "https://215466.t.hyros.com/v1/lst/universal-script?ph=395a23f1c62bf26a497b91f272b6fc6b27906736d5a140cd7a9e220d722c2456&tag=!ai_sponsor&ref_url=" + encodeURI(document.URL);
+    head.appendChild(script);
+  </script>
+
+  <!-- OpenAI Ads measurement pixel (ChatGPT ads). ⚠️ NOT WIRED UP — needs AI Sponsor's own pixelId. -->
+  <script>
+    (function(w,d,s,u){if(w.oaiq)return;var q=function(){q.q.push(arguments)};
+    q.q=[];w.oaiq=q;var js=d.createElement(s);js.async=true;js.src=u;
+    var f=d.getElementsByTagName(s)[0];f.parentNode.insertBefore(js,f)})
+    (window,document,"script","https://bzrcdn.openai.com/sdk/oaiq.min.js");
+    var AI_SPONSOR_OAI_PIXEL = ""; // AI Sponsor's OWN pixelId. EMPTY ON PURPOSE.
+    // Create it in the OpenAI Ads conversions tab and paste it here, then
+    // the pixel goes live. Never reuse another product's id, or its
+    // conversions and ours end up filed together.
+    if (AI_SPONSOR_OAI_PIXEL) {
+      oaiq("init", { pixelId: AI_SPONSOR_OAI_PIXEL });
+      oaiq("measure", "page_viewed");
+    }
+  </script>
+
+  <!-- Attribution: first touch wins. See /blog/index.html for the full note. -->
+  <script>
+  (function(){
+    try{
+      if (localStorage.getItem('ais_attr')) return;
+      var p = new URLSearchParams(location.search);
+      var refHost = '';
+      try {
+        if (document.referrer) refHost = new URL(document.referrer).hostname.replace(/^www\./,'');
+      } catch(e){}
+      if (refHost && refHost === location.hostname.replace(/^www\./,'')) refHost = '';
+      localStorage.setItem('ais_attr', JSON.stringify({
+        utmSource:   p.get('utm_source')   || '',
+        utmMedium:   p.get('utm_medium')   || '',
+        utmCampaign: p.get('utm_campaign') || '',
+        referrer:    refHost,
+        landing:     location.pathname,
+        at:          new Date().toISOString()
+      }));
+    }catch(e){}
+  })();
+  </script>
+
+  <title>What Is Debtors Anonymous, and What Helps Between Meetings? | AI Sponsor</title>
+  <meta name="description" content="Debtors Anonymous is a 12-step fellowship for compulsive debting and spending. How it works, its tools, and where an AI companion helps between meetings.">
+  <link rel="canonical" href="https://getaisponsor.com/blog/what-is-debtors-anonymous/">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="AI Sponsor">
+  <meta property="og:title" content="What is Debtors Anonymous, and what helps between meetings?">
+  <meta property="og:description" content="A 12-step fellowship for compulsive debting and spending. How it works, and where an AI companion fits when the urge hits at midnight.">
+  <meta property="og:url" content="https://getaisponsor.com/blog/what-is-debtors-anonymous/">
+  <meta property="og:image" content="https://getaisponsor.com/logo.png">
+  <meta property="article:published_time" content="2026-09-18">
+  <meta property="article:modified_time" content="2026-09-18">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="What is Debtors Anonymous, and what helps between meetings?">
+  <meta name="twitter:description" content="A 12-step fellowship for compulsive debting and spending. How it works, and where an AI companion fits.">
+  <meta name="twitter:image" content="https://getaisponsor.com/logo.png">
+
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/blog/blog.css">
+  <!-- Microsoft Clarity now loads through cookie-consent.js above, along with
+       GA4 and the Meta pixel. Still marketing pages only, deliberately absent
+       from ai-sponsor-settings.html (30-day bearer token in the URL) and from
+       ai-sponsor-chat.html — see clarity:false on that page's init call. -->
+</head>
+<body>
+
+<nav id="nav">
+  <a href="/" class="nav-logo">AI Sponsor</a>
+  <div class="nav-right">
+    <a href="/blog/" class="nav-link">Blog</a>
+    <a href="/#pricing" class="nav-link">Pricing</a>
+    <a href="/#faq" class="nav-link">FAQ</a>
+    <a href="/ai-sponsor-registration.html" class="nav-cta">Get Started Free</a>
+  </div>
+</nav>
+
+<main class="wrap">
+  <article class="article">
+
+    <div class="breadcrumb">
+      <a href="/">Home</a> &rsaquo; <a href="/blog/">Blog</a> &rsaquo; What is Debtors Anonymous?
+    </div>
+
+    <h1>What is Debtors Anonymous, and what helps between meetings?</h1>
+
+    <div class="byline">
+      <span>By the <strong>AI Sponsor team</strong></span>
+      <span class="sep">&bull;</span>
+      <span>Published <time datetime="2026-09-18">18 September 2026</time></span>
+      <span class="sep">&bull;</span>
+      <span>Updated <time datetime="2026-09-18">18 September 2026</time></span>
+      <span class="sep">&bull;</span>
+      <span>5 min read</span>
+    </div>
+
+    <!-- Citable answer block: ~150 words, self-contained, defines DA and names
+         where the product fits, with the boundary inside the block. -->
+    <div class="answer">
+      <div class="answer-label">The short answer</div>
+      <p><strong>Debtors Anonymous (DA) is a 12-step fellowship for people who want to stop compulsive debting and spending, one day at a time.</strong> Like AA, it works through meetings, sponsorship, and a set of practical tools: keeping a daily record of your numbers, building a spending plan, and meeting with a Pressure Relief Group to look honestly at your finances.</p>
+      <p>Where an AI companion helps is the hours between meetings. The urge to spend rarely shows up during a meeting. It shows up at midnight with a full online cart, on payday, or in the dread of checking a balance. That gap is real, and something you can text is a reasonable thing to put in it: awake at any hour, and never uncomfortable to talk to about money.</p>
+      <p><strong>It does not replace a sponsor, a meeting, or financial advice.</strong> It is for the moment in between.</p>
+    </div>
+
+    <h2>What is Debtors Anonymous?</h2>
+
+    <p>Debtors Anonymous is a fellowship of people who share their experience, strength and hope so they can stop incurring unsecured debt. It grew out of the same 12-step tradition as Alcoholics Anonymous, and it runs the same way: free meetings, no dues, anonymity, and members helping members.</p>
+
+    <p>The thing DA members are recovering from is broader than debt alone. It includes compulsive spending, chronic underearning, and what the fellowship calls "vagueness" about money, the habit of not looking. The goal is not wealth. It is solvency: not taking on new unsecured debt, one day at a time, the same way sobriety is counted in AA.</p>
+
+    <p>There are related fellowships for specific corners of this, including Underearners Anonymous and Business Debtors Anonymous. If money is the thing that keeps you up at night, there is almost certainly a room for it.</p>
+
+    <h2>How does DA actually work?</h2>
+
+    <p>Three things carry most of the recovery, and none of them is a lecture about budgeting.</p>
+
+    <p><strong>The numbers.</strong> Members keep a daily record of what comes in and what goes out. Not to feel guilty, but to end the vagueness. You cannot change what you refuse to look at, and for a lot of people simply writing it down is the first honest thing they have done with money in years.</p>
+
+    <p><strong>The Pressure Relief Group.</strong> This is DA's most distinctive tool. Once you have a few months of records, you sit down with two members who have their own solvency and have worked the steps, and you go through your actual finances together. Out of it come two things: a spending plan and an action plan. It is not financial advice, it is peers who have been where you are helping you see clearly.</p>
+
+    <p><strong>Sponsorship and the steps.</strong> As in any 12-step program, a sponsor is someone who has done the steps and takes you through them, and who you can call when the urge to debt is loud.</p>
+
+    <h2>The hard moment isn't the meeting</h2>
+
+    <p>Recovery from compulsive spending is not lived in the meeting. The meeting is an hour. The rest of it is the checkout page at 1am, the sale email, the "just this one thing" that you already know is not one thing, payday, and the specific dread of opening a banking app.</p>
+
+    <p>Money carries a particular kind of shame. People will tell a room about almost anything before they will say out loud how much they owe or what they bought. That shame is exactly what keeps someone from picking up the phone in the moment they most need to, and the moment passes, and the cart gets bought.</p>
+
+    <h2>Where an AI companion fits</h2>
+
+    <p>In that gap, and only in that gap.</p>
+
+    <p>An AI sponsor is something you can text the second the urge hits, at any hour, without having to decide whether it is too late to call a person or whether you have already leaned on them too much this week. It does not flinch at a number. You can tell it the amount you have never said aloud, and the only thing it does is help you slow down, talk it through, remember what your spending plan actually said, and get you to your next meeting or your next call still solvent.</p>
+
+    <p>Notice that none of that is advice. It is company and a pause at the exact moment the fellowship cannot be in the room with you. That is the honest size of what it does, and it is genuinely useful.</p>
+
+    <h2>What it is not</h2>
+
+    <p><strong>It is not a financial adviser.</strong> It does not give debt, budgeting, legal or investment advice, and it will not build your spending plan for you. That is what the Pressure Relief Group and real professionals are for. If you are facing collections, legal action or an unmanageable debt, you need qualified human help, not a chatbot.</p>
+
+    <p><strong>It is not a sponsor or a meeting.</strong> It has not done your steps, it cannot sit across a table from you, and it is not the fellowship. Use it as a bridge to those people, not a way around them. A fair test: does it make you more likely to get to a meeting and pick up the phone, or less? If it starts replacing your calls, that is the debting instinct finding a quieter room to hide in.</p>
+
+    <p><strong>It is not affiliated with Debtors Anonymous.</strong> DA does not endorse apps, and neither does any 12-step fellowship. This is a private product built to sit alongside the program, not to speak for it.</p>
+
+    <p>If any of that sounds like your midnight, you do not have to wait until the next meeting to have someone to talk to.</p>
+
+    <div class="article-cta">
+      <h3>Interested? You can talk to it tonight.</h3>
+      <p>A private companion for Debtors Anonymous, and for AA, NA, Al-Anon, GA, OA and more. It knows your program, it remembers what you tell it, and it answers whatever time the urge hits. For every subscription sold, we give one away to someone who cannot afford it.</p>
+      <a class="btn" href="/ai-sponsor-registration.html">Get your AI sponsor</a>
+    </div>
+
+  </article>
+</main>
+
+<footer>
+  <a href="/" class="footer-logo">AI Sponsor</a>
+  <nav class="footer-nav">
+    <a href="/#how" class="footer-nav-link">How It Works</a>
+    <a href="/#pricing" class="footer-nav-link">Pricing</a>
+    <a href="/#faq" class="footer-nav-link">FAQ</a>
+    <a href="/blog/" class="footer-nav-link">Blog</a>
+    <a href="/ai-sponsor-registration.html" class="footer-nav-link">Get Started</a>
+    <a href="/privacy" class="footer-nav-link">Privacy</a>
+    <a href="/terms" class="footer-nav-link">Terms</a>
+    <a href="#" class="footer-nav-link" onclick="AISCookieConsent.reset({clarity:true});return false;">Cookie preferences</a>
+  </nav>
+  <p class="footer-disclaimer">AI Sponsor is a private product and is not affiliated with, endorsed by, or connected to Alcoholics Anonymous, Narcotics Anonymous, Debtors Anonymous, or any 12-step program or organisation. If you are in crisis, please contact the Crisis Text Line (text HOME to 741741) or call 988.</p>
+</footer>
+<div style="background:#060E1A;text-align:center;padding:16px 24px;border-top:1px solid rgba(255,255,255,.06);">
+  <p style="font-size:12px;color:rgba(255,255,255,.25);">&copy; 2026 Conscious LLC. All rights reserved.</p>
+  <p style="font-size:12px;color:rgba(255,255,255,.25);">AI Sponsor is a service of Conscious LLC.</p>
+</div>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BlogPosting",
+      "@id": "https://getaisponsor.com/blog/what-is-debtors-anonymous/#post",
+      "headline": "What is Debtors Anonymous, and what helps between meetings?",
+      "description": "Debtors Anonymous is a 12-step fellowship for compulsive debting and spending. How it works, its tools, and where an AI companion helps between meetings.",
+      "url": "https://getaisponsor.com/blog/what-is-debtors-anonymous/",
+      "datePublished": "2026-09-18",
+      "dateModified": "2026-09-18",
+      "inLanguage": "en",
+      "author": { "@id": "https://getaisponsor.com/#org" },
+      "publisher": { "@id": "https://getaisponsor.com/#org" },
+      "isPartOf": { "@id": "https://getaisponsor.com/blog/#blog" },
+      "mainEntityOfPage": "https://getaisponsor.com/blog/what-is-debtors-anonymous/",
+      "image": "https://getaisponsor.com/logo.png",
+      "about": [
+        { "@type": "Thing", "name": "Debtors Anonymous" },
+        { "@type": "Thing", "name": "Compulsive spending" },
+        { "@type": "Thing", "name": "12-step recovery" }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is Debtors Anonymous?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Debtors Anonymous (DA) is a 12-step fellowship for people who want to stop incurring unsecured debt and recover from compulsive debting, compulsive spending and chronic underearning, one day at a time. It grew from the same tradition as Alcoholics Anonymous and runs the same way: free meetings, anonymity, sponsorship, and members helping members. The goal is not wealth but solvency, which means not taking on new unsecured debt, counted a day at a time the way sobriety is in AA."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does Debtors Anonymous work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Three tools carry most of the recovery. Members keep a daily record of income and spending, called the numbers, to end vagueness about money. They build a spending plan and an action plan. And they use the Pressure Relief Group, DA's most distinctive tool, in which you review your actual finances with two members who have their own solvency and have worked the steps. Alongside this are sponsorship and the 12 steps, as in any 12-step program."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can an AI help with compulsive spending between DA meetings?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It can help in the hours between meetings, which is where the urge to spend usually hits: at midnight with a full cart, on payday, or when checking a balance. An AI companion is available at any hour, does not flinch at a number, and can help you slow down, talk it through, and get to your next meeting or call still solvent. It is not a financial adviser, does not give debt or budgeting advice, and does not replace a sponsor, a Pressure Relief Group, or a meeting. It is not affiliated with Debtors Anonymous."
+          }
+        }
+      ]
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "AI Sponsor", "item": "https://getaisponsor.com/" },
+        { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://getaisponsor.com/blog/" },
+        { "@type": "ListItem", "position": 3, "name": "What is Debtors Anonymous?", "item": "https://getaisponsor.com/blog/what-is-debtors-anonymous/" }
+      ]
+    }
+  ]
+}
+</script>
+
+</body>
+</html>

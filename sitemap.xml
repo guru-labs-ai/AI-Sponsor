@@ -14,13 +14,19 @@
   </url>
   <url>
     <loc>https://getaisponsor.com/blog/</loc>
-    <lastmod>2026-07-22</lastmod>
+    <lastmod>2026-09-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://getaisponsor.com/blog/what-is-an-ai-sponsor/</loc>
     <lastmod>2026-07-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://getaisponsor.com/blog/what-is-debtors-anonymous/</loc>
+    <lastmod>2026-09-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
