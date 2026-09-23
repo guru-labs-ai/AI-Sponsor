@@ -11,16 +11,19 @@
    The choice lives in localStorage, not a cookie, so the choice itself never
    becomes one more thing this file would have to disclose.
 
-   Deliberately does NOT touch Hyros or the OpenAI pixel. Hyros staying
-   unconsented and undisclosed is a decided, separate call (Mariam, 18 Sep
-   2026) — not an oversight here. The OpenAI pixel has no live id yet and
-   loads nothing regardless. This only gates the three actually named in the
-   privacy policy's cookies section. */
+   Deliberately does NOT touch Hyros. Hyros staying unconsented and
+   undisclosed is a decided, separate call (Mariam, 18 Sep 2026) — not an
+   oversight here. The OpenAI ads pixel (added 23 Sep 2026) IS gated here, and
+   is disclosed in the privacy policy's cookies section alongside the others. */
 (function () {
   const KEY = 'ais_cookie_consent'; // 'accepted' | 'declined'
   const GA4_ID = 'G-S6Y7JPLC0G';
   const META_PIXEL_ID = '1018553221183175';
   const CLARITY_ID = 'ygsnblpdd3';
+  // OpenAI ads (ChatGPT ads) pixel. One id per ads account, and the account is
+  // Matt's single one, so DRM's OpenAI tasks will share it. Not yet checked
+  // against the conversions tab of ads.openai.com.
+  const OPENAI_PIXEL_ID = '4iukkVfNNEGj5wEgftnjoe';
 
   function loadGA4() {
     const s = document.createElement('script');
@@ -57,13 +60,30 @@
     })(window, document, "clarity", "script", CLARITY_ID);
   }
 
+  // Ad measurement for ChatGPT ads. Sets __oppref (30 days) and __obref (up to a
+  // year) once loaded. Registration fires trial_started separately, on return
+  // from Stripe, and that call is wrapped so a declined pixel breaks nothing.
+  function loadOpenAIPixel() {
+    (function(w,d,s,u){if(w.oaiq)return;var q=function(){q.q.push(arguments)};
+    q.q=[];w.oaiq=q;var js=d.createElement(s);js.async=true;js.src=u;
+    var f=d.getElementsByTagName(s)[0];f.parentNode.insertBefore(js,f)})
+    (window,document,"script","https://bzrcdn.openai.com/sdk/oaiq.min.js");
+    oaiq('init', { pixelId: OPENAI_PIXEL_ID });
+    oaiq('measure', 'page_viewed');
+  }
+
   function loadAccepted(withClarity) {
     loadGA4();
     loadMetaPixel();
     // Same restriction as before consent existed at all: never on chat, never
     // on settings, because both authenticate or converse in ways a session
     // recording would capture. withClarity is false only from ai-sponsor-chat.html.
-    if (withClarity) loadClarity();
+    // The OpenAI pixel follows the same rule: ads land on the homepage, sign-up
+    // page and blog, so the chat page has nothing for it to measure.
+    if (withClarity) {
+      loadClarity();
+      loadOpenAIPixel();
+    }
   }
 
   function injectStyles() {

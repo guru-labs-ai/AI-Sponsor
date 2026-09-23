@@ -6,12 +6,12 @@
   <!-- Site language: shows this page in the language the visitor chose on the
        homepage or sign-up (?lang= or their saved choice), English otherwise.
        See i18n.js. -->
-  <script src="/i18n.js?v=eb038aa7e9" data-i18n-extra="blogindex"></script>
+  <script src="/i18n.js?v=95bb4892cb" data-i18n-extra="blogindex"></script>
 
   <!-- Cookie consent gate. GA4, the Meta pixel and Clarity (below) all load
        through this instead of firing on their own — nothing sets a cookie
        until somebody has actually accepted. See /cookie-consent.js. -->
-  <script src="/cookie-consent.js?v=eb038aa7e9"></script>
+  <script src="/cookie-consent.js?v=95bb4892cb"></script>
   <script>AISCookieConsent.init({ clarity: true });</script>
 
   <!-- HYROS Universal Tracking Script -->
@@ -21,22 +21,6 @@
     script.type = 'text/javascript';
     script.src = "https://215466.t.hyros.com/v1/lst/universal-script?ph=395a23f1c62bf26a497b91f272b6fc6b27906736d5a140cd7a9e220d722c2456&tag=!ai_sponsor&ref_url=" + encodeURI(document.URL);
     head.appendChild(script);
-  </script>
-
-  <!-- OpenAI Ads measurement pixel (ChatGPT ads). ⚠️ NOT WIRED UP — needs AI Sponsor's own pixelId. -->
-  <script>
-    (function(w,d,s,u){if(w.oaiq)return;var q=function(){q.q.push(arguments)};
-    q.q=[];w.oaiq=q;var js=d.createElement(s);js.async=true;js.src=u;
-    var f=d.getElementsByTagName(s)[0];f.parentNode.insertBefore(js,f)})
-    (window,document,"script","https://bzrcdn.openai.com/sdk/oaiq.min.js");
-    var AI_SPONSOR_OAI_PIXEL = ""; // AI Sponsor's OWN pixelId. EMPTY ON PURPOSE.
-    // Create it in the OpenAI Ads conversions tab and paste it here, then
-    // the pixel goes live. Never reuse another product's id, or its
-    // conversions and ours end up filed together.
-    if (AI_SPONSOR_OAI_PIXEL) {
-      oaiq("init", { pixelId: AI_SPONSOR_OAI_PIXEL });
-      oaiq("measure", "page_viewed");
-    }
   </script>
 
   <!-- ── Attribution: remember how they found us ───────────────────────────────
@@ -90,7 +74,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/blog/blog.css?v=eb038aa7e9">
+  <link rel="stylesheet" href="/blog/blog.css?v=95bb4892cb">
   <!-- Microsoft Clarity now loads through cookie-consent.js above, along with
        GA4 and the Meta pixel. Still marketing pages only, deliberately absent
        from ai-sponsor-settings.html (30-day bearer token in the URL) and from

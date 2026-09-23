@@ -10,7 +10,7 @@
      get the switcher and nothing else. The
      language they read this in is sent to /register, so their sponsor's
      automatic messages arrive in it too. See i18n.js. -->
-<script src="i18n.js?v=eb038aa7e9"></script>
+<script src="i18n.js?v=95bb4892cb"></script>
 <!-- Same first-touch attribution capture as the landing page — people can arrive
      here directly (an ad straight to signup), so this page has to record it too.
      First touch wins, so arriving via the landing page won't overwrite it. -->
@@ -51,7 +51,7 @@
      until somebody has actually accepted. See cookie-consent.js. The later
      fbq/gtag calls in handlePaymentReturn() are already wrapped in
      try/catch, so a decline there costs a conversion event, not a crash. -->
-<script src="/cookie-consent.js?v=eb038aa7e9"></script>
+<script src="/cookie-consent.js?v=95bb4892cb"></script>
 <script>AISCookieConsent.init({ clarity: true });</script>
 
 <!-- HYROS Universal Tracking Script -->
@@ -63,25 +63,6 @@
   head.appendChild(script);
 </script>
 
-<!-- OpenAI Ads measurement pixel (ChatGPT ads).
-     ⚠️ NOT WIRED UP YET — needs AI Sponsor's own pixelId. Confirm the ads
-     account issues one per product rather than one shared across several
-     before switching it on. subscription_created / trial_started fire from
-     handlePaymentReturn() further down, same split as the Meta events. -->
-<script>
-  (function(w,d,s,u){if(w.oaiq)return;var q=function(){q.q.push(arguments)};
-  q.q=[];w.oaiq=q;var js=d.createElement(s);js.async=true;js.src=u;
-  var f=d.getElementsByTagName(s)[0];f.parentNode.insertBefore(js,f)})
-  (window,document,"script","https://bzrcdn.openai.com/sdk/oaiq.min.js");
-  var AI_SPONSOR_OAI_PIXEL = ""; // AI Sponsor's OWN pixelId. EMPTY ON PURPOSE.
-  // Create it in the OpenAI Ads conversions tab and paste it here, then
-  // the pixel goes live. Never reuse another product's id, or its
-  // conversions and ours end up filed together.
-  if (AI_SPONSOR_OAI_PIXEL) {
-    oaiq("init", { pixelId: AI_SPONSOR_OAI_PIXEL });
-    oaiq("measure", "page_viewed");
-  }
-</script>
 <link rel="icon" type="image/png" href="favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -2328,7 +2309,10 @@ function handlePaymentReturn(){
        ChatGPT ads experiments get conversions back the same way Meta's do.
        Both plans are a trial, so both report trial_started. */
     try {
-      oaiq('measure', 'trial_started', { type: 'plan_enrollment' });
+      oaiq('measure', 'trial_started', {
+        type: 'plan_enrollment',
+        plan_id: pending.plan === 'annual' ? 'ai_sponsor_annual' : 'ai_sponsor_monthly'
+      });
     } catch(e) { console.warn('[AI Sponsor] OpenAI pixel not available:', e); }
 
     /* And the same moment to GA4. Two events, because they answer different
