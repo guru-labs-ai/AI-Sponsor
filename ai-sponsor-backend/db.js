@@ -1692,6 +1692,64 @@ async function usersDueForWeekly(weekStart, weekEnd, limit = 25) {
   return r.rows.map((x) => ({ userId: x.user_id, phone: x.phone || '' }));
 }
 
+/* Everyone who has talked to their sponsor before but wrote NOTHING since the
+   closed week began, and so was never in usersDueForWeekly. Mariam, 26 Sep
+   2026: they get a reminder too, "hey, I haven't heard from you for a while".
+
+   Every clause is here to stop this becoming the thing people mute:
+
+   - Nothing written since the week began. Somebody who wrote on the Sunday the
+     week closed is not quiet, they are back, and they are left alone.
+   - No row for this week yet, so a second run never sends a second message.
+   - No weekly row of any kind in the last five days. The Saturday evening runs
+     still look at the PREVIOUS week (that is the Sydney cover), so without this
+     somebody in Sydney could be written to at 23:00 UTC for last week and again
+     an hour later for this one. At most one weekly message per person per five
+     days, whatever the week labels say.
+   - Not mid-deletion, and not anybody who told their sponsor to stop checking
+     in on them (checkinOptIn === false). Asking us to stop means stop.
+   - A phone to reach them on. A web-chat-only row has nowhere to send this.
+   - Two in a row and then silence. If their last `stopAfter` weekly rows were
+     both silent notes, nobody answered them, and not replying is an answer.
+     One reply, or a normal week, resets the count on its own because it puts a
+     different row in between.
+   - Same internal/test exclusion the dashboard uses.
+
+   No LIMIT worth speaking of: most of these people are outside their own
+   Sunday morning on any given run, and a small limit would fill up with the
+   same first few every hour and starve the rest. */
+async function usersQuietForWeekly(weekStart, weekEnd, limit = 100, stopAfter = 2) {
+  if (!enabled) return [];
+  const r = await pool.query(
+    `SELECT m.user_id, MAX(u.phone) AS phone
+       FROM messages m
+       JOIN users u ON u.user_id = m.user_id
+      WHERE m.role = 'user'
+        AND (m.user_id LIKE 'wa-%' OR COALESCE(NULLIF(TRIM(u.phone), ''), '') <> '')
+        ${NOT_EXCLUDED_U}
+      GROUP BY m.user_id
+     HAVING MAX(m.created_at) < $1::date
+        AND NOT EXISTS (SELECT 1 FROM weekly_summaries w
+                         WHERE w.user_id = m.user_id AND w.week_start = $1::date)
+        AND NOT EXISTS (SELECT 1 FROM weekly_summaries w3
+                         WHERE w3.user_id = m.user_id AND w3.created_at > now() - interval '5 days')
+        AND NOT EXISTS (SELECT 1 FROM deletion_requests d
+                         WHERE d.user_id = m.user_id AND d.status IN ('pending','running'))
+        AND NOT EXISTS (SELECT 1 FROM profiles pr
+                         WHERE pr.user_id = m.user_id AND (pr.profile->>'checkinOptIn') = 'false')
+        AND (SELECT COUNT(*) FROM (
+               SELECT w2.stats FROM weekly_summaries w2
+                WHERE w2.user_id = m.user_id
+                ORDER BY w2.week_start DESC LIMIT $3::int
+             ) recent
+              WHERE recent.stats->>'silent' = 'true') < $3::int
+      ORDER BY MAX(m.created_at) DESC
+      LIMIT $2::int`,
+    [weekStart, limit, stopAfter]
+  );
+  return r.rows.map((x) => ({ userId: x.user_id, phone: x.phone || '' }));
+}
+
 /* ─── Where everybody is ─────────────────────────────────────────────────────
    Matt: "lets add also country to this also from the phone number prefix and
    state in the USA also based on their phone number that will be a super
@@ -1870,5 +1928,5 @@ module.exports = {
   linkSubscription, findByStripeCustomer, getUser, setAccess,
   getMemory, saveMemory, renameInMemory, getAgedOutMessages, redeemBetaCode, logAdminAccess,
   getWeekMessages, getWeekActivity, saveWeeklySummary, getWeeklySummary,
-  listWeeklySummaries, markWeeklyDelivered, usersDueForWeekly,
+  listWeeklySummaries, markWeeklyDelivered, usersDueForWeekly, usersQuietForWeekly,
 };

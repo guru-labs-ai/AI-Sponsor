@@ -371,6 +371,37 @@ const QUIET_CARD = {
   },
 };
 
+/* ── The silent-week card (Mariam, 26 Sep 2026) ─────────────────────────────
+   What somebody who wrote nothing at all finds on their page when the weekly
+   review reaches them anyway. Her words: "Hey, I haven't heard from you for a
+   while, just checking how you are doing lately and if you want to talk about
+   something." It is the sponsor asking, once, without an agenda, and it
+   deliberately carries no count, no streak and no "you missed". A person who
+   went quiet already knows they went quiet.
+
+   English, Spanish, French and German only: those are the four languages the
+   product is scoped to. Anyone else keeps the older quiet-week wording above in
+   their own language, or English where there is none. Informal address
+   throughout, matching the cards around it. */
+const SILENT_CARD = {
+  en: {
+    note: "Hey, I haven't heard from you in a while. I just wanted to check in and see how you've been doing lately, and whether there's anything you'd like to talk about. There's no catching up to do first, just message me whenever you're ready.",
+    nextWeek: "No task from me. If something comes up, even something small, just message me.",
+  },
+  es: {
+    note: 'Hola, hace tiempo que no sé de ti. Solo quería saber cómo has estado últimamente y si hay algo de lo que quieras hablar. No hace falta ponerse al día antes, escríbeme cuando quieras.',
+    nextWeek: 'Sin tarea de mi parte. Si surge algo, aunque sea pequeño, solo escríbeme.',
+  },
+  fr: {
+    note: "Salut, ça fait un moment que je n'ai pas de tes nouvelles. Je voulais juste savoir comment tu vas ces derniers temps, et s'il y a quelque chose dont tu aimerais parler. Il n'y a rien à rattraper avant, écris-moi quand tu veux.",
+    nextWeek: "Pas de tâche de ma part. Si quelque chose arrive, même petit, écris-moi simplement.",
+  },
+  de: {
+    note: 'Hey, ich habe schon eine Weile nichts von dir gehört. Ich wollte nur nachfragen, wie es dir in letzter Zeit geht und ob es etwas gibt, worüber du reden möchtest. Du musst nichts nachholen, schreib mir einfach, wann immer du bereit bist.',
+    nextWeek: 'Keine Aufgabe von mir. Wenn etwas ist, auch wenn es klein ist, schreib mir einfach.',
+  },
+};
+
 /* ── Quiet check-in (the sponsor talking) ──────────────────────────────────── */
 const CHECKIN = {
   es: { hi: (f) => `Hola ${f}, `, text: 'han pasado unos días. Sin ningún motivo, solo quería saber cómo estás.',
@@ -432,6 +463,6 @@ merge(CHECKIN_REQUESTED, extra.CHECKIN_REQUESTED);
 
 module.exports = {
   SERVICE_NAME_FALLBACK, SPONSOR_NAME_FALLBACK,
-  OPENER, LEAVING, TRIAL, WEEKLY, WEEKLY_READY, WEEKLY_SUMMARY_READY, QUIET_CARD, CHECKIN, CHECKIN_REQUESTED,
+  OPENER, LEAVING, TRIAL, WEEKLY, WEEKLY_READY, WEEKLY_SUMMARY_READY, QUIET_CARD, SILENT_CARD, CHECKIN, CHECKIN_REQUESTED,
   leavingBody, trialBody, weeklyBody, checkinBody,
 };

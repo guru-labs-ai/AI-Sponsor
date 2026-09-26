@@ -65,6 +65,13 @@ const MAX_TRANSCRIPT_CHARS = 40000;
    summary is simply waiting for them next time they open the link. */
 const DELIVER = String(process.env.WEEKLY_DELIVER || '').toLowerCase() === 'true';
 
+/* People who wrote nothing all week get a "haven't heard from you" note too
+   (Mariam, 26 Sep 2026), instead of being skipped. ON by default because that
+   was her decision; set WEEKLY_SILENT=off to stop it without a code change. See
+   db.usersQuietForWeekly for who counts and for every guard against pestering. */
+const SILENT_ON = String(process.env.WEEKLY_SILENT || 'on').toLowerCase() !== 'off';
+const SILENT_STOP_AFTER = 2;
+
 /* ── The week ───────────────────────────────────────────────────────────────
    SUNDAY to SATURDAY, and always the last one that has fully CLOSED. Never the
    week in progress: a review of a week that is still happening is wrong the
@@ -197,6 +204,21 @@ function parseModelJSON(text) {
    sounds like there was. */
 function quietWeekCard({ sponsorName, messages, activeDays, lang = 'en' }) {
   const who = sponsorName || 'your sponsor';
+
+  /* Nothing at all this week: the check-in wording, not a report about a quiet
+     week. Used for en/es/fr/de; anybody else keeps the older card in their own
+     language below, or English where there is none. */
+  if (messages === 0) {
+    const s = copy.SILENT_CARD[lang] || (copy.QUIET_CARD[lang] ? null : copy.SILENT_CARD.en);
+    if (s) {
+      return {
+        note: s.note,
+        themes: [], carried: null, helped: [], commitments: [], milestone: null,
+        nextWeek: s.nextWeek, tone: 'quiet', _by: who,
+      };
+    }
+  }
+
   const translated = copy.QUIET_CARD[lang];
   if (translated) {
     return {
@@ -256,15 +278,20 @@ async function ensureWeeklySummary(userId, opts = {}) {
      whose messages are gone, and deciding anything on that number means writing
      about a conversation nobody can read. */
   const have = stats.readable;
-  const plan = planWeek(stats);
+  let plan = planWeek(stats);
 
-  /* Nobody who said nothing all week gets a row. A summary of silence is not
-     worth a model call, and a nudge about it would land as a product noticing
-     they went quiet, which is not the same thing as their sponsor noticing and
-     is worse than saying nothing.
+  /* THE OLD RULE, reversed 26 Sep 2026 by Mariam. This used to say: nobody who
+     said nothing all week gets a row, because a nudge about silence "would land
+     as a product noticing they went quiet, which is not the same thing as their
+     sponsor noticing". She decided the opposite: a person who went quiet is
+     exactly who should hear from their sponsor, once, without an agenda.
 
-     This also covers the wiped week: they turned up, but they asked us to
-     forget what was said, so there is correctly nothing to look back on. */
+     Two things stay true. The wiped week is still skipped: they turned up but
+     asked us to forget what was said, activity_days remembers that, and only a
+     week with NO activity at all counts as silence. And only the sweep's own
+     quiet list can ask for this (opts.silent), never a person opening their
+     page, so it cannot be triggered by anything but the guarded query. */
+  if (plan === 'skip' && opts.silent && SILENT_ON && !(Number(stats.messages) > 0)) plan = 'silent';
   if (plan === 'skip') return { status: 'skipped', reason: 'no-readable-messages', week };
 
   const profile = (await db.getProfile(userId).catch(() => null)) || {};
@@ -277,7 +304,9 @@ async function ensureWeeklySummary(userId, opts = {}) {
   const lang = await language.languageOf(db, userId);
 
   let payload;
-  if (plan === 'quiet') {
+  if (plan === 'silent') {
+    payload = quietWeekCard({ sponsorName, messages: 0, activeDays: 0, lang: language.noticeLanguage(lang) });
+  } else if (plan === 'quiet') {
     payload = quietWeekCard({ sponsorName, messages: have, activeDays: stats.activeDays, lang: language.noticeLanguage(lang) });
   } else {
     payload = await writeNarrative({ userId, week, stats, sponsorName, theirName, lang }).catch((e) => {
@@ -294,11 +323,14 @@ async function ensureWeeklySummary(userId, opts = {}) {
      can never disagree. Displaying the historical 15 next to a note written
      from 2 surviving messages tells somebody their sponsor read things it
      could not read. */
-  const written = await db.saveWeeklySummary(userId, week.start, week.end, payload, {
-    messages: have,
-    activeDays: stats.activeDays,
-    days: stats.days,
-  }).catch((e) => {
+  /* `silent: true` is the marker db.usersQuietForWeekly counts to stop after two
+     unanswered notes, and what deliver() reads to skip the free-text attempt.
+     No day strip for a silent week: "no days together" laid out as a chart
+     reads as a report card, which is the opposite of the note. */
+  const savedStats = plan === 'silent'
+    ? { messages: 0, activeDays: 0, days: [], silent: true }
+    : { messages: have, activeDays: stats.activeDays, days: stats.days };
+  const written = await db.saveWeeklySummary(userId, week.start, week.end, payload, savedStats).catch((e) => {
     console.error('[weekly] save failed:', e.message);
     return null;
   });
@@ -312,8 +344,8 @@ async function ensureWeeklySummary(userId, opts = {}) {
     return { status: 'exists', week, summary: theirs };
   }
 
-  console.log(`[weekly] wrote ${userId} for ${week.start}..${week.end} (${have} readable of ${stats.messages} logged, tone ${payload.tone})`);
-  return { status: 'created', week, summary: { ...payload, week_start: week.start, week_end: week.end, stats } };
+  console.log(`[weekly] wrote ${userId} for ${week.start}..${week.end} (${plan === 'silent' ? 'silent week' : `${have} readable of ${stats.messages} logged`}, tone ${payload.tone})`);
+  return { status: 'created', week, summary: { ...payload, week_start: week.start, week_end: week.end, stats: savedStats } };
 }
 
 async function writeNarrative({ userId, week, stats, sponsorName, theirName, lang = 'en' }) {
@@ -426,6 +458,23 @@ async function deliver(userId, payload, week, whatsapp) {
   const hi = theirName ? `${theirName}, ` : '';
 
   const lang = language.noticeLanguage(await language.languageOf(db, userId));
+
+  /* A silent week: the person has not written since before the week began, so
+     they are outside the 24 hour window by definition and a free-text send
+     could only fail. Straight to an approved template, which is the only thing
+     WhatsApp lets through, rather than trying text first and depending on how
+     Meta chooses to refuse it. Which template is picked, and why it is a
+     utility one for US numbers, is deliverTemplate's business. */
+  if (payload.stats && payload.stats.silent) {
+    const sentT = await deliverTemplate(phone, payload, theirName, token, lang);
+    if (sentT) {
+      await db.markWeeklyDelivered(userId, week.start, true, null).catch(() => {});
+      trackOutbound(userId, sentT, 'template');
+      return { sent: true, via: 'template', silent: true };
+    }
+    await db.markWeeklyDelivered(userId, week.start, false, 'silent-template-failed').catch(() => {});
+    return { sent: false, reason: 'silent-template-failed' };
+  }
 
   /* A hard week does not get a cheerful "here's your week in review". The
      wording changes with the tone for the same reason the note does. */
@@ -590,15 +639,35 @@ async function runSweep({ limit = 25, whatsapp = null, week = null, ignoreWindow
   if (!db.enabled) return { ok: false, reason: 'no-db' };
 
   const w = week || lastCompletedWeek();
-  const due = await db.usersDueForWeekly(w.start, w.end, limit).catch((e) => {
+  const dueActive = await db.usersDueForWeekly(w.start, w.end, limit).catch((e) => {
     console.error('[weekly] due query failed:', e.message);
     return [];
   });
 
-  const out = { week: w, considered: due.length, created: 0, skipped: 0, failed: 0,
-                delivered: 0, waiting: 0, unplaceable: [], notDelivered: {} };
+  /* And the people who wrote nothing: see db.usersQuietForWeekly. A separate
+     list, tagged, so a quiet person can never be mistaken for an active one and
+     is only ever given the check-in card. Not capped by `limit`: most of them
+     are outside their own Sunday morning on any run, and that check costs
+     nothing. */
+  /* Not on a Saturday UTC unless a week was asked for by name. Those evening
+     runs exist so Sydney's Sunday morning is covered, but the week they see is
+     still the previous one, and a silent note written against last week's label
+     would be a stale card. The same people are picked up from 00:00 UTC, when
+     the week has flipped and they are still inside their own morning. */
+  const silentToday = SILENT_ON && (!!week || new Date().getUTCDay() !== 6);
+  const dueQuiet = silentToday
+    ? await db.usersQuietForWeekly(w.start, w.end, 100, SILENT_STOP_AFTER).catch((e) => {
+        console.error('[weekly] quiet query failed:', e.message);
+        return [];
+      })
+    : [];
+  const due = dueActive.concat(dueQuiet.map((x) => ({ ...x, silent: true })));
 
-  for (const { userId, phone } of due) {
+  const out = { week: w, considered: due.length, consideredSilent: dueQuiet.length,
+                created: 0, createdSilent: 0, skipped: 0, failed: 0,
+                delivered: 0, deliveredSilent: 0, waiting: 0, unplaceable: [], notDelivered: {} };
+
+  for (const { userId, phone, silent } of due) {
     /* Wait for their own Sunday morning. This runs hourly, so Sydney is
        picked up when it is 9am there and California sixteen hours later,
        from the same schedule. Anyone we cannot place is held rather than
@@ -615,11 +684,12 @@ async function runSweep({ limit = 25, whatsapp = null, week = null, ignoreWindow
       continue;
     }
 
-    const r = await ensureWeeklySummary(userId, { week: w });
+    const r = await ensureWeeklySummary(userId, { week: w, silent: !!silent });
     if (r.status === 'created') {
       out.created++;
+      if (silent) out.createdSilent++;
       const d = await deliver(userId, r.summary, w, whatsapp);
-      if (d.sent) out.delivered++;
+      if (d.sent) { out.delivered++; if (silent) out.deliveredSilent++; }
       else out.notDelivered[d.reason] = (out.notDelivered[d.reason] || 0) + 1;
     } else if (r.status === 'failed') out.failed++;
     else out.skipped++;
@@ -632,7 +702,7 @@ async function runSweep({ limit = 25, whatsapp = null, week = null, ignoreWindow
   }
 
   if (out.created || out.failed) {
-    console.log(`[weekly] sweep ${w.start}..${w.end}: ${out.created} written, ${out.delivered} delivered, ${out.failed} failed, ${out.skipped} skipped`);
+    console.log(`[weekly] sweep ${w.start}..${w.end}: ${out.created} written (${out.createdSilent} silent), ${out.delivered} delivered (${out.deliveredSilent} silent), ${out.failed} failed, ${out.skipped} skipped`);
   }
   return { ok: true, ...out };
 }
