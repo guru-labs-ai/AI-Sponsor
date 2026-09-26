@@ -82,7 +82,7 @@ async function sendTemplate({ metacloud, phone, first, trialEndUnix, lang, token
     /* Meta rejects an empty variable and plenty of people never gave a name, so
        it falls back to what a sponsor would say out loud. The date is built per
        language so the English fallback never carries a Spanish month. */
-    await language.sendTemplateIn(
+    const sent = await language.sendTemplateIn(
       mc,
       `whatsapp:${phone}`,
       TRIAL_ENDING_TEMPLATE,
@@ -102,7 +102,9 @@ async function sendTemplate({ metacloud, phone, first, trialEndUnix, lang, token
          languages added on Sep 17 live. */
       { mustArrive: true, alsoTry: [TRIAL_ENDING_TEMPLATE_V2, TRIAL_ENDING_NOTICE] }
     );
-    return true;
+    /* Truthy either way. The message id, when Meta gave one, is what ties the
+       delivery receipt back to this notice. */
+    return sent || true;
   } catch (err) {
     console.warn(`[trial-ending] template failed: ${err.message}`);
     return false;
@@ -148,14 +150,25 @@ async function notifyTrialEnding({ user, trialEndUnix, db, whatsapp, metacloud, 
   const mark = (via) =>
     db.recordEvent(uid, 'trial_ending_notified', { trialEnd: key, via, lang }, 'stripe').catch(() => {});
 
+  /* So a delivery receipt has somewhere to land. Only Meta ids are kept, and it
+     can never fail the notice. */
+  const track = (result, via) => {
+    const id = result && result.messageId;
+    if (!id || typeof db.recordOutbound !== 'function') return;
+    db.recordOutbound(uid, id, 'trial_ending', via).catch(() => {});
+  };
+
   try {
-    await whatsapp.sendTextReply(`whatsapp:${phone}`, body);
+    const sentMsg = await whatsapp.sendTextReply(`whatsapp:${phone}`, body);
     await mark('text');
+    track(sentMsg, 'text');
     return { sent: true, via: 'text' };
   } catch (e) {
     const outside = OUTSIDE_WINDOW.test(e.message || '');
-    if (outside && await sendTemplate({ metacloud, phone, first, trialEndUnix, lang, token })) {
+    const viaTemplate = outside ? await sendTemplate({ metacloud, phone, first, trialEndUnix, lang, token }) : false;
+    if (viaTemplate) {
       await mark('template');
+      track(viaTemplate, 'template');
       return { sent: true, via: 'template' };
     }
     console.warn(`[trial-ending] delivery to ${uid} failed${outside ? ' (outside 24h window)' : ''}: ${e.message}`);

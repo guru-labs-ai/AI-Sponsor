@@ -2322,6 +2322,11 @@ app.get('/api/sponsor-settings', async (req, res) => {
   const userId = await resolveTokenOrFail(res, String(req.query.t || ''));
   if (!userId) return;
 
+  /* One visit to the page. This is what turns "we sent the weekly note" into
+     "somebody opened it", and it is deliberately not awaited: counting a visit
+     must never slow the page down or fail it. */
+  db.noteSettingsOpen(userId).catch(() => {});
+
   /* All independent DB reads run in parallel. Previously these were sequential
      awaits — up to 8 round-trips to Postgres one-after-another. On Render's
      free tier a cold pool reconnect on each query easily pushed total latency
@@ -3858,6 +3863,25 @@ if (whatsapp && process.env.META_WA_INBOUND === '1') {
          quickly, and a retry here means the sponsor answers the same message
          twice. Everything below this line runs after the response has gone. */
       res.status(200).send('EVENT_RECEIVED');
+
+      /* Delivery receipts for what we sent: sent, delivered, read, failed.
+         Recorded against the messages we chose to track (the weekly review and
+         the trial notice) and ignored for everything else. Wrapped so that
+         nothing about this can ever cost somebody a reply: it runs before the
+         conversation flow, swallows its own errors, and awaits nothing. */
+      try {
+        for (const s of metawebhook.normaliseStatuses(req.body)) {
+          /* No phone number and no text, only what went wrong. This is where a
+             131047 ("outside the 24 hour window") finally becomes visible. */
+          if (s.status === 'failed') {
+            console.warn(`[Meta] an outbound message failed: ${s.errorCode || 'no code'} ${s.errorTitle || ''}`.trim());
+          }
+          db.applyMessageStatus(s)
+            .catch((e) => console.warn('[Meta] could not record a delivery status:', e.message));
+        }
+      } catch (err) {
+        console.warn('[Meta] status callbacks unreadable:', err.message);
+      }
 
       let messages = [];
       try {

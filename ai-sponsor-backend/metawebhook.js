@@ -185,4 +185,43 @@ function normalise(body) {
   return out;
 }
 
-module.exports = { handleVerification, validateSignature, normalise };
+/* The other half of what Meta sends: what became of the messages WE sent.
+
+     statuses: [ { id: "wamid...", status: "sent" | "delivered" | "read" | "failed",
+                   timestamp: "1790000000", recipient_id: "...",
+                   errors: [ { code: 131047, title: "..." } ] } ]
+
+   normalise() above deliberately stops at these, because nothing needs
+   answering. That was fine while nobody asked whether a message arrived, and
+   it is why "delivered" on a weekly review only ever meant "Meta accepted it".
+
+   Returns plain records and nothing else. recipient_id is the person's phone
+   number and is left out on purpose: the message id already ties the record to
+   the person, and a number has no business in a metrics table. Tolerant like
+   normalise(): one malformed entry is skipped, never thrown on. */
+const KNOWN_STATUSES = new Set(['sent', 'delivered', 'read', 'failed']);
+
+function normaliseStatuses(body) {
+  const out = [];
+  if (!body || body.object !== 'whatsapp_business_account') return out;
+
+  for (const entry of body.entry || []) {
+    for (const change of entry.changes || []) {
+      if (change.field !== 'messages') continue;
+      for (const s of ((change.value || {}).statuses) || []) {
+        if (!s || !s.id || !KNOWN_STATUSES.has(s.status)) continue;
+        const err = Array.isArray(s.errors) && s.errors[0] ? s.errors[0] : null;
+        out.push({
+          wamid: s.id,
+          status: s.status,
+          timestamp: s.timestamp ? Number(s.timestamp) : null,
+          errorCode: err && err.code != null ? err.code : null,
+          errorTitle: err && err.title ? String(err.title).slice(0, 200) : null,
+        });
+      }
+    }
+  }
+  return out;
+}
+
+module.exports = { handleVerification, validateSignature, normalise, normaliseStatuses };

@@ -152,6 +152,47 @@ async function init() {
     );
     CREATE INDEX IF NOT EXISTS sponsor_tokens_user_idx ON sponsor_tokens (user_id);
   `);
+
+  /* Did what we sent actually arrive, and did anybody open what it linked to?
+
+     Until now the honest answer to both was "we do not know". The send call
+     returning ok only means Meta ACCEPTED the message; whether it was delivered,
+     read or refused (131047 outside the 24 hour window, 131049 marketing cap)
+     comes back later as a status callback, and the webhook used to throw those
+     away. So `delivered_at` on a weekly review meant "Meta took it".
+
+     Metadata only, on purpose: a message id, who it was for, what kind of thing
+     it was and what happened to it. Never the text. Tracked kinds are the
+     weekly review and the trial-ending notice, the two messages whose whole
+     point is that a person notices them.
+
+     settings_opens is one row per VISIT to the settings page (throttled to one
+     per person per ten minutes), so "opened within three days of the weekly
+     message" can be asked without storing the token itself.
+
+     Both hold a user_id, so both are in purgeUserData below. */
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS outbound_messages (
+      wamid        TEXT PRIMARY KEY,
+      user_id      TEXT NOT NULL,
+      kind         TEXT NOT NULL,
+      via          TEXT,
+      sent_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+      status       TEXT NOT NULL DEFAULT 'accepted',
+      delivered_at TIMESTAMPTZ,
+      read_at      TIMESTAMPTZ,
+      failed_at    TIMESTAMPTZ,
+      error_code   TEXT,
+      error_title  TEXT
+    );
+    CREATE INDEX IF NOT EXISTS outbound_user_idx ON outbound_messages (user_id, sent_at DESC);
+    CREATE TABLE IF NOT EXISTS settings_opens (
+      id        BIGSERIAL PRIMARY KEY,
+      user_id   TEXT NOT NULL,
+      opened_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS settings_opens_user_idx ON settings_opens (user_id, opened_at DESC);
+  `);
   /* An append-only record of what people change about their own account.
 
      `profiles` only ever holds the current state, so a rename overwrites the old
@@ -455,6 +496,8 @@ async function purgeUserData(userId) {
     await client.query('DELETE FROM sponsor_tokens WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM link_codes WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM account_events WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM outbound_messages WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM settings_opens WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM users WHERE user_id = $1', [userId]);
     await client.query('COMMIT');
   } catch (err) {
@@ -1014,6 +1057,63 @@ async function resolveSettingsToken(token) {
     [token]
   );
   return r.rows[0] ? r.rows[0].user_id : null;
+}
+
+/* ─── Delivery receipts and page opens ───────────────────────────────────────
+   See the comment on the two tables in init(). */
+
+/* Called the moment Meta accepts a send. Idempotent: a retry that produces the
+   same message id must not raise or overwrite what a status callback already
+   wrote. */
+async function recordOutbound(userId, wamid, kind, via) {
+  if (!enabled || !userId || !wamid || !kind) return;
+  await pool.query(
+    `INSERT INTO outbound_messages (wamid, user_id, kind, via)
+     VALUES ($1, $2, $3, $4) ON CONFLICT (wamid) DO NOTHING`,
+    [String(wamid), userId, String(kind), via || null]
+  );
+}
+
+/* Meta's callbacks do not arrive in order: "read" can beat "delivered", and a
+   late "sent" must never drag a read message back to sent. Ranked so the row
+   only ever moves forwards. "failed" outranks "sent" (a message that failed
+   after being sent did fail) but a delivered or read one is never turned into a
+   failure by a stray callback.
+
+   Returns how many rows it touched. Zero is normal and not an error: most of
+   what Meta reports on is an ordinary chat reply we never chose to track. */
+const STATUS_RANK = (expr) =>
+  `(CASE ${expr} WHEN 'read' THEN 4 WHEN 'delivered' THEN 3 WHEN 'failed' THEN 2 WHEN 'sent' THEN 1 ELSE 0 END)`;
+
+async function applyMessageStatus({ wamid, status, timestamp, errorCode, errorTitle }) {
+  if (!enabled || !wamid || !status) return 0;
+  const r = await pool.query(
+    `UPDATE outbound_messages SET
+        status       = CASE WHEN ${STATUS_RANK('$2::text')} >= ${STATUS_RANK('status')} THEN $2::text ELSE status END,
+        delivered_at = CASE WHEN $2::text = 'delivered' THEN COALESCE(delivered_at, to_timestamp($3::double precision), now()) ELSE delivered_at END,
+        read_at      = CASE WHEN $2::text = 'read'      THEN COALESCE(read_at,      to_timestamp($3::double precision), now()) ELSE read_at END,
+        failed_at    = CASE WHEN $2::text = 'failed'    THEN COALESCE(failed_at,    to_timestamp($3::double precision), now()) ELSE failed_at END,
+        error_code   = CASE WHEN $2::text = 'failed' THEN $4::text ELSE error_code END,
+        error_title  = CASE WHEN $2::text = 'failed' THEN $5::text ELSE error_title END
+      WHERE wamid = $1`,
+    [String(wamid), String(status), Number.isFinite(Number(timestamp)) ? Number(timestamp) : null,
+      errorCode == null ? null : String(errorCode), errorTitle ? String(errorTitle).slice(0, 200) : null]
+  );
+  return r.rowCount || 0;
+}
+
+/* One row per visit, not per request: the settings page calls its API more than
+   once while it loads and again on refresh, and counting each would make
+   everybody look like they opened it five times. */
+async function noteSettingsOpen(userId) {
+  if (!enabled || !userId) return;
+  await pool.query(
+    `INSERT INTO settings_opens (user_id)
+     SELECT $1::text WHERE NOT EXISTS (
+       SELECT 1 FROM settings_opens WHERE user_id = $1::text AND opened_at > now() - interval '10 minutes'
+     )`,
+    [userId]
+  );
 }
 
 // Append chat turns. msgs = [{ role, content }, …]
@@ -1766,6 +1866,7 @@ module.exports = {
   claimDueDeletion, markDeletionDone, releaseStaleDeletions,
   clearProfileField,
   getOrCreateSettingsToken, resolveSettingsToken,
+  recordOutbound, applyMessageStatus, noteSettingsOpen,
   linkSubscription, findByStripeCustomer, getUser, setAccess,
   getMemory, saveMemory, renameInMemory, getAgedOutMessages, redeemBetaCode, logAdminAccess,
   getWeekMessages, getWeekActivity, saveWeeklySummary, getWeeklySummary,

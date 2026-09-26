@@ -396,6 +396,15 @@ async function writeNarrative({ userId, week, stats, sponsorName, theirName, lan
    of the channel, not something to paper over, so every attempt records its
    outcome and the cron response reports the counts. The summary itself does not
    depend on any of this: it is already on their page either way. */
+/* Remember that this message went out so its delivery receipt has somewhere to
+   land. Only Meta ids are kept: a Twilio result has no wamid, and there is no
+   receipt to wait for. Fire and forget, and it can never fail a delivery. */
+function trackOutbound(userId, result, via) {
+  const id = result && result.messageId;
+  if (!id || typeof db.recordOutbound !== 'function') return;
+  db.recordOutbound(userId, id, 'weekly', via).catch(() => {});
+}
+
 async function deliver(userId, payload, week, whatsapp) {
   if (!DELIVER) return { sent: false, reason: 'delivery-disabled' };
   if (!whatsapp || !whatsapp.sendTextReply) return { sent: false, reason: 'no-whatsapp' };
@@ -444,8 +453,9 @@ async function deliver(userId, payload, week, whatsapp) {
       : body;
 
   try {
-    await whatsapp.sendTextReply(`whatsapp:${phone}`, withNotice);
+    const sentMsg = await whatsapp.sendTextReply(`whatsapp:${phone}`, withNotice);
     await db.markWeeklyDelivered(userId, week.start, true, null).catch(() => {});
+    trackOutbound(userId, sentMsg, 'text');
     return { sent: true };
   } catch (e) {
     /* The 24-hour window. 63016 was Twilio's code for it; 131047 is Meta's.
@@ -464,6 +474,7 @@ async function deliver(userId, payload, week, whatsapp) {
       const sent = await deliverTemplate(phone, payload, theirName, token, lang);
       if (sent) {
         await db.markWeeklyDelivered(userId, week.start, true, null).catch(() => {});
+        trackOutbound(userId, sent, 'template');
         return { sent: true, via: 'template' };
       }
     }
@@ -560,7 +571,10 @@ async function deliverTemplate(phone, payload, theirName, token, lang = 'en') {
         alsoTry: [WEEKLY_READY_TEMPLATE, WEEKLY_SUMMARY_TEMPLATE, WEEKLY_ACCOUNT_TEMPLATE,
           WEEKLY_NOTE_UPDATE_TEMPLATE, WEEKLY_TEMPLATES.good] });
     console.log(`[weekly] delivered via template${sent && sent.messageId ? ' ' + sent.messageId : ''} (tone ${payload.tone || 'good'}, ${lang})`);
-    return true;
+    /* Truthy either way, so every existing caller that only asks "did it send"
+       is unchanged. The object carries the message id when there is one, which
+       is what lets the delivery receipt be tied back to this send. */
+    return sent || true;
   } catch (err) {
     console.warn(`[weekly] template ${name} failed: ${err.message}`);
     return false;
