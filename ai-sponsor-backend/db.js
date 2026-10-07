@@ -215,6 +215,18 @@ async function init() {
     CREATE INDEX IF NOT EXISTS account_events_user_idx ON account_events (user_id, id DESC);
     CREATE INDEX IF NOT EXISTS account_events_time_idx ON account_events (created_at DESC);
   `);
+  /* Stripe webhook idempotency. Render's free tier sleeps, so the first delivery
+     of an event can be slow enough that Stripe redelivers the SAME event while we
+     boot, and we handle it twice. That double-posted the PAID alert — the one that
+     @-mentions Mariam and Matt — on 29 Sep, 3 Oct and 5 Oct. One row per Stripe
+     event id, written only AFTER the event is fully handled, so a failed event is
+     never recorded and Stripe's retry still gets to deliver it. */
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS stripe_events (
+      event_id   TEXT PRIMARY KEY,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
   /* One-time codes that bind a registration to the number a WhatsApp message
      genuinely arrives from. See createLinkCode. */
   await pool.query(`
@@ -835,6 +847,34 @@ async function hasEvent(userId, event) {
     [userId, event]
   );
   return r.rowCount > 0;
+}
+
+/* Stripe webhook idempotency, keyed on the event id Stripe sends. A duplicate
+   delivery (see the stripe_events table note) must not re-run the handler, or it
+   re-posts the money alert. Both calls fail OPEN: if the DB is unreachable we
+   would rather process an event (and risk the old double) than silently drop a
+   real payment by reading a failed query as "already seen". */
+async function stripeEventProcessed(eventId) {
+  if (!enabled || !eventId) return false;
+  try {
+    const r = await pool.query('SELECT 1 FROM stripe_events WHERE event_id = $1 LIMIT 1', [eventId]);
+    return r.rowCount > 0;
+  } catch (e) {
+    console.error('[DB] stripeEventProcessed failed, processing anyway:', e.message);
+    return false;
+  }
+}
+
+async function markStripeEventProcessed(eventId) {
+  if (!enabled || !eventId) return;
+  try {
+    await pool.query(
+      'INSERT INTO stripe_events (event_id) VALUES ($1) ON CONFLICT (event_id) DO NOTHING',
+      [eventId]
+    );
+  } catch (e) {
+    console.error('[DB] markStripeEventProcessed failed:', e.message);
+  }
 }
 
 async function getEvents(userId, limit = 50) {
@@ -1915,6 +1955,7 @@ module.exports = {
   resolveSource,
   saveProfile, getProfile, appendMessages, getHistory, findPersonId,
   recordEvent, getEvents, hasEvent, recentReactions, ping, inboundSilence, accessExpiringSoon,
+  stripeEventProcessed, markStripeEventProcessed,
   clearConversation, getPersonStats,
   createLinkCode, claimLinkCode,
   purgeUserData, findAllIdentities,

@@ -3531,10 +3531,23 @@ async function handleStripeWebhook(req, res) {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
+  // Idempotency. Render's free tier can be slow to wake, so Stripe sometimes
+  // redelivers the same event while we boot and we handle it twice — which
+  // double-posted the PAID alert (and its @mentions) on 29 Sep / 3 Oct / 5 Oct.
+  // Skip an event id we have already fully processed. Fails open (processes) if
+  // the check itself errors, so a DB blip can never drop a real payment.
+  if (await db.stripeEventProcessed(event.id)) {
+    console.log(`Stripe webhook duplicate ignored: ${event.id} (${event.type})`);
+    return res.json({ received: true, duplicate: true });
+  }
+
   try {
     const result = await stripeModule.handleWebhookEvent(event);
     console.log('Stripe webhook handled:', result);
     await syncStripeToGhl(result);
+    // Only mark AFTER a clean handle+sync, so a failure leaves the event
+    // unrecorded and Stripe's retry still gets to deliver it.
+    await db.markStripeEventProcessed(event.id);
     res.json({ received: true });
   } catch (err) {
     // Non-2xx makes Stripe retry with backoff for ~3 days, which is what we want
