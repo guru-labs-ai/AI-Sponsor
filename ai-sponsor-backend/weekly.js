@@ -35,6 +35,7 @@ const db = require('./db');
 const tz = require('./timezones');
 const language = require('./language');   // which language the note and nudge are in
 const copy = require('./notice-copy');     // the nudge, card and templates in six other languages
+const window24 = require('./window24');    // text or template: is their 24-hour window open
 const Anthropic = require('@anthropic-ai/sdk');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -500,6 +501,21 @@ async function deliver(userId, payload, week, whatsapp) {
     const withNotice = PRIVACY_NOTICE
       ? body + (lang !== 'en' ? copy.WEEKLY[lang].privacy : PRIVACY_NOTICE_LINE)
       : body;
+
+  /* Outside the window, go straight to the template. Trying text first does not
+     work on Meta: the send is accepted and refused later, so the catch below
+     never sees 131047. See window24.js. */
+  if ((await window24.insideWindow(db, phone)) === false) {
+    const sent = await deliverTemplate(phone, payload, theirName, token, lang);
+    if (sent) {
+      await db.markWeeklyDelivered(userId, week.start, true, null).catch(() => {});
+      trackOutbound(userId, sent, 'template');
+      return { sent: true, via: 'template' };
+    }
+    console.warn(`[weekly] delivery to ${userId} failed (outside 24h window, template refused)`);
+    await db.markWeeklyDelivered(userId, week.start, false, 'outside-24h').catch(() => {});
+    return { sent: false, reason: 'outside-24h' };
+  }
 
   try {
     const sentMsg = await whatsapp.sendTextReply(`whatsapp:${phone}`, withNotice);

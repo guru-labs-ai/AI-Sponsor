@@ -44,6 +44,7 @@ const OUTSIDE_WINDOW = /63016|131047/;
 /* The six other languages this goes out in live in notice-copy.js. */
 const language = require('./language');
 const copy = require('./notice-copy');
+const window24 = require('./window24');
 
 /* "29 September". Deliberately no year: it is always within the next few days,
    and a year makes it read like a contract rather than a note. UTC because the
@@ -157,6 +158,21 @@ async function notifyTrialEnding({ user, trialEndUnix, db, whatsapp, metacloud, 
     if (!id || typeof db.recordOutbound !== 'function') return;
     db.recordOutbound(uid, id, 'trial_ending', via).catch(() => {});
   };
+
+  /* Outside the window, straight to the template: on Meta a text send outside
+     it is accepted and refused later, so the catch below never sees 131047.
+     Pamela (30 Sep) and Mary J (2 Oct) both missed their notice that way. */
+  if ((await window24.insideWindow(db, phone)) === false) {
+    const viaTemplate = await sendTemplate({ metacloud, phone, first, trialEndUnix, lang, token });
+    if (viaTemplate) {
+      await mark('template');
+      track(viaTemplate, 'template');
+      return { sent: true, via: 'template' };
+    }
+    console.warn(`[trial-ending] delivery to ${uid} failed (outside 24h window, template refused)`);
+    await db.recordEvent(uid, 'trial_ending_notify_failed', { trialEnd: key, reason: 'outside-24h' }, 'stripe').catch(() => {});
+    return { sent: false, reason: 'outside-24h' };
+  }
 
   try {
     const sentMsg = await whatsapp.sendTextReply(`whatsapp:${phone}`, body);
