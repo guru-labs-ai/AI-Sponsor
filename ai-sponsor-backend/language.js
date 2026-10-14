@@ -186,56 +186,30 @@ async function rememberLanguage(db, userId, lang, known) {
 }
 
 /* ─── Changing language after they have joined ───────────────────────────────
-   Mariam, Sep 16: English is the default, and anybody can change language
-   whenever they like, after registering as much as before. Somebody who signed
-   up in German and then writes in English, or asks for English, has to get
-   English from then on: the replies and the automatic messages both.
+   ⭐ Mariam, Oct 14, replacing the Sep 16 rule: English unless they chose
+   otherwise. A language only changes two ways:
 
-   Two ways in:
+   - They pick one: at registration, or on the settings page (chooseLanguage).
+   - They ask their sponsor for one in a message, in any words or language.
 
-   - They just write in another language. The sponsor already follows them
-     (LANGUAGES in the master prompt), and the automatic messages follow from
-     the first message long enough to be sure of.
-   - They ask. "Können wir auf Englisch reden?" is the case following alone gets
-     wrong: the request is written in German, and so is everything after it, so
-     their next message would pull the replies and the weekly note straight back
-     to German. So a request is kept on the profile together with the language
-     it was asked from. Writing in either of those two keeps it. Writing a proper
-     message in a third language ends it, and so does asking for another one.
+   Writing in a language is NOT asking for it. The Sep 16 rule followed
+   whatever they wrote in, and on Oct 14 a two-second English voice note that
+   Whisper heard as Malay got Mariam a reply in Malay saying her language was
+   not supported. Nobody had asked for anything.
+
+   So the language they have is stated to the reply every time (replyLanguage
+   is never null), English included, and only an explicit request moves it.
+   languageAsked, which the old rule needed to tell a request from a habit, is
+   always null now; an old one is cleared the next time they write.
 
    Pure, so every case can be tested without a database or a model. `read` is
    what readMessage returned, or null when that failed. */
-const SURE_LENGTH = 12;
-
 function decideLanguage(read, text, profile) {
   const p = profile || {};
   const current = SUPPORTED.includes(p.language) ? p.language : 'en';
-  const asked = p.languageAsked && SUPPORTED.includes(p.languageAsked.want) ? p.languageAsked : null;
-  const out = { language: current, languageAsked: asked, replyLanguage: asked ? asked.want : null };
-  if (!read) return out;
-
-  const wrote = SUPPORTED.includes(read.language) ? read.language : null;
-  const want = SUPPORTED.includes(read.asksForLanguage) ? read.asksForLanguage : null;
-
-  // Asking is enough, however short the message. "English please" is clear.
-  if (want) {
-    const from = wrote || current;
-    out.language = want;
-    // Asked in the language they want: following them already does the job.
-    out.languageAsked = want === from ? null : { want, from };
-    out.replyLanguage = out.languageAsked ? want : null;
-    return out;
-  }
-
-  // An "ok" or a name tells us nothing, so it changes nothing.
-  if (!wrote || String(text || '').trim().length < SURE_LENGTH) return out;
-
-  if (asked && (wrote === asked.from || wrote === asked.want)) return out;
-
-  out.language = wrote;
-  out.languageAsked = null;
-  out.replyLanguage = null;
-  return out;
+  const want = read && SUPPORTED.includes(read.asksForLanguage) ? read.asksForLanguage : null;
+  const language = want || current;
+  return { language, languageAsked: null, replyLanguage: language };
 }
 
 /* Reads the message, decides, and saves what changed to every identity they

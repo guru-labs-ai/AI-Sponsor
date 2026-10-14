@@ -264,10 +264,18 @@ async function downloadAudio(mediaUrl) {
 /* ── Speech-to-text via OpenAI Whisper ───────────────────────────────────────
    Whisper handles .ogg/opus natively (WhatsApp's voice note format).
    Returns the transcribed text string. */
-async function transcribeAudio(filePath) {
+/* `lang` is the language this person has (language.languageOf), English
+   unless they chose another. Left to guess, Whisper picks a language from the
+   first second of audio, and on a short clip it guesses wrong and writes the
+   words down in that language: on Oct 14 Mariam's two-second English "can you
+   send me a voice message" came back as Malay. Telling it which language to
+   expect is the fix, and it matches the rule that a language only changes
+   when they ask (see language.decideLanguage). */
+async function transcribeAudio(filePath, lang) {
   const transcription = await openai.audio.transcriptions.create({
     file: fs.createReadStream(filePath),
     model: 'whisper-1',
+    ...(lang ? { language: lang } : {}),
   });
 
   fs.unlink(filePath, () => {}); // clean up temp file
@@ -1055,7 +1063,8 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
           audioPath = await downloadAudio(mediaUrl);
         }
 
-        userMessageText = await transcribeAudio(audioPath);
+        const heardIn = await language.languageOf(db, waUserId(fromPhone)).catch(() => 'en');
+        userMessageText = await transcribeAudio(audioPath, heardIn);
         console.log(`[WhatsApp] Transcribed: "${userMessageText}"`);
       } else if (isText) {
         userMessageText = messageBody;
@@ -1181,12 +1190,9 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
          only adds the same requests in the other fifteen. null means the read
          failed, and everything carries on as it did before this existed.
 
-         Their language is remembered for the automatic messages (trial ending,
-         weekly note), but only from a message long enough to be sure of: an
-         "ok" must not turn somebody who writes in Spanish into English. And if
-         they ask for a language rather than just writing in it, that request is
-         kept and handed to the reply as replyLanguage, so asking for English in
-         German is not undone by their next German message. See noteLanguage. */
+         Their language only changes when they ask for one (Mariam, Oct 14):
+         writing in another language changes nothing. replyLanguage is always
+         their language, and the reply is told it. See decideLanguage. */
       /* The same read also says whether they want check-ins (Mariam, Sep 17:
          check-ins are on request). If the sponsor offered them last time and
          they have not answered yet, the offer is given as context, because the
@@ -1248,18 +1254,11 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
 
       const requestedVoice = (cameByVoice || askedForVoice) && !(textOnly && !askedForVoice);
 
-      /* They want to hear the sponsor, but they are writing in a language
-         outside the 20 (see language.js). Known before the reply is written, so
-         the sponsor can tell them in their language, and that explanation is
-         kept in the history like everything else it says. */
-      const voiceUnavailable = requestedVoice && !!read && read.language === 'other';
-      if (voiceUnavailable) console.log(`[WhatsApp] ${fromPhone} wants voice in a language voice notes cannot speak: text, with an explanation`);
-
       /* Passed in and read back out afterwards: getSponsorReply sets
          modelWantsVoice on this object when the reply came back marked. */
       const ctx = {
         channel: 'whatsapp', viaVoice: cameByVoice,
-        replyIsSpoken: requestedVoice && !voiceUnavailable, textOnly, voiceUnavailable,
+        replyIsSpoken: requestedVoice, textOnly,
         replyLanguage,
       };
       const replyText = await getSponsorReply(userId, userMessageText, ctx);
@@ -1287,8 +1286,6 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
            deciding this one is worth speaking. Only they can lift it. */
         replyAsVoice = false;
         console.log(`[WhatsApp] text only for ${fromPhone}, as they asked`);
-      } else if (voiceUnavailable) {
-        replyAsVoice = false;
       } else if (requestedVoice) {
         replyAsVoice = true;
       } else if (ctx.modelWantsVoice && lastReplyWasUnpromptedVoice.get(userId)) {

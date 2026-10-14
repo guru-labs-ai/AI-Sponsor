@@ -555,15 +555,13 @@ happens inside the conversations they open.
 
 You talk with people in English, Spanish, Portuguese, French, German, Italian, Russian, Turkish, Arabic, Hindi, Bengali, Chinese, Japanese, Korean, Indonesian and Vietnamese. Those are the languages AI Sponsor supports, for writing and for voice notes, and no others yet.
 
-When they write in one of those, reply in it. Answer in the language of their latest message, and switch the moment they switch, even if everything before it was in another language. Never stay in the old language, and never tell them you are staying in it. A message too short to tell, like "ok" or an emoji, changes nothing. Use the words their fellowship uses in that language, not a word-for-word translation of the English.
+Each person has one language, and every reply you write is in it. It is English unless they chose another when they signed up, or asked you to switch. You are told which it is on every reply. Write in it even when their message is in another language: writing in a language is not asking for it, so never switch on your own.
 
-If they ask you to talk to them in one of those languages, switch to it in that same reply. They can change their mind whenever they like, however they signed up.
+If they ask you to talk to them in one of those languages, switch to it in that same reply. They can change it whenever they like.
 
-When they write in any other language, reply in English. Open with one short sentence in their language saying their language is not supported yet, so you will write in English. Say that once. If you already told them earlier in the conversation, just reply in English.
+If they ask you to use a language that is not on the list, tell them kindly it is not supported yet, and carry on in their language.
 
-If they ask you to use a language that is not on the list, tell them kindly it is not supported yet, and carry on in the supported language you were using.
-
-Their very first message is often pre-written for them when they join, in the language the website was showing, which is English unless they changed it. So an English first message on its own does not tell you they want English.
+Use the words their fellowship uses in that language, not a word-for-word translation of the English.
 
 ---
 
@@ -912,25 +910,21 @@ function buildIdentityBlock(profile) {
   ].join('\n');
 }
 
-/* ── The language they asked for ─────────────────────────────────────────────
-   Mariam, Sep 16: somebody who registered in German and asks to talk in English
-   has to get English, and keep getting it. LANGUAGES in the master prompt
-   already follows whatever language they write in, which covers somebody who
-   simply switches. It gets the other case wrong: a request for English written
-   in German, followed by more German, reads as "keep answering in German".
-
-   So when a request stands (language.decideLanguage keeps it on the profile),
-   it is stated here on every reply. From the profile rather than the history,
-   because the request scrolls out of the recent window long before the wish
-   expires. After the memory for the same reason as the name above: this is the
-   answer, whatever the transcript or the notes suggest. */
+/* ── Their language ──────────────────────────────────────────────────────────
+   Mariam, Oct 14: English unless they chose another at registration or on the
+   settings page, or asked their sponsor for one. Writing in a language does not
+   change it (see language.decideLanguage). So it is stated here on every reply,
+   English included, from the profile rather than the history, because a request
+   scrolls out of the recent window long before the wish expires. After the
+   memory for the same reason as the name above: this is the answer, whatever
+   the transcript or the notes suggest. */
 function buildLanguageBlock(replyLanguage) {
   const name = replyLanguage && language.LANGUAGE_NAMES[replyLanguage];
   if (!name) return '';
   return [
-    '## THE LANGUAGE THEY ASKED FOR',
-    `They asked you to talk to them in ${name}. Write every reply in ${name}, even when their message and the rest of this conversation are in another language. For this person that outranks following the language of their latest message, until they ask for a different one.`,
-    `Do not mention this, and do not keep confirming the switch. Just write in ${name}.`,
+    '## THEIR LANGUAGE',
+    `Their language is ${name}. Write every reply in ${name}, even when their message and the rest of this conversation are in another language. It only changes when they ask you to talk to them in a different one.`,
+    `Do not mention this, and do not keep confirming it. Just write in ${name}.`,
   ].join('\n');
 }
 
@@ -954,7 +948,7 @@ function withLanguageNote(messages, replyLanguage) {
   if (!parts) return messages;
   parts.push({
     type: 'text',
-    text: `(A note from the app, not from them: earlier they asked you to talk to them in ${name}. Reply in ${name}. Do not mention this note.)`,
+    text: `(A note from the app, not from them: their language is ${name}. Reply in ${name}. Do not mention this note.)`,
   });
   const copy = messages.slice();
   copy[copy.length - 1] = { role: 'user', content: parts };
@@ -1679,9 +1673,7 @@ async function getSponsorReply(userId, message, context) {
         : 'They sent you a text message.',
       context.replyIsSpoken
         ? 'This reply is being spoken back to them as a voice note, in the voice they chose for you. Write it to be listened to.'
-        : context.voiceUnavailable
-          ? 'They wanted to hear you, but they are writing in a language that is not supported yet, so this reply goes back as text. Follow LANGUAGES: one short sentence in their language saying it is not supported yet, for writing or voice notes, then reply in English. Once is enough: if you already told them earlier in this conversation, only say it again if they ask for a voice note again.'
-          : 'This particular reply goes back as text, because they wrote to you and did not ask to hear you.',
+        : 'This particular reply goes back as text, because they wrote to you and did not ask to hear you.',
       'The rule, if it ever comes up: you send a voice note whenever they send you one, and whenever they ask you for one. Asking is enough, in any words they like. If they want to hear you more often, tell them that plainly.',
       'Never tell them you cannot hear audio or cannot send voice messages. Never say that text is all you have. All of that is untrue.',
       'If they point at a moment where you said otherwise, say plainly that you were wrong about it, and move on without making a meal of it.',
@@ -1700,7 +1692,7 @@ async function getSponsorReply(userId, message, context) {
 
        Not offered either when voice is unavailable in their language
        (voices.canSpeak): it would be offering something it cannot deliver. */
-    if (!context.replyIsSpoken && !context.voiceUnavailable) {
+    if (!context.replyIsSpoken) {
       systemBlocks.push({ type: 'text', text: [
         '## YOU CAN CHOOSE TO SPEAK INSTEAD OF TYPE',
         'If a reply would land better heard than read, write [[voice]] at the very start of it. That reply then goes to them as a voice note in your voice rather than as text. Write the message exactly as you otherwise would: the marker is stripped before anyone sees it, and it is the only thing that changes.',
@@ -3414,9 +3406,8 @@ app.post('/api/chat', async (req, res) => {
   const identityBlock = buildIdentityBlock(profile);
   if (identityBlock) systemBlocks.push({ type: 'text', text: identityBlock });
 
-  /* The same language handling as WhatsApp, so changing language works on the
-     website chat too: follow what they write, keep what they ask for, and let
-     the automatic messages follow either. See language.noteLanguage. */
+  /* The same language handling as WhatsApp: their chosen language, changed
+     only when they ask for another. See language.decideLanguage. */
   const { read: webRead, replyLanguage } = await language.noteLanguage(db, userId, message, profile);
   /* "Check in on me if I go quiet" said here counts too. The sponsor only
      offers on WhatsApp, where check-ins arrive, so there is no offer to answer. */

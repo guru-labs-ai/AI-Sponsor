@@ -254,42 +254,38 @@ function crisisPattern(file, endMark) {
   check('a remembered language is found on another identity',
     await language.languageOf({ getProfile: async (id) => (id === 'reg-1' ? { language: 'ru' } : {}), findAllIdentities: async () => ['wa-1', 'reg-1'] }, 'wa-1'), 'ru');
 
-  group('changing language after joining (Mariam, Sep 16)');
+  group('a language only changes when they choose or ask (Mariam, Oct 14)');
   const R = (lang, asks = 'none') => ({ language: lang, asksForVoice: false, asksForTextOnly: false, asksForLanguage: asks });
   const decide = language.decideLanguage;
   const long = 'this is a proper sentence';
+  const is = (l) => ({ language: l, languageAsked: null, replyLanguage: l });
 
-  check('signed up in German, just writes in English: English, nothing kept',
-    decide(R('en'), long, { language: 'de' }), { language: 'en', languageAsked: null, replyLanguage: null });
-  check('signed up in German, asks in English for English: English, nothing to keep',
-    decide(R('en', 'en'), 'Can we talk in English?', { language: 'de' }), { language: 'en', languageAsked: null, replyLanguage: null });
-  check('signed up in German, asks in German for English: English, and the request is kept',
-    decide(R('de', 'en'), 'Können wir auf Englisch reden?', { language: 'de' }),
-    { language: 'en', languageAsked: { want: 'en', from: 'de' }, replyLanguage: 'en' });
-  check('after asking, more German does not pull it back to German',
-    decide(R('de'), 'Heute war ein schwerer Tag für mich', { language: 'en', languageAsked: { want: 'en', from: 'de' } }),
-    { language: 'en', languageAsked: { want: 'en', from: 'de' }, replyLanguage: 'en' });
-  check('after asking, writing in English keeps English',
-    decide(R('en'), long, { language: 'en', languageAsked: { want: 'en', from: 'de' } }),
-    { language: 'en', languageAsked: { want: 'en', from: 'de' }, replyLanguage: 'en' });
-  check('after asking, a proper message in a third language switches to it',
-    decide(R('es'), 'Hoy fue un día muy difícil para mí', { language: 'en', languageAsked: { want: 'en', from: 'de' } }),
-    { language: 'es', languageAsked: null, replyLanguage: null });
-  check('asking to go back to German works the same way',
-    decide(R('en', 'de'), 'Can we go back to German?', { language: 'en', languageAsked: { want: 'en', from: 'de' } }),
-    { language: 'de', languageAsked: { want: 'de', from: 'en' }, replyLanguage: 'de' });
-  check('a one-word request with no clear language is kept against the language they were in',
-    decide(R('unclear', 'en'), 'English?', { language: 'de' }),
-    { language: 'en', languageAsked: { want: 'en', from: 'de' }, replyLanguage: 'en' });
+  check('the Oct 14 case: English, a voice note heard as Malay, stays English',
+    decide(R('other'), 'Bolehkah anda hantar mesej suara kepada saya?', {}), is('en'));
+  check('English, writes a long message in Spanish without asking: stays English',
+    decide(R('es'), 'Hoy fue un día muy difícil para mí', { language: 'en' }), is('en'));
+  check('signed up in German, writes in English without asking: stays German',
+    decide(R('en'), long, { language: 'de' }), is('de'));
+  check('signed up in German, asks in English for English: English',
+    decide(R('en', 'en'), 'Can we talk in English?', { language: 'de' }), is('en'));
+  check('signed up in German, asks in German for English: English',
+    decide(R('de', 'en'), 'Können wir auf Englisch reden?', { language: 'de' }), is('en'));
+  check('after asking for English, more German keeps English',
+    decide(R('de'), 'Heute war ein schwerer Tag für mich', { language: 'en' }), is('en'));
+  check('English, asks in Spanish for Spanish: Spanish',
+    decide(R('es', 'es'), '¿Podemos hablar en español?', { language: 'en' }), is('es'));
+  check('a one-word request with no clear language still counts',
+    decide(R('unclear', 'en'), 'English?', { language: 'de' }), is('en'));
   check('an "ok" changes nothing',
-    decide(R('en'), 'ok', { language: 'de' }), { language: 'de', languageAsked: null, replyLanguage: null });
+    decide(R('en'), 'ok', { language: 'de' }), is('de'));
   check('asking for a language we do not support changes nothing',
-    decide(R('en', 'other'), 'Can we speak Polish?', { language: 'en' }), { language: 'en', languageAsked: null, replyLanguage: null });
-  check('when the message could not be read, a standing request still holds',
-    decide(null, long, { language: 'en', languageAsked: { want: 'en', from: 'de' } }),
-    { language: 'en', languageAsked: { want: 'en', from: 'de' }, replyLanguage: 'en' });
-  check('nobody who never chose anything is English',
-    decide(R('unclear'), '👍', {}), { language: 'en', languageAsked: null, replyLanguage: null });
+    decide(R('en', 'other'), 'Can we speak Polish?', { language: 'en' }), is('en'));
+  check('when the message could not be read, their language holds',
+    decide(null, long, { language: 'es' }), is('es'));
+  check('an old standing request is dropped, the language it set is kept',
+    decide(R('de'), 'Heute war schwer', { language: 'en', languageAsked: { want: 'en', from: 'de' } }), is('en'));
+  check('nobody who never chose anything is English, and the reply is told so',
+    decide(R('unclear'), '👍', {}), is('en'));
 
   /* noteLanguage against a fake database: what gets saved, and to whom. The
      model is not called (no key), so these run the "read failed" path with the
@@ -305,9 +301,9 @@ function crisisPattern(file, endMark) {
     };
   };
   delete process.env.ANTHROPIC_API_KEY;
-  const d1 = fakeDb({ 'wa-1': {}, 'reg-1': { language: 'en', languageAsked: { want: 'en', from: 'de' } } });
-  const n1 = await language.noteLanguage(d1, 'wa-1', long, { /* stale copy, no request on it */ });
-  check('a request saved on another identity is honoured even when the caller holds a stale profile', n1.replyLanguage, 'en');
+  const d1 = fakeDb({ 'wa-1': {}, 'reg-1': { language: 'de' } });
+  const n1 = await language.noteLanguage(d1, 'wa-1', long, { /* stale copy, no language on it */ });
+  check('a language saved on another identity is honoured even when the caller holds a stale profile', n1.replyLanguage, 'de');
   await new Promise((r) => setTimeout(r, 10));
   check('and nothing is rewritten when nothing changed', d1.writes, []);
   if (saved) process.env.ANTHROPIC_API_KEY = saved;
@@ -315,7 +311,7 @@ function crisisPattern(file, endMark) {
   group('choosing a language on the settings page (Bilal, Sep 16)');
   const d2 = fakeDb({ 'wa-2': {}, 'reg-2': { language: 'de' } });
   const c2 = await language.chooseLanguage(d2, 'wa-2', 'en');
-  check('signed up in German, picks English: English, kept as a request', [c2.language, c2.languageAsked], ['en', { want: 'en', from: 'de' }]);
+  check('signed up in German, picks English: English', [c2.language, c2.languageAsked], ['en', null]);
   check('and it is written to every identity they hold',
     d2.writes.filter((w) => w[0] === 'save').map((w) => w[1]).sort(), ['reg-2', 'wa-2']);
   const d3 = fakeDb({ 'wa-3': { language: 'es' } });
@@ -323,7 +319,7 @@ function crisisPattern(file, endMark) {
   check('picking the language they already have changes nothing', [c3.languageAsked, d3.writes], [null, []]);
   const d4 = fakeDb({ 'wa-4': { language: 'en', languageAsked: { want: 'en', from: 'de' } } });
   const c4 = await language.chooseLanguage(d4, 'wa-4', 'es');
-  check('a new choice replaces an older request', [c4.language, c4.languageAsked], ['es', { want: 'es', from: 'en' }]);
+  check('a new choice replaces an older request, and the old request is cleared', [c4.language, c4.languageAsked, d4.writes.some((w) => w[0] === 'clear' && w[2] === 'languageAsked')], ['es', null, true]);
   let refused = null;
   try { await language.chooseLanguage(d4, 'wa-4', 'xx'); } catch (e) { refused = e.message; }
   check('a language we do not have is refused', refused, 'unsupported language');
@@ -338,13 +334,13 @@ function crisisPattern(file, endMark) {
     `${cut('buildLanguageBlock')}\n${cut('withLanguageNote')}\nreturn { buildLanguageBlock, withLanguageNote };`)(language);
 
   check('no request, no block', buildLanguageBlock(null), '');
-  check('a request names the language in the block', /talk to them in English/.test(buildLanguageBlock('en')), true);
+  check('the block names their language', /Their language is English/.test(buildLanguageBlock('en')), true);
   const convo = [{ role: 'user', content: 'Hallo' }, { role: 'assistant', content: 'Hallo Anna' }, { role: 'user', content: 'Heute war schwer' }];
   const frozen = JSON.stringify(convo);
   check('no request, the messages go out untouched', withLanguageNote(convo, null), convo);
   const noted = withLanguageNote(convo, 'en');
   check('a request adds the note beside the message being answered',
-    noted[2].content.map((p) => p.text), ['Heute war schwer', '(A note from the app, not from them: earlier they asked you to talk to them in English. Reply in English. Do not mention this note.)']);
+    noted[2].content.map((p) => p.text), ['Heute war schwer', '(A note from the app, not from them: their language is English. Reply in English. Do not mention this note.)']);
   check('the earlier turns are the same objects', [noted[0] === convo[0], noted[1] === convo[1]], [true, true]);
   check('the stored history is not changed', JSON.stringify(convo), frozen);
   const cached = [{ role: 'user', content: [{ type: 'text', text: 'Heute war schwer', cache_control: { type: 'ephemeral' } }] }];
