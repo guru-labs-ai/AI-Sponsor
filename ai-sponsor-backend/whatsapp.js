@@ -314,16 +314,20 @@ async function synthesizeSpeech(text, voice) {
 
    Read off the incoming message before the model ever sees it, because this
    decides which pipe the reply goes down, not what the reply says. */
+/* "vo[iuv]{0,2}[cs]e?" is voice plus the typos people actually send: Mariam,
+   Oct 14, "But can you send me vouce message" went down the text pipe. It
+   matches voice, vouce, voise, voic, voce, voivce, and not "vote" or "vocal":
+   the letter after the vowels has to be c or s, and a note/message must follow. */
 const VOICE_REQUEST = new RegExp([
   // "send me a voice note", "record an audio message", "reply with a voice memo"
-  /(?:send|record|leave|reply|respond|answer|give|do)\b[^.!?]{0,30}\b(?:voice|audio)\s?(?:note|message|memo|clip|reply)/,
+  /(?:send|record|leave|reply|respond|answer|give|do)\b[^.!?]{0,30}\b(?:vo[iuv]{0,2}[cs]e?|audio)\s?(?:note|message|msg|memo|clip|reply)/,
   // "say that out loud", "read it out loud"
   /(?:say|read|tell|repeat)\b[^.!?]{0,30}\bout loud\b/,
   // "let me hear your voice", "can I hear you say it"
   /\b(?:hear|listen to)\b[^.!?]{0,20}\b(?:your voice|you speak|you say)/,
   /\bspeak to me\b/,
   // the whole message is just "voice note please" / "audio message again"
-  /^\s*(?:a\s+)?(?:voice|audio)\s?(?:note|message|memo)\s*(?:please|pls|again)?\s*[?.!]*\s*$/,
+  /^\s*(?:a\s+)?(?:vo[iuv]{0,2}[cs]e?|audio)\s?(?:note|message|msg|memo)\s*(?:please|pls|again)?\s*[?.!]*\s*$/,
 ].map((r) => r.source).join('|'), 'i');
 
 /* Things that look like a request to a regex but are the opposite: someone
@@ -1208,8 +1212,14 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
          sponsor itself decides this one is worth speaking. The model is told
          which of these is happening so it never describes the channel wrongly
          to the person using it. */
+      /* The read counts in English too (Mariam, Oct 14): it was only used for
+         the other languages, so an English request the phrase list missed, a
+         typo or unusual wording, was not a request at all. The phrase list
+         still catches the common ones when the read times out, and an obvious
+         "I sent you one" / "stop sending" still wins over the read. */
       const askedForVoice = !cameByVoice &&
-        (asksForVoice(userMessageText) || (notEnglish && read.asksForVoice));
+        (asksForVoice(userMessageText) ||
+         (!!read && read.asksForVoice && !NOT_A_VOICE_REQUEST.test(userMessageText)));
       if (askedForVoice) console.log(`[WhatsApp] ${fromPhone} asked for a voice note in text`);
 
       /* "Just text me". Written down the moment they say it, and cleared the
