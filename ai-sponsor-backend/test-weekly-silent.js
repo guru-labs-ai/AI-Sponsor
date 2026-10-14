@@ -75,7 +75,7 @@ check('planWeek is unchanged: no readable messages is still "skip"', w._planWeek
 const weekly = fs.readFileSync(path.join(__dirname, 'weekly.js'), 'utf8');
 const dbsrc = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
 const server = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
-const q = dbsrc.slice(dbsrc.indexOf('async function usersQuietForWeekly'), dbsrc.indexOf('async function usersQuietForWeekly') + 2600);
+const q = dbsrc.slice(dbsrc.indexOf('async function usersQuietForWeekly'), dbsrc.indexOf('async function usersQuietForWeekly') + 4200);
 
 ok('a kill switch exists and defaults to on', /WEEKLY_SILENT \|\| 'on'/.test(weekly) && /!== 'off'/.test(weekly));
 ok('the sweep asks for the quiet list', /db\.usersQuietForWeekly\(w\.start, w\.end, 100, SILENT_STOP_AFTER\)/.test(weekly));
@@ -102,8 +102,10 @@ ok('query: not mid-deletion', /deletion_requests/.test(q) && /'pending','running
 ok('query: not somebody who said stop checking in', /checkinOptIn'\) = 'false'/.test(q));
 ok('query: a phone to reach them on', /LIKE 'wa-%'/.test(q) && /NULLIF\(TRIM\(u\.phone\)/.test(q));
 ok('query: internal and test accounts excluded', /\$\{NOT_EXCLUDED_U\}/.test(q));
-ok('query: two unanswered silent notes in a row means stop', /LIMIT \$3::int/.test(q) && /stats->>'silent' = 'true'\) < \$3::int/.test(q));
+ok('query: two unanswered silent notes in a row means stop', /LIMIT \$3::int/.test(q) && /stats->>'silent' = 'true'/.test(q) && /\)\) < \$3::int/.test(q));
 ok('the stop is after two', /SILENT_STOP_AFTER = 2/.test(weekly));
+ok('query: only silent notes that arrived count toward the stop (14 Oct)',
+  /o\.kind = 'weekly'/.test(q) && /o\.status IN \('delivered','read'\)/.test(q));
 
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

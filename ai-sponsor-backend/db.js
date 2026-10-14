@@ -1777,12 +1777,23 @@ async function usersQuietForWeekly(weekStart, weekEnd, limit = 100, stopAfter = 
                          WHERE d.user_id = m.user_id AND d.status IN ('pending','running'))
         AND NOT EXISTS (SELECT 1 FROM profiles pr
                          WHERE pr.user_id = m.user_id AND (pr.profile->>'checkinOptIn') = 'false')
+        /* Two silent notes in a row means stop, but only notes that ARRIVED
+           count (Mariam, 14 Oct). From 27 Sep to 11 Oct the WhatsApp account
+           could not be billed and almost every weekly failed, yet the rows
+           were written, so 22 quiet people were about to be dropped without
+           ever receiving one. A note counts once Meta reported it delivered
+           or read within a week of the row being written. */
         AND (SELECT COUNT(*) FROM (
-               SELECT w2.stats FROM weekly_summaries w2
+               SELECT w2.stats, w2.created_at FROM weekly_summaries w2
                 WHERE w2.user_id = m.user_id
                 ORDER BY w2.week_start DESC LIMIT $3::int
              ) recent
-              WHERE recent.stats->>'silent' = 'true') < $3::int
+              WHERE recent.stats->>'silent' = 'true'
+                AND EXISTS (SELECT 1 FROM outbound_messages o
+                             WHERE o.user_id = m.user_id AND o.kind = 'weekly'
+                               AND o.status IN ('delivered','read')
+                               AND o.sent_at BETWEEN recent.created_at - interval '1 day'
+                                                 AND recent.created_at + interval '7 days')) < $3::int
       ORDER BY MAX(m.created_at) DESC
       LIMIT $2::int`,
     [weekStart, limit, stopAfter]
