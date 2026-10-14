@@ -24,8 +24,12 @@
 
 /* Base codes. xAI's regional variants (es-MX / es-ES, pt-BR / pt-PT, three
    Arabics) all collapse onto these; the voice call itself sends 'auto'. */
+/* Urdu added Oct 14 (Mariam). It is not on the website or in the settings
+   dropdown, and has no automatic-message copy yet, so those still go in
+   English (noticeLanguage). xAI speaks it only when told 'ur': left on 'auto'
+   it reads Urdu as Hindi, which is why voices.synthesize names it. */
 const SUPPORTED = ['en', 'es', 'pt', 'fr', 'de', 'it', 'ru', 'tr', 'ar', 'hi',
-  'bn', 'zh', 'ja', 'ko', 'id', 'vi'];
+  'bn', 'zh', 'ja', 'ko', 'id', 'vi', 'ur'];
 
 /* The languages automatic messages are written in, and the code Meta files each
    template translation under.
@@ -42,11 +46,12 @@ const META_TEMPLATE_CODE = {
   en: 'en_US', es: 'es', fr: 'fr', de: 'de', it: 'it', pt: 'pt_BR', ru: 'ru',
   /* Meta's own codes. Simplified Chinese is zh_CN; there is no bare zh. */
   tr: 'tr', ar: 'ar', hi: 'hi', bn: 'bn', zh: 'zh_CN', ja: 'ja', ko: 'ko', id: 'id', vi: 'vi',
+  ur: 'ur',
 };
 const DATE_LOCALE = {
   en: 'en-GB', es: 'es-ES', fr: 'fr-FR', de: 'de-DE', it: 'it-IT', pt: 'pt-BR', ru: 'ru-RU',
   tr: 'tr-TR', ar: 'ar-EG', hi: 'hi-IN', bn: 'bn-BD', zh: 'zh-CN', ja: 'ja-JP', ko: 'ko-KR',
-  id: 'id-ID', vi: 'vi-VN',
+  id: 'id-ID', vi: 'vi-VN', ur: 'ur-PK',
 };
 
 /* The languages actively offered as a NEW choice on the settings page.
@@ -65,7 +70,7 @@ const OFFERED_LANGUAGES = ['en', 'es', 'fr', 'de'];
 const LANGUAGE_NAMES = {
   en: 'English', es: 'Spanish', pt: 'Portuguese', fr: 'French', de: 'German', it: 'Italian',
   ru: 'Russian', tr: 'Turkish', ar: 'Arabic', hi: 'Hindi', bn: 'Bengali', zh: 'Chinese',
-  ja: 'Japanese', ko: 'Korean', id: 'Indonesian', vi: 'Vietnamese',
+  ja: 'Japanese', ko: 'Korean', id: 'Indonesian', vi: 'Vietnamese', ur: 'Urdu',
 };
 
 const noticeLanguage = (lang) => (NOTICE_LANGUAGES.includes(lang) ? lang : 'en');
@@ -124,10 +129,10 @@ async function readMessage(text, opts = {}) {
       },
       system: [
         'You read one message somebody sent to their recovery sponsor, or one message the sponsor wrote.',
-        'language: the code of the main language it is written in. "other" if it is clearly a language not in the list. "unclear" if there is too little to tell, such as an emoji, a number, a name, or a single word that several languages share.',
+        'language: the code of the main language it is written in. Urdu typed in English letters ("aj kl kia chal raha hai") is "ur". "other" if it is clearly a language not in the list. "unclear" if there is too little to tell, such as an emoji, a number, a name, or a single word that several languages share.',
         'asksForVoice: true only if they are asking to be sent a voice note or audio, or to hear the sponsor speak. Saying they sent one, or asking for something else, is false.',
         'asksForTextOnly: true only if they are asking the sponsor to stop sending voice notes or to only write to them.',
-        'asksForLanguage: the code of the language they are asking the sponsor to talk to them in from now on, whatever language the request itself is written in. "Can we talk in English?" and "¿Me puedes escribir en inglés?" are both "en". "other" if they ask for a language not in the list, even one close to a listed language: Urdu is "other", never "hi"; Catalan is "other", never "es". Only ever give the exact language they named. "none" if they are not asking to change language: mentioning a language, saying they speak it, or asking what a word means is "none".',
+        'asksForLanguage: the code of the language they are asking the sponsor to talk to them in from now on, whatever language the request itself is written in. "Can we talk in English?" and "¿Me puedes escribir en inglés?" are both "en". "other" if they ask for a language not in the list, even one close to a listed language: Punjabi is "other", never "ur" or "hi"; Catalan is "other", never "es". Only ever give the exact language they named. "none" if they are not asking to change language: mentioning a language, saying they speak it, or asking what a word means is "none".',
         'checkins: "start" only if they ask the sponsor to message them or check in on them when they go quiet for a while. "stop" only if they ask the sponsor to stop those check-ins or not to message them first. Otherwise "none": talking about check-ins, meetings or other people checking in on them is "none".',
         /* Mariam, Sep 17: the sponsor offers check-ins once. The answer to that
            offer is usually a bare "yes please", which means nothing without

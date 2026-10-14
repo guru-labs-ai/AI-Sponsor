@@ -181,6 +181,8 @@ function resolve(voice) {
   return VOICES.includes(voice) ? voice : DEFAULT_VOICE;
 }
 
+const URDU_LETTERS = /[\u0679\u0688\u0691\u06BA\u06BE\u06C1\u06D2\u06D3]/; // ٹ ڈ ڑ ں ھ ہ ے ۓ
+
 async function synthesize(text, voice) {
   if (!enabled) throw new Error('XAI_API_KEY not configured');
   const res = await fetch(TTS_URL, {
@@ -193,8 +195,11 @@ async function synthesize(text, voice) {
       text: forSpeech(text),
       voice_id: resolve(voice),
       // Was 'en', which told xAI every reply is English. 'auto' lets it detect
-      // the language from the reply text (one of the 20 xAI supports).
-      language: 'auto',
+      // the language from the reply text (one of the 20 xAI supports), except
+      // Urdu: on 'auto' xAI reads Urdu as Hindi (checked Oct 14, transcribed
+      // back by Whisper as Hindi; with 'ur' it came back as Urdu, word for
+      // word). Letters only Urdu uses mark it, so Arabic is never caught.
+      language: URDU_LETTERS.test(text) ? 'ur' : 'auto',
       output_format: OUTPUT,
     }),
   });
