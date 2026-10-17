@@ -14,7 +14,7 @@
   </url>
   <url>
     <loc>https://getaisponsor.com/blog/</loc>
-    <lastmod>2026-09-18</lastmod>
+    <lastmod>2026-10-17</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -39,6 +39,12 @@
   <url>
     <loc>https://getaisponsor.com/blog/what-is-underearners-anonymous/</loc>
     <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://getaisponsor.com/blog/da-convention-recordings-and-gatherings/</loc>
+    <lastmod>2026-10-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
