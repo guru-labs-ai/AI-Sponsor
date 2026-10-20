@@ -16,6 +16,8 @@ const phonerules = require('./phonerules'); // is this a real number in that cou
 const countries = require('./countries'); // phone prefix -> country and US state
 const trialnotice = require('./trialnotice'); // the "your trial ends" WhatsApp notice
 const notices = require('./notices');       // account notices (cancelled, changed, deletion)
+const meetings = require('./meetings');     // real online meetings, from the official directories
+const timezones = require('./timezones');
 
 // WhatsApp (Twilio) module is loaded ONLY when Twilio is configured. Its SDK
 // clients (Twilio + OpenAI) throw at construction when their keys are missing,
@@ -1825,6 +1827,16 @@ async function getSponsorReply(userId, message, context) {
 
   // Carries the gap since they last wrote, so it changes on every message.
   systemBlocks.push({ type: 'text', text: buildTimeBlock(lastAt) });
+
+  /* Only when they mention meetings, and below the cache marker because it is
+     built from this message and the clock. Their zone comes from the number
+     they write from; a reg- id carries no number, so the profile's phone. */
+  const meetingsBlock = meetings.buildMeetingsBlock({
+    message,
+    programField: profile && profile.program,
+    userZone: timezones.zoneForPhone(String(userId).startsWith('wa-') ? userId : (profile && profile.phone) || ''),
+  });
+  if (meetingsBlock) systemBlocks.push({ type: 'text', text: meetingsBlock });
 
   /* Tell it where it is. Without this it insists it "can't hear audio" and
      "can't send voice messages" to people who just sent it a voice note and are

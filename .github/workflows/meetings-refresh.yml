@@ -1,0 +1,43 @@
+# The sponsor hands out real meetings from ai-sponsor-backend/meetings-data.json,
+# and refuses to use that list once it is 21 days old. So this rebuilds it from
+# the fellowships' own directories every week, well inside that window: a
+# missed week or two just means a slightly older list, never a wrong one.
+#
+# The script refuses to write when a directory comes back thin (a layout change,
+# not a quiet week), so a broken scrape fails this run in red and leaves the
+# last good list in place rather than replacing it with a short one.
+name: Meetings list refresh
+
+on:
+  schedule:
+    - cron: '23 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Rebuild the list from the official directories
+        working-directory: ai-sponsor-backend
+        run: node meetings-refresh.js
+
+      - name: Check the rules still hold
+        working-directory: ai-sponsor-backend
+        run: node test-meetings.js
+
+      - name: Commit it
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ai-sponsor-backend/meetings-data.json
+          git commit -m "Meetings: weekly refresh from the official directories" || echo "nothing changed"
+          git push

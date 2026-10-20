@@ -1,0 +1,4441 @@
+{
+ "generatedAt": "2026-10-20T17:25:58.723Z",
+ "rules": "weekly, online with a direct Zoom link and a known passcode, English, no ask-for-access, not a service meeting, listing updated within 730 days",
+ "meetings": [
+  {
+   "id": "da-2871",
+   "program": "BDA",
+   "name": "Pasadena Monday Night BDA Zoom Meeting",
+   "days": [
+    1
+   ],
+   "start": "19:30",
+   "end": "21:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/83259087657",
+   "meetingId": "83259087657",
+   "passcode": "bdamonday",
+   "access": "open",
+   "focus": "Speaker, BDA, Business Debtors Anonymous - Speaker",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2871",
+   "sourceUpdated": "2025-08-07"
+  },
+  {
+   "id": "da-2877",
+   "program": "DA",
+   "name": "Vancouver Island D.A.",
+   "days": [
+    0
+   ],
+   "start": "10:00",
+   "end": "11:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/87504758792",
+   "meetingId": "87504758792",
+   "passcode": "121212",
+   "access": "open",
+   "focus": "Literature Study",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2877",
+   "sourceUpdated": "2026-07-29"
+  },
+  {
+   "id": "da-2882",
+   "program": "DA",
+   "name": "Red Hill Thursday Night",
+   "days": [
+    4
+   ],
+   "start": "19:30",
+   "end": "20:30",
+   "zone": "Australia/Brisbane",
+   "link": "https://us05web.zoom.us/j/89409199902?pwd=TC9EVTI3OVF5a3dvZHMrWjhpUHVKZz09",
+   "meetingId": "89409199902",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer, BDA, Other, DA promises",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2882",
+   "sourceUpdated": "2025-03-07"
+  },
+  {
+   "id": "da-2883",
+   "program": "DA",
+   "name": "We Are Enough Group",
+   "days": [
+    2
+   ],
+   "start": "18:00",
+   "end": "19:00",
+   "zone": "America/Chicago",
+   "link": "https://us02web.zoom.us/j/7797729905",
+   "meetingId": "7797729905",
+   "passcode": "Currency02",
+   "access": "open",
+   "focus": "Literature Study",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2883",
+   "sourceUpdated": "2026-05-22"
+  },
+  {
+   "id": "da-2885",
+   "program": "DA",
+   "name": "Thursday DA HOW London",
+   "days": [
+    4
+   ],
+   "start": "12:30",
+   "end": "13:30",
+   "zone": "Europe/London",
+   "link": "https://us02web.zoom.us/j/281596464?pwd=bERLejZeLlZJFTWNQcDWPVMJ65moAw.1",
+   "meetingId": "281596464",
+   "passcode": null,
+   "access": "open",
+   "focus": "Primary language:",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2885",
+   "sourceUpdated": "2026-09-09"
+  },
+  {
+   "id": "da-2888",
+   "program": "DA",
+   "name": "Highland Park Illinois Zoom Meeting",
+   "days": [
+    2
+   ],
+   "start": "19:30",
+   "end": "20:30",
+   "zone": "America/Chicago",
+   "link": "https://us06web.zoom.us/j/81647734312",
+   "meetingId": "81647734312",
+   "passcode": "512788",
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2888",
+   "sourceUpdated": "2026-01-02"
+  },
+  {
+   "id": "da-2895",
+   "program": "DA",
+   "name": "DA HOW Underearning & Visions Meeting",
+   "days": [
+    0
+   ],
+   "start": "12:00",
+   "end": "13:00",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/82343441624?pwd=aGM2AaFyorEmg984f7K4xSxcDnZRFm.1",
+   "meetingId": "82343441624",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Underearning, Visions",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2895",
+   "sourceUpdated": "2026-08-19"
+  },
+  {
+   "id": "da-2898",
+   "program": "DA",
+   "name": "Sunday Richmond DA",
+   "days": [
+    0
+   ],
+   "start": "17:45",
+   "end": "18:45",
+   "zone": "Europe/London",
+   "link": "https://zoom.us/j/87698929279",
+   "meetingId": "87698929279",
+   "passcode": "045058",
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Tools",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2898",
+   "sourceUpdated": "2025-01-14"
+  },
+  {
+   "id": "da-2901",
+   "program": "DA",
+   "name": "Sound Abundance",
+   "days": [
+    0
+   ],
+   "start": "09:00",
+   "end": "10:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/84451119290",
+   "meetingId": "84451119290",
+   "passcode": "1204",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2901",
+   "sourceUpdated": "2025-02-07"
+  },
+  {
+   "id": "da-2903",
+   "program": "DA",
+   "name": "DA South Africa",
+   "days": [
+    4
+   ],
+   "start": "19:30",
+   "end": "20:30",
+   "zone": "Africa/Maputo",
+   "link": "https://us06web.zoom.us/j/82980879430?pwd=gPlHDEm1f9V7soxcD3YqgtJGF6F3Rw.1",
+   "meetingId": "82980879430",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2903",
+   "sourceUpdated": "2026-08-19"
+  },
+  {
+   "id": "da-2904",
+   "program": "BDA",
+   "name": "Spiritually Sustainable Earnings-BDA South Africa",
+   "days": [
+    0
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "Africa/Maputo",
+   "link": "https://us02web.zoom.us/j/82980879430",
+   "meetingId": "82980879430",
+   "passcode": "DASA",
+   "access": "open",
+   "focus": "Other, Spiritually Sustainable Earnings Meeting",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2904",
+   "sourceUpdated": "2026-08-19"
+  },
+  {
+   "id": "da-2912",
+   "program": "DA",
+   "name": "Integrity",
+   "days": [
+    0
+   ],
+   "start": "19:00",
+   "end": "20:30",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/244208804",
+   "meetingId": "244208804",
+   "passcode": "242254",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2912",
+   "sourceUpdated": "2025-12-31"
+  },
+  {
+   "id": "da-2913",
+   "program": "DA",
+   "name": "DA Solvent - on line",
+   "days": [
+    3
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/85064086330",
+   "meetingId": "85064086330",
+   "passcode": "N/A",
+   "access": "open",
+   "focus": "Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2913",
+   "sourceUpdated": "2025-02-21"
+  },
+  {
+   "id": "da-2916",
+   "program": "DA",
+   "name": "John H. Prosperity Group",
+   "days": [
+    2
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/85281843713",
+   "meetingId": "85281843713",
+   "passcode": "prosperity",
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2916",
+   "sourceUpdated": "2025-02-18"
+  },
+  {
+   "id": "da-2919",
+   "program": "DA",
+   "name": "Fresno DA",
+   "days": [
+    0
+   ],
+   "start": "15:00",
+   "end": "16:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/6729128554",
+   "meetingId": "6729128554",
+   "passcode": "123",
+   "access": "open",
+   "focus": "Literature Study",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2919",
+   "sourceUpdated": "2025-03-25"
+  },
+  {
+   "id": "da-2920",
+   "program": "DA",
+   "name": "East Valley New Hope Debtors Anonymous",
+   "days": [
+    6
+   ],
+   "start": "16:27",
+   "end": "16:27",
+   "zone": "America/Phoenix",
+   "link": "https://us02web.zoom.us/j/88652693869?pwd=VGVYcEhERmd0K3dOY2dzZDlMUTc3dz09",
+   "meetingId": "88652693869",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2920",
+   "sourceUpdated": "2026-03-18"
+  },
+  {
+   "id": "da-2921",
+   "program": "BDA",
+   "name": "BDA Express",
+   "days": [
+    4
+   ],
+   "start": "13:00",
+   "end": "14:00",
+   "zone": "Africa/Nairobi",
+   "link": "https://us02web.zoom.us/j/85638768445",
+   "meetingId": "85638768445",
+   "passcode": "Express",
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Tools, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2921",
+   "sourceUpdated": "2025-02-18"
+  },
+  {
+   "id": "da-2923",
+   "program": "DA",
+   "name": "Creating Your Vision",
+   "days": [
+    0
+   ],
+   "start": "12:30",
+   "end": "14:00",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/230196612",
+   "meetingId": "230196612",
+   "passcode": "Visions",
+   "access": "open",
+   "focus": "Other, Visions",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2923",
+   "sourceUpdated": "2026-03-18"
+  },
+  {
+   "id": "da-2936",
+   "program": "DA",
+   "name": "West Coast Fear Of Success (formerly Prosperous Life DA Tacoma)",
+   "days": [
+    2
+   ],
+   "start": "18:45",
+   "end": "19:45",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/85439692227?pwd=ajBOTk9Hbk5XRXIwTjJXR2wwQlNSZz09",
+   "meetingId": "85439692227",
+   "passcode": null,
+   "access": "open",
+   "focus": "Other, Fear Of Success, Underearning, & Vision Issues",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2936",
+   "sourceUpdated": "2025-02-04"
+  },
+  {
+   "id": "da-2937",
+   "program": "DA",
+   "name": "Steps & Tools",
+   "days": [
+    1
+   ],
+   "start": "12:30",
+   "end": "13:45",
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/8046584860?pwd=YjJ1QjNwSVQxS08vektRUk9vSFF6QT09",
+   "meetingId": "8046584860",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Steps, Tools",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2937",
+   "sourceUpdated": "2026-05-07"
+  },
+  {
+   "id": "da-2942",
+   "program": "DA",
+   "name": "Malibu Diner Mornings",
+   "days": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "start": "07:00",
+   "end": "08:00",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/810901609",
+   "meetingId": "810901609",
+   "passcode": "935687",
+   "access": "closed",
+   "focus": "Literature Study, Other, Open Share meeting except Mondays they are Steps and Tradition meeting",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2942",
+   "sourceUpdated": "2026-04-30"
+  },
+  {
+   "id": "da-2944",
+   "program": "DA",
+   "name": "Solvency Today",
+   "days": [
+    2
+   ],
+   "start": "19:30",
+   "end": "20:30",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/93431979922?pwd=RlFIaG5HbENkZXR4VENNNnh0VEMzZz09",
+   "meetingId": "93431979922",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2944",
+   "sourceUpdated": "2026-05-07"
+  },
+  {
+   "id": "da-2948",
+   "program": "DA",
+   "name": "Gratitude Group",
+   "days": [
+    1
+   ],
+   "start": "20:00",
+   "end": "21:00",
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/81722284483?pwd=C2uC0ul443oa69t0uG9Nbfp0XBfRU4.1",
+   "meetingId": "81722284483",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2948",
+   "sourceUpdated": "2025-04-08"
+  },
+  {
+   "id": "da-2952",
+   "program": "DA",
+   "name": "Fairfield Steps",
+   "days": [
+    3
+   ],
+   "start": "07:30",
+   "end": "08:30",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/526223070?pwd=MHo0UjIra2pwNHhCZTNOOC90bEVJUT09",
+   "meetingId": "526223070",
+   "passcode": null,
+   "access": "open",
+   "focus": "Steps",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2952",
+   "sourceUpdated": "2025-02-06"
+  },
+  {
+   "id": "da-2955",
+   "program": "DA",
+   "name": "Sunday Financial Freedom",
+   "days": [
+    0
+   ],
+   "start": "16:00",
+   "end": "17:00",
+   "zone": "America/Chicago",
+   "link": "https://us06web.zoom.us/j/86442921284",
+   "meetingId": "86442921284",
+   "passcode": "644695",
+   "access": "closed",
+   "focus": "Literature Study, Steps",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2955",
+   "sourceUpdated": "2026-02-10"
+  },
+  {
+   "id": "da-2956",
+   "program": "DA",
+   "name": "Sunday DA Meeting",
+   "days": [
+    0
+   ],
+   "start": "16:00",
+   "end": "17:00",
+   "zone": "America/Phoenix",
+   "link": "https://us02web.zoom.us/j/88344601401?pwd=eXREUmhrNVFyc1phbUk4MXExbGJmUT09",
+   "meetingId": "88344601401",
+   "passcode": null,
+   "access": "open",
+   "focus": "Steps",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2956",
+   "sourceUpdated": "2025-02-18"
+  },
+  {
+   "id": "da-2957",
+   "program": "DA",
+   "name": "Speak and Write Your Visions",
+   "days": [
+    3
+   ],
+   "start": "12:00",
+   "end": "01:15",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/82006279999?pwd=ZmdwRTMrN3RuRlNnQmVHN3NvbXhyQT09",
+   "meetingId": null,
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Steps, Newcomer, Visions",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2957",
+   "sourceUpdated": "2025-02-28"
+  },
+  {
+   "id": "da-2959",
+   "program": "BDA",
+   "name": "Park Slope BDA Tools",
+   "days": [
+    4
+   ],
+   "start": "12:00",
+   "end": "01:00",
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/4836779174?pwd=ekJYU3ltZTIrUXhuM3FIZDlLcmdXZz09",
+   "meetingId": "4836779174",
+   "passcode": null,
+   "access": "open",
+   "focus": "Tools, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2959",
+   "sourceUpdated": "2025-02-04"
+  },
+  {
+   "id": "da-2960",
+   "program": "DA",
+   "name": "DA West Group",
+   "days": [
+    1
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/334673052",
+   "meetingId": "334673052",
+   "passcode": "None - Host Managed",
+   "access": "open",
+   "focus": "Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2960",
+   "sourceUpdated": "2025-02-06"
+  },
+  {
+   "id": "da-2964",
+   "program": "BDA",
+   "name": "Thursday Noon BDA",
+   "days": [
+    4
+   ],
+   "start": "12:00",
+   "end": "13:15",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/83623657489",
+   "meetingId": "83623657489",
+   "passcode": "150597",
+   "access": "open",
+   "focus": "BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2964",
+   "sourceUpdated": "2026-04-23"
+  },
+  {
+   "id": "da-2967",
+   "program": "DA",
+   "name": "Forever Young:Focus on Retirement.",
+   "days": [
+    6
+   ],
+   "start": "10:30",
+   "end": "11:45",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/99440267020?pwd=Nlh1TzNCWnhsSU1VM3dKSFhraGJTZz09",
+   "meetingId": "99440267020",
+   "passcode": null,
+   "access": "open",
+   "focus": "Speaker, Other, Retirement",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2967",
+   "sourceUpdated": "2025-07-08"
+  },
+  {
+   "id": "da-2969",
+   "program": "DA",
+   "name": "ENGLISH SPEAKING DA PARIS",
+   "days": [
+    1
+   ],
+   "start": "18:00",
+   "end": "19:00",
+   "zone": "Europe/Paris",
+   "link": "https://us05web.zoom.us/j/2314522023?pwd=bno4YUYyRjBZNXBQeFlyQlNSK3NoZz09",
+   "meetingId": "2314522023",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2969",
+   "sourceUpdated": "2025-05-22"
+  },
+  {
+   "id": "da-2971",
+   "program": "DA",
+   "name": "Sunday Morning Online D.A. Group",
+   "days": [
+    0
+   ],
+   "start": "10:30",
+   "end": "11:45",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/83314016838?pwd=yUq1SPkD5O7VVkurqPZCOrn4hUcnWL.1",
+   "meetingId": "83314016838",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Tools",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2971",
+   "sourceUpdated": "2026-02-10"
+  },
+  {
+   "id": "da-2972",
+   "program": "DA",
+   "name": "Friday McLean Group",
+   "days": [
+    5
+   ],
+   "start": "12:00",
+   "end": "13:00",
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/89767993742?pwd=eGU5aGZnbkxaSXB5SmswSkMwUmZLUT09",
+   "meetingId": "89767993742",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2972",
+   "sourceUpdated": "2025-02-07"
+  },
+  {
+   "id": "da-2974",
+   "program": "DA",
+   "name": "Tools for Abundance--Virtual",
+   "days": [
+    6
+   ],
+   "start": "09:30",
+   "end": "10:45",
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/89185553896",
+   "meetingId": "89185553896",
+   "passcode": "No password needed",
+   "access": "open",
+   "focus": "Steps, Tools",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2974",
+   "sourceUpdated": "2026-08-26"
+  },
+  {
+   "id": "da-2977",
+   "program": "DA",
+   "name": "Vision Into Action",
+   "days": [
+    0
+   ],
+   "start": "16:00",
+   "end": "17:00",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/151595966?pwd=6K1cDv_7QTs",
+   "meetingId": "151595966",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, We have a different format each week.",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2977",
+   "sourceUpdated": "2025-04-30"
+  },
+  {
+   "id": "da-2979",
+   "program": "DA",
+   "name": "Recovering from Underearning and Discovering our Visions",
+   "days": [
+    1
+   ],
+   "start": "19:00",
+   "end": "20:15",
+   "zone": "America/Los_Angeles",
+   "link": "https://us04web.zoom.us/j/86970249461",
+   "meetingId": "86970249461",
+   "passcode": "N/A",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2979",
+   "sourceUpdated": "2026-03-25"
+  },
+  {
+   "id": "da-2981",
+   "program": "DA",
+   "name": "Akron Saturday DA",
+   "days": [
+    6
+   ],
+   "start": "10:00",
+   "end": "11:00",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/83342986425",
+   "meetingId": "83342986425",
+   "passcode": "078028",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2981",
+   "sourceUpdated": "2025-04-08"
+  },
+  {
+   "id": "da-2982",
+   "program": "BDA",
+   "name": "Business Debtors Anonymous BDA Zoom",
+   "days": [
+    3
+   ],
+   "start": "18:00",
+   "end": "19:00",
+   "zone": "America/New_York",
+   "link": "https://us04web.zoom.us/j/89365488981",
+   "meetingId": "89365488981",
+   "passcode": "N/A",
+   "access": "open",
+   "focus": "Literature Study, Speaker, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2982",
+   "sourceUpdated": "2025-02-14"
+  },
+  {
+   "id": "da-2985",
+   "program": "DA",
+   "name": "D.A. Literature in Action",
+   "days": [
+    1
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/84481817849",
+   "meetingId": "84481817849",
+   "passcode": "451485",
+   "access": "open",
+   "focus": ", Literature Study: Steps, Visions, Promises, Traditions, Currency of Hope",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2985",
+   "sourceUpdated": "2025-12-23"
+  },
+  {
+   "id": "da-2988",
+   "program": "DA",
+   "name": "Friday Night Spirit of Service",
+   "days": [
+    5
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "America/Vancouver",
+   "link": "https://zoom.us/j/73209471670",
+   "meetingId": "73209471670",
+   "passcode": "745634",
+   "access": "closed",
+   "focus": "Speaker, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2988",
+   "sourceUpdated": "2026-10-06"
+  },
+  {
+   "id": "da-2995",
+   "program": "BDA",
+   "name": "Takin' Care of Business",
+   "days": [
+    6
+   ],
+   "start": "09:00",
+   "end": "10:15",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/86967819624?pwd=VVpjdWRtTkFQWGRQbnU2SHJnSEhrZz09",
+   "meetingId": "86967819624",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Literature Study, Steps, Tools, Newcomer, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2995",
+   "sourceUpdated": "2024-12-16"
+  },
+  {
+   "id": "da-2997",
+   "program": "DA",
+   "name": "Currency of Hope",
+   "days": [
+    6
+   ],
+   "start": "10:00",
+   "end": "11:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/666435508",
+   "meetingId": "666435508",
+   "passcode": "054956",
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2997",
+   "sourceUpdated": "2025-04-30"
+  },
+  {
+   "id": "da-2998",
+   "program": "DA",
+   "name": "Progress Not Perfection",
+   "days": [
+    6
+   ],
+   "start": "17:00",
+   "end": "18:15",
+   "zone": "America/Chicago",
+   "link": "https://zoom.us/j/83440890738",
+   "meetingId": "83440890738",
+   "passcode": "666279",
+   "access": "open",
+   "focus": "Literature Study, Speaker",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=2998",
+   "sourceUpdated": "2025-10-08"
+  },
+  {
+   "id": "da-3000",
+   "program": "DA",
+   "name": "Bethesda Saturday Morning DA Group",
+   "days": [
+    6
+   ],
+   "start": "09:00",
+   "end": "10:15",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/86376332219?pwd=eHlNQis1SnlZZ014OHprc3A5KzFsQT09",
+   "meetingId": "86376332219",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3000",
+   "sourceUpdated": "2026-06-10"
+  },
+  {
+   "id": "da-3002",
+   "program": "DA",
+   "name": "The Road To Prosperity",
+   "days": [
+    6
+   ],
+   "start": "09:00",
+   "end": "10:15",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/89017257518",
+   "meetingId": "89017257518",
+   "passcode": "037143",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Other, Visions",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3002",
+   "sourceUpdated": "2025-04-23"
+  },
+  {
+   "id": "da-3003",
+   "program": "BDA",
+   "name": "BDA - Accepting Abundance and Prosperity Group",
+   "days": [
+    4
+   ],
+   "start": "19:00",
+   "end": "20:30",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/82988494542",
+   "meetingId": "82988494542",
+   "passcode": "021557",
+   "access": "open",
+   "focus": "BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3003",
+   "sourceUpdated": "2025-02-19"
+  },
+  {
+   "id": "da-3004",
+   "program": "DA",
+   "name": "Saturday AM Visions",
+   "days": [
+    6
+   ],
+   "start": "08:30",
+   "end": "10:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://us06web.zoom.us/j/84861190886",
+   "meetingId": "84861190886",
+   "passcode": "freeway",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer, Rotating Format",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3004",
+   "sourceUpdated": "2025-08-21"
+  },
+  {
+   "id": "da-3006",
+   "program": "DA",
+   "name": "Sunday Spiritually Sustainable Earning",
+   "days": [
+    0
+   ],
+   "start": "09:00",
+   "end": "10:00",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/4687062332?pwd=bXVxRnBFUGhxVTk3anNSZEtydDJtdz09",
+   "meetingId": "4687062332",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Speaker",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3006",
+   "sourceUpdated": "2026-10-13"
+  },
+  {
+   "id": "da-3008",
+   "program": "DA",
+   "name": "Bristol Clarity and Prosperity",
+   "days": [
+    1
+   ],
+   "start": "18:00",
+   "end": "19:00",
+   "zone": "Europe/London",
+   "link": "https://us02web.zoom.us/j/86429617803?pwd=TBaKztKPuPb50h7qAf6TNOjzREqfOI.1",
+   "meetingId": "86429617803",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3008",
+   "sourceUpdated": "2025-12-04"
+  },
+  {
+   "id": "da-3013",
+   "program": "DA",
+   "name": "Learning and Earning",
+   "days": [
+    6
+   ],
+   "start": "16:00",
+   "end": "17:15",
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/88467684088?pwd=wuK3rqCsSdyCFD5xKRcbGKzMvWuHHY.1",
+   "meetingId": "88467684088",
+   "passcode": null,
+   "access": "open",
+   "focus": "Steps, Tools, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3013",
+   "sourceUpdated": "2026-09-11"
+  },
+  {
+   "id": "da-3017",
+   "program": "DA",
+   "name": "Westbourne D.A.",
+   "days": [
+    5
+   ],
+   "start": "10:00",
+   "end": "11:00",
+   "zone": "Europe/London",
+   "link": "https://us02web.zoom.us/j/82405208711?pwd=K2xYeE9nRXdKNnhlMHBPK3F5NHQrUT09",
+   "meetingId": "82405208711",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Tools",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3017",
+   "sourceUpdated": "2026-09-25"
+  },
+  {
+   "id": "da-3021",
+   "program": "DA",
+   "name": "The Joy of Solvency",
+   "days": [
+    4
+   ],
+   "start": "19:30",
+   "end": "20:30",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/530352912?pwd=Y3dMY1V2LzlyRU9RVG4yRCtnQTBBZz09",
+   "meetingId": null,
+   "passcode": null,
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Tools, Other, This is an open English language meeting focusing on book study, the 12 Steps, and visions.",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3021",
+   "sourceUpdated": "2025-10-24"
+  },
+  {
+   "id": "da-3024",
+   "program": "DA",
+   "name": "Back to Basics DA Meeting",
+   "days": [
+    3
+   ],
+   "start": "18:30",
+   "end": "19:45",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/5772365832",
+   "meetingId": "5772365832",
+   "passcode": "solvency",
+   "access": "open",
+   "focus": "Speaker",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3024",
+   "sourceUpdated": "2026-07-09"
+  },
+  {
+   "id": "da-3028",
+   "program": "DA",
+   "name": "Santa Rosa DA Visions Meeting",
+   "days": [
+    1
+   ],
+   "start": "18:30",
+   "end": "19:45",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/84055741898",
+   "meetingId": "84055741898",
+   "passcode": "630Vision",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Newcomer, Visions",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3028",
+   "sourceUpdated": "2026-10-13"
+  },
+  {
+   "id": "da-3029",
+   "program": "BDA",
+   "name": "Thursday BDA Zoom",
+   "days": [
+    4
+   ],
+   "start": "18:45",
+   "end": "20:00",
+   "zone": "Europe/London",
+   "link": "https://us02web.zoom.us/j/590706719?pwd=0yXrsgOUOigFQBhpwfxK1DKJNUJoCa.1",
+   "meetingId": "590706719",
+   "passcode": null,
+   "access": "open",
+   "focus": "Newcomer, BDA, Other: 1stThurs Steps ; 2nd Thurs Chair; 3rd Thurs Tools: 4th Thurs Chair ;5th Thurs. Tradition",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3029",
+   "sourceUpdated": "2026-10-14"
+  },
+  {
+   "id": "da-3035",
+   "program": "DA",
+   "name": "Saturday Morning Streeterville DA",
+   "days": [
+    6
+   ],
+   "start": "09:00",
+   "end": "10:00",
+   "zone": "America/Chicago",
+   "link": "https://zoom.us/j/731008065",
+   "meetingId": "731008065",
+   "passcode": "363552",
+   "access": "closed",
+   "focus": "Speaker, Steps, Tools",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3035",
+   "sourceUpdated": "2025-08-07"
+  },
+  {
+   "id": "da-3040",
+   "program": "DA",
+   "name": "DA Steps and Tools to Prosperity",
+   "days": [
+    6
+   ],
+   "start": "08:30",
+   "end": "10:00",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/88401122533",
+   "meetingId": "88401122533",
+   "passcode": "966587",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Time for Newcomers",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3040",
+   "sourceUpdated": "2026-07-02"
+  },
+  {
+   "id": "da-3042",
+   "program": "DA",
+   "name": "A Hope And A Future",
+   "days": [
+    1
+   ],
+   "start": "18:30",
+   "end": "19:30",
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/7396477570?pwd=R1p6MXVhcjhrM21CT0FHZVJJTTVYdz09",
+   "meetingId": "7396477570",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3042",
+   "sourceUpdated": "2025-02-19"
+  },
+  {
+   "id": "da-3044",
+   "program": "BDA",
+   "name": "Atlanta BDA Online",
+   "days": [
+    6
+   ],
+   "start": "10:00",
+   "end": "11:00",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/86321325212?pwd=ZU5tYmFBOVU3QjllcklGSFdMWGszUT09",
+   "meetingId": "86321325212",
+   "passcode": null,
+   "access": "open",
+   "focus": "BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3044",
+   "sourceUpdated": "2025-10-22"
+  },
+  {
+   "id": "da-3051",
+   "program": "DA",
+   "name": "Newfound Hope DA Fear Of Success, Underearning and Vision Issues",
+   "days": [
+    6
+   ],
+   "start": "12:30",
+   "end": "13:30",
+   "zone": "America/Los_Angeles",
+   "link": "https://us04web.zoom.us/j/72078981638?pwd=MzlTRWlOVFZoTkxYeDRlK2hhTmhiQT09",
+   "meetingId": "72078981638",
+   "passcode": null,
+   "access": "open",
+   "focus": "Other, Fear of Success, Underearning, Vision Issues",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3051",
+   "sourceUpdated": "2025-02-04"
+  },
+  {
+   "id": "da-3052",
+   "program": "DA",
+   "name": "Hope in Action - Step Study",
+   "days": [
+    5
+   ],
+   "start": "18:00",
+   "end": "19:00",
+   "zone": "Australia/Sydney",
+   "link": "https://us02web.zoom.us/j/83856644640?pwd=VzVUdUlWenBRR2V0dENLa2d2R1BLQT09",
+   "meetingId": "83856644640",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Steps",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3052",
+   "sourceUpdated": "2025-02-06"
+  },
+  {
+   "id": "da-3054",
+   "program": "DA",
+   "name": "DA for Compulsive Spending",
+   "days": [
+    0
+   ],
+   "start": "18:00",
+   "end": "19:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://us06web.zoom.us/j/84768149637?pwd=U0hkdHRmSjdBR2swQzJaak11VEJrdz09",
+   "meetingId": "84768149637",
+   "passcode": null,
+   "access": "open",
+   "focus": "Tools, Other, Compulsive Spending",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3054",
+   "sourceUpdated": "2025-02-06"
+  },
+  {
+   "id": "da-3055",
+   "program": "DA",
+   "name": "Recovery in Rhinebeck",
+   "days": [
+    4
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/81941125291",
+   "meetingId": "81941125291",
+   "passcode": "673905",
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Tools",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3055",
+   "sourceUpdated": "2025-06-05"
+  },
+  {
+   "id": "da-3056",
+   "program": "BDA",
+   "name": "Business Debtors Anonymous for Women",
+   "days": [
+    4
+   ],
+   "start": "17:30",
+   "end": "18:30",
+   "zone": "America/Chicago",
+   "link": "https://us02web.zoom.us/j/168090279",
+   "meetingId": "168090279",
+   "passcode": "185070",
+   "access": "closed",
+   "focus": "BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3056",
+   "sourceUpdated": "2025-02-04"
+  },
+  {
+   "id": "da-3066",
+   "program": "DA",
+   "name": "Austin Clarity",
+   "days": [
+    6
+   ],
+   "start": "14:00",
+   "end": "15:00",
+   "zone": "America/Chicago",
+   "link": "https://zoom.us/j/2452166724?pwd=NnVneFlxcUJ1T0txSkoxUWc4TVlBQT09",
+   "meetingId": null,
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3066",
+   "sourceUpdated": "2026-02-12"
+  },
+  {
+   "id": "da-3068",
+   "program": "DA",
+   "name": "Prosperity and Serenity Berlin English-Speaking DA/BDA",
+   "days": [
+    3
+   ],
+   "start": "18:30",
+   "end": "19:30",
+   "zone": "Europe/Paris",
+   "link": "https://us06web.zoom.us/j/81768584823",
+   "meetingId": "81768584823",
+   "passcode": "1212",
+   "access": "open",
+   "focus": "Speaker, Tools, Newcomer, BDA, DA, BDA, Vision, Underearning (DA)",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3068",
+   "sourceUpdated": "2026-08-12"
+  },
+  {
+   "id": "da-3069",
+   "program": "DA",
+   "name": "Serenity",
+   "days": [
+    1
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "America/Chicago",
+   "link": "https://us02web.zoom.us/j/94469903297",
+   "meetingId": "94469903297",
+   "passcode": "599018",
+   "access": "closed",
+   "focus": "Literature Study, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3069",
+   "sourceUpdated": "2024-12-13"
+  },
+  {
+   "id": "da-3070",
+   "program": "DA",
+   "name": "Israel (English-Speakers) DA",
+   "days": [
+    3
+   ],
+   "start": "19:30",
+   "end": "20:30",
+   "zone": "Asia/Jerusalem",
+   "link": "https://us02web.zoom.us/j/902612874?pwd=eHE3RkVLZzB6Q2NrOW42SFdBRUNOUT09",
+   "meetingId": "902612874",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3070",
+   "sourceUpdated": "2025-04-30"
+  },
+  {
+   "id": "da-3072",
+   "program": "BDA",
+   "name": "Make It Rain Business Debtors Anonymous",
+   "days": [
+    1
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://us06web.zoom.us/j/2533401017",
+   "meetingId": "2533401017",
+   "passcode": "Serenity26",
+   "access": "open",
+   "focus": "BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3072",
+   "sourceUpdated": "2026-01-02"
+  },
+  {
+   "id": "da-3074",
+   "program": "DA",
+   "name": "Eastside Visions for Women",
+   "days": [
+    1
+   ],
+   "start": "10:00",
+   "end": "11:30",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/82242180361?pwd=ZmRLazhMMCtCQWF1akR0ankrQ2wrdz09",
+   "meetingId": "82242180361",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Speaker, Newcomer, BDA, Visions",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3074",
+   "sourceUpdated": "2025-06-12"
+  },
+  {
+   "id": "da-3077",
+   "program": "DA",
+   "name": "Living In Abundance",
+   "days": [
+    2
+   ],
+   "start": "18:30",
+   "end": "19:30",
+   "zone": "America/Chicago",
+   "link": "https://zoom.us/j/82532082478",
+   "meetingId": "82532082478",
+   "passcode": "004055",
+   "access": "closed",
+   "focus": "Other, Rotating format - Steps, Traditions, Speaker",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3077",
+   "sourceUpdated": "2026-05-06"
+  },
+  {
+   "id": "da-3081",
+   "program": "BDA",
+   "name": "DA/BDA Underearning Fear of Success and Visions",
+   "days": [
+    2
+   ],
+   "start": "08:30",
+   "end": "09:30",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/529486110",
+   "meetingId": "529486110",
+   "passcode": "460362",
+   "access": "open",
+   "focus": "Other, This is an open English language meeting. The focus of the meeting is overcoming the fear of success.",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3081",
+   "sourceUpdated": "2026-08-26"
+  },
+  {
+   "id": "da-3088",
+   "program": "BDA",
+   "name": "BDA SF Wednesday Noon",
+   "days": [
+    3
+   ],
+   "start": "12:00",
+   "end": "13:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/81793324245",
+   "meetingId": "81793324245",
+   "passcode": "311682",
+   "access": "closed",
+   "focus": "BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3088",
+   "sourceUpdated": "2025-02-27"
+  },
+  {
+   "id": "da-3090",
+   "program": "DA",
+   "name": "Stay for the Miracle",
+   "days": [
+    6
+   ],
+   "start": "09:00",
+   "end": "10:30",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/87944345639",
+   "meetingId": "87944345639",
+   "passcode": "912133",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3090",
+   "sourceUpdated": "2025-02-07"
+  },
+  {
+   "id": "da-3095",
+   "program": "DA",
+   "name": "Keep It Real",
+   "days": [
+    1
+   ],
+   "start": "18:30",
+   "end": "19:30",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/85911186359?pwd=MzdnOENSUjBaVE1COFdBd3FuakRFZz09",
+   "meetingId": "85911186359",
+   "passcode": null,
+   "access": "open",
+   "focus": "BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3095",
+   "sourceUpdated": "2025-05-08"
+  },
+  {
+   "id": "da-3099",
+   "program": "BDA",
+   "name": "Hope for Today in BDA",
+   "days": [
+    4
+   ],
+   "start": "18:30",
+   "end": "19:30",
+   "zone": "America/Chicago",
+   "link": "https://us02web.zoom.us/j/73213897481",
+   "meetingId": "73213897481",
+   "passcode": "463505",
+   "access": "closed",
+   "focus": "Literature Study, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3099",
+   "sourceUpdated": "2025-05-08"
+  },
+  {
+   "id": "da-3101",
+   "program": "DA",
+   "name": "Ocean Beach DA Literature",
+   "days": [
+    0
+   ],
+   "start": "09:00",
+   "end": "10:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/6161498468",
+   "meetingId": "6161498468",
+   "passcode": "12Steps",
+   "access": "open",
+   "focus": "Literature Study, Steps, Tools, New Daily Reader.",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3101",
+   "sourceUpdated": "2026-05-06"
+  },
+  {
+   "id": "da-3102",
+   "program": "DA",
+   "name": "Wednesday Night Prosperity",
+   "days": [
+    3
+   ],
+   "start": "19:30",
+   "end": "20:30",
+   "zone": "America/Chicago",
+   "link": "https://us02web.zoom.us/j/88205277139?pwd=b3VSK1NHSEFOanlXRUFRMzR2ZlhvUT09",
+   "meetingId": "88205277139",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Other, Steps, Traditions, Literature",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3102",
+   "sourceUpdated": "2025-02-06"
+  },
+  {
+   "id": "da-3104",
+   "program": "BDA",
+   "name": "Menlo Park BDA",
+   "days": [
+    2
+   ],
+   "start": "12:00",
+   "end": "13:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/4802770423?pwd=Zi9aek9hVjlIa2I3SG15OWZNYUhadz09",
+   "meetingId": "4802770423",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3104",
+   "sourceUpdated": "2026-04-22"
+  },
+  {
+   "id": "da-3106",
+   "program": "DA",
+   "name": "Sought Through Prayer and Meditation",
+   "days": [
+    6
+   ],
+   "start": "16:15",
+   "end": "17:45",
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/85709807292?pwd=ObbbwuhCyCLa9dvbhQDIrTJ0IJcFAa.1",
+   "meetingId": "85709807292",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3106",
+   "sourceUpdated": "2026-04-30"
+  },
+  {
+   "id": "da-3107",
+   "program": "DA",
+   "name": "Thursday Promises",
+   "days": [
+    4
+   ],
+   "start": "12:00",
+   "end": "13:00",
+   "zone": "America/Denver",
+   "link": "https://us02web.zoom.us/j/86831541502?pwd=TFl4ZzlORVVEbzRRR2g0UVBwRG1UZz09",
+   "meetingId": "86831541502",
+   "passcode": null,
+   "access": "open",
+   "focus": "Other, No Special Focus",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3107",
+   "sourceUpdated": "2026-09-25"
+  },
+  {
+   "id": "da-3111",
+   "program": "DA",
+   "name": "Serenity in Solvency",
+   "days": [
+    6
+   ],
+   "start": "09:00",
+   "end": "10:00",
+   "zone": "America/Chicago",
+   "link": "https://us06web.zoom.us/j/81071590242?pwd=ZfnVaU1aJU0sbS5Ua97irWBx7sCuB5.1",
+   "meetingId": "81071590242",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3111",
+   "sourceUpdated": "2026-03-06"
+  },
+  {
+   "id": "da-3112",
+   "program": "DA",
+   "name": "Zooming into Prosperity (ZIP)",
+   "days": [
+    4
+   ],
+   "start": "17:45",
+   "end": "18:45",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/82210830562",
+   "meetingId": "82210830562",
+   "passcode": "SACDA",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Other, Rotating topic",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3112",
+   "sourceUpdated": "2025-10-30"
+  },
+  {
+   "id": "da-3116",
+   "program": "DA",
+   "name": "Merrick Tues Night Prosperity Meeting",
+   "days": [
+    2
+   ],
+   "start": "18:00",
+   "end": "19:00",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/81679848952",
+   "meetingId": "81679848952",
+   "passcode": "steppingup",
+   "access": "open",
+   "focus": "Steps",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3116",
+   "sourceUpdated": "2025-06-03"
+  },
+  {
+   "id": "da-3120",
+   "program": "DA",
+   "name": "Recovery Literature Meeting formerly known as Plano DA Group",
+   "days": [
+    0
+   ],
+   "start": "18:00",
+   "end": "19:00",
+   "zone": "America/Chicago",
+   "link": "https://zoom.us/j/94845291245?pwd=oScmzOPbAZXYR32atXJa9aYcFimjWw.1",
+   "meetingId": "94845291245",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Steps, Tools",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3120",
+   "sourceUpdated": "2026-08-19"
+  },
+  {
+   "id": "da-3122",
+   "program": "DA",
+   "name": "Prosperity Seekers",
+   "days": [
+    0
+   ],
+   "start": "09:30",
+   "end": "10:30",
+   "zone": "America/Denver",
+   "link": "https://zoom.us/j/86831541502",
+   "meetingId": "86831541502",
+   "passcode": "solvency",
+   "access": "open",
+   "focus": "Other, No Special Focus",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3122",
+   "sourceUpdated": "2025-02-12"
+  },
+  {
+   "id": "da-3123",
+   "program": "DA",
+   "name": "DA Visions",
+   "days": [
+    6
+   ],
+   "start": "09:00",
+   "end": "10:15",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/851724817",
+   "meetingId": "851724817",
+   "passcode": "147739",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Tools, Visions",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3123",
+   "sourceUpdated": "2025-02-04"
+  },
+  {
+   "id": "da-3124",
+   "program": "DA",
+   "name": "Stepping Into Hope and Prosperity (aka SHiP)",
+   "days": [
+    1
+   ],
+   "start": "18:15",
+   "end": "19:15",
+   "zone": "America/Los_Angeles",
+   "link": "https://us06web.zoom.us/j/83684140841",
+   "meetingId": "83684140841",
+   "passcode": "511333",
+   "access": "open",
+   "focus": "Literature Study, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3124",
+   "sourceUpdated": "2026-07-30"
+  },
+  {
+   "id": "da-3134",
+   "program": "DA",
+   "name": "Steps and Traditions",
+   "days": [
+    2
+   ],
+   "start": "19:30",
+   "end": "20:30",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/86977331545",
+   "meetingId": "86977331545",
+   "passcode": "033070",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Other, Traditions",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3134",
+   "sourceUpdated": "2026-02-24"
+  },
+  {
+   "id": "da-3141",
+   "program": "DA",
+   "name": "Together We Prosper",
+   "days": [
+    4
+   ],
+   "start": "12:00",
+   "end": "13:00",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/81990424358",
+   "meetingId": "81990424358",
+   "passcode": "382437",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3141",
+   "sourceUpdated": "2026-07-03"
+  },
+  {
+   "id": "da-3153",
+   "program": "DA",
+   "name": "Solvency Solutions",
+   "days": [
+    4
+   ],
+   "start": "18:15",
+   "end": "19:15",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/82055103469",
+   "meetingId": "82055103469",
+   "passcode": "666697",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3153",
+   "sourceUpdated": "2026-01-16"
+  },
+  {
+   "id": "da-3159",
+   "program": "DA",
+   "name": "Solvency Before Visions Group Ireland",
+   "days": [
+    6
+   ],
+   "start": "12:30",
+   "end": "13:30",
+   "zone": "Europe/Dublin",
+   "link": "https://us02web.zoom.us/j/89862752325?pwd=DkntDk0kJOXNbNafZRCzfxJNVnDVSR.1",
+   "meetingId": "89862752325",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3159",
+   "sourceUpdated": "2026-09-01"
+  },
+  {
+   "id": "da-3160",
+   "program": "DA",
+   "name": "DA Ireland Salthill Mondays",
+   "days": [
+    1
+   ],
+   "start": "18:30",
+   "end": "19:30",
+   "zone": "Europe/Dublin",
+   "link": "https://us02web.zoom.us/j/985770407?pwd=Y0ZDUytVbnpFd0FjSUJWTXVqVUdoUT09",
+   "meetingId": "985770407",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3160",
+   "sourceUpdated": "2025-04-02"
+  },
+  {
+   "id": "da-3164",
+   "program": "DA",
+   "name": "SF Debtors Abundance Meeting",
+   "days": [
+    6
+   ],
+   "start": "10:00",
+   "end": "11:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://us06web.zoom.us/j/82426465852?pwd=1GVXfVVdDXww1fvBGFlREuJsSWUaHO.1",
+   "meetingId": "82426465852",
+   "passcode": null,
+   "access": "open",
+   "focus": "Other, Rotating format - Speaker, mini PRGs, Steps, Traditions",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3164",
+   "sourceUpdated": "2026-08-26"
+  },
+  {
+   "id": "da-3170",
+   "program": "BDA",
+   "name": "Building a Prosperous Business BDA",
+   "days": [
+    6
+   ],
+   "start": "09:00",
+   "end": "10:30",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/604663979",
+   "meetingId": "604663979",
+   "passcode": "036217",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer, BDA, Traditions and Concepts",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3170",
+   "sourceUpdated": "2025-10-21"
+  },
+  {
+   "id": "da-3173",
+   "program": "DA",
+   "name": "Solvent Serenity",
+   "days": [
+    2
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/85335105660",
+   "meetingId": "85335105660",
+   "passcode": "solvency",
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Tools",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3173",
+   "sourceUpdated": "2026-08-20"
+  },
+  {
+   "id": "da-3178",
+   "program": "DA",
+   "name": "DA Tuesday Solvency in Action",
+   "days": [
+    2
+   ],
+   "start": "20:00",
+   "end": "21:00",
+   "zone": "America/New_York",
+   "link": "https://us04web.zoom.us/j/82019089304",
+   "meetingId": "82019089304",
+   "passcode": "(no code)",
+   "access": "closed",
+   "focus": "Other, Six Action Steps",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3178",
+   "sourceUpdated": "2025-04-29"
+  },
+  {
+   "id": "da-3194",
+   "program": "DA",
+   "name": "The Crossroads Group of Debtors Anonymous",
+   "days": [
+    1
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/87451193634",
+   "meetingId": "87451193634",
+   "passcode": "048990",
+   "access": "closed",
+   "focus": "Literature Study, Steps, Tools, Traditions, Visions",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3194",
+   "sourceUpdated": "2025-03-07"
+  },
+  {
+   "id": "da-3195",
+   "program": "BDA",
+   "name": "BDA HOW Visions",
+   "days": [
+    4
+   ],
+   "start": "14:00",
+   "end": "15:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://us06web.zoom.us/j/81464409754?pwd=wAObmUWEzpCw9bEX6hadjVcks0Hvxm.1",
+   "meetingId": "81464409754",
+   "passcode": null,
+   "access": "open",
+   "focus": "BDA, Other, Visions",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3195",
+   "sourceUpdated": "2026-10-14"
+  },
+  {
+   "id": "da-3198",
+   "program": "DA",
+   "name": "DA and BDA: Recovering from Underearning, Fear of Success and Vision Issues",
+   "days": [
+    0
+   ],
+   "start": "10:00",
+   "end": "11:15",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/922990755",
+   "meetingId": "922990755",
+   "passcode": "217051",
+   "access": "closed",
+   "focus": "Speaker, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3198",
+   "sourceUpdated": "2026-04-02"
+  },
+  {
+   "id": "da-3206",
+   "program": "DA",
+   "name": "Wednesday Unity Group",
+   "days": [
+    3
+   ],
+   "start": "18:00",
+   "end": "19:00",
+   "zone": "America/Chicago",
+   "link": "https://us02web.zoom.us/j/86822688213?pwd=dzArMVg0VHRRWlM3Vnl1aTFhMEFSdz09",
+   "meetingId": "86822688213",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Literature Study, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3206",
+   "sourceUpdated": "2025-02-04"
+  },
+  {
+   "id": "da-3216",
+   "program": "DA",
+   "name": "Gay in DA",
+   "days": [
+    3
+   ],
+   "start": "17:00",
+   "end": "18:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/82544147386?pwd=4GYuII4bysfotROWHq3D2fE7TEKnyP.1",
+   "meetingId": "82544147386",
+   "passcode": null,
+   "access": "open",
+   "focus": "Other, Visions",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3216",
+   "sourceUpdated": "2025-12-04"
+  },
+  {
+   "id": "da-3225",
+   "program": "DA",
+   "name": "Greenwich Friday Night D.A./New Hope ZOOM",
+   "days": [
+    5
+   ],
+   "start": "19:30",
+   "end": "20:30",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/4531188553",
+   "meetingId": "4531188553",
+   "passcode": "420015",
+   "access": "closed",
+   "focus": "Literature Study, Steps",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3225",
+   "sourceUpdated": "2025-10-21"
+  },
+  {
+   "id": "da-3230",
+   "program": "DA",
+   "name": "Earn or Burn",
+   "days": [
+    2
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://us04web.zoom.us/j/699697728?pwd=QlNCRkFmMk5hbldtRllybFVhU0VOUT09",
+   "meetingId": "699697728",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer, Other, Earning focus",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3230",
+   "sourceUpdated": "2025-07-10"
+  },
+  {
+   "id": "da-3231",
+   "program": "DA",
+   "name": "Prosperity Group",
+   "days": [
+    6
+   ],
+   "start": "09:00",
+   "end": "10:00",
+   "zone": "America/Chicago",
+   "link": "https://zoom.us/j/820004098",
+   "meetingId": "820004098",
+   "passcode": "n/a",
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3231",
+   "sourceUpdated": "2025-08-06"
+  },
+  {
+   "id": "da-3233",
+   "program": "DA",
+   "name": "Promises and Paperwork",
+   "days": [
+    3
+   ],
+   "start": "18:00",
+   "end": "19:00",
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/81685907064",
+   "meetingId": "81685907064",
+   "passcode": "Sanity",
+   "access": "open",
+   "focus": "Literature Study, Tools, Other, Group works on paperwok individually off-screen for 20 minutes",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3233",
+   "sourceUpdated": "2025-03-14"
+  },
+  {
+   "id": "da-3234",
+   "program": "DA",
+   "name": "Auckland Prosperity Group",
+   "days": [
+    1
+   ],
+   "start": "19:30",
+   "end": "20:30",
+   "zone": "Pacific/Auckland",
+   "link": "https://zoom.us/j/85736823556",
+   "meetingId": "85736823556",
+   "passcode": "490991",
+   "access": "open",
+   "focus": "Steps, Tools, Newcomer, Other, Everyone Shares",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3234",
+   "sourceUpdated": "2024-11-12"
+  },
+  {
+   "id": "da-3238",
+   "program": "DA",
+   "name": "Park Slope Tools Zoom",
+   "days": [
+    1
+   ],
+   "start": "12:00",
+   "end": "13:00",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/7061826064",
+   "meetingId": null,
+   "passcode": "tools",
+   "access": "open",
+   "focus": "Tools",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3238",
+   "sourceUpdated": "2025-02-19"
+  },
+  {
+   "id": "da-3240",
+   "program": "DA",
+   "name": "Clarity",
+   "days": [
+    6
+   ],
+   "start": "09:00",
+   "end": "10:00",
+   "zone": "America/Chicago",
+   "link": "https://zoom.us/j/81983346840",
+   "meetingId": "81983346840",
+   "passcode": "719743",
+   "access": "closed",
+   "focus": "Literature Study, Steps",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3240",
+   "sourceUpdated": "2026-09-09"
+  },
+  {
+   "id": "da-3242",
+   "program": "BDA",
+   "name": "Sunday BDA Online",
+   "days": [
+    0
+   ],
+   "start": "17:00",
+   "end": "18:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/87560509891",
+   "meetingId": "87560509891",
+   "passcode": "njE51y",
+   "access": "open",
+   "focus": "BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3242",
+   "sourceUpdated": "2026-09-22"
+  },
+  {
+   "id": "da-3243",
+   "program": "DA",
+   "name": "God is in the Numbers",
+   "days": [
+    2
+   ],
+   "start": "13:00",
+   "end": "14:00",
+   "zone": "Africa/Nairobi",
+   "link": "https://us02web.zoom.us/j/9132027299?pwd=ZENROUlneEx5SFBvb0xDb2RqNkR4Zz09",
+   "meetingId": "9132027299",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Tools",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3243",
+   "sourceUpdated": "2026-03-11"
+  },
+  {
+   "id": "da-3244",
+   "program": "DA",
+   "name": "Recovery from Underearning and Living Our Visions",
+   "days": [
+    3
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/82800924060",
+   "meetingId": "82800924060",
+   "passcode": "540375",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3244",
+   "sourceUpdated": "2025-09-25"
+  },
+  {
+   "id": "da-3258",
+   "program": "BDA",
+   "name": "Earn It, Grow It, BDA",
+   "days": [
+    0
+   ],
+   "start": "08:45",
+   "end": "09:45",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/84304610301",
+   "meetingId": "84304610301",
+   "passcode": "generosity",
+   "access": "open",
+   "focus": "Speaker, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3258",
+   "sourceUpdated": "2025-06-12"
+  },
+  {
+   "id": "da-3263",
+   "program": "DA",
+   "name": "Twin Cities DA",
+   "days": [
+    6
+   ],
+   "start": "09:00",
+   "end": "10:00",
+   "zone": "America/Chicago",
+   "link": "https://us02web.zoom.us/j/4231992812?pwd=NVJ1alAyVjNwSmVuZ3J6ei90SmtFUT09",
+   "meetingId": "4231992812",
+   "passcode": null,
+   "access": "open",
+   "focus": "Speaker, Steps, Tools",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3263",
+   "sourceUpdated": "2026-07-01"
+  },
+  {
+   "id": "da-3264",
+   "program": "BDA",
+   "name": "Womens BDA Steps to Prosperity",
+   "days": [
+    1
+   ],
+   "start": "09:15",
+   "end": "10:15",
+   "zone": "America/Chicago",
+   "link": "https://us02web.zoom.us/j/89581096995?pwd=TW03R2prdWRrd3plS29jZTdZUFgyUT09",
+   "meetingId": "89581096995",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Steps, Tools, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3264",
+   "sourceUpdated": "2026-04-23"
+  },
+  {
+   "id": "da-3267",
+   "program": "BDA",
+   "name": "Front Range BDA",
+   "days": [
+    6
+   ],
+   "start": "09:00",
+   "end": "10:15",
+   "zone": "America/Denver",
+   "link": "https://us02web.zoom.us/j/82747470212?pwd=oiph5uy2t6xyqeQbc1lQSENGulUOPr.1",
+   "meetingId": "82747470212",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3267",
+   "sourceUpdated": "2026-02-03"
+  },
+  {
+   "id": "da-3284",
+   "program": "BDA",
+   "name": "BDA Tech Industry/Startup Focus",
+   "days": [
+    1
+   ],
+   "start": "10:30",
+   "end": "11:00",
+   "zone": "Australia/Sydney",
+   "link": "https://us02web.zoom.us/j/84069565655?pwd=ZWNuS2Z5ajAvTjFBYWN0RVRXOFRkUT09",
+   "meetingId": "84069565655",
+   "passcode": null,
+   "access": "closed",
+   "focus": "BDA, Other, BDA members who operate in the tech industry/startup world",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3284",
+   "sourceUpdated": "2026-03-10"
+  },
+  {
+   "id": "da-3287",
+   "program": "BDA",
+   "name": "Successful Business Owners BDA -CT",
+   "days": [
+    1
+   ],
+   "start": "07:30",
+   "end": "08:30",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/2991732919?pwd=MHo0UjIra2pwNHhCZTNOOC90bEVJUT09",
+   "meetingId": "2991732919",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Tools, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3287",
+   "sourceUpdated": "2026-04-14"
+  },
+  {
+   "id": "da-3294",
+   "program": "DA",
+   "name": "DA - Parents Meeting",
+   "days": [
+    2
+   ],
+   "start": "19:30",
+   "end": "20:30",
+   "zone": "America/Los_Angeles",
+   "link": "https://us05web.zoom.us/j/82786436012?pwd=ZUlNZGJDYlFNSHBqZTFUeUlJV1I3UT09",
+   "meetingId": "82786436012",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3294",
+   "sourceUpdated": "2025-05-21"
+  },
+  {
+   "id": "da-3295",
+   "program": "DA",
+   "name": "Debtors Annoymous Penzance (online)",
+   "days": [
+    4
+   ],
+   "start": "17:30",
+   "end": "18:30",
+   "zone": "Europe/London",
+   "link": "https://zoom.us/j/98831002387?pwd=r0P8QIcXaZDydsY4fhQ9oCshjc5fnw.1",
+   "meetingId": "98831002387",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Speaker, Steps, Newcomer, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3295",
+   "sourceUpdated": "2025-11-06"
+  },
+  {
+   "id": "da-3304",
+   "program": "DA",
+   "name": "Visions in the Valley",
+   "days": [
+    2
+   ],
+   "start": "19:30",
+   "end": "20:30",
+   "zone": "America/Los_Angeles",
+   "link": "https://us06web.zoom.us/j/85037166796",
+   "meetingId": "8507166796",
+   "passcode": "644798",
+   "access": "closed",
+   "focus": "Speaker, Visions",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3304",
+   "sourceUpdated": "2026-06-02"
+  },
+  {
+   "id": "da-3305",
+   "program": "DA",
+   "name": "A Vision For You.",
+   "days": [
+    2
+   ],
+   "start": "07:30",
+   "end": "08:30",
+   "zone": "Europe/London",
+   "link": "https://zoom.us/j/430754130",
+   "meetingId": "430754130",
+   "passcode": "115095",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3305",
+   "sourceUpdated": "2025-08-05"
+  },
+  {
+   "id": "da-3319",
+   "program": "DA",
+   "name": "Santa Rosa Saturday Morning",
+   "days": [
+    6
+   ],
+   "start": "10:30",
+   "end": "11:45",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/84392281083?pwd=WGZIeGs0dnp4ZkpWQXh2MEk0YmovZz09",
+   "meetingId": "84392281083",
+   "passcode": null,
+   "access": "open",
+   "focus": "Other, This meeting has five formats that rotate each week through each month: 1. Business, 2. Step Study, 3. Speaker, 4. Literature Study, 5. Visioning.",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3319",
+   "sourceUpdated": "2026-04-22"
+  },
+  {
+   "id": "da-3322",
+   "program": "BDA",
+   "name": "Chicago Streeterville BDA",
+   "days": [
+    3
+   ],
+   "start": "18:30",
+   "end": "19:30",
+   "zone": "America/Chicago",
+   "link": "https://us02web.zoom.us/j/88510774887?pwd=bmNwOFNpS3JmZkQyeUxJdzMzeVhpUT09",
+   "meetingId": "88510774887",
+   "passcode": null,
+   "access": "closed",
+   "focus": "BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3322",
+   "sourceUpdated": "2026-06-19"
+  },
+  {
+   "id": "da-3325",
+   "program": "DA",
+   "name": "Eleventh Step MeDAtation Meeting",
+   "days": [
+    4
+   ],
+   "start": "17:00",
+   "end": "18:00",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/84449046221",
+   "meetingId": "84449046221",
+   "passcode": "recovery",
+   "access": "closed",
+   "focus": "Other, Meditations based on the 12 Promises of D.A.",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3325",
+   "sourceUpdated": "2026-10-15"
+  },
+  {
+   "id": "da-3327",
+   "program": "DA",
+   "name": "Hopes, Dreams, Solvency, and Candlelight",
+   "days": [
+    4
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/88576796349?pwd=OHFGOS91KzlOOW5kTEtXMGFQOGdvZz09",
+   "meetingId": "88576796349",
+   "passcode": null,
+   "access": "open",
+   "focus": "Speaker",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3327",
+   "sourceUpdated": "2026-07-08"
+  },
+  {
+   "id": "da-3328",
+   "program": "DA",
+   "name": "Daily Prayer and Meditation",
+   "days": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "start": "06:30",
+   "end": "07:00",
+   "zone": "Europe/London",
+   "link": "https://us02web.zoom.us/j/86278387060?pwd=U0x3UzAwN1RBbXJ4NkVVdkVkbXNZZz09",
+   "meetingId": "86278387060",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Other, Meditation (Step 11)",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3328",
+   "sourceUpdated": "2025-06-05"
+  },
+  {
+   "id": "da-3337",
+   "program": "DA",
+   "name": "Dallas TX Hope Group",
+   "days": [
+    2
+   ],
+   "start": "19:30",
+   "end": "20:30",
+   "zone": "America/Chicago",
+   "link": "https://zoom.us/j/94547335439",
+   "meetingId": "94547335439",
+   "passcode": "121212",
+   "access": "closed",
+   "focus": "Literature Study, Steps",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3337",
+   "sourceUpdated": "2025-08-06"
+  },
+  {
+   "id": "da-3338",
+   "program": "DA",
+   "name": "There Is A Solution",
+   "days": [
+    0
+   ],
+   "start": "17:00",
+   "end": "18:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/9840826707?pwd=cFE0cUxYN0V4OExLVWF4aHY2M3g1Zz09",
+   "meetingId": "9840826707",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3338",
+   "sourceUpdated": "2025-02-18"
+  },
+  {
+   "id": "da-3341",
+   "program": "DA",
+   "name": "Saturday Morning Debtors Anonymous",
+   "days": [
+    6
+   ],
+   "start": "10:30",
+   "end": "11:45",
+   "zone": "America/Chicago",
+   "link": "https://us04web.zoom.us/j/300603781",
+   "meetingId": null,
+   "passcode": "582048",
+   "access": "open",
+   "focus": "Literature Study, Steps, Steps and Traditions Meeting",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3341",
+   "sourceUpdated": "2025-03-04"
+  },
+  {
+   "id": "da-3347",
+   "program": "DA",
+   "name": "Currency of Hope",
+   "days": [
+    3
+   ],
+   "start": "19:30",
+   "end": "20:30",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/97572440811?pwd=eTY3QURqTGVzTUV0TWNqQ1ZiWDdnUT09",
+   "meetingId": "97572440811",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Other, Tradition",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3347",
+   "sourceUpdated": "2026-10-06"
+  },
+  {
+   "id": "da-3352",
+   "program": "DA",
+   "name": "Hi-Ho Group For Underearners",
+   "days": [
+    3
+   ],
+   "start": "07:00",
+   "end": "08:00",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/81183184210",
+   "meetingId": "81183184210",
+   "passcode": "380381",
+   "access": "open",
+   "focus": ", D.A. Literature study including Underearners pamhlet.",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3352",
+   "sourceUpdated": "2025-09-10"
+  },
+  {
+   "id": "da-3360",
+   "program": "DA",
+   "name": "Living Your Priorities",
+   "days": [
+    5
+   ],
+   "start": "07:30",
+   "end": "08:30",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/81786159844?pwd=clJvUXlvcmwwN3BoMmRhbEEwWkpSZz09",
+   "meetingId": "81786159844",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Other, Focus on relationship of time and money with writing and meditation",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3360",
+   "sourceUpdated": "2025-02-18"
+  },
+  {
+   "id": "da-3361",
+   "program": "BDA",
+   "name": "Taking Ownership",
+   "days": [
+    6
+   ],
+   "start": "08:30",
+   "end": "10:00",
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/85878034349?pwd=HeFSAZ8Obba63RuBqHc4uaYMkFeGUm.1",
+   "meetingId": "85878034349",
+   "passcode": null,
+   "access": "closed",
+   "focus": "BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3361",
+   "sourceUpdated": "2025-07-23"
+  },
+  {
+   "id": "da-3362",
+   "program": "DA",
+   "name": "Breaking Free Annapolis DA Group",
+   "days": [
+    6
+   ],
+   "start": "09:30",
+   "end": "10:30",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/82593456226",
+   "meetingId": "82593456226",
+   "passcode": "Host will admit attendees",
+   "access": "closed",
+   "focus": "Speaker, Steps",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3362",
+   "sourceUpdated": "2025-02-06"
+  },
+  {
+   "id": "da-3364",
+   "program": "BDA",
+   "name": "Solvent In Seattle DA & BDA",
+   "days": [
+    0
+   ],
+   "start": "19:30",
+   "end": "20:30",
+   "zone": "America/Los_Angeles",
+   "link": "https://us06web.zoom.us/j/8146392325?pwd=ZmpUQ2NsT0lVb3FPZ2w3NWhWRFRmZz09",
+   "meetingId": "8146392325",
+   "passcode": null,
+   "access": "open",
+   "focus": "Speaker, Steps, Tools, Newcomer, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3364",
+   "sourceUpdated": "2025-12-27"
+  },
+  {
+   "id": "da-3365",
+   "program": "DA",
+   "name": "Visions at Noon",
+   "days": [
+    1
+   ],
+   "start": "12:00",
+   "end": "13:00",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/4923032222?pwd=ZzM4TXZYV0p3YTI4ckVjcGNiS0Fidz09",
+   "meetingId": "4923032222",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3365",
+   "sourceUpdated": "2025-03-11"
+  },
+  {
+   "id": "da-3366",
+   "program": "DA",
+   "name": "Artists Visions DA",
+   "days": [
+    1
+   ],
+   "start": "18:00",
+   "end": "19:15",
+   "zone": "America/Los_Angeles",
+   "link": "https://us04web.zoom.us/j/79823021667?pwd=UWplcUZ6UmNDTlI4dEd5VVI0b3NNZz09",
+   "meetingId": "79823021667",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Steps, Other, Artists",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3366",
+   "sourceUpdated": "2026-04-20"
+  },
+  {
+   "id": "da-3368",
+   "program": "DA",
+   "name": "Albuquerque Abundance",
+   "days": [
+    1
+   ],
+   "start": "18:00",
+   "end": "19:00",
+   "zone": "America/Denver",
+   "link": "https://us02web.zoom.us/j/86978143528",
+   "meetingId": "86978143528",
+   "passcode": "939802",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3368",
+   "sourceUpdated": "2026-05-28"
+  },
+  {
+   "id": "da-3370",
+   "program": "DA",
+   "name": "Prosperity Group",
+   "days": [
+    4
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "America/Chicago",
+   "link": "https://us02web.zoom.us/j/552119307",
+   "meetingId": "552119307",
+   "passcode": "209045",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3370",
+   "sourceUpdated": "2025-08-07"
+  },
+  {
+   "id": "da-3372",
+   "program": "DA",
+   "name": "Westport Abundance Meeting",
+   "days": [
+    4
+   ],
+   "start": "07:30",
+   "end": "08:30",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/98849085279?pwd=d3JodmtuRDBHRHVKUUF5U3pQTXJndz09",
+   "meetingId": null,
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer, Other, This is an English language meeting with a focus on the Debtors Anonymous Twelve Steps Study Guide (BDA portion)",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3372",
+   "sourceUpdated": "2025-11-07"
+  },
+  {
+   "id": "da-3379",
+   "program": "BDA",
+   "name": "Mid-Wilshire BDA",
+   "days": [
+    1
+   ],
+   "start": "19:30",
+   "end": "20:30",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/85135363501",
+   "meetingId": "85135363501",
+   "passcode": "Indigo93",
+   "access": "open",
+   "focus": "Speaker, Steps, Tools, Newcomer, BDA, Other, Rotating BDA Readings, 3 min. meditation, 10 min. speaker, Sharing",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3379",
+   "sourceUpdated": "2025-08-05"
+  },
+  {
+   "id": "da-3381",
+   "program": "DA",
+   "name": "Uptown DA Visions Meeting",
+   "days": [
+    6
+   ],
+   "start": "11:30",
+   "end": "13:00",
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/81143976760?pwd=diMXMhlCXSDBHm5AtOO126ZqRb0r1E.1",
+   "meetingId": null,
+   "passcode": null,
+   "access": "closed",
+   "focus": ", Weekly Speaker on Visions. Week 3: Visions Presentations.",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3381",
+   "sourceUpdated": "2026-06-10"
+  },
+  {
+   "id": "da-3385",
+   "program": "DA",
+   "name": "Radical Clarity Group",
+   "days": [
+    0,
+    4,
+    6
+   ],
+   "start": "08:30",
+   "end": "09:30",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/3441198990?pwd=QkJEWktCNktOV0xrbGZuQjRMNTU5dz09",
+   "meetingId": "3441198990",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3385",
+   "sourceUpdated": "2026-05-20"
+  },
+  {
+   "id": "da-3387",
+   "program": "BDA",
+   "name": "Creative Business Debtors Anonymous",
+   "days": [
+    3
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "Australia/Brisbane",
+   "link": "https://zoom.us/j/3913658575",
+   "meetingId": "3913658575",
+   "passcode": "0000",
+   "access": "closed",
+   "focus": "BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3387",
+   "sourceUpdated": "2026-06-02"
+  },
+  {
+   "id": "da-3392",
+   "program": "DA",
+   "name": "Debtors Anonymous with Time and Clutter Issues",
+   "days": [
+    2
+   ],
+   "start": "18:30",
+   "end": "19:30",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/84721502049",
+   "meetingId": "84721502049",
+   "passcode": "763321",
+   "access": "open",
+   "focus": "Other, Time and Clutter Issues",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3392",
+   "sourceUpdated": "2025-11-12"
+  },
+  {
+   "id": "da-3399",
+   "program": "DA",
+   "name": "Promise 10 Debtors Anonymous Steps & Tools Meeting",
+   "days": [
+    6
+   ],
+   "start": "10:00",
+   "end": "11:00",
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/89930857258?pwd=QWlnQTlTUWJTWm44NGU4enlTNTBRQT09",
+   "meetingId": "89930857258",
+   "passcode": null,
+   "access": "open",
+   "focus": "Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3399",
+   "sourceUpdated": "2025-05-13"
+  },
+  {
+   "id": "da-3406",
+   "program": "DA",
+   "name": "Monday Evening Step Study Meeting",
+   "days": [
+    1
+   ],
+   "start": "19:30",
+   "end": "15:06",
+   "zone": "America/Chicago",
+   "link": "https://zoom.us/j/97201400768",
+   "meetingId": "97201400768",
+   "passcode": "000542",
+   "access": "open",
+   "focus": "Literature Study, Steps, Tools",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3406",
+   "sourceUpdated": "2025-02-09"
+  },
+  {
+   "id": "da-3412",
+   "program": "BDA",
+   "name": "Clarity to Prosperity BDA",
+   "days": [
+    4
+   ],
+   "start": "17:30",
+   "end": "18:30",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/8745960005",
+   "meetingId": "8745960005",
+   "passcode": "628746",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3412",
+   "sourceUpdated": "2025-03-04"
+  },
+  {
+   "id": "da-3420",
+   "program": "DA",
+   "name": "Abundance Meeting",
+   "days": [
+    4
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "Pacific/Auckland",
+   "link": "https://us02web.zoom.us/j/6215185880",
+   "meetingId": "6215185880",
+   "passcode": "abundance",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3420",
+   "sourceUpdated": "2025-04-09"
+  },
+  {
+   "id": "da-3426",
+   "program": "BDA",
+   "name": "BDA for Therapists, Coaches and Healers.",
+   "days": [
+    2
+   ],
+   "start": "14:00",
+   "end": "15:00",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/4817067619?pwd=UGszRnd6bVhsNDN2WnhWQ1VwVzdsZz09",
+   "meetingId": "4817067619",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Tools, BDA, Vision",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3426",
+   "sourceUpdated": "2025-12-04"
+  },
+  {
+   "id": "da-3433",
+   "program": "DA",
+   "name": "Wake Up You Debtors",
+   "days": [
+    6
+   ],
+   "start": "08:00",
+   "end": "09:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/703730173",
+   "meetingId": "703730173",
+   "passcode": "Contact email below",
+   "access": "open",
+   "focus": "Literature Study",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3433",
+   "sourceUpdated": "2025-02-25"
+  },
+  {
+   "id": "da-3436",
+   "program": "DA",
+   "name": "Living in Prosperity",
+   "days": [
+    0
+   ],
+   "start": "16:00",
+   "end": "17:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/97480943745",
+   "meetingId": "97480943745",
+   "passcode": "12345",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3436",
+   "sourceUpdated": "2024-11-06"
+  },
+  {
+   "id": "da-3438",
+   "program": "DA",
+   "name": "A Positive Balance",
+   "days": [
+    1
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/82592220033",
+   "meetingId": "82592220033",
+   "passcode": "763477",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3438",
+   "sourceUpdated": "2025-05-05"
+  },
+  {
+   "id": "da-3445",
+   "program": "DA",
+   "name": "Lesbian and Gay- All Welcome- Mon Night Step Study Meeting of DA Online",
+   "days": [
+    1
+   ],
+   "start": "19:30",
+   "end": "20:45",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/84272058181",
+   "meetingId": "84272058181",
+   "passcode": "Steps",
+   "access": "open",
+   "focus": "Speaker, Steps",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3445",
+   "sourceUpdated": "2025-03-20"
+  },
+  {
+   "id": "da-3447",
+   "program": "DA",
+   "name": "Solvency First (formerly Croton Solvency First)",
+   "days": [
+    1
+   ],
+   "start": "19:30",
+   "end": "20:30",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/81311732024?pwd=WHJzaGJaS2liNFlDeDNpeThHdDdPQT09",
+   "meetingId": "81311732024",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Other, Traditions",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3447",
+   "sourceUpdated": "2025-10-14"
+  },
+  {
+   "id": "da-3448",
+   "program": "DA",
+   "name": "Immune at Noon",
+   "days": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "start": "12:00",
+   "end": "13:00",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/7480623716",
+   "meetingId": "7480623716",
+   "passcode": "8675309",
+   "access": "open",
+   "focus": "Speaker",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3448",
+   "sourceUpdated": "2026-07-30"
+  },
+  {
+   "id": "da-3450",
+   "program": "DA",
+   "name": "DA Solvent Thursday",
+   "days": [
+    4
+   ],
+   "start": "18:00",
+   "end": "19:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/84017067638",
+   "meetingId": "84017067638",
+   "passcode": "For passcode text Adela @ 310-430-0336 or use email below.",
+   "access": "closed",
+   "focus": "Literature Study",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3450",
+   "sourceUpdated": "2025-02-12"
+  },
+  {
+   "id": "da-3456",
+   "program": "DA",
+   "name": "The D.A. Way",
+   "days": [
+    0
+   ],
+   "start": "17:00",
+   "end": "18:00",
+   "zone": "America/Chicago",
+   "link": "https://us02web.zoom.us/j/82850793257",
+   "meetingId": "82850793257",
+   "passcode": "DAway12*3",
+   "access": "closed",
+   "focus": ", Literature Study: The Big Book, Currency of Hope, and 12 Steps, 12 Traditions, and 12 Concepts of D.A",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3456",
+   "sourceUpdated": "2025-07-30"
+  },
+  {
+   "id": "da-3463",
+   "program": "BDA",
+   "name": "Showing Up Action Group for Business Owners",
+   "days": [
+    3
+   ],
+   "start": "17:45",
+   "end": "18:45",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/4718058426?pwd=Kf4V1zKZs343ALBAWK8bfdmPyIrxyr.1",
+   "meetingId": "4718058426",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Tools, BDA, Other, Showing Up Action Group",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3463",
+   "sourceUpdated": "2026-03-10"
+  },
+  {
+   "id": "da-3467",
+   "program": "DA",
+   "name": "Serene and Solvent",
+   "days": [
+    2
+   ],
+   "start": "12:00",
+   "end": "13:00",
+   "zone": "America/Chicago",
+   "link": "https://us02web.zoom.us/j/81861624787",
+   "meetingId": "81861624787",
+   "passcode": "12Promises",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3467",
+   "sourceUpdated": "2025-11-18"
+  },
+  {
+   "id": "da-3474",
+   "program": "DA",
+   "name": "Currency of Hope Book Study",
+   "days": [
+    3
+   ],
+   "start": "12:00",
+   "end": "13:00",
+   "zone": "America/Denver",
+   "link": "https://us06web.zoom.us/j/83229092717",
+   "meetingId": "83229092717",
+   "passcode": "673319",
+   "access": "closed",
+   "focus": "Literature Study",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3474",
+   "sourceUpdated": "2026-08-26"
+  },
+  {
+   "id": "da-3478",
+   "program": "DA",
+   "name": "Merrick Prosperity of Debtors Anonymous",
+   "days": [
+    6
+   ],
+   "start": "09:10",
+   "end": "10:30",
+   "zone": "America/New_York",
+   "link": "https://us04web.zoom.us/j/85778094185",
+   "meetingId": "85778094185",
+   "passcode": "Saturday",
+   "access": "closed",
+   "focus": "Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3478",
+   "sourceUpdated": "2025-02-19"
+  },
+  {
+   "id": "da-3481",
+   "program": "DA",
+   "name": "Serenity Saturday",
+   "days": [
+    6
+   ],
+   "start": "11:30",
+   "end": "12:30",
+   "zone": "Europe/London",
+   "link": "https://us02web.zoom.us/j/873174138",
+   "meetingId": "873174138",
+   "passcode": "941505",
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3481",
+   "sourceUpdated": "2025-04-01"
+  },
+  {
+   "id": "da-3483",
+   "program": "BDA",
+   "name": "Earning and Learning BDA Saint Paul",
+   "days": [
+    4
+   ],
+   "start": "18:30",
+   "end": "19:30",
+   "zone": "America/Chicago",
+   "link": "https://us02web.zoom.us/j/82456390947",
+   "meetingId": "82456390947",
+   "passcode": "Finance$",
+   "access": "closed",
+   "focus": "Literature Study, Tools, BDA, Traditions, Literature",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3483",
+   "sourceUpdated": "2025-11-12"
+  },
+  {
+   "id": "da-3492",
+   "program": "DA",
+   "name": "Radical Clarity Group",
+   "days": [
+    5
+   ],
+   "start": "11:00",
+   "end": "12:00",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/3441198990",
+   "meetingId": "3441198990",
+   "passcode": "None",
+   "access": "closed",
+   "focus": "Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3492",
+   "sourceUpdated": "2026-05-20"
+  },
+  {
+   "id": "da-3496",
+   "program": "DA",
+   "name": "Sunday 9 AM Eastern Speaker Meeting",
+   "days": [
+    0
+   ],
+   "start": "09:00",
+   "end": "10:00",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/88105890532?pwd=RmFnYnNmOGs1Myt3WXBBU1FMOVlMZz09",
+   "meetingId": null,
+   "passcode": null,
+   "access": "open",
+   "focus": "Speaker",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3496",
+   "sourceUpdated": "2025-06-20"
+  },
+  {
+   "id": "da-3500",
+   "program": "DA",
+   "name": "DA Action Group",
+   "days": [
+    4
+   ],
+   "start": "09:00",
+   "end": "12:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/89262865328?pwd=RjFmYjljeXlTbnVydG84OTJMbGNKQT09",
+   "meetingId": "89262865328",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Other, This is an Action group. We check in on our actions every hour",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3500",
+   "sourceUpdated": "2026-07-29"
+  },
+  {
+   "id": "da-3518",
+   "program": "DA",
+   "name": "Bowie DA",
+   "days": [
+    2
+   ],
+   "start": "18:30",
+   "end": "19:30",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/266199541?pwd=MkFwbmlWZXRGTm9YNmZqVGhFZVhXQT09",
+   "meetingId": "266199541",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3518",
+   "sourceUpdated": "2025-06-24"
+  },
+  {
+   "id": "da-3573",
+   "program": "DA",
+   "name": "Clarity",
+   "days": [
+    0
+   ],
+   "start": "17:00",
+   "end": "18:00",
+   "zone": "America/Chicago",
+   "link": "https://us02web.zoom.us/j/84426432195?pwd=TVQ5ZXNRWGJzOGJaeFBoVTdNbjZHQT",
+   "meetingId": "84426432195",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3573",
+   "sourceUpdated": "2025-02-18"
+  },
+  {
+   "id": "da-3583",
+   "program": "DA",
+   "name": "SHOWING UP ACTION GROUP",
+   "days": [
+    5
+   ],
+   "start": "11:30",
+   "end": "12:30",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/86208267491",
+   "meetingId": "86208267491",
+   "passcode": "127171",
+   "access": "open",
+   "focus": "Literature Study, Speaker, Tools, Newcomer, SHOWING UP ACTION GROUP",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3583",
+   "sourceUpdated": "2025-04-10"
+  },
+  {
+   "id": "da-3585",
+   "program": "BDA",
+   "name": "Brentwood LA B.D.A. Zoom Meeting",
+   "days": [
+    6
+   ],
+   "start": "09:00",
+   "end": "10:30",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/89799119760?pwd=ek9FMXVaQU5VWm5HbEg0NkdRZnU4UT09",
+   "meetingId": "89799119760",
+   "passcode": null,
+   "access": "open",
+   "focus": "Speaker, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3585",
+   "sourceUpdated": "2025-10-30"
+  },
+  {
+   "id": "da-3596",
+   "program": "DA",
+   "name": "Illness Caregiving Death & Trauma",
+   "days": [
+    0
+   ],
+   "start": "13:30",
+   "end": "14:30",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/88985574549?pwd=WGtRMXd0WjBWYTFHOFpwbEV6L1Q1QT09",
+   "meetingId": "88985574549",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Speaker, Newcomer, BDA, Other, Illness Caregiving Death & Trauma",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3596",
+   "sourceUpdated": "2026-03-24"
+  },
+  {
+   "id": "da-3599",
+   "program": "DA",
+   "name": "The Joy of Solvency",
+   "days": [
+    5
+   ],
+   "start": "16:00",
+   "end": "17:00",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/530352912?pwd=Y3dMY1V2LzlyRU9RVG4yRCtnQTBBZz09",
+   "meetingId": "530352912",
+   "passcode": null,
+   "access": "open",
+   "focus": "Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3599",
+   "sourceUpdated": "2025-10-24"
+  },
+  {
+   "id": "da-3618",
+   "program": "DA",
+   "name": "True Prosperity Stag DA Men’s Meeting",
+   "days": [
+    1
+   ],
+   "start": "20:00",
+   "end": "21:15",
+   "zone": "America/Los_Angeles",
+   "link": "https://us06web.zoom.us/j/81321749052?pwd=ZortGmDKq4Q3WhqApvIOJf6ZZG8VLj.1",
+   "meetingId": "81321749052",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3618",
+   "sourceUpdated": "2026-05-21"
+  },
+  {
+   "id": "da-3627",
+   "program": "DA",
+   "name": "Tuesday Melbourne",
+   "days": [
+    2
+   ],
+   "start": "18:00",
+   "end": "19:00",
+   "zone": "Australia/Sydney",
+   "link": "https://us02web.zoom.us/j/6313873933?pwd=a29ZL0hOSHF1MXZ5WlFLajRzbk9FQT09",
+   "meetingId": "6313873933",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3627",
+   "sourceUpdated": "2024-11-12"
+  },
+  {
+   "id": "da-3630",
+   "program": "BDA",
+   "name": "Spiritual and Profitable BDA",
+   "days": [
+    2
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/510945666?pwd=TUlTb0N5Y2VWRDdMeC9uL2IzV0JnZz09",
+   "meetingId": "510945666",
+   "passcode": null,
+   "access": "open",
+   "focus": "Steps, Tools, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3630",
+   "sourceUpdated": "2024-11-13"
+  },
+  {
+   "id": "da-3639",
+   "program": "DA",
+   "name": "DA for Compulsive Spending-Thursday Night Step Study",
+   "days": [
+    4
+   ],
+   "start": "18:30",
+   "end": "19:30",
+   "zone": "America/Los_Angeles",
+   "link": "https://us06web.zoom.us/j/84768149637?pwd=U0hkdHRmSjdBR2swQzJaak11VEJrdz09",
+   "meetingId": "84768149637",
+   "passcode": null,
+   "access": "open",
+   "focus": "Steps, Focus on studying the 12 Steps of Debtors Anonymoous",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3639",
+   "sourceUpdated": "2025-02-06"
+  },
+  {
+   "id": "da-3640",
+   "program": "DA",
+   "name": "Friday D.A. Compulsive Spenders Diversity Meeting",
+   "days": [
+    5
+   ],
+   "start": "19:15",
+   "end": "20:15",
+   "zone": "Europe/London",
+   "link": "https://us02web.zoom.us/j/87321155090?pwd=b3BEajE0emFyRGpRMkhYLytuSUFzdz09",
+   "meetingId": "87321155090",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3640",
+   "sourceUpdated": "2025-01-10"
+  },
+  {
+   "id": "da-3658",
+   "program": "BDA",
+   "name": "DA/BDA Action Group",
+   "days": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "start": "09:20",
+   "end": "17:30",
+   "zone": "Europe/Paris",
+   "link": "https://us06web.zoom.us/j/89721968619?pwd=rvbvNmKzMM4zChQgpqLTuP4lpVwJim.1",
+   "meetingId": "89721968619",
+   "passcode": null,
+   "access": "open",
+   "focus": "Tools, BDA, Other, Actiongroup, Checkin- and Checkout of committed tasks from Action Group",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3658",
+   "sourceUpdated": "2026-05-06"
+  },
+  {
+   "id": "da-3664",
+   "program": "BDA",
+   "name": "Visions Meeting DA/BDA",
+   "days": [
+    6
+   ],
+   "start": "13:00",
+   "end": "14:00",
+   "zone": "Europe/Paris",
+   "link": "https://us02web.zoom.us/j/87811842065?pwd=LMXELPRN6LUhL1oXAf8zbWNdzfV2sh.1",
+   "meetingId": "87811842065",
+   "passcode": null,
+   "access": "open",
+   "focus": "Other, Visions Meeting with Vision Board and Numbers Workshops",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3664",
+   "sourceUpdated": "2026-04-21"
+  },
+  {
+   "id": "da-3673",
+   "program": "BDA",
+   "name": "Actor’s BDA",
+   "days": [
+    3
+   ],
+   "start": "12:00",
+   "end": "13:00",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/81737695894",
+   "meetingId": "81737695894",
+   "passcode": "BDATools",
+   "access": "open",
+   "focus": "Speaker, Steps, Tools, Newcomer, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3673",
+   "sourceUpdated": "2025-06-25"
+  },
+  {
+   "id": "da-3677",
+   "program": "DA",
+   "name": "Prosperity in Rome",
+   "days": [
+    3
+   ],
+   "start": "18:00",
+   "end": "19:00",
+   "zone": "Europe/Paris",
+   "link": "https://us02web.zoom.us/j/2314522023?pwd=bno4YUYyRjBZNXBQeFlyQlNSK3NoZz09",
+   "meetingId": "2314522023",
+   "passcode": null,
+   "access": "open",
+   "focus": "Speaker, Steps, Tools, Newcomer, Other, Spiritually Sustainable Earning",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3677",
+   "sourceUpdated": "2025-07-30"
+  },
+  {
+   "id": "da-3678",
+   "program": "DA",
+   "name": "Actors Showing Up",
+   "days": [
+    0
+   ],
+   "start": "12:00",
+   "end": "13:00",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/81781241862",
+   "meetingId": "81781241862",
+   "passcode": "951677",
+   "access": "open",
+   "focus": "BDA, Other, Actors and Performers",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3678",
+   "sourceUpdated": "2025-07-31"
+  },
+  {
+   "id": "da-3680",
+   "program": "BDA",
+   "name": "Pasadena Monday Night Zoom - Newcomers- All Welcome",
+   "days": [
+    1
+   ],
+   "start": "18:30",
+   "end": "19:15",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/83259087657",
+   "meetingId": "83259087657",
+   "passcode": "bdamonday",
+   "access": "open",
+   "focus": "Speaker, Newcomer, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3680",
+   "sourceUpdated": "2026-09-11"
+  },
+  {
+   "id": "da-3681",
+   "program": "BDA",
+   "name": "BDA Tuesday 10am Online (Haggerston)",
+   "days": [
+    2
+   ],
+   "start": "10:00",
+   "end": "11:00",
+   "zone": "Europe/London",
+   "link": "https://us02web.zoom.us/j/905710461?pwd=3zT4OWiq9IzAfvzztilhakaFK0XlB1.1",
+   "meetingId": "905710461",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Tools, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3681",
+   "sourceUpdated": "2026-03-04"
+  },
+  {
+   "id": "da-3686",
+   "program": "BDA",
+   "name": "Creative BDA",
+   "days": [
+    3
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "Australia/Sydney",
+   "link": "https://us02web.zoom.us/j/3913658575",
+   "meetingId": "3923658575",
+   "passcode": "0000",
+   "access": "closed",
+   "focus": "BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3686",
+   "sourceUpdated": "2025-09-05"
+  },
+  {
+   "id": "da-3688",
+   "program": "DA",
+   "name": "East Valley New Hope Debtors Anonymous",
+   "days": [
+    3
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "America/Phoenix",
+   "link": "https://us02web.zoom.us/j/88652693869?pwd=VGVYcEhERmd0K3dOY2dzZDlMUTc3dz09",
+   "meetingId": "88652693869",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3688",
+   "sourceUpdated": "2026-03-18"
+  },
+  {
+   "id": "da-3698",
+   "program": "DA",
+   "name": "Spiritually Sustainable Earning In Person Meeting, San Miguel de Allende, Mexico.",
+   "days": [
+    5
+   ],
+   "start": "09:30",
+   "end": "10:30",
+   "zone": "America/Mexico_City",
+   "link": "https://us06web.zoom.us/j/85712164155?pwd=KNYc1LpG6yuqloP3BpPF3Ma2c6WqB6.1",
+   "meetingId": "85712164155",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3698",
+   "sourceUpdated": "2026-09-24"
+  },
+  {
+   "id": "da-3700",
+   "program": "DA",
+   "name": "D.A .- Inner Loving Parent",
+   "days": [
+    3
+   ],
+   "start": "13:00",
+   "end": "14:00",
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/88133687996",
+   "meetingId": "88133687996",
+   "passcode": "887571",
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3700",
+   "sourceUpdated": "2025-10-14"
+  },
+  {
+   "id": "da-3702",
+   "program": "DA",
+   "name": "DA, Dads, & Dough (Mens' Meeting)",
+   "days": [
+    2
+   ],
+   "start": "09:00",
+   "end": "10:00",
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/82927194287?pwd=T0KIbUa1R9vNRrjuzYitqrnj2y7t4I.1",
+   "meetingId": "82927194287",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Other, Men: Fathers, Grandfathers",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3702",
+   "sourceUpdated": "2026-09-16"
+  },
+  {
+   "id": "da-3710",
+   "program": "DA",
+   "name": "TUESDAY NIGHT DA ONLINE",
+   "days": [
+    2
+   ],
+   "start": "19:00",
+   "end": "20:15",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/88697377946",
+   "meetingId": null,
+   "passcode": "Prosperity",
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Other, Vision meditation Tradtions, Newcomers welcome",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3710",
+   "sourceUpdated": "2026-05-13"
+  },
+  {
+   "id": "da-3711",
+   "program": "DA",
+   "name": "Recovery from Compulsive Spending DA Meeting",
+   "days": [
+    1
+   ],
+   "start": "19:00",
+   "end": "20:15",
+   "zone": "Europe/London",
+   "link": "https://us02web.zoom.us/j/86271657258?pwd=QZoHbSGoO50DxYUjv7Ac4gRPda45QE.1",
+   "meetingId": "86271657258",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Other, “The focus of this meeting is based on the pamphlet ‘Recovery from Compulsive Spending’ and is a safe space for those who identify as a compulsive spender to share experience, strength and hope”",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3711",
+   "sourceUpdated": "2025-11-20"
+  },
+  {
+   "id": "da-3712",
+   "program": "BDA",
+   "name": "Writers Meeting",
+   "days": [
+    2
+   ],
+   "start": "09:00",
+   "end": "10:00",
+   "zone": "Europe/London",
+   "link": "https://us02web.zoom.us/j/84978081206?pwd=GdUUeyaJ5m4S7bzxj62YcLPBzqBO5L.1",
+   "meetingId": "84978081206",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Other, This is a meeting focusing on the 12 Steps of DA as they apply to writers. Open to all.",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3712",
+   "sourceUpdated": "2025-11-21"
+  },
+  {
+   "id": "da-3716",
+   "program": "DA",
+   "name": "D.A. in depth 30 minute Speaker meeting",
+   "days": [
+    5
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "Europe/London",
+   "link": "https://zoom.us/j/81234250503",
+   "meetingId": "81234250503",
+   "passcode": "533390",
+   "access": "closed",
+   "focus": "Speaker",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3716",
+   "sourceUpdated": "2025-12-16"
+  },
+  {
+   "id": "da-3717",
+   "program": "DA",
+   "name": "Willing To be Responsible BDA/DA Property, Inheritance, Relationships, and Real Estate Meeting",
+   "days": [
+    5
+   ],
+   "start": "20:30",
+   "end": "21:30",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/4854166698",
+   "meetingId": "4854166698",
+   "passcode": "858749",
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Tools, Newcomer, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3717",
+   "sourceUpdated": "2025-12-31"
+  },
+  {
+   "id": "da-3725",
+   "program": "BDA",
+   "name": "SOLVENCY & PROSPERITY IN THE CONSTRUCTION INDUSTRY",
+   "days": [
+    4
+   ],
+   "start": "21:00",
+   "end": "22:00",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/82772062111?pwd=cxESfUN7OEpuF7xJkZdhoEaVFIFU6M.1",
+   "meetingId": "82772062111",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Steps, Tools, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3725",
+   "sourceUpdated": "2026-06-10"
+  },
+  {
+   "id": "da-3736",
+   "program": "DA",
+   "name": "Montreal Monday Night Prosperity",
+   "days": [
+    1
+   ],
+   "start": "19:00",
+   "end": "20:15",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/86079519275",
+   "meetingId": "86079519275",
+   "passcode": "853800",
+   "access": "closed",
+   "focus": "Literature Study, Speaker",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3736",
+   "sourceUpdated": "2026-03-10"
+  },
+  {
+   "id": "da-3739",
+   "program": "DA",
+   "name": "Debts & Deficits To Spiritually Sustainable Deposits",
+   "days": [
+    2
+   ],
+   "start": "10:00",
+   "end": "11:15",
+   "zone": "America/Mexico_City",
+   "link": "https://us06web.zoom.us/j/83566662222?pwd=quAktSScPRcpMVPa22jLhUedsbam1P.1",
+   "meetingId": "83566662222",
+   "passcode": null,
+   "access": "open",
+   "focus": "Literature Study, Speaker, Tools",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3739",
+   "sourceUpdated": "2026-03-19"
+  },
+  {
+   "id": "da-3747",
+   "program": "BDA",
+   "name": "Business Debtors Anonymous HOW",
+   "days": [
+    2
+   ],
+   "start": "17:00",
+   "end": "18:00",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/82343441624?pwd=aGM2AaFyorEmg984f7K4xSxcDnZRFm.1",
+   "meetingId": "82343441624",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Tools, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3747",
+   "sourceUpdated": "2026-04-14"
+  },
+  {
+   "id": "da-3748",
+   "program": "BDA",
+   "name": "Short & Sweet",
+   "days": [
+    1
+   ],
+   "start": "19:35",
+   "end": "20:10",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/4161674953",
+   "meetingId": "4161674953",
+   "passcode": "dontdebt!",
+   "access": "closed",
+   "focus": "Literature Study, Speaker, Steps, Tools, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3748",
+   "sourceUpdated": "2026-04-14"
+  },
+  {
+   "id": "da-3757",
+   "program": "DA",
+   "name": "Housing Insecurity: A Debtor's Unspoken Fear",
+   "days": [
+    3
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/84129310044?pwd=L5XvazNH6uRCgJ1Y6RblcG0byO5wah.1",
+   "meetingId": "84129310044",
+   "passcode": null,
+   "access": "open",
+   "focus": "Other, Housing Insecurity",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3757",
+   "sourceUpdated": "2026-08-19"
+  },
+  {
+   "id": "da-3759",
+   "program": "DA",
+   "name": "Wednesday Night D.A. Meeting with an ADHD Emphasis",
+   "days": [
+    3
+   ],
+   "start": "19:30",
+   "end": "20:30",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/84024810793",
+   "meetingId": "84024810793",
+   "passcode": "adhd",
+   "access": "open",
+   "focus": "Other, ADHD",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3759",
+   "sourceUpdated": "2026-09-21"
+  },
+  {
+   "id": "da-3760",
+   "program": "BDA",
+   "name": "SOLVENCY & PROSPERITY IN THE CONSTRUCTION INDUSTRY",
+   "days": [
+    0
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/82772062111?pwd=cxESfUN7OEpuF7xJkZdhoEaVFIFU6M.1",
+   "meetingId": "82772062111",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Steps, Tools, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3760",
+   "sourceUpdated": "2026-06-10"
+  },
+  {
+   "id": "da-3761",
+   "program": "BDA",
+   "name": "SOLVENCY & PROSPERITY IN THE CONSTRUCTION INDUSTRY",
+   "days": [
+    2
+   ],
+   "start": "21:00",
+   "end": "22:00",
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/82772062111?pwd=cxESfUN7OEpuF7xJkZdhoEaVFIFU6M.1",
+   "meetingId": "82772062111",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Steps, Tools, BDA",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3761",
+   "sourceUpdated": "2026-06-10"
+  },
+  {
+   "id": "da-3762",
+   "program": "DA",
+   "name": "Big Book D.A. for Collectors and Hobbyists",
+   "days": [
+    4
+   ],
+   "start": "20:00",
+   "end": "21:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/85212441840",
+   "meetingId": "85212441840",
+   "passcode": "12steps",
+   "access": "open",
+   "focus": "Literature Study",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3762",
+   "sourceUpdated": "2026-06-17"
+  },
+  {
+   "id": "da-3777",
+   "program": "DA",
+   "name": "Visions & Promises",
+   "days": [
+    5
+   ],
+   "start": "07:30",
+   "end": "08:30",
+   "zone": "America/Los_Angeles",
+   "link": "https://us06web.zoom.us/j/83588506742?pwd=84sQha7LjpTF5vdpXmHapuFUsTPfnh.1",
+   "meetingId": "83588506742",
+   "passcode": null,
+   "access": "closed",
+   "focus": "Speaker, Visions",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3777",
+   "sourceUpdated": "2026-10-16"
+  },
+  {
+   "id": "wa-a043900000bkMNRAA2",
+   "program": "WA",
+   "name": "Step Focus",
+   "days": [
+    3
+   ],
+   "start": "18:00",
+   "end": "19:00",
+   "zone": "Europe/Rome",
+   "link": "https://zoom.us/j/88353578326?pwd=tpUJjsGpWO30WaRlfCRxbDk94bSjRf.1",
+   "meetingId": "88353578326",
+   "passcode": null,
+   "access": "closed",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2025-11-21"
+  },
+  {
+   "id": "wa-a043900000kSIiTAAW",
+   "program": "WA",
+   "name": "Balance and Harmony",
+   "days": [
+    3
+   ],
+   "start": "17:00",
+   "end": "18:00",
+   "zone": "US/Central",
+   "link": "https://zoom.us/j/91848637294?pwd=d3IzM2hyM055YndGUUg5WGFJQmp5Zz09",
+   "meetingId": "91848637294",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2026-08-26"
+  },
+  {
+   "id": "wa-a043900000W3VaWAAV",
+   "program": "WA",
+   "name": "WA Sunday Sanity",
+   "days": [
+    0
+   ],
+   "start": "17:30",
+   "end": "18:30",
+   "zone": "Australia/Sydney",
+   "link": "https://zoom.us/j/82031286976?pwd=7IHwT6jdN0dfjwx7QQD8n5qrcnnsWz.1",
+   "meetingId": "82031286976",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2026-08-06"
+  },
+  {
+   "id": "wa-a043n00000bmnB1AAI",
+   "program": "WA",
+   "name": "Work Avoidance Meeting",
+   "days": [
+    0
+   ],
+   "start": "13:00",
+   "end": "14:00",
+   "zone": "US/Eastern",
+   "link": "https://zoom.us/j/7539394367?pwd=Tk1DcmF6MExlMGdUY25OWG1ZSTdmUT09",
+   "meetingId": "7539394367",
+   "passcode": null,
+   "access": "closed",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2026-05-06"
+  },
+  {
+   "id": "wa-a043n00000kL0UZAA0",
+   "program": "WA",
+   "name": "Recovery In Retirement",
+   "days": [
+    4
+   ],
+   "start": "14:00",
+   "end": "15:00",
+   "zone": "US/Eastern",
+   "link": "https://zoom.us/j/84180489992?pwd=YsjNztierKwtxtWCQqNAu7rRKq78sw.1",
+   "meetingId": "84180489992",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2025-09-18"
+  },
+  {
+   "id": "wa-a043n00000m0vInAAI",
+   "program": "WA",
+   "name": "Sober Play",
+   "days": [
+    3
+   ],
+   "start": "20:30",
+   "end": "21:30",
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/88237374526?pwd=N04yYlM4YmJIamlSdjk5UFp2SjJ0QT09",
+   "meetingId": "88237374526",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2025-08-28"
+  },
+  {
+   "id": "wa-a043n00000nYCK6AAO",
+   "program": "WA",
+   "name": "WA for Business Owners",
+   "days": [
+    0
+   ],
+   "start": "19:30",
+   "end": "20:30",
+   "zone": "US/Eastern",
+   "link": "https://zoom.us/j/83883182699?pwd=Zjk2Z0xSY1J4VmU1U3pDdU9wSG5Gdz09",
+   "meetingId": "83883182699",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2026-06-11"
+  },
+  {
+   "id": "wa-a043n00000omUlPAAU",
+   "program": "WA",
+   "name": "WA Big Book Steps 1-3, - 7.30 BST Weds AM",
+   "days": [
+    3
+   ],
+   "start": "07:30",
+   "end": "08:00",
+   "zone": "Europe/London",
+   "link": "https://zoom.us/j/85759389943?pwd=ZGJhdy9XWm80SHp3ZmI2dWRVcytUZz09",
+   "meetingId": "85759389943",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2025-09-24"
+  },
+  {
+   "id": "wa-a043n00000ooRKPAA2",
+   "program": "WA",
+   "name": "WA & Chronic Illness",
+   "days": [
+    2
+   ],
+   "start": "16:00",
+   "end": "17:00",
+   "zone": "US/Pacific",
+   "link": "https://zoom.us/j/84032363734?pwd=TWdwZG1kanh1OUJkRHJXdnhDdWJTZz09",
+   "meetingId": "84032363734",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2025-08-28"
+  },
+  {
+   "id": "wa-a043n00000oPJteAAG",
+   "program": "WA",
+   "name": "White Candle Meeting",
+   "days": [
+    0
+   ],
+   "start": "19:00",
+   "end": "20:00",
+   "zone": "US/Pacific",
+   "link": "https://zoom.us/j/86059866321?pwd=dG5CZXox",
+   "meetingId": "86059866321",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2025-08-28"
+  },
+  {
+   "id": "wa-a043n00000oVbyEAAS",
+   "program": "WA",
+   "name": "Scotland",
+   "days": [
+    1
+   ],
+   "start": "18:45",
+   "end": "19:45",
+   "zone": "Europe/London",
+   "link": "https://zoom.us/j/84361157211?pwd=mfoEVDAjD4mm9mHLBPCCOrTiL3mxk1.1",
+   "meetingId": "84361157211",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2025-09-24"
+  },
+  {
+   "id": "wa-a0470000007G0AxAAK",
+   "program": "WA",
+   "name": "San Francisco, CA",
+   "days": [
+    2
+   ],
+   "start": "19:30",
+   "end": "20:30",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/4153435178?pwd=JdnjUanpLp0xaTt0RdKTYPGUhSCkUj.1",
+   "meetingId": "4153435178",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2026-06-20"
+  },
+  {
+   "id": "wa-a0470000007G0B5AAK",
+   "program": "WA",
+   "name": "Chicago Sunday",
+   "days": [
+    0
+   ],
+   "start": "16:15",
+   "end": "17:30",
+   "zone": "America/Chicago",
+   "link": "https://zoom.us/j/83196660543?pwd=RaXto8faHa6BeQGRQexSUIGBXNToCa.1",
+   "meetingId": "83196660543",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2025-08-28"
+  },
+  {
+   "id": "wa-a0470000007G0BZAA0",
+   "program": "WA",
+   "name": "Santa Cruz, CA",
+   "days": [
+    0
+   ],
+   "start": "11:15",
+   "end": "12:30",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/7747404308?pwd=eDJ6OWkxeWswRisxeTR0Um1nOUczUT09",
+   "meetingId": "7747404308",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2025-08-28"
+  },
+  {
+   "id": "wa-a0470000007G0C5AAK",
+   "program": "WA",
+   "name": "Serenity & Sanity",
+   "days": [
+    6
+   ],
+   "start": "14:00",
+   "end": "15:15",
+   "zone": "US/Eastern",
+   "link": "https://zoom.us/j/87864755345?pwd=N3IvUzNKWjJJTU8xSGlmTGxTSHcwdz09",
+   "meetingId": "87864755345",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2025-08-28"
+  },
+  {
+   "id": "wa-a0470000007G7v7AAC",
+   "program": "WA",
+   "name": "London SW, UK",
+   "days": [
+    4
+   ],
+   "start": "18:30",
+   "end": "19:30",
+   "zone": "Europe/London",
+   "link": "https://zoom.us/j/81719120709?pwd=bytXTXNhUkVhZkI2ckcyeklJQmpyZz09",
+   "meetingId": "81719120709",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2025-09-18"
+  },
+  {
+   "id": "wa-a047000000AccPaAAJ",
+   "program": "WA",
+   "name": "Boulder, CO",
+   "days": [
+    4
+   ],
+   "start": "18:30",
+   "end": "19:30",
+   "zone": "America/Denver",
+   "link": "https://zoom.us/j/115697006?pwd=ckJpbk94TWZjYTBjUzVkaE5rRFVzZz09",
+   "meetingId": "115697006",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2025-12-05"
+  },
+  {
+   "id": "wa-a047000000CQYNaAAP",
+   "program": "WA",
+   "name": "Highland Park, IL",
+   "days": [
+    0
+   ],
+   "start": "12:00",
+   "end": "13:00",
+   "zone": "America/Chicago",
+   "link": "https://zoom.us/j/4361710561?pwd=NXZidXB1bGFqVk5FZ0xEU29CZm50dz09",
+   "meetingId": "4361710561",
+   "passcode": null,
+   "access": "closed",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2025-08-28"
+  },
+  {
+   "id": "wa-a047000000CQYO4AAP",
+   "program": "WA",
+   "name": "WA Twelve Steppers",
+   "days": [
+    3
+   ],
+   "start": "13:00",
+   "end": "14:00",
+   "zone": "America/Chicago",
+   "link": "https://zoom.us/j/2229190246?pwd=ckoyMG93QTA3NnlCZHloZWsyb1dTdz09",
+   "meetingId": "2229190246",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2025-08-28"
+  },
+  {
+   "id": "wa-a047000000EDHxxAAH",
+   "program": "WA",
+   "name": "Christchurch, New Zealand",
+   "days": [
+    5
+   ],
+   "start": "16:45",
+   "end": null,
+   "zone": "Pacific/Auckland",
+   "link": "https://zoom.us/j/74633170842?pwd=RcbyeZRExmzuUQ9EwUCRoW3aMKINtb.1",
+   "meetingId": "74633170842",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2026-05-06"
+  },
+  {
+   "id": "wa-a047000000Hk6atAAB",
+   "program": "WA",
+   "name": "UK Wednesday",
+   "days": [
+    3
+   ],
+   "start": "19:30",
+   "end": "20:30",
+   "zone": "Europe/London",
+   "link": "https://zoom.us/j/84581659100?pwd=WjhaNThJa1IzWUEraVdzakNNc0Radz09",
+   "meetingId": "84581659100",
+   "passcode": null,
+   "access": "closed",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2026-08-29"
+  },
+  {
+   "id": "wa-a047000000HmB8ZAAV",
+   "program": "WA",
+   "name": "Work Avoidance Meeting",
+   "days": [
+    5
+   ],
+   "start": "13:00",
+   "end": "14:00",
+   "zone": "US/Eastern",
+   "link": "https://zoom.us/j/7539394367?pwd=Tk1DcmF6MExlMGdUY25OWG1ZSTdmUT09",
+   "meetingId": "7539394367",
+   "passcode": null,
+   "access": "closed",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2026-05-06"
+  },
+  {
+   "id": "wa-a047000000NhRoZAAV",
+   "program": "WA",
+   "name": "Reading, UK",
+   "days": [
+    2
+   ],
+   "start": "19:30",
+   "end": "21:00",
+   "zone": "Europe/London",
+   "link": "https://zoom.us/j/9395614501?pwd=V1ZMam9ncHhQMG0rN3o2c21qcXdBZz09",
+   "meetingId": "9395614501",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2025-01-07"
+  },
+  {
+   "id": "wa-a047000000SYtoOAAT",
+   "program": "WA",
+   "name": "WA on Sunday - Step Study",
+   "days": [
+    0
+   ],
+   "start": "19:00",
+   "end": "20:15",
+   "zone": "US/Eastern",
+   "link": "https://zoom.us/j/88237374526?pwd=N04yYlM4YmJIamlSdjk5UFp2SjJ0QT09",
+   "meetingId": "88237374526",
+   "passcode": null,
+   "access": "closed",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2026-10-19"
+  },
+  {
+   "id": "wa-a04Ur000000AwCRIA0",
+   "program": "WA",
+   "name": "WA Guys Friday Night Gratitudes, Slogans, and Tools (30-Minute Meeting)",
+   "days": [
+    5
+   ],
+   "start": "17:30",
+   "end": "18:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/89044451827?pwd=djk4S3lqbi9QNm5YK2VjV2prTmZoUT09",
+   "meetingId": "89044451827",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2026-08-29"
+  },
+  {
+   "id": "wa-a04Ur000000AwE1IAK",
+   "program": "WA",
+   "name": "WA Guys Monday Action Plan (30-Minute Meeting)",
+   "days": [
+    1
+   ],
+   "start": "08:00",
+   "end": "08:30",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/88343767126?pwd=cXl0eHh2Y3ArYlVIM1RLM05UZ2tXQT09",
+   "meetingId": "88343767126",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2026-08-09"
+  },
+  {
+   "id": "wa-a04Ur000000AwFdIAK",
+   "program": "WA",
+   "name": "WA Guys Tuesday Action Plan (30-Minute Meeting)",
+   "days": [
+    2
+   ],
+   "start": "08:00",
+   "end": "08:30",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/88343767126?pwd=cXl0eHh2Y3ArYlVIM1RLM05UZ2tXQT09",
+   "meetingId": "88343767126",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2026-08-09"
+  },
+  {
+   "id": "wa-a04Ur000000AwHFIA0",
+   "program": "WA",
+   "name": "WA Guys Wednesday Daily Action Plan (30-Minute Meeting)",
+   "days": [
+    3
+   ],
+   "start": "08:00",
+   "end": "08:30",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/88343767126?pwd=cXl0eHh2Y3ArYlVIM1RLM05UZ2tXQT09",
+   "meetingId": "88343767126",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2026-08-28"
+  },
+  {
+   "id": "wa-a04Ur000000AwIrIAK",
+   "program": "WA",
+   "name": "WA Guys Thursday Book of Discovery (1-Hour Meeting)",
+   "days": [
+    4
+   ],
+   "start": "08:00",
+   "end": "09:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/88343767126?pwd=cXl0eHh2Y3ArYlVIM1RLM05UZ2tXQT09",
+   "meetingId": "88343767126",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2026-08-09"
+  },
+  {
+   "id": "wa-a04Ur000000AwKTIA0",
+   "program": "WA",
+   "name": "WA Guys Friday Action Plan (30-Minute Meeting)",
+   "days": [
+    5
+   ],
+   "start": "08:00",
+   "end": "08:30",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/88343767126?pwd=cXl0eHh2Y3ArYlVIM1RLM05UZ2tXQT09",
+   "meetingId": "88343767126",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2026-08-09"
+  },
+  {
+   "id": "wa-a04Ur000000AwNhIAK",
+   "program": "WA",
+   "name": "WA Guys Monday Meditation (30-minute meeting)",
+   "days": [
+    1
+   ],
+   "start": "17:30",
+   "end": "18:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/89044451827?pwd=djk4S3lqbi9QNm5YK2VjV2prTmZoUT09",
+   "meetingId": "89044451827",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2026-08-09"
+  },
+  {
+   "id": "wa-a04Ur000000AwQvIAK",
+   "program": "WA",
+   "name": "WA Guys Tuesday Literature & Share (30-minute meeting)",
+   "days": [
+    2
+   ],
+   "start": "17:30",
+   "end": "18:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/89044451827?pwd=djk4S3lqbi9QNm5YK2VjV2prTmZoUT09",
+   "meetingId": "89044451827",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2026-08-09"
+  },
+  {
+   "id": "wa-a04Ur000000AwSXIA0",
+   "program": "WA",
+   "name": "WA Guys Wednesday Literature & Share (30-minute meeting)",
+   "days": [
+    3
+   ],
+   "start": "17:30",
+   "end": "18:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/89044451827?pwd=djk4S3lqbi9QNm5YK2VjV2prTmZoUT09V2prTmZoUT09",
+   "meetingId": "89044451827",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2026-08-09"
+  },
+  {
+   "id": "wa-a04Ur000000AwU9IAK",
+   "program": "WA",
+   "name": "WA Guys Thursday Night (30-minute meeting)",
+   "days": [
+    4
+   ],
+   "start": "17:30",
+   "end": "18:00",
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/89044451827?pwd=djk4S3lqbi9QNm5YK2VjV2prTmZoUT09",
+   "meetingId": "89044451827",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2026-08-09"
+  },
+  {
+   "id": "wa-a04Ur000004jA7NIAU",
+   "program": "WA",
+   "name": "Serenity Saturday",
+   "days": [
+    6
+   ],
+   "start": "07:30",
+   "end": "08:30",
+   "zone": "Australia/Sydney",
+   "link": "https://zoom.us/j/82889382422?pwd=DrbeAImBMkymuA5vW1kF9qvITyCj5C.1",
+   "meetingId": "82889382422",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2026-04-15"
+  },
+  {
+   "id": "wa-a04Ur000005aKYPIA2",
+   "program": "WA",
+   "name": "Tuesday Night Hinde Street Online",
+   "days": [
+    2
+   ],
+   "start": "18:00",
+   "end": "19:15",
+   "zone": "Europe/London",
+   "link": "https://zoom.us/j/82559595260?pwd=oaUuYmeoXUx3LMswW66ysvv2lLxuIe.1",
+   "meetingId": "82559595260",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2026-10-05"
+  },
+  {
+   "id": "wa-a04Ur000005aMDdIAM",
+   "program": "WA",
+   "name": "WA for Business Owners - Starting with Surrender",
+   "days": [
+    3
+   ],
+   "start": "07:00",
+   "end": "08:00",
+   "zone": "US/Central",
+   "link": "https://zoom.us/j/96157760534?pwd=KiIMlFtOZn458wS60CJsSl9TCgbfv6.1",
+   "meetingId": "96157760534",
+   "passcode": null,
+   "access": "open",
+   "focus": "",
+   "source": "https://workaholics-anonymous.org/meetings/",
+   "sourceUpdated": "2026-10-09"
+  }
+ ]
+}
