@@ -102,9 +102,12 @@ check('a program we hold no meetings for: leads with its official finder, names 
   [uncovered.includes('https://oa.org/find-a-meeting/'), uncovered.includes('Do not open with what you cannot do'), uncovered.includes('Tuesday Visions')], [true, true, false]);
 const coda = meetings.buildMeetingsBlock({ message: 'CoDA meetings?', programField: '', userZone: 'Europe/London', now: tueNoonUtc });
 check('a program with no checked finder link: no link is made up', [coda.includes('never make up a link'), /https?:\/\//.test(coda)], [true, false]);
-const mariam = meetings.buildMeetingsBlock({ message: 'can you look for the meetings of today', programField: 'NA', userZone: 'Asia/Tbilisi', now: tueNoonUtc });
-check('"meetings of today" with NA on file: asks which program, NA only as the likely answer (Mariam, 21 Oct)',
-  [mariam.includes('ask which program'), mariam.includes('"Narcotics Anonymous, or another program?"'), mariam.includes('do not assume it'), /zoom\.us/.test(mariam)], [true, true, true, false]);
+const oneOnFile = meetings.buildMeetingsBlock({ message: 'can you look for the meetings of today', programField: 'NA', userZone: 'Asia/Tbilisi', now: tueNoonUtc });
+check('one program on file, none named: straight to that program, no question (Mariam\'s rule, 21 Oct)',
+  [oneOnFile.includes('ask'), oneOnFile.includes('Narcotics Anonymous'), oneOnFile.includes('https://www.na.org/meetingsearch/')], [false, true, true]);
+const nothingOnFile = meetings.buildMeetingsBlock({ message: 'can you look for the meetings of today', programField: '', userZone: 'Asia/Tbilisi', now: tueNoonUtc });
+check('nothing on file (Mariam, Matt): asks what programs they are looking for today, and that it will search',
+  [nothingOnFile.includes('"What programs are you looking for today? I\'ll search for you."'), nothingOnFile.includes('Never open with what you cannot do'), /zoom\.us/.test(nothingOnFile)], [true, true, false]);
 check('says it has no in-person list', block.includes('These are online meetings only'), true);
 
 const daily = meetings.buildMeetingsBlock({ message: 'WA meetings this week?', programField: 'WA', userZone: 'Europe/London', now: tueNoonUtc });
@@ -184,8 +187,9 @@ const several = meetings.buildMeetingsBlock({ message: 'any meetings tonight?', 
 check('in several programs and none named: it asks which one first',
   [several.includes('ask which program'), several.includes('Women on the Way')], [true, false]);
 const single = meetings.buildMeetingsBlock({ message: 'any meetings tonight?', programField: 'AA', userZone: 'Europe/London', now: tueNoonUtc });
-check('in one program and none named: still asks, with theirs as the likely answer',
-  [single.includes('"Alcoholics Anonymous, or another program?"'), single.includes('Women on the Way')], [true, false]);
+check('in one program and none named: straight to its meetings',
+  [single.includes('ask which program'), single.includes('"Women on the Way"')], [false, true]);
+check('in several programs it asks "Which program, or programs"', several.includes('"Which program, or programs, are you looking for?"'), true);
 check('naming it brings the meetings straight away',
   meetings.buildMeetingsBlock({ message: 'any AA meetings tonight?', programField: 'AA', userZone: 'Europe/London', now: tueNoonUtc }).includes('"Women on the Way"'), true);
 check('a women-only meeting says so', mixed.includes('"Women on the Way", today at 6pm, closed, women only, https://zoom.us/j/11122233344?pwd=x'), true);
@@ -204,8 +208,10 @@ check('Business Debtors Anonymous', meetings.programsIn('business debtors anonym
 check('ordinary words never match', meetings.programsIn('the data was bad, wa wa, aaah, a meeting at work'), []);
 meetings._setData({ generatedAt: '2026-10-20T08:00:00Z', meetings: [AA_WOMEN, NY_TUESDAY] });
 const noProgram = meetings.buildMeetingsBlock({ message: 'Can you find me a meeting?', programField: '', userZone: 'Europe/London', now: tueNoonUtc });
-check('no program, no name in the message: it asks which program first',
-  [noProgram.includes('ask which program'), noProgram.includes('Alcoholics Anonymous'), /zoom\.us/.test(noProgram)], [true, true, false]);
+check('no program, no name in the message: it asks what programs first',
+  [noProgram.includes('ask what program, or programs'), noProgram.includes('Alcoholics Anonymous'), /zoom\.us/.test(noProgram)], [true, true, false]);
+const two = meetings.buildMeetingsBlock({ message: 'AA and Al-Anon please', programField: '', userZone: 'Europe/London', now: tueNoonUtc, recentMessages: 'find me a meeting\nWhat programs are you looking for today?' });
+check('answering with two programs brings both', two.includes('Alcoholics Anonymous:'), true);
 const named = meetings.buildMeetingsBlock({ message: 'find me an AA meeting', programField: '', userZone: 'Europe/London', now: tueNoonUtc });
 check('naming the program in the message brings its meetings', named.includes('"Women on the Way"'), true);
 check('and only that program\'s', named.includes('Tuesday Visions'), false);

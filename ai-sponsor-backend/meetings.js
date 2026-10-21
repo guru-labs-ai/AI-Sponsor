@@ -239,24 +239,38 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
        sponsor's question alone is often just "Which program?", seen 21 Oct),
        so while either of those was about meetings, this turn gets the block. */
     if (!asksAboutMeetings(message) && !asksAboutMeetings(recentMessages)) return '';
-    /* Which program: the one(s) named now, else the one(s) they named just
-       before (someone in DA who asked for AA and then says "any more
-       tomorrow?" means AA). Never just what registration stored: people move
-       between programs, so when none is named the sponsor asks, the way a
-       sponsor would (Mariam, 21 Oct: "Why would you choose just narcotics?").
-       The registered ones are only offered as a likely answer. */
+    /* Which program, Mariam's rules (21 Oct):
+       - named now (one or several): those, whatever they registered with,
+         since people move between programs (Matt asked the same)
+       - else named just before ("any more tomorrow?" after asking for AA)
+       - else exactly one program on file: that one, straight away
+       - else several on file: ask "Which program, or programs, are you
+         looking for?" first
+       - else nothing on file (started on WhatsApp): ask what programs they
+         are looking for today, and that you will search
+       Never open with "I can't". */
     const namedOthers = othersIn(message);
     const nowNamed = named.length || namedOthers.length;
-    const programs = nowNamed ? named : programsIn(lastUserMessage);
-    const others = nowNamed ? namedOthers : othersIn(lastUserMessage);
+    let programs = nowNamed ? named : programsIn(lastUserMessage);
+    let others = nowNamed ? namedOthers : othersIn(lastUserMessage);
     if (!programs.length && !others.length) {
-      const onFile = [...programsOf(programField).map((p) => PROGRAMS[p].label), ...othersOf(programField).map((k) => OTHERS[k].label)];
-      return [
-        '## RECOVERY MEETINGS',
-        'Use this only if they are asking about a recovery meeting; otherwise ignore it.',
-        `They have not said which program the meeting is for. Before naming any meeting, ask which program, in one short, warm question.${onFile.length ? ` They signed up with ${onFile.join(', ')}, so you can offer that as the likely answer (for example "${onFile[0]}, or another program?"), but do not assume it.` : ''} You can find real online meetings for ${ALL_LABELS}; once they say, you will have the meetings to offer.`,
-        'Never name a meeting, time, link or passcode that you were not given here.',
-      ].join('\n');
+      const fileCovered = programsOf(programField);
+      const fileOthers = othersOf(programField);
+      if (fileCovered.length + fileOthers.length === 1) {
+        programs = fileCovered;
+        others = fileOthers;
+      } else {
+        const onFile = [...fileCovered.map((p) => PROGRAMS[p].label), ...fileOthers.map((k) => OTHERS[k].label)];
+        return [
+          '## RECOVERY MEETINGS',
+          'Use this only if they are asking about a recovery meeting; otherwise ignore it.',
+          onFile.length
+            ? `They signed up with several programs (${onFile.join(', ')}). Before naming any meeting, ask which program, or programs, they are looking for, in one short, warm question (for example "Which program, or programs, are you looking for?"). Once they say, you will have the meetings.`
+            : 'They have not said which program, and none is on file. Before naming any meeting, ask what program, or programs, they are looking for today and say you will search, in one short, warm line (for example "What programs are you looking for today? I\'ll search for you."). Once they say, you will have the meetings.',
+          `You can find real online meetings for ${ALL_LABELS}. Never open with what you cannot do.`,
+          'Never name a meeting, time, link or passcode that you were not given here.',
+        ].join('\n');
+      }
     }
     const otherLines = others.map(otherLine);
     if (!programs.length) {
@@ -300,8 +314,9 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
       }
     }
     if (!lines.length) {
-      const fallback = [...(staleLine ? [staleLine] : []), ...otherLines];
-      return fallback.length ? ['## RECOVERY MEETINGS', ...fallback].join('\n') : '';
+      // Nothing at a sensible hour in the coming days: still something to give.
+      const empty = fresh.map((p) => `For ${PROGRAMS[p].label}, none of your listed meetings falls at a sensible hour for them soon. Lead with the official finder as the answer itself, warmly: ${PROGRAMS[p].finder}`);
+      return ['## RECOVERY MEETINGS', ...empty, ...(staleLine ? [staleLine] : []), ...otherLines, 'Never name a meeting, time, link or passcode that you were not given here.'].join('\n');
     }
 
     const checked = new Date(Math.min(...shown.map(checkedAt)))
