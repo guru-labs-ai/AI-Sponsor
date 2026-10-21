@@ -18,6 +18,8 @@
      ACA         adultchildren.org's meeting search, online meetings only
      UA          the public Google Calendar behind UA's "Virtual Meetings"
                  page (UA's main list is in-person meetings)
+     NA          NA's world meeting list (BMLT, tomato.na-bmlt.org), virtual
+                 and hybrid meetings
 
    One directory failing or coming back thin no longer stops the rest. That
    program keeps its last good meetings AND the date they were checked, so the
@@ -66,10 +68,15 @@ const ACA_PAGE = 'https://adultchildren.org/meeting-search/';
 const ACA_SEARCH = 'https://adultchildren.org/wp-json/wsom/v1/meeting-search/';
 const UA_ICS = 'https://calendar.google.com/calendar/ical/underearnersanonymouscalendar%40gmail.com/public/basic.ics';
 const UA_PAGE = 'https://underearnersanonymous.org/meetings-underearners-anonymous/';
+/* NA's world list (BMLT). venue_type 2 = virtual, 3 = hybrid; the newer
+   venue_types[] filter returns nothing, so it is asked one weekday at a time. */
+const NA_FIELDS = 'id_bigint,weekday_tinyint,venue_type,start_time,duration_time,time_zone,formats,lang_enum,meeting_name,comments,virtual_meeting_link,virtual_meeting_additional_info';
+const NA_URL = (weekday, venueType) => `https://tomato.na-bmlt.org/main_server/client_interface/json/?switcher=GetSearchResults&weekdays[]=${weekday}&meeting_key=venue_type&meeting_key_value=${venueType}&data_field_key=${NA_FIELDS}`;
+const NA_SOURCE = 'https://www.na.org/meetingsearch/';
 
 // The least each directory has ever legitimately had, with room to spare. Fewer
 // means the layout changed, not that groups vanished overnight.
-const FLOOR = { DA: 50, BDA: 15, WA: 10, AA: 400, 'Al-Anon': 200, ACA: 100, UA: 20 };
+const FLOOR = { DA: 50, BDA: 15, WA: 10, AA: 400, 'Al-Anon': 200, ACA: 100, UA: 20, NA: 800 };
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -106,7 +113,9 @@ const DA_ZONES = {
 // Anything that means "you can't just click and join".
 const ASK_FOR_ACCESS = /(e-?mail|contact|text|call|message|ask|request)[^.]{0,60}(password|passcode|link|zoom|access)|(password|passcode|link)[^.]{0,40}(by|via|on) (e-?mail|request)|(password|passcode)\s*[:#-]?\s*\|?\s*(e-?mail|contact|text|call|ask|request|dm|pm|message)\b/i;
 const NOT_WEEKLY = /\b(monthly|once a month|every other|bi-?weekly|fortnightly|(1st|2nd|3rd|4th|first|second|third|fourth|last) (\w+ )?(of (the|each|every) month))\b/i;
-const SERVICE = /\b(intergroup|gsr|business meeting|service meeting|steering)\b/i;
+// NA's list carries its service bodies' own meetings too ("Policy Review
+// Subcommittee", area and regional service committees, H&I, PR).
+const SERVICE = /\b(intergroup|gsr|business meeting|service meeting|steering|sub-?committee|committee|area service|regional service|asc|rsc|h&i|public relations)\b/i;
 // "Last updated" alone is not enough to keep a group whose own notes say it stopped.
 const DORMANT = /\b(suspended|on hiatus|no longer meet|cancel+ed|closed until|temporarily closed|not meeting)\b/i;
 
@@ -710,8 +719,74 @@ async function fromUa(now, rejected) {
   return kept;
 }
 
+/* ── NA ──────────────────────────────────────────────────────────────────────
+   weekday_tinyint 1 = Sunday (BMLT). start_time "HH:MM:SS" in the row's own
+   IANA time_zone, which is blank on about a sixth of rows: those are dropped,
+   never guessed. Zoom details live in virtual_meeting_link and the free-text
+   virtual_meeting_additional_info ("Zoom ID 919-108-6501 PW 091999"). formats
+   carry O / C (open / closed) and W / M (women / men). Like Al-Anon, the list
+   publishes no last-updated date. */
+async function naRows() {
+  const byId = new Map();
+  for (const venueType of [2, 3]) {
+    for (let weekday = 1; weekday <= 7; weekday++) {
+      for (const m of await get(NA_URL(weekday, venueType), 'json')) byId.set(m.id_bigint, m);
+    }
+  }
+  return [...byId.values()];
+}
+
+const naText = (m) => `${m.virtual_meeting_link || ''} | ${m.virtual_meeting_additional_info || ''} | ${m.comments || ''}`;
+
+function naProblem(m) {
+  const text = naText(m);
+  if ((m.lang_enum || 'en') !== 'en') return `language is ${m.lang_enum}`;
+  const day = Number(m.weekday_tinyint);
+  if (!(day >= 1 && day <= 7) || !/^\d{2}:\d{2}/.test(m.start_time || '')) return 'no fixed day and time';
+  if (!knownZone(m.time_zone)) return `unknown time zone ${m.time_zone || '(none)'}`;
+  if (!String(m.meeting_name || '').trim()) return 'no meeting name';
+  const zoom = zoomFrom(text);
+  if (!zoom) return 'no direct Zoom link';
+  if (!/pwd=/.test(zoom.link) && !passcodeFrom(text)) return 'no passcode in the link or the listing';
+  return textProblem(m.meeting_name, clean(text));
+}
+
+function naMeeting(m) {
+  const text = naText(m);
+  const zoom = zoomFrom(text);
+  const formats = String(m.formats || '').split(',');
+  return {
+    id: `na-${m.id_bigint}`,
+    program: 'NA',
+    name: clean(m.meeting_name),
+    days: [Number(m.weekday_tinyint) - 1],
+    start: m.start_time.slice(0, 5),
+    end: null,
+    zone: m.time_zone,
+    link: zoom.link,
+    meetingId: zoom.meetingId,
+    passcode: /pwd=/.test(zoom.link) ? null : passcodeFrom(text),
+    access: formats.includes('C') ? 'closed' : formats.includes('O') ? 'open' : null,
+    who: whoFrom({ types: formats }),
+    focus: '',
+    source: NA_SOURCE,
+    sourceUpdated: null,
+  };
+}
+
+async function fromNa(now, rejected) {
+  const kept = [];
+  for (const m of await naRows()) {
+    const why = naProblem(m);
+    if (why) { rejected.push(['NA', m.id_bigint, why]); continue; }
+    kept.push(naMeeting(m));
+  }
+  return kept;
+}
+
 const SOURCES = [
   { programs: ['DA', 'BDA'], run: fromDa },
+  { programs: ['NA'], run: fromNa },
   { programs: ['WA'], run: fromWa },
   { programs: ['AA'], run: fromAa },
   { programs: ['Al-Anon'], run: fromAlAnon },
@@ -792,5 +867,5 @@ if (require.main === module) {
 module.exports = {
   parseDaList, parseDaDetail, daProblem, waProblem, to24, DA_ZONES,
   zoomFrom, passcodeFrom, whoFrom, aaProblem, alAnonProblem, alAnonWhen, acaProblem, acaMeeting,
-  parseIcs, uaProblem, uaMeeting, assemble, FLOOR,
+  parseIcs, uaProblem, uaMeeting, assemble, FLOOR, naProblem, naMeeting,
 };

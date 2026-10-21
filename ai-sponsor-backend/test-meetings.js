@@ -40,8 +40,8 @@ const fresh = (generatedAt) => ({ generatedAt, meetings: [NY_TUESDAY, LONDON_MON
 group('which programs we cover, from what registration stores');
 check('codes',                meetings.programsOf('DA, BDA, UA, ACA, WA, Al-Anon'), ['DA', 'BDA', 'WA', 'UA', 'ACA', 'Al-Anon']);
 check('long names',           meetings.programsOf('Debtors Anonymous, Workaholics Anonymous'), ['DA', 'WA']);
-check('AA and Al-Anon',       meetings.programsOf('AA, NA, Al-Anon'), ['Al-Anon', 'AA']);
-check('nothing we hold',      meetings.programsOf('NA, SLAA, S Anon, Chronic Pain Anon'), []);
+check('AA, NA and Al-Anon',   meetings.programsOf('AA, NA, Al-Anon'), ['Al-Anon', 'AA', 'NA']);
+check('nothing we hold',      meetings.programsOf('OA, SLAA, S Anon, Chronic Pain Anon'), []);
 check('UA is not DA',         meetings.programsOf('UA'), ['UA']);
 check('ACA by its long name', meetings.programsOf('Adult Children of Alcoholics'), ['ACA']);
 
@@ -85,7 +85,7 @@ const block = meetings.buildMeetingsBlock({
 });
 check('a meeting at 12:30am their time is not offered', block.includes('Tuesday Visions'), false);
 const nyBlock = meetings.buildMeetingsBlock({
-  message: 'can you find me a meeting', programField: 'DA', userZone: 'America/New_York', now: tueNoonUtc,
+  message: 'can you find me a DA meeting', programField: 'DA', userZone: 'America/New_York', now: tueNoonUtc,
 });
 check('a New Yorker gets it tonight, exact link and passcode',
   nyBlock.includes('"Tuesday Visions", today at 7:30pm, closed, https://us02web.zoom.us/j/12345678901, passcode 512788'), true);
@@ -97,28 +97,33 @@ check('tells it never to invent', block.includes('never offer one that is not on
 
 check('nothing when they are not asking',
   meetings.buildMeetingsBlock({ message: 'I feel low today', programField: 'DA', userZone: 'Europe/London', now: tueNoonUtc }), '');
-const uncovered = meetings.buildMeetingsBlock({ message: 'any meetings?', programField: 'NA, SLAA', userZone: 'Europe/London', now: tueNoonUtc });
-check('a program we hold no data for: says so, names no meeting',
-  [uncovered.includes('cannot look up meetings for that yet'), uncovered.includes('Tuesday Visions')], [true, false]);
+const uncovered = meetings.buildMeetingsBlock({ message: 'any OA meetings today?', programField: 'DA', userZone: 'Europe/London', now: tueNoonUtc });
+check('a program we hold no meetings for: leads with its official finder, names no meeting',
+  [uncovered.includes('https://oa.org/find-a-meeting/'), uncovered.includes('Do not open with what you cannot do'), uncovered.includes('Tuesday Visions')], [true, true, false]);
+const coda = meetings.buildMeetingsBlock({ message: 'CoDA meetings?', programField: '', userZone: 'Europe/London', now: tueNoonUtc });
+check('a program with no checked finder link: no link is made up', [coda.includes('never make up a link'), /https?:\/\//.test(coda)], [true, false]);
+const mariam = meetings.buildMeetingsBlock({ message: 'can you look for the meetings of today', programField: 'NA', userZone: 'Asia/Tbilisi', now: tueNoonUtc });
+check('"meetings of today" with NA on file: asks which program, NA only as the likely answer (Mariam, 21 Oct)',
+  [mariam.includes('ask which program'), mariam.includes('"Narcotics Anonymous, or another program?"'), mariam.includes('do not assume it'), /zoom\.us/.test(mariam)], [true, true, true, false]);
 check('says it has no in-person list', block.includes('These are online meetings only'), true);
 
-const daily = meetings.buildMeetingsBlock({ message: 'meetings this week?', programField: 'WA', userZone: 'Europe/London', now: tueNoonUtc });
+const daily = meetings.buildMeetingsBlock({ message: 'WA meetings this week?', programField: 'WA', userZone: 'Europe/London', now: tueNoonUtc });
 check('a daily meeting is listed once, at its next time',
   (daily.match(/"Underscheduling"/g) || []).length, 1);
 check('and that is today', daily.includes('"Underscheduling", today at 6pm'), true);
 
-const unplaced = meetings.buildMeetingsBlock({ message: 'meeting?', programField: 'WA', userZone: null, now: tueNoonUtc });
+const unplaced = meetings.buildMeetingsBlock({ message: 'WA meeting?', programField: 'WA', userZone: null, now: tueNoonUtc });
 check('no zone: time stays in the meeting\'s own zone, labelled',
   unplaced.includes('today at 6pm (Europe/London time)'), true);
 
 group('a list nobody refreshed is never shown');
 meetings._setData(fresh('2026-09-01T08:00:00Z'));
-const stale = meetings.buildMeetingsBlock({ message: 'a meeting please', programField: 'DA', userZone: 'Europe/London', now: tueNoonUtc });
+const stale = meetings.buildMeetingsBlock({ message: 'a DA meeting please', programField: 'DA', userZone: 'Europe/London', now: tueNoonUtc });
 check('stale list: no meeting names', stale.includes('Tuesday Visions'), false);
 check('stale list: points at the official finder', stale.includes('https://debtorsanonymous.org/meeting-info/'), true);
 meetings._setData({ generatedAt: 'nonsense', meetings: [NY_TUESDAY] });
 check('unreadable date counts as stale',
-  meetings.buildMeetingsBlock({ message: 'meeting', programField: 'DA', userZone: null, now: tueNoonUtc }).includes('Tuesday Visions'), false);
+  meetings.buildMeetingsBlock({ message: 'DA meeting', programField: 'DA', userZone: null, now: tueNoonUtc }).includes('Tuesday Visions'), false);
 
 group('the refresh rules, on real listing text');
 const page = (video, extra = '') => `<p>Copy this link</p> | Tuesday Visions | Closed D.A. meeting #120 | Meeting focus: | Steps | Primary language: | English | ${video} ${extra} | Information last updated January 02 2026 | Print page`;
@@ -177,14 +182,18 @@ meetings._setData({
 const mixed = meetings.buildMeetingsBlock({ message: 'any AA, UA or WA meetings tonight?', programField: 'AA, UA, WA', userZone: 'Europe/London', now: tueNoonUtc });
 const several = meetings.buildMeetingsBlock({ message: 'any meetings tonight?', programField: 'AA, UA, WA', userZone: 'Europe/London', now: tueNoonUtc });
 check('in several programs and none named: it asks which one first',
-  [several.includes('ask which one they want a meeting for'), several.includes('Women on the Way')], [true, false]);
-check('in one program: straight to its meetings',
-  meetings.buildMeetingsBlock({ message: 'any meetings tonight?', programField: 'AA', userZone: 'Europe/London', now: tueNoonUtc }).includes('"Women on the Way"'), true);
+  [several.includes('ask which program'), several.includes('Women on the Way')], [true, false]);
+const single = meetings.buildMeetingsBlock({ message: 'any meetings tonight?', programField: 'AA', userZone: 'Europe/London', now: tueNoonUtc });
+check('in one program and none named: still asks, with theirs as the likely answer',
+  [single.includes('"Alcoholics Anonymous, or another program?"'), single.includes('Women on the Way')], [true, false]);
+check('naming it brings the meetings straight away',
+  meetings.buildMeetingsBlock({ message: 'any AA meetings tonight?', programField: 'AA', userZone: 'Europe/London', now: tueNoonUtc }).includes('"Women on the Way"'), true);
 check('a women-only meeting says so', mixed.includes('"Women on the Way", today at 6pm, closed, women only, https://zoom.us/j/11122233344?pwd=x'), true);
 check('unknown open/closed is simply left out', mixed.includes('"Prosperity Tuesday", today at 7pm, https://zoom.us/j/55566677788?pwd=y'), true);
 check('it is told who a gendered meeting is for', mixed.includes('only for people of that gender'), true);
 check('a program whose own list is stale is not offered', mixed.includes('Underscheduling'), false);
-check('and is sent to its finder instead', mixed.includes('For Workaholics Anonymous, your meeting list is out of date'), true);
+check('and leads with its finder instead',
+  [mixed.includes('For Workaholics Anonymous, do not name any specific meeting'), mixed.includes('Lead with the official finder as the answer itself, warmly: https://workaholics-anonymous.org/meetings/')], [true, true]);
 
 group('no program on file (people who started on WhatsApp, Matt\'s test on 21 Oct)');
 check('"an AA meeting"', meetings.programsIn('Can you find me an AA meeting tonight?'), ['AA']);
@@ -216,6 +225,20 @@ check('once the talk has moved on, nothing is added',
   meetings.buildMeetingsBlock({ message: 'ok', programField: 'DA', userZone: 'Europe/London', now: tueNoonUtc, recentMessages: 'I am tired today\nThat sounds hard.', lastUserMessage: 'I am tired today' }), '');
 check('asking about another program overrides the one on file',
   meetings.buildMeetingsBlock({ message: 'any AA meetings?', programField: 'DA', userZone: 'Europe/London', now: tueNoonUtc }).includes('Tuesday Visions'), false);
+
+group('reading NA\'s world list');
+const naRow = {
+  id_bigint: '177552', weekday_tinyint: '1', venue_type: '2', start_time: '00:00:00', time_zone: 'America/Chicago', formats: 'CC,VM,W',
+  lang_enum: 'en', meeting_name: 'Awokenings Group', comments: '', virtual_meeting_link: 'https://us02web.zoom.us/j/9191086501',
+  virtual_meeting_additional_info: 'Zoom ID 919-108-6501 PW 091999',
+};
+check('a good NA listing is kept', refresh.naProblem(naRow), null);
+check('NA weekday 1 is Sunday, time and zone kept', (({ days, start, zone }) => ({ days, start, zone }))(refresh.naMeeting(naRow)), { days: [0], start: '00:00', zone: 'America/Chicago' });
+check('NA "PW 091999" is the passcode', [refresh.naMeeting(naRow).link, refresh.naMeeting(naRow).passcode], ['https://us02web.zoom.us/j/9191086501', '091999']);
+check('NA format W is women only', refresh.naMeeting(naRow).who, 'women');
+check('NA with a blank time zone is left out, never guessed', refresh.naProblem({ ...naRow, time_zone: '' }), 'unknown time zone (none)');
+check('NA in another language is left out', refresh.naProblem({ ...naRow, lang_enum: 'pt' }), 'language is pt');
+check('an NA service committee is left out', refresh.naProblem({ ...naRow, meeting_name: 'Policy Review Subcommittee' }), 'service meeting');
 
 group('reading the new directories');
 check('a phone number is never taken for a Zoom id', refresh.zoomFrom('Call 412-924-7162 access 947757'), null);
@@ -270,7 +293,7 @@ const many = Array.from({ length: 3000 }, (_, i) => ({
 }));
 meetings._setData({ generatedAt: '2026-10-20T08:00:00Z', meetings: many });
 const t0 = Date.now();
-const big = meetings.buildMeetingsBlock({ message: 'meeting tonight?', programField: 'AA', userZone: 'Europe/London', now: tueNoonUtc });
+const big = meetings.buildMeetingsBlock({ message: 'AA meeting tonight?', programField: 'AA', userZone: 'Europe/London', now: tueNoonUtc });
 const took = Date.now() - t0;
 console.log(`      (3,000 meetings: ${took} ms)`);
 check('3,000 meetings in under half a second', took < 500, true);

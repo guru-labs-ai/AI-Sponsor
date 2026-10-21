@@ -33,6 +33,24 @@ const PROGRAMS = {
   ACA: { match: /^(aca|adult children of alcoholics( (and|&) dysfunctional families)?)$/i, label: 'Adult Children of Alcoholics', finder: 'https://adultchildren.org/meeting-search/' },
   'Al-Anon': { match: /^(al-?anon|al anon)$/i, label: 'Al-Anon', finder: 'https://al-anon.org/al-anon-meetings/find-an-al-anon-meeting/' },
   AA: { match: /^(aa|alcoholics anonymous)$/i, label: 'Alcoholics Anonymous', finder: 'https://www.aa.org/find-aa' },
+  NA: { match: /^(na|narcotics anonymous)$/i, label: 'Narcotics Anonymous', finder: 'https://www.na.org/meetingsearch/' },
+};
+
+/* Programs people sign up with that we hold no meetings for yet. For these the
+   sponsor leads with the official finder, never with "I can't" (Mariam, 21 Oct:
+   "What kind of a start is that?"). Every link was checked live on 21 Oct; a
+   program without a checked link is named, never given a made-up one. Food
+   Addicts Anonymous is left out on purpose: foodaddicts.org is a different
+   fellowship (Food Addicts in Recovery Anonymous). */
+const OTHERS = {
+  OA: { match: /^(oa|overeaters anonymous)$/i, mention: [/\bOA\b/, /\bovereaters anonymous\b|\boa(?=\s+(meetings?|groups?|zoom))/i], label: 'Overeaters Anonymous', finder: 'https://oa.org/find-a-meeting/' },
+  SLAA: { match: /^(slaa|sex and love addicts anonymous)$/i, mention: [/\bslaa\b/i, /\bsex and love addicts anonymous\b/i], label: 'Sex and Love Addicts Anonymous', finder: 'https://slaafws.org/meetings/' },
+  GA: { match: /^(ga|gamblers anonymous)$/i, mention: [/\bGA\b/, /\bgamblers anonymous\b|\bga(?=\s+(meetings?|groups?|zoom))/i], label: 'Gamblers Anonymous', finder: 'https://gamblersanonymous.org/find-a-meeting/' },
+  MA: { match: /^marijuana anonymous$/i, mention: [/\bmarijuana anonymous\b/i], label: 'Marijuana Anonymous', finder: 'https://www.marijuana-anonymous.org/meetings' },
+  'S-Anon': { match: /^s[- ]?anon\b/i, mention: [/\bs-?\s?anon\b/i], label: 'S-Anon', finder: 'https://sanon.org/find-a-meeting/' },
+  EDA: { match: /^eating disorders anonymous$/i, mention: [/\beating disorders anonymous\b/i], label: 'Eating Disorders Anonymous', finder: 'https://eatingdisordersanonymous.org/meetings/' },
+  CPA: { match: /^chronic pain anon(ymous)?$/i, mention: [/\bchronic pain anon(ymous)?\b/i], label: 'Chronic Pain Anonymous', finder: 'https://www.chronicpainanonymous.org/meetings' },
+  CoDA: { match: /^(coda|co-dependents anonymous|codependents anonymous)$/i, mention: [/\bCoDA\b/, /\bco-?dependents anonymous\b/i], label: 'Co-Dependents Anonymous', finder: null },
 };
 
 // Broad on purpose: a false positive costs a few hundred tokens, a miss costs
@@ -71,17 +89,36 @@ const MENTIONS = {
   ACA: [/\bACA\b/, new RegExp(`\\badult children of alcoholics\\b|\\baca${BEFORE_MEETING}`, 'i')],
   'Al-Anon': [/\bal-?\s?anon\b/i],
   AA: [/\bAA\b/, new RegExp(`\\balcoholics anonymous\\b|\\baa${BEFORE_MEETING}`, 'i')],
+  NA: [/\bNA\b/, new RegExp(`\\bnarcotics anonymous\\b|\\bna${BEFORE_MEETING}`, 'i')],
 };
 function programsIn(text) {
   const t = String(text || '');
   return Object.keys(PROGRAMS).filter((key) => MENTIONS[key].some((re) => re.test(t)));
 }
+function othersIn(text) {
+  const t = String(text || '');
+  return Object.keys(OTHERS).filter((key) => OTHERS[key].mention.some((re) => re.test(t)));
+}
 const ALL_LABELS = Object.values(PROGRAMS).map((p) => p.label).join(', ');
 
-// "DA, BDA, UA, ACA" -> ['DA', 'BDA']
+const fieldParts = (programField) => String(programField || '').split(',').map((s) => s.trim()).filter(Boolean);
+// "DA, BDA, UA, ACA" -> ['DA', 'BDA', 'UA', 'ACA']
 function programsOf(programField) {
-  const parts = String(programField || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const parts = fieldParts(programField);
   return Object.keys(PROGRAMS).filter((key) => parts.some((p) => PROGRAMS[key].match.test(p)));
+}
+function othersOf(programField) {
+  const parts = fieldParts(programField);
+  return Object.keys(OTHERS).filter((key) => parts.some((p) => OTHERS[key].match.test(p)));
+}
+
+/* What the sponsor says for a program it holds no meetings for: the finder
+   first, as the answer itself. */
+function otherLine(key) {
+  const o = OTHERS[key];
+  return o.finder
+    ? `For ${o.label}: you do not hold their meetings, but the official finder lists every one: ${o.finder}. Lead with that link as the answer itself, warmly (for example "Here's where ${o.label} lists all its meetings, today's included: ${o.finder}"). Do not open with what you cannot do.`
+    : `For ${o.label}: you do not hold their meetings. Point them warmly to ${o.label}'s official website by name, as the answer itself; never make up a link, and do not open with what you cannot do.`;
 }
 
 /* Building an Intl formatter is the slow part, and with thousands of meetings
@@ -202,30 +239,32 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
        sponsor's question alone is often just "Which program?", seen 21 Oct),
        so while either of those was about meetings, this turn gets the block. */
     if (!asksAboutMeetings(message) && !asksAboutMeetings(recentMessages)) return '';
-    /* Which program: the one named now, else the one they named just before
-       (someone in DA who asked for AA and then says "any more tomorrow?" means
-       AA), else what registration stored. */
-    const carried = programsIn(lastUserMessage);
-    const programs = named.length ? named : carried.length ? carried : programsOf(programField);
-    /* In several programs and none named: ask which one first, as a sponsor
-       would, instead of a long mixed list (Mariam, 21 Oct). One program on
-       file goes straight to its meetings. */
-    if (!named.length && !carried.length && programs.length > 1) {
+    /* Which program: the one(s) named now, else the one(s) they named just
+       before (someone in DA who asked for AA and then says "any more
+       tomorrow?" means AA). Never just what registration stored: people move
+       between programs, so when none is named the sponsor asks, the way a
+       sponsor would (Mariam, 21 Oct: "Why would you choose just narcotics?").
+       The registered ones are only offered as a likely answer. */
+    const namedOthers = othersIn(message);
+    const nowNamed = named.length || namedOthers.length;
+    const programs = nowNamed ? named : programsIn(lastUserMessage);
+    const others = nowNamed ? namedOthers : othersIn(lastUserMessage);
+    if (!programs.length && !others.length) {
+      const onFile = [...programsOf(programField).map((p) => PROGRAMS[p].label), ...othersOf(programField).map((k) => OTHERS[k].label)];
       return [
         '## RECOVERY MEETINGS',
         'Use this only if they are asking about a recovery meeting; otherwise ignore it.',
-        `They go to several programs (${programs.map((p) => PROGRAMS[p].label).join(', ')}). Before naming any meeting, ask which one they want a meeting for, in one short question. Once they say, you will have the meetings to offer.`,
+        `They have not said which program the meeting is for. Before naming any meeting, ask which program, in one short, warm question.${onFile.length ? ` They signed up with ${onFile.join(', ')}, so you can offer that as the likely answer (for example "${onFile[0]}, or another program?"), but do not assume it.` : ''} You can find real online meetings for ${ALL_LABELS}; once they say, you will have the meetings to offer.`,
         'Never name a meeting, time, link or passcode that you were not given here.',
       ].join('\n');
     }
+    const otherLines = others.map(otherLine);
     if (!programs.length) {
-      const onFile = String(programField || '').trim();
       return [
         '## RECOVERY MEETINGS',
         'Use this only if they are asking about a recovery meeting; otherwise ignore it.',
-        onFile
-          ? `On file they go to ${onFile}, and you cannot look up meetings for that yet. Say so plainly and point them to that program's official website. You can find real online meetings for ${ALL_LABELS}, if they also go to one of those.`
-          : `You do not know which program they go to. Before naming any meeting, ask which program, in one short question. You can find real online meetings for ${ALL_LABELS}; once they say, you will have the meetings to offer. If theirs is not one of these, say you cannot look those up yet and point them to that program's official website.`,
+        ...otherLines,
+        `If they also go to one of these, you can find real online meetings for it: ${ALL_LABELS}.`,
         'Never name a meeting, time, link or passcode that you were not given here.',
       ].join('\n');
     }
@@ -240,9 +279,9 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
     const fresh = data ? programs.filter(isFresh) : [];
     const stale = programs.filter((p) => !fresh.includes(p));
     const staleLine = stale.length
-      ? `For ${stale.map((p) => PROGRAMS[p].label).join(' and ')}, your meeting list is out of date, so do not name any specific meeting, time or link for it. Send them to the official finder: ${finderFor(stale)}`
+      ? `For ${stale.map((p) => PROGRAMS[p].label).join(' and ')}, do not name any specific meeting, time or link: your list for it is out of date. Lead with the official finder as the answer itself, warmly: ${finderFor(stale)}`
       : null;
-    if (!fresh.length) return ['## RECOVERY MEETINGS', staleLine].join('\n');
+    if (!fresh.length) return ['## RECOVERY MEETINGS', staleLine, ...otherLines].join('\n');
 
     const lists = upcoming(fresh, now, data, userZone);
     const lines = [];
@@ -260,7 +299,10 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
         lines.push(`- "${m.name}", ${when}${access}${who}, ${m.link}${pass}`);
       }
     }
-    if (!lines.length) return staleLine ? ['## RECOVERY MEETINGS', staleLine].join('\n') : '';
+    if (!lines.length) {
+      const fallback = [...(staleLine ? [staleLine] : []), ...otherLines];
+      return fallback.length ? ['## RECOVERY MEETINGS', ...fallback].join('\n') : '';
+    }
 
     const checked = new Date(Math.min(...shown.map(checkedAt)))
       .toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' });
@@ -271,12 +313,13 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
       `These are upcoming online meetings for their program, taken from the official directories and checked on ${checked}. ${userZone ? 'The times are already in their own local time, and only ones at a sensible hour for them are listed.' : 'We do not know where they are, so each time is in the meeting\'s own time zone, as labelled.'}`,
       ...lines,
       ...(staleLine ? [staleLine] : []),
+      ...otherLines,
       'How to use it:',
       '- Offer one to three that fit what they asked for, never the whole list.',
       '- Copy the name, time, link and passcode exactly as written here. Never change, shorten or make up a link, a time, a passcode or a meeting, and never offer one that is not on this list.',
       '- "Closed" means members only: the people the program is for. That is them, so a closed meeting is still theirs to go to.',
       '- A meeting marked "women only" or "men only" is only for people of that gender. Offer it only when you know it fits them; otherwise choose another.',
-      `- These are online meetings only. If they want one in person, say you cannot look those up yet and send them to the official finder: ${finders}`,
+      `- These are online meetings only. If they want one in person, give them the official finder, which lists in-person meetings too: ${finders}`,
       `- If the link does not open for them, or they want something else, the official finder has every meeting: ${finders}`,
       '- You cannot know what a room is like. If they ask which is good, say that plainly and suggest they try two and see which feels like home.',
     ].join('\n');
@@ -288,6 +331,6 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
 
 module.exports = {
   buildMeetingsBlock, asksAboutMeetings, programsOf, programsIn, nextStart, describeWhen, instantFor,
-  offsetMinutes, STALE_AFTER_DAYS, PROGRAMS,
+  offsetMinutes, STALE_AFTER_DAYS, PROGRAMS, OTHERS, othersIn,
   _setData(d) { cache = d; },
 };
