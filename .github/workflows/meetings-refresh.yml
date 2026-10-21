@@ -3,9 +3,11 @@
 # the fellowships' own directories every week, well inside that window: a
 # missed week or two just means a slightly older list, never a wrong one.
 #
-# The script refuses to write when a directory comes back thin (a layout change,
-# not a quiet week), so a broken scrape fails this run in red and leaves the
-# last good list in place rather than replacing it with a short one.
+# Seven programs from six directories (DA, BDA, WA, AA, Al-Anon, ACA, UA). When
+# one directory fails or comes back thin (a layout change, not a quiet week),
+# that program keeps its last good meetings with their old check date, so the
+# 21-day guard still retires them, and the run shows a yellow warning naming it.
+# The run only fails in red when no directory answered at all.
 name: Meetings list refresh
 
 on:

@@ -38,10 +38,12 @@ const WA_DAILY = {
 const fresh = (generatedAt) => ({ generatedAt, meetings: [NY_TUESDAY, LONDON_MONDAY, WA_DAILY] });
 
 group('which programs we cover, from what registration stores');
-check('codes',                meetings.programsOf('DA, BDA, UA, ACA, WA, Al-Anon'), ['DA', 'BDA', 'WA']);
+check('codes',                meetings.programsOf('DA, BDA, UA, ACA, WA, Al-Anon'), ['DA', 'BDA', 'WA', 'UA', 'ACA', 'Al-Anon']);
 check('long names',           meetings.programsOf('Debtors Anonymous, Workaholics Anonymous'), ['DA', 'WA']);
-check('nothing we hold',      meetings.programsOf('AA, NA, Al-Anon'), []);
-check('UA is not DA',         meetings.programsOf('UA'), []);
+check('AA and Al-Anon',       meetings.programsOf('AA, NA, Al-Anon'), ['Al-Anon', 'AA']);
+check('nothing we hold',      meetings.programsOf('NA, SLAA, S Anon, Chronic Pain Anon'), []);
+check('UA is not DA',         meetings.programsOf('UA'), ['UA']);
+check('ACA by its long name', meetings.programsOf('Adult Children of Alcoholics'), ['ACA']);
 
 group('only when they are talking about meetings');
 check('asks for a meeting',   meetings.asksAboutMeetings('Can you find me a meeting tonight?'), true);
@@ -96,7 +98,8 @@ check('tells it never to invent', block.includes('never offer one that is not on
 check('nothing when they are not asking',
   meetings.buildMeetingsBlock({ message: 'I feel low today', programField: 'DA', userZone: 'Europe/London', now: tueNoonUtc }), '');
 check('nothing for programs we hold no data for',
-  meetings.buildMeetingsBlock({ message: 'any meetings?', programField: 'AA, NA', userZone: 'Europe/London', now: tueNoonUtc }), '');
+  meetings.buildMeetingsBlock({ message: 'any meetings?', programField: 'NA, SLAA', userZone: 'Europe/London', now: tueNoonUtc }), '');
+check('says it has no in-person list', block.includes('These are online meetings only'), true);
 
 const daily = meetings.buildMeetingsBlock({ message: 'meetings this week?', programField: 'WA', userZone: 'Europe/London', now: tueNoonUtc });
 check('a daily meeting is listed once, at its next time',
@@ -139,6 +142,121 @@ check('an old listing is left out',
   refresh.daProblem(refresh.parseDaDetail(page(goodVideo).replace('January 02 2026', 'March 10 2024')), now), 'listing last updated 2024-03-10');
 check('another language is left out',
   refresh.daProblem(refresh.parseDaDetail(page(goodVideo).replace('English', 'Spanish')), now), 'language is Spanish');
+check('"Password: email us" is left out',
+  refresh.daProblem(refresh.parseDaDetail(page(goodVideo.replace('| Password: | 512788 |', '| Password: email us at group@example.com |'))), now) !== null, true);
+
+group('one directory failing does not take the others down');
+const fresh2 = (p, n) => Array.from({ length: n }, (_, i) => ({ id: `${p}-${i}`, program: p }));
+const prev = { generatedAt: '2026-10-10T05:00:00Z', meetings: [...fresh2('ACA', 3), ...fresh2('DA', 2)] };
+const ran = refresh.assemble([
+  { programs: ['DA', 'BDA'], found: [...fresh2('DA', 60), ...fresh2('BDA', 20)] },
+  { programs: ['ACA'], error: 'HTTP 503' },
+  { programs: ['WA'], found: fresh2('WA', 2) },
+], prev, new Date('2026-10-21T05:00:00Z'));
+check('DA refreshed, checked now', ran.checked.DA, '2026-10-21T05:00:00.000Z');
+check('ACA kept its last meetings', ran.meetings.filter((m) => m.program === 'ACA').length, 3);
+check('ACA keeps its OLD check date, so the 21-day guard still applies', ran.checked.ACA, '2026-10-10T05:00:00Z');
+check('a thin WA answer is not believed, and there is nothing to fall back on', ran.checked.WA, undefined);
+check('each problem is reported', ran.problems.length, 2);
+
+group('the block, per program and with who a meeting is for');
+const AA_WOMEN = {
+  id: 'aa-1', program: 'AA', name: 'Women on the Way', days: [2], start: '18:00', zone: 'Europe/London',
+  link: 'https://zoom.us/j/11122233344?pwd=x', passcode: null, access: 'closed', who: 'women',
+};
+const UA_UNKNOWN = {
+  id: 'ua-1', program: 'UA', name: 'Prosperity Tuesday', days: [2], start: '19:00', zone: 'Europe/London',
+  link: 'https://zoom.us/j/55566677788?pwd=y', passcode: null, access: null, who: null,
+};
+meetings._setData({
+  generatedAt: '2026-10-20T08:00:00Z',
+  checked: { AA: '2026-10-20T08:00:00Z', UA: '2026-10-20T08:00:00Z', WA: '2026-09-01T08:00:00Z' },
+  meetings: [AA_WOMEN, UA_UNKNOWN, WA_DAILY],
+});
+const mixed = meetings.buildMeetingsBlock({ message: 'any meetings tonight?', programField: 'AA, UA, WA', userZone: 'Europe/London', now: tueNoonUtc });
+check('a women-only meeting says so', mixed.includes('"Women on the Way", today at 6pm, closed, women only, https://zoom.us/j/11122233344?pwd=x'), true);
+check('unknown open/closed is simply left out', mixed.includes('"Prosperity Tuesday", today at 7pm, https://zoom.us/j/55566677788?pwd=y'), true);
+check('it is told who a gendered meeting is for', mixed.includes('only for people of that gender'), true);
+check('a program whose own list is stale is not offered', mixed.includes('Underscheduling'), false);
+check('and is sent to its finder instead', mixed.includes('For Workaholics Anonymous, your meeting list is out of date'), true);
+
+group('reading the new directories');
+check('a phone number is never taken for a Zoom id', refresh.zoomFrom('Call 412-924-7162 access 947757'), null);
+check('"Zoom ID# 432860084" becomes a link', refresh.zoomFrom('ZOOM ONLY Zoom ID# 432860084 Password 135048').link, 'https://zoom.us/j/432860084');
+check('dashes in an id', refresh.zoomFrom('ZOOM 854-5637-9820 access code 646293').meetingId, '85456379820');
+check('the href wins over a copy broken up by markup',
+  refresh.zoomFrom('<a href="https://us06web.zoom.us/j/81479436405?pwd=Q7vM.1">https://us06web.zoom.us/j/<u></u>8147<u></u>9436405?pwd=<u></u>Q7vM.1</a>').link,
+  'https://us06web.zoom.us/j/81479436405?pwd=Q7vM.1');
+check('a passcode after a colon', refresh.passcodeFrom('Zoom ID: 999 3559 8599 | Passcode: ACASydney |'), 'ACASydney');
+check('a numeric passcode without a colon', refresh.passcodeFrom('Zoom ID# 432860084 Password 135048'), '135048');
+check('"Passcode: Email us" is not a passcode', refresh.passcodeFrom('ID: 853 5353 0603 Passcode: Email aabossiercity@gmail.com'), null);
+check('"the password for the meeting" is not a passcode', refresh.passcodeFrom('To get the password for the meeting, please write'), null);
+check('a pwd= token inside a link is not something to type', refresh.passcodeFrom('https://zoom.us/j/81105177232?pwd=MYZHk9ggWM6ODKS5mdbL'), null);
+check('trailing full stop is dropped', refresh.passcodeFrom('Passcode: 296471.'), '296471');
+check('Al-Anon times', refresh.alAnonWhen('Tuesday 08:15 PM'), { day: 2, start: '20:15' });
+check('Al-Anon around the clock is left out', refresh.alAnonProblem({ is_24_7: true, url: 'https://zoom.us/j/12345678901?pwd=a', languages: 'English', times: '', timezone: 'America/Chicago' }), 'runs around the clock, no fixed time');
+const acaRow = {
+  SID: '6193', MeetName: 'Men of ACA', LangValue: 'English', DayCode: '4', Time_Local: '11:30 am', Timezone: 'America/Los_Angeles',
+  Location: '<p>ZOOM Id# 805 888 1234<br />Password: Healing</p>', virtualInfo: '', Notes: '', other_notes: '', OpenClosed: 'O', Type: 'Men-Only, ', LastUpdate: '2026-10-19 00:00:00',
+};
+check('a good ACA listing is kept', refresh.acaProblem(acaRow, now), null);
+check('ACA day code 4 is Wednesday', refresh.acaMeeting(acaRow).days, [3]);
+check('ACA id is unique per day and time', refresh.acaMeeting(acaRow).id, 'aca-6193-3-1130');
+check('ACA escaped quotes in a name are undone', refresh.acaMeeting({ ...acaRow, MeetName: "Tony A\\'s Steps U.S." }).name, "Tony A's Steps U.S.");
+check('ACA time and zone', [refresh.acaMeeting(acaRow).start, refresh.acaMeeting(acaRow).zone], ['11:30', 'America/Los_Angeles']);
+check('ACA men-only is marked', refresh.acaMeeting(acaRow).who, 'men');
+check('ACA "Women Only", no hyphen, is marked too', refresh.acaMeeting({ ...acaRow, Type: 'Women Only, LGBTQ+, ' }).who, 'women');
+check('an ACA teen meeting is left out', refresh.acaProblem({ ...acaRow, Type: 'ACA Teen (Ages 12 to 18), ' }, now), 'teen meeting');
+check('ACA link and passcode from typed text', [refresh.acaMeeting(acaRow).link, refresh.acaMeeting(acaRow).passcode], ['https://zoom.us/j/8058881234', 'Healing']);
+check('ACA "email for the password" is left out',
+  refresh.acaProblem({ ...acaRow, Location: '<p>Meeting ID: 860 0737 0131</p><p>Please email acapathwaytohope@gmail.com for the password.</p>' }, now) !== null, true);
+
+const ics = (extra, rule = 'FREQ=WEEKLY;BYDAY=TU,TH', desc = 'Join Zoom Meeting <a href="https://www.google.com/url?q=https://us06web.zoom.us/j/81105177232%3Fpwd%3DMYZ.1&amp;sa=D">link</a>') => [
+  'BEGIN:VCALENDAR', 'BEGIN:VEVENT', 'DTSTART;TZID=America/New_York:20250107T193000', 'DTEND;TZID=America/New_York:20250107T203000',
+  `RRULE:${rule}`, 'UID:abc123@google.com', 'SUMMARY:Neurodiversity and UA', `DESCRIPTION:${desc}`, 'LAST-MODIFIED:20260310T120000Z', 'STATUS:CONFIRMED', ...extra, 'END:VEVENT', 'END:VCALENDAR',
+].join('\r\n');
+const [uaGood] = refresh.parseIcs(ics([]));
+check('a weekly UA calendar meeting is kept', refresh.uaProblem(uaGood, now), null);
+check('its days, time and zone', (({ days, start, zone }) => ({ days, start, zone }))(refresh.uaMeeting(uaGood)), { days: [2, 4], start: '19:30', zone: 'America/New_York' });
+check('the Google redirect is unwrapped to the real link', refresh.uaMeeting(uaGood).link, 'https://us06web.zoom.us/j/81105177232?pwd=MYZ.1');
+check('a series that has ended is left out', refresh.uaProblem(refresh.parseIcs(ics([], 'FREQ=WEEKLY;UNTIL=20260122T045959Z;BYDAY=TU'))[0], now), 'series has ended');
+check('every other week is left out', refresh.uaProblem(refresh.parseIcs(ics([], 'FREQ=WEEKLY;INTERVAL=2;BYDAY=TU'))[0], now), 'not weekly');
+check('a group that shifts with daylight saving is left out',
+  refresh.uaProblem(refresh.parseIcs(ics([], undefined, 'https://zoom.us/j/9267004753?pwd=Q (due to Daylight Savings Time)'))[0], now), 'listing says its time moves with daylight saving');
+check('a Farsi-speaking group is left out',
+  refresh.uaProblem(refresh.parseIcs(ics([]).replace('SUMMARY:Neurodiversity and UA', 'SUMMARY:Mohajeran UA (Farsi speaking)'))[0], now), 'not in English');
+
+group('fast enough with thousands of meetings');
+const many = Array.from({ length: 3000 }, (_, i) => ({
+  ...AA_WOMEN, id: `aa-${i}`, who: null, days: [i % 7], start: `${String(i % 24).padStart(2, '0')}:${i % 2 ? '30' : '00'}`,
+  zone: ['America/New_York', 'America/Los_Angeles', 'Europe/London', 'Australia/Sydney'][i % 4],
+}));
+meetings._setData({ generatedAt: '2026-10-20T08:00:00Z', meetings: many });
+const t0 = Date.now();
+const big = meetings.buildMeetingsBlock({ message: 'meeting tonight?', programField: 'AA', userZone: 'Europe/London', now: tueNoonUtc });
+const took = Date.now() - t0;
+console.log(`      (3,000 meetings: ${took} ms)`);
+check('3,000 meetings in under half a second', took < 500, true);
+check('and still at most six offered', (big.match(/^- "[^"]+", /gm) || []).length, 6);
+const todays = [...big.matchAll(/^- "[^"]+", today at ([0-9:]+)(am|pm)/gm)].map((x) => {
+  const [h, mi] = x[1].split(':').map(Number); return (h % 12 + (x[2] === 'pm' ? 12 : 0)) * 60 + (mi || 0);
+});
+check('today\'s choices are spread out, not all starting now',
+  todays.length >= 2 && todays.every((t, i) => i === 0 || t - todays[i - 1] >= 120), true);
+
+group('the real list, as written');
+const real = JSON.parse(require('fs').readFileSync(path.resolve(__dirname, 'meetings-data.json'), 'utf8'));
+const ids = new Set(real.meetings.map((m) => m.id));
+check('every meeting id is unique', ids.size, real.meetings.length);
+check('every meeting has a direct Zoom link',
+  real.meetings.filter((m) => !/^https:\/\/([a-z0-9]+\.)?zoom\.us\/j\/\d{9,11}(\?pwd=[A-Za-z0-9._-]+)?$/.test(m.link)).length, 0);
+check('every meeting can be opened: pwd in the link or a passcode',
+  real.meetings.filter((m) => !/pwd=/.test(m.link) && !m.passcode).length, 0);
+const realZone = (z) => { try { new Intl.DateTimeFormat('en', { timeZone: z }); return true; } catch { return false; } };
+check('every meeting has a day, time and real zone',
+  real.meetings.filter((m) => !m.days.length || m.days.some((d) => d < 0 || d > 6) || !/^\d{2}:\d{2}$/.test(m.start) || !realZone(m.zone)).length, 0);
+check('no teen meetings', real.meetings.filter((m) => /\bteens?\b|alateen/i.test(m.name)).length, 0);
+check('no backslashes or markup left in names', real.meetings.filter((m) => /[\\<>]|&amp;|&quot;|&#\d/.test(m.name)).length, 0);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
