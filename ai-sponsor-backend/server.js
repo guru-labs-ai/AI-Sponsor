@@ -1835,8 +1835,10 @@ async function getSponsorReply(userId, message, context) {
     message,
     programField: profile && profile.program,
     userZone: timezones.zoneForPhone(String(userId).startsWith('wa-') ? userId : (profile && profile.phone) || ''),
-    // So "AA", answering "which program?", still brings the meetings.
+    // So "AA" answering "which program?", or "any more tomorrow?", still
+    // brings the meetings, for the program they were just asking about.
     recentMessages: (history || []).slice(-2).map((m) => (typeof m.content === 'string' ? m.content : '')).join('\n'),
+    lastUserMessage: ((history || []).filter((m) => m.role === 'user' && typeof m.content === 'string').slice(-1)[0] || {}).content || '',
   });
   if (meetingsBlock) systemBlocks.push({ type: 'text', text: meetingsBlock });
 

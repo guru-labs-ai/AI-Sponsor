@@ -193,16 +193,31 @@ function upcoming(programs, now, data, userZone) {
 /* The system block, or '' when there is nothing to add. userZone is where they
    are (from their phone number); without it, times are given in each meeting's
    own zone and labelled as such, never silently converted to a guess. */
-function buildMeetingsBlock({ message, programField, userZone, now = Date.now(), recentMessages = '' }) {
+function buildMeetingsBlock({ message, programField, userZone, now = Date.now(), recentMessages = '', lastUserMessage = '' }) {
   try {
     const named = programsIn(message);
-    /* "AA" on its own is an answer when the last exchange was about a meeting.
-       recentMessages is their previous message and the sponsor's reply: the
-       sponsor's question alone is often just "Which program?" (seen 21 Oct),
-       so their own "can you find me a meeting?" has to count too. */
-    const answering = named.length > 0 && asksAboutMeetings(recentMessages);
-    if (!asksAboutMeetings(message) && !answering) return '';
-    const programs = named.length ? named : programsOf(programField);
+    /* A conversation about meetings carries on past the message that started
+       it: "AA" answering "Which program?", "any more tomorrow?", "and Friday?".
+       recentMessages is their previous message and the sponsor's reply (the
+       sponsor's question alone is often just "Which program?", seen 21 Oct),
+       so while either of those was about meetings, this turn gets the block. */
+    if (!asksAboutMeetings(message) && !asksAboutMeetings(recentMessages)) return '';
+    /* Which program: the one named now, else the one they named just before
+       (someone in DA who asked for AA and then says "any more tomorrow?" means
+       AA), else what registration stored. */
+    const carried = programsIn(lastUserMessage);
+    const programs = named.length ? named : carried.length ? carried : programsOf(programField);
+    /* In several programs and none named: ask which one first, as a sponsor
+       would, instead of a long mixed list (Mariam, 21 Oct). One program on
+       file goes straight to its meetings. */
+    if (!named.length && !carried.length && programs.length > 1) {
+      return [
+        '## RECOVERY MEETINGS',
+        'Use this only if they are asking about a recovery meeting; otherwise ignore it.',
+        `They go to several programs (${programs.map((p) => PROGRAMS[p].label).join(', ')}). Before naming any meeting, ask which one they want a meeting for, in one short question. Once they say, you will have the meetings to offer.`,
+        'Never name a meeting, time, link or passcode that you were not given here.',
+      ].join('\n');
+    }
     if (!programs.length) {
       const onFile = String(programField || '').trim();
       return [

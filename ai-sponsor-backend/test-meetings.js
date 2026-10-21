@@ -81,7 +81,7 @@ check('long started moves to next week',
 group('the block the sponsor sees');
 meetings._setData(fresh('2026-10-20T08:00:00Z'));
 const block = meetings.buildMeetingsBlock({
-  message: 'can you find me a meeting', programField: 'DA, BDA, UA', userZone: 'Europe/London', now: tueNoonUtc,
+  message: 'can you find me a DA or BDA meeting', programField: 'DA, BDA, UA', userZone: 'Europe/London', now: tueNoonUtc,
 });
 check('a meeting at 12:30am their time is not offered', block.includes('Tuesday Visions'), false);
 const nyBlock = meetings.buildMeetingsBlock({
@@ -174,7 +174,12 @@ meetings._setData({
   checked: { AA: '2026-10-20T08:00:00Z', UA: '2026-10-20T08:00:00Z', WA: '2026-09-01T08:00:00Z' },
   meetings: [AA_WOMEN, UA_UNKNOWN, WA_DAILY],
 });
-const mixed = meetings.buildMeetingsBlock({ message: 'any meetings tonight?', programField: 'AA, UA, WA', userZone: 'Europe/London', now: tueNoonUtc });
+const mixed = meetings.buildMeetingsBlock({ message: 'any AA, UA or WA meetings tonight?', programField: 'AA, UA, WA', userZone: 'Europe/London', now: tueNoonUtc });
+const several = meetings.buildMeetingsBlock({ message: 'any meetings tonight?', programField: 'AA, UA, WA', userZone: 'Europe/London', now: tueNoonUtc });
+check('in several programs and none named: it asks which one first',
+  [several.includes('ask which one they want a meeting for'), several.includes('Women on the Way')], [true, false]);
+check('in one program: straight to its meetings',
+  meetings.buildMeetingsBlock({ message: 'any meetings tonight?', programField: 'AA', userZone: 'Europe/London', now: tueNoonUtc }).includes('"Women on the Way"'), true);
 check('a women-only meeting says so', mixed.includes('"Women on the Way", today at 6pm, closed, women only, https://zoom.us/j/11122233344?pwd=x'), true);
 check('unknown open/closed is simply left out', mixed.includes('"Prosperity Tuesday", today at 7pm, https://zoom.us/j/55566677788?pwd=y'), true);
 check('it is told who a gendered meeting is for', mixed.includes('only for people of that gender'), true);
@@ -201,6 +206,14 @@ const answer = meetings.buildMeetingsBlock({
 });
 check('"AA" answering "which program?" brings the meetings', answer.includes('"Women on the Way"'), true);
 check('"AA" out of the blue does not', meetings.buildMeetingsBlock({ message: 'AA', programField: '', userZone: 'Europe/London', now: tueNoonUtc, recentMessages: 'I had a long day.\nHow was it?' }), '');
+const afterAa = 'AA\n- "Women on the Way", today at 6pm, https://zoom.us/j/11122233344?pwd=x';
+check('"any more tomorrow?" after AA stays with AA, with no program on file',
+  meetings.buildMeetingsBlock({ message: 'any more tomorrow?', programField: '', userZone: 'Europe/London', now: tueNoonUtc, recentMessages: afterAa, lastUserMessage: 'AA' }).includes('"Women on the Way"'), true);
+const followDa = meetings.buildMeetingsBlock({ message: 'what about Friday?', programField: 'DA', userZone: 'Europe/London', now: tueNoonUtc, recentMessages: afterAa, lastUserMessage: 'find me an AA meeting' });
+check('someone in DA who just asked for AA: "what about Friday?" is still AA',
+  [followDa.includes('"Women on the Way"'), followDa.includes('Tuesday Visions')], [true, false]);
+check('once the talk has moved on, nothing is added',
+  meetings.buildMeetingsBlock({ message: 'ok', programField: 'DA', userZone: 'Europe/London', now: tueNoonUtc, recentMessages: 'I am tired today\nThat sounds hard.', lastUserMessage: 'I am tired today' }), '');
 check('asking about another program overrides the one on file',
   meetings.buildMeetingsBlock({ message: 'any AA meetings?', programField: 'DA', userZone: 'Europe/London', now: tueNoonUtc }).includes('Tuesday Visions'), false);
 
