@@ -57,6 +57,27 @@ function asksAboutMeetings(text) {
   return ASKS.test(String(text || ''));
 }
 
+/* A program named in the message counts, whatever registration stored. People
+   who started on WhatsApp have no program on file (5 of 42 on 21 Oct, Matt
+   among them, whose test got no meetings at all), and anyone may ask about a
+   second program. Short codes count in capitals anywhere, or in any case right
+   before "meeting", so "da" or "wa" inside ordinary words never match. */
+const BEFORE_MEETING = '(?=\\s+(meetings?|groups?|zoom))';
+const MENTIONS = {
+  DA: [/\bDA\b/, new RegExp(`(?<!business )\\bdebtors anonymous\\b|\\bda${BEFORE_MEETING}`, 'i')],
+  BDA: [/\bBDA\b/, new RegExp(`\\bbusiness debtors anonymous\\b|\\bbda${BEFORE_MEETING}`, 'i')],
+  WA: [/\bWA\b/, new RegExp(`\\bworkaholics anonymous\\b|\\bwa${BEFORE_MEETING}`, 'i')],
+  UA: [/\bUA\b/, new RegExp(`\\bunderearners anonymous\\b|\\bua${BEFORE_MEETING}`, 'i')],
+  ACA: [/\bACA\b/, new RegExp(`\\badult children of alcoholics\\b|\\baca${BEFORE_MEETING}`, 'i')],
+  'Al-Anon': [/\bal-?\s?anon\b/i],
+  AA: [/\bAA\b/, new RegExp(`\\balcoholics anonymous\\b|\\baa${BEFORE_MEETING}`, 'i')],
+};
+function programsIn(text) {
+  const t = String(text || '');
+  return Object.keys(PROGRAMS).filter((key) => MENTIONS[key].some((re) => re.test(t)));
+}
+const ALL_LABELS = Object.values(PROGRAMS).map((p) => p.label).join(', ');
+
 // "DA, BDA, UA, ACA" -> ['DA', 'BDA']
 function programsOf(programField) {
   const parts = String(programField || '').split(',').map((s) => s.trim()).filter(Boolean);
@@ -172,11 +193,27 @@ function upcoming(programs, now, data, userZone) {
 /* The system block, or '' when there is nothing to add. userZone is where they
    are (from their phone number); without it, times are given in each meeting's
    own zone and labelled as such, never silently converted to a guess. */
-function buildMeetingsBlock({ message, programField, userZone, now = Date.now() }) {
+function buildMeetingsBlock({ message, programField, userZone, now = Date.now(), recentMessages = '' }) {
   try {
-    if (!asksAboutMeetings(message)) return '';
-    const programs = programsOf(programField);
-    if (!programs.length) return '';
+    const named = programsIn(message);
+    /* "AA" on its own is an answer when the last exchange was about a meeting.
+       recentMessages is their previous message and the sponsor's reply: the
+       sponsor's question alone is often just "Which program?" (seen 21 Oct),
+       so their own "can you find me a meeting?" has to count too. */
+    const answering = named.length > 0 && asksAboutMeetings(recentMessages);
+    if (!asksAboutMeetings(message) && !answering) return '';
+    const programs = named.length ? named : programsOf(programField);
+    if (!programs.length) {
+      const onFile = String(programField || '').trim();
+      return [
+        '## RECOVERY MEETINGS',
+        'Use this only if they are asking about a recovery meeting; otherwise ignore it.',
+        onFile
+          ? `On file they go to ${onFile}, and you cannot look up meetings for that yet. Say so plainly and point them to that program's official website. You can find real online meetings for ${ALL_LABELS}, if they also go to one of those.`
+          : `You do not know which program they go to. Before naming any meeting, ask which program, in one short question. You can find real online meetings for ${ALL_LABELS}; once they say, you will have the meetings to offer. If theirs is not one of these, say you cannot look those up yet and point them to that program's official website.`,
+        'Never name a meeting, time, link or passcode that you were not given here.',
+      ].join('\n');
+    }
     const data = load();
     const finderFor = (list) => [...new Set(list.map((p) => PROGRAMS[p].finder))].join(' and ');
     const finders = finderFor(programs);
@@ -235,7 +272,7 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now() 
 }
 
 module.exports = {
-  buildMeetingsBlock, asksAboutMeetings, programsOf, nextStart, describeWhen, instantFor,
+  buildMeetingsBlock, asksAboutMeetings, programsOf, programsIn, nextStart, describeWhen, instantFor,
   offsetMinutes, STALE_AFTER_DAYS, PROGRAMS,
   _setData(d) { cache = d; },
 };

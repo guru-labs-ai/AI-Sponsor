@@ -97,8 +97,9 @@ check('tells it never to invent', block.includes('never offer one that is not on
 
 check('nothing when they are not asking',
   meetings.buildMeetingsBlock({ message: 'I feel low today', programField: 'DA', userZone: 'Europe/London', now: tueNoonUtc }), '');
-check('nothing for programs we hold no data for',
-  meetings.buildMeetingsBlock({ message: 'any meetings?', programField: 'NA, SLAA', userZone: 'Europe/London', now: tueNoonUtc }), '');
+const uncovered = meetings.buildMeetingsBlock({ message: 'any meetings?', programField: 'NA, SLAA', userZone: 'Europe/London', now: tueNoonUtc });
+check('a program we hold no data for: says so, names no meeting',
+  [uncovered.includes('cannot look up meetings for that yet'), uncovered.includes('Tuesday Visions')], [true, false]);
 check('says it has no in-person list', block.includes('These are online meetings only'), true);
 
 const daily = meetings.buildMeetingsBlock({ message: 'meetings this week?', programField: 'WA', userZone: 'Europe/London', now: tueNoonUtc });
@@ -179,6 +180,29 @@ check('unknown open/closed is simply left out', mixed.includes('"Prosperity Tues
 check('it is told who a gendered meeting is for', mixed.includes('only for people of that gender'), true);
 check('a program whose own list is stale is not offered', mixed.includes('Underscheduling'), false);
 check('and is sent to its finder instead', mixed.includes('For Workaholics Anonymous, your meeting list is out of date'), true);
+
+group('no program on file (people who started on WhatsApp, Matt\'s test on 21 Oct)');
+check('"an AA meeting"', meetings.programsIn('Can you find me an AA meeting tonight?'), ['AA']);
+check('lower case right before "meeting"', meetings.programsIn('any aa meetings near me'), ['AA']);
+check('Al-Anon spelled loosely', meetings.programsIn('is there an alanon group'), ['Al-Anon']);
+check('Debtors Anonymous is not Business Debtors', meetings.programsIn('Debtors Anonymous please'), ['DA']);
+check('Business Debtors Anonymous', meetings.programsIn('business debtors anonymous meeting'), ['BDA']);
+check('ordinary words never match', meetings.programsIn('the data was bad, wa wa, aaah, a meeting at work'), []);
+meetings._setData({ generatedAt: '2026-10-20T08:00:00Z', meetings: [AA_WOMEN, NY_TUESDAY] });
+const noProgram = meetings.buildMeetingsBlock({ message: 'Can you find me a meeting?', programField: '', userZone: 'Europe/London', now: tueNoonUtc });
+check('no program, no name in the message: it asks which program first',
+  [noProgram.includes('ask which program'), noProgram.includes('Alcoholics Anonymous'), /zoom\.us/.test(noProgram)], [true, true, false]);
+const named = meetings.buildMeetingsBlock({ message: 'find me an AA meeting', programField: '', userZone: 'Europe/London', now: tueNoonUtc });
+check('naming the program in the message brings its meetings', named.includes('"Women on the Way"'), true);
+check('and only that program\'s', named.includes('Tuesday Visions'), false);
+const answer = meetings.buildMeetingsBlock({
+  message: 'AA', programField: '', userZone: 'Europe/London', now: tueNoonUtc,
+  recentMessages: 'Can you find me a meeting?\nWhich program?',
+});
+check('"AA" answering "which program?" brings the meetings', answer.includes('"Women on the Way"'), true);
+check('"AA" out of the blue does not', meetings.buildMeetingsBlock({ message: 'AA', programField: '', userZone: 'Europe/London', now: tueNoonUtc, recentMessages: 'I had a long day.\nHow was it?' }), '');
+check('asking about another program overrides the one on file',
+  meetings.buildMeetingsBlock({ message: 'any AA meetings?', programField: 'DA', userZone: 'Europe/London', now: tueNoonUtc }).includes('Tuesday Visions'), false);
 
 group('reading the new directories');
 check('a phone number is never taken for a Zoom id', refresh.zoomFrom('Call 412-924-7162 access 947757'), null);
