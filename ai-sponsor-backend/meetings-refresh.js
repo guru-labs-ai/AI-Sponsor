@@ -46,6 +46,7 @@
 ──────────────────────────────────────────────────────────────────────────── */
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
 
 const OUT = path.join(__dirname, 'meetings-data.json');
 const MAX_LISTING_AGE_DAYS = 730;
@@ -73,10 +74,54 @@ const UA_PAGE = 'https://underearnersanonymous.org/meetings-underearners-anonymo
 const NA_FIELDS = 'id_bigint,weekday_tinyint,venue_type,start_time,duration_time,time_zone,formats,lang_enum,meeting_name,comments,virtual_meeting_link,virtual_meeting_additional_info';
 const NA_URL = (weekday, venueType) => `https://tomato.na-bmlt.org/main_server/client_interface/json/?switcher=GetSearchResults&weekdays[]=${weekday}&meeting_key=venue_type&meeting_key_value=${venueType}&data_field_key=${NA_FIELDS}`;
 const NA_SOURCE = 'https://www.na.org/meetingsearch/';
+/* OA's index (WordPress REST) carries only categories: online, language,
+   platform, focus, and a modified date. Day, time, time zone and the Zoom
+   link are only on each meeting's own page, so it is read like DA. */
+const OA_INDEX = (page) => `https://oa.org/wp-json/wp/v2/meetings?per_page=100&page=${page}&_fields=id,link,modified,class_list`;
+// OA names zones in its own words. Only exact ones; anything else is dropped.
+const OA_ZONES = {
+  'Eastern Time': 'America/New_York',
+  'Pacific Time': 'America/Los_Angeles',
+  'Central Time': 'America/Chicago',
+  'Mountain Time': 'America/Denver',
+  'Phoenix Time': 'America/Phoenix',
+  'Alaska Time': 'America/Anchorage',
+  'Hawaii Time': 'Pacific/Honolulu',
+  'British Time': 'Europe/London',
+  'Irish Time': 'Europe/Dublin',
+  'European Central Time': 'Europe/Paris',
+  'Australia Western Time': 'Australia/Perth',
+  'Australia Eastern Time (Sydney)': 'Australia/Sydney',
+  'Australia Eastern Time (Queensland)': 'Australia/Brisbane',
+  'New Zealand Time': 'Pacific/Auckland',
+  'India Time': 'Asia/Kolkata',
+  'Vietnam Time': 'Asia/Ho_Chi_Minh',
+};
 
 // The least each directory has ever legitimately had, with room to spare. Fewer
 // means the layout changed, not that groups vanished overnight.
-const FLOOR = { DA: 50, BDA: 15, WA: 10, AA: 400, 'Al-Anon': 200, ACA: 100, UA: 20, NA: 800 };
+const FLOOR = { DA: 50, BDA: 15, WA: 10, AA: 400, 'Al-Anon': 200, ACA: 100, UA: 20, NA: 800, OA: 100, SLAA: 40 };
+/* SLAA's online list is a Caspio DataPage that only answers its own
+   background requests: a search (AjaxAction=SearchForm) hands back an
+   appSession, then GetData pages through the results, 250 at a time. Read
+   from the requests its own page makes (21 Oct). Only listings SLAA marks
+   Verified are shown, and registration-only groups are excluded by the form. */
+const SLAA_DP = 'https://c3gaf515.caspio.com/dp/54ce40005809686590da44cca405';
+const SLAA_SOURCE = 'https://slaafws.org/onlinemeetings/';
+// Typed by hand ("ET", "EST", "EASTERN", "8:00AM CT, 9:00AM EST"): the first
+// zone named is the meeting's own. "EST" in summer still means New York time.
+const SLAA_ZONES = {
+  ET: 'America/New_York', EST: 'America/New_York', EDT: 'America/New_York', EASTERN: 'America/New_York', 'EASTERN TIME': 'America/New_York',
+  PT: 'America/Los_Angeles', PST: 'America/Los_Angeles', PDT: 'America/Los_Angeles', PACIFIC: 'America/Los_Angeles', 'PACIFIC TIME': 'America/Los_Angeles',
+  CT: 'America/Chicago', CST: 'America/Chicago', CDT: 'America/Chicago', CENTRAL: 'America/Chicago', 'CENTRAL TIME': 'America/Chicago',
+  MT: 'America/Denver', MST: 'America/Denver', MDT: 'America/Denver', MOUNTAIN: 'America/Denver',
+  'UK TIME': 'Europe/London', UKT: 'Europe/London', UK: 'Europe/London', BST: 'Europe/London',
+  CET: 'Europe/Paris', CEST: 'Europe/Paris',
+  AET: 'Australia/Sydney', AEST: 'Australia/Sydney', AEDT: 'Australia/Sydney',
+  AWT: 'Australia/Perth', AWST: 'Australia/Perth',
+  KST: 'Asia/Seoul',
+  UTC: 'UTC',
+};
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -111,7 +156,17 @@ const DA_ZONES = {
 };
 
 // Anything that means "you can't just click and join".
-const ASK_FOR_ACCESS = /(e-?mail|contact|text|call|message|ask|request)[^.]{0,60}(password|passcode|link|zoom|access)|(password|passcode|link)[^.]{0,40}(by|via|on) (e-?mail|request)|(password|passcode)\s*[:#-]?\s*\|?\s*(e-?mail|contact|text|call|ask|request|dm|pm|message)\b/i;
+/* A request, not just two words near each other: "Group email: x@y | Zoom ..."
+   is a contact line, while "email us to receive the password", "to get the
+   zoom password, please email" and "Password: email us" all ask. The field
+   separator | from clean() ends a phrase like a full stop does. */
+const ACCESS = '(password|passcode|pass code|links?|zoom (link|info|details|information)|log ?in|access|meeting (info|information|details))';
+const ASK_FOR_ACCESS = new RegExp([
+  `(e-?mail|contact|text|call|message|ask|request|reach out)[^.|]{0,60}\\b(for|to (get|receive|retrieve|obtain|request))\\b[^.|]{0,40}${ACCESS}`,
+  '\\b(to (get|receive|retrieve|obtain)|for) (the |our )?(zoom |meeting )?(password|passcode|links?|login)[^.|]{0,40}(e-?mail|contact|text|call|message|ask)',
+  '(password|passcode|links?)[^.|]{0,40}(by|via|on|upon) (e-?mail|request)',
+  '(password|passcode)\\s*[:#=-]?\\s*\\|?\\s*(e-?mail|contact|text|call|ask|request|dm|pm|message)\\b',
+].join('|'), 'i');
 const NOT_WEEKLY = /\b(monthly|once a month|every other|bi-?weekly|fortnightly|(1st|2nd|3rd|4th|first|second|third|fourth|last) (\w+ )?(of (the|each|every) month))\b/i;
 // NA's list carries its service bodies' own meetings too ("Policy Review
 // Subcommittee", area and regional service committees, H&I, PR).
@@ -138,6 +193,7 @@ const clean = (s) => String(s || '')
   .replace(/<[^>]+>/g, ' | ')
   .replace(/&nbsp;| /g, ' ').replace(/&amp;/g, '&').replace(/&apos;|&#039;/g, "'").replace(/&quot;/g, '"')
   .replace(/&#x28;/g, '(').replace(/&#x29;/g, ')')
+  .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
   .replace(/[ \t]+/g, ' ')
   .replace(/(\s*\|\s*)+/g, ' | ')
   .trim();
@@ -186,10 +242,13 @@ const URLS = /https?:\/\/[^\s"'<>|]+/gi;
 const NOT_A_PASSCODE = /^(e-?mail|call|text|send|request|requested|see|available|contact|ask|dm|pm|message|provided|given|required|upon|sent|below|above|none|n\/a|na|tba|tbd|same|the|is|will|not|please|in|on|by|for|all|at|from|if|when|to|needed|listed|posted|shared|emailed|link|zoom|meeting|chat|group|website|here|check|follow|use|enter|type|no|yes|embedded|included|protected|private)$/i;
 function passcodeFrom(raw) {
   const text = clean(String(raw || '').replace(URLS, ' '));
-  const m = /(?:pass\s?code|password|\bpw\b|\bpwd\b(?=\s*:)|access\s+code)\s*(is\b)?\s*([:#])?\s*\|?\s*([A-Za-z0-9!@$%^&*._+-]{3,20})/i.exec(text);
+  // "Password-First164": the hyphen is punctuation, the passcode is First164.
+  const m = /(?:pass\s?code|password|\bpw\b|\bpwd\b(?=\s*:)|access\s+code)\s*(is\b)?\s*([:#=-])?\s*\|?\s*([A-Za-z0-9!@$%^&*._+-]{1,20})/i.exec(text);
   if (!m) return null;
   const code = m[3].replace(/[.,;:)]+$/, '');
-  if (code.length < 3 || NOT_A_PASSCODE.test(code)) return null;
+  // Short codes only when all digits: some groups really use "Passcode 1".
+  if (!/^\d+$/.test(code) && code.length < 3) return null;
+  if (!code || NOT_A_PASSCODE.test(code)) return null;
   if (!m[1] && !m[2] && !/\d/.test(code)) return null;
   return code;
 }
@@ -206,7 +265,11 @@ function whoFrom({ types = [], text = '' }) {
 const TEEN = /\b(teens?|alateen|ages 12)\b/i;
 
 // The rules every directory shares, on whatever free text it publishes.
-function textProblem(name, text) {
+function textProblem(name, raw) {
+  /* Addresses and links out first: the dots in "email sunrise@gmail.com for
+     the meeting password" used to cut the ask-for-access check short. */
+  // Neutral stand-ins: "a link" here would itself read as asking for a link.
+  const text = String(raw || '').replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, 'ADDR').replace(URLS, 'URL.');
   if (TEEN.test(name)) return 'teen meeting';
   if (SERVICE.test(name)) return 'service meeting';
   if (ASK_FOR_ACCESS.test(text)) return 'listing says to ask someone for the link or password';
@@ -784,9 +847,297 @@ async function fromNa(now, rejected) {
   return kept;
 }
 
+/* ── OA ──────────────────────────────────────────────────────────────────────
+   Index first (only online + English + Zoom + recently updated rows are worth
+   a page), then each meeting's page, which reads like:
+     Meeting search | Monday 7:00 PM | Pacific Time | Meets Once a week |
+     Meeting #: 801400 | Online | ... Spoken Language | : | English |
+     Visitor Access | : | Open | ... Online meeting access | ... Join meeting
+     | Meeting ID: | 988 4249 9977 | Passcode: | 1212 | Phone meeting access
+   Many online listings say "Ask the meeting contact for login information"
+   or link only to zoom.us/join: those are left out. */
+/* oa.org's Cloudflare turns Node's built-in fetch away by the way it connects
+   (21 Oct: identical headers, fetch 403, curl 200), and the full Chrome user
+   agent too. The older https module with a plain agent gets through. */
+const OA_HEADERS = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128 Safari/537.36', 'Accept-Language': 'en-US', Accept: '*/*' };
+function httpsGet(url, redirects = 5) {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, { headers: OA_HEADERS, timeout: 60000 }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && redirects > 0) {
+        res.resume();
+        resolve(httpsGet(new URL(res.headers.location, url).toString(), redirects - 1));
+        return;
+      }
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: Buffer.concat(chunks).toString('utf8') }));
+    });
+    req.on('timeout', () => req.destroy(new Error('timeout')));
+    req.on('error', reject);
+  });
+}
+async function oaGet(url) {
+  let last = '';
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await httpsGet(url);
+      if (res.status === 200) return res;
+      last = `HTTP ${res.status}`;
+    } catch (e) { last = e.message; }
+    await new Promise((r) => setTimeout(r, 1500 * attempt));
+  }
+  throw new Error(`${url}: ${last}`);
+}
+
+async function oaIndex() {
+  const rows = [];
+  for (let page = 1, pages = 1; page <= pages && page <= 200; page++) {
+    const res = await oaGet(OA_INDEX(page));
+    pages = Number(res.headers['x-wp-totalpages']) || 1;
+    rows.push(...JSON.parse(res.body));
+  }
+  return rows;
+}
+
+function oaIndexProblem(m, now) {
+  const c = m.class_list || [];
+  if (!c.includes('meeting_types-online')) return 'not online';
+  if (!c.includes('spoken_language-english')) return 'not marked English';
+  if (!c.includes('platform-zoom')) return 'not on Zoom';
+  const updated = new Date(`${m.modified}Z`);
+  if (Number.isNaN(updated.getTime())) return 'listing has no last-updated date';
+  if (ageDays(updated, now) > MAX_LISTING_AGE_DAYS) return `listing last updated ${String(m.modified).slice(0, 10)}`;
+  return null;
+}
+
+function parseOaPage(html) {
+  const raw = String(html || '');
+  const t = clean(raw).replace(/[⁦-⁩]/g, '');
+  const head = /Meeting search \| (Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday) (\d{1,2}:\d{2} [AP]M) \| ([^|]+?) \|/i.exec(t);
+  const from = raw.indexOf('Online meeting access');
+  const to = raw.indexOf('Phone meeting access', from);
+  const onlineRaw = from >= 0 ? raw.slice(from, to > from ? to : from + 4000) : '';
+  const field = (label) => ((new RegExp(`${label} \\| : \\| ([^|]+?) \\|`).exec(t) || [])[1] || '').trim();
+  return {
+    day: head ? DAYS.findIndex((d) => d.toLowerCase() === head[1].toLowerCase()) : -1,
+    start: head ? to24(head[2]) : null,
+    zoneLabel: head ? head[3].trim() : '',
+    frequency: ((/\| Meets ([^|•]+?) \|/.exec(t) || [])[1] || '').trim(),
+    number: (/Meeting #: (\d+)/.exec(t) || [])[1] || null,
+    language: field('Spoken Language'),
+    access: field('Visitor Access').toLowerCase(),
+    topic: field('Specific Topic'),
+    heading: clean((/<h1[^>]*>([\s\S]*?)<\/h1>/i.exec(raw) || [])[1] || ''),
+    notes: ((/\| Notes: \| (.*?) \| (Weekly rotation format|Location & access)/.exec(t) || [])[1] || ''),
+    onlineRaw,
+    onlineText: clean(onlineRaw),
+  };
+}
+
+function oaProblem(d) {
+  if (d.day < 0 || !d.start) return 'no fixed day and time';
+  if (!OA_ZONES[d.zoneLabel]) return `time zone not mapped exactly (${d.zoneLabel || 'blank'})`;
+  if (d.language && d.language !== 'English') return `language is ${d.language}`;
+  if (d.frequency && !/^(once a week|every day)$/i.test(d.frequency)) return 'not weekly';
+  if (/ask the meeting contact|contact .{0,40}for (the )?(login|link|password|passcode)/i.test(d.onlineText)) return 'listing says to ask someone for the link or password';
+  const zoom = zoomFrom(d.onlineRaw);
+  if (!zoom) return 'no direct Zoom link';
+  if (!/pwd=/.test(zoom.link) && !passcodeFrom(d.onlineText)) return 'no passcode in the link or the listing';
+  return textProblem(d.heading, `${d.onlineText} ${d.notes}`);
+}
+
+function oaMeeting(d, row) {
+  const zoom = zoomFrom(d.onlineRaw);
+  const c = row.class_list || [];
+  const named = d.heading && !/^Meeting \d+$/i.test(d.heading);
+  return {
+    id: `oa-${row.id}`,
+    program: 'OA',
+    // Most online OA listings carry only a number; the topic tells them apart.
+    name: named ? d.heading : `OA meeting #${d.number}${d.topic ? ` (${d.topic})` : ''}`,
+    days: /^every day$/i.test(d.frequency) ? [0, 1, 2, 3, 4, 5, 6] : [d.day],
+    start: d.start,
+    end: null,
+    zone: OA_ZONES[d.zoneLabel],
+    link: zoom.link,
+    meetingId: zoom.meetingId,
+    passcode: /pwd=/.test(zoom.link) ? null : passcodeFrom(d.onlineText),
+    access: d.access === 'closed' ? 'closed' : d.access === 'open' ? 'open' : null,
+    who: c.includes('specific_focus-women') ? 'women' : c.includes('specific_focus-men') ? 'men' : null,
+    focus: d.topic,
+    source: row.link,
+    sourceUpdated: String(row.modified).slice(0, 10),
+  };
+}
+
+async function fromOa(now, rejected) {
+  const candidates = (await oaIndex()).filter((m) => {
+    const why = oaIndexProblem(m, now);
+    if (why) { rejected.push(['OA', m.id, why]); return false; }
+    return true;
+  });
+  const kept = [];
+  let i = 0;
+  async function worker() {
+    while (i < candidates.length) {
+      const row = candidates[i++];
+      let d;
+      try {
+        d = parseOaPage((await oaGet(row.link)).body);
+      } catch (e) {
+        rejected.push(['OA', row.id, `meeting page failed: ${e.message}`]);
+        continue;
+      }
+      const why = oaProblem(d);
+      if (why) { rejected.push(['OA', row.id, why]); continue; }
+      kept.push(oaMeeting(d, row));
+    }
+  }
+  await Promise.all([worker(), worker(), worker(), worker()]);
+  return kept;
+}
+
+/* ── SLAA ────────────────────────────────────────────────────────────────────
+   Each result is a list-view cell. Its header is written by a small script
+   ("var gi = 'Group'", then that branch's innerHTML): last updated, ID, the
+   name after "| " and the schedule ("Every Day 9:00 PM ET"). Below it come
+   label / value pairs: open or closed, Meeting Format, Languages Spoken,
+   Meeting Links (a real href), Online Meeting ID, Connection Instructions. */
+async function slaaRows() {
+  const first = await fetch(SLAA_DP, { headers: HEADERS });
+  if (!first.ok) throw new Error(`SLAA page: HTTP ${first.status}`);
+  const cookie = (first.headers.getSetCookie ? first.headers.getSetCookie() : []).map((c) => c.split(';')[0]).join('; ');
+  const page = await first.text();
+  const form = page.slice(page.indexOf('<form'), page.indexOf('</form>'));
+  const resultsId = (/id="cbDataAjaxCtnr(_[0-9a-f]+)"/.exec(page) || [])[1];
+  if (!form || !resultsId) throw new Error('SLAA page had no search form');
+  const decode = (s) => s.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+  const hidden = [...form.matchAll(/<input([^>]*)>/g)]
+    .map((m) => [(/name="([^"]*)"/.exec(m[1]) || [])[1], decode((/value="([^"]*)"/.exec(m[1]) || [])[1] || '')])
+    .filter(([name]) => name && name !== 'searchID');
+  const common = [['AjaxActionHostName', 'https://c3gaf515.caspio.com'], ['cbAjaxReferrer', SLAA_DP], ['cbParamList', '']];
+  const post = async (fields) => {
+    const body = new FormData();
+    for (const [k, v] of fields) body.append(k, v);
+    const res = await fetch(`${SLAA_DP}?rnd=${Date.now()}`, { method: 'POST', body, headers: { ...HEADERS, Referer: SLAA_DP, Origin: 'https://c3gaf515.caspio.com', ...(cookie ? { Cookie: cookie } : {}) } });
+    if (!res.ok) throw new Error(`SLAA request: HTTP ${res.status}`);
+    return res.json();
+  };
+  const search = await post([...hidden, ['Value1_1', 'Zoom'], ['Value2_1', ''], ['Value3_1', 'English'], ['Value4_1', ''],
+    ['AjaxAction', 'SearchForm'], ['GridMode', 'False'], ['cbSearchResultsUniqueId', resultsId], ...common]);
+  if (!search.appSession) throw new Error('SLAA search gave no session');
+  const cells = [];
+  for (let n = 1; n <= 20; n++) {
+    const data = await post([['ClientQueryString', ''], ['appSession', search.appSession], ['siblingDataPageAppSessions', '{}'], ['AjaxAction', 'GetData'],
+      ['GridMode', 'False'], ['cbUniqueFormId', resultsId], ['cbCurrentPageSize', '250'], ['CPIPage', String(n)], ['CPIOrderBy', 'DaySort'], ['CPISortType', 'asc'], ['PageID', '2'], ...common]);
+    const html = data.responseText || '';
+    cells.push(...html.split('<td class="cbResultSetListViewTable').slice(1));
+    const rec = /Records (\d+)-(\d+) of (\d+)/.exec(html.replace(/<[^>]+>/g, ' '));
+    if (!rec || rec[2] === rec[3]) break;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  return cells;
+}
+
+const SLAA_DAYS = { SUNDAY: 0, MONDAY: 1, TUESDAY: 2, WEDNESDAY: 3, THURSDAY: 4, FRIDAY: 5, SATURDAY: 6 };
+
+function parseSlaaCell(cell) {
+  const gi = (/var gi = '([^']+)'/.exec(cell) || [])[1] || '';
+  const branchAt = cell.indexOf(`(gi == '${gi}')`);
+  const branch = branchAt >= 0 ? cell.slice(branchAt, cell.indexOf("'; }", branchAt)) : '';
+  const pairs = {};
+  for (const m of cell.matchAll(/cbResultSetListViewDataLabel[^>]*>([\s\S]*?)<\/span><span class="cbResultSetData[^>]*>([\s\S]*?)<\/span>/g)) {
+    const label = clean(m[1]).replace(/\s+$/, '');
+    if (label && !(label in pairs)) pairs[label] = m[2];
+  }
+  const schedule = clean((/color:orange;">([^<]+)</.exec(branch) || [])[1] || '').toUpperCase();
+  const DAY = '(?:EVERY DAY|SUNDAY|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY)';
+  const when = new RegExp(`^(${DAY}(?:[,\\s]+${DAY})*)\\s+(\\d{1,2})(?::(\\d{2}))?\\s*([AP]M)\\s*(.*)$`).exec(schedule);
+  const rest = when ? when[5] : '';
+  const updated = /Last Updated: (\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(branch);
+  return {
+    kind: gi,
+    id: (/ID: (\d+)/.exec(branch) || [])[1] || null,
+    name: clean((/\| ([^<]+)<\/b>/.exec(branch) || [])[1] || ''),
+    schedule,
+    days: when ? (/EVERY DAY/.test(when[1]) ? [0, 1, 2, 3, 4, 5, 6] : when[1].split(/[,\s]+/).filter(Boolean).map((d) => SLAA_DAYS[d])) : [],
+    start: when ? to24(`${when[2]}:${when[3] || '00'} ${when[4]}`) : null,
+    zoneLabel: rest.split(/[,(/]/)[0].trim(),
+    // "10 PM UTC (7 PM EST) AND 11:15 AM UTC" or "MONDAY 9PM, WEDNESDAY 8PM":
+    // more than one meeting time in one line, which one row cannot hold.
+    severalTimes: / AND |&/.test(rest) || /\b(SUNDAY|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY)\b/.test(rest),
+    access: /^closed/i.test(clean(pairs['•'] || '')) ? 'closed' : /^open/i.test(clean(pairs['•'] || '')) ? 'open' : null,
+    format: clean(pairs['Meeting Format'] || ''),
+    language: clean(pairs['Languages Spoken'] || ''),
+    // The whole cell, raw: the Meeting Links href, the Online Meeting ID and
+    // the Connection Instructions are all read from it.
+    raw: Object.entries(pairs).map(([k, v]) => `${k} ${v}`).join(' | '),
+    // What the group itself wrote about joining. Not the "Email: Send Email
+    // to This Group" button every listing has, which sits right before
+    // "Meeting Links" and would read as "email ... link".
+    notes: clean(['Online Meeting ID', 'Other Links or Numbers', 'Connection Instructions', 'Additional Group Information']
+      .map((k) => pairs[k] || '').join(' | ')),
+    updated: updated ? new Date(Date.UTC(+updated[3], +updated[1] - 1, +updated[2])) : null,
+  };
+}
+
+function slaaProblem(d, now) {
+  if (d.kind !== 'Group') return 'intergroup listing, not a meeting';
+  if (!d.name || !d.id) return 'no meeting name';
+  if (!d.days.length || d.days.some((x) => x === undefined) || !d.start) return 'no fixed day and time';
+  if (d.severalTimes) return 'schedule lists more than one time';
+  if (!SLAA_ZONES[d.zoneLabel]) return `time zone not mapped exactly (${d.zoneLabel || 'blank'})`;
+  if (!/\bEnglish\b/i.test(d.language)) return `language is ${d.language || 'not stated'}`;
+  // "Sober Dating Workshop Noon Thursdays" listed as every day at midnight UTC.
+  const namedDays = [...d.name.toUpperCase().matchAll(/\b(SUNDAY|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY)S?\b/g)].map((m) => SLAA_DAYS[m[1]]);
+  if (namedDays.length && (namedDays.length !== d.days.length || namedDays.some((x) => !d.days.includes(x)))) return 'name and schedule disagree';
+  const zoom = zoomFrom(d.raw);
+  if (!zoom) return 'no direct Zoom link';
+  if (!/pwd=/.test(zoom.link) && !passcodeFrom(d.raw)) return 'no passcode in the link or the listing';
+  const why = textProblem(d.name, d.notes);
+  if (why) return why;
+  if (!d.updated) return 'listing has no last-updated date';
+  if (ageDays(d.updated, now) > MAX_LISTING_AGE_DAYS) return `listing last updated ${d.updated.toISOString().slice(0, 10)}`;
+  return null;
+}
+
+function slaaMeeting(d) {
+  const zoom = zoomFrom(d.raw);
+  return {
+    id: `slaa-${d.id}`,
+    program: 'SLAA',
+    name: d.name,
+    days: [...new Set(d.days)].sort(),
+    start: d.start,
+    end: null,
+    zone: SLAA_ZONES[d.zoneLabel],
+    link: zoom.link,
+    meetingId: zoom.meetingId,
+    passcode: /pwd=/.test(zoom.link) ? null : passcodeFrom(d.raw),
+    access: d.access,
+    who: /Women Only \(WO\)/.test(d.format) ? 'women' : /Men Only \(MO\)/.test(d.format) ? 'men' : null,
+    focus: d.format,
+    source: SLAA_SOURCE,
+    sourceUpdated: d.updated.toISOString().slice(0, 10),
+  };
+}
+
+async function fromSlaa(now, rejected) {
+  const kept = [];
+  for (const cell of await slaaRows()) {
+    const d = parseSlaaCell(cell);
+    const why = slaaProblem(d, now);
+    if (why) { rejected.push(['SLAA', d.id, why]); continue; }
+    kept.push(slaaMeeting(d));
+  }
+  return kept;
+}
+
 const SOURCES = [
   { programs: ['DA', 'BDA'], run: fromDa },
   { programs: ['NA'], run: fromNa },
+  { programs: ['OA'], run: fromOa },
+  { programs: ['SLAA'], run: fromSlaa },
   { programs: ['WA'], run: fromWa },
   { programs: ['AA'], run: fromAa },
   { programs: ['Al-Anon'], run: fromAlAnon },
@@ -868,4 +1219,5 @@ module.exports = {
   parseDaList, parseDaDetail, daProblem, waProblem, to24, DA_ZONES,
   zoomFrom, passcodeFrom, whoFrom, aaProblem, alAnonProblem, alAnonWhen, acaProblem, acaMeeting,
   parseIcs, uaProblem, uaMeeting, assemble, FLOOR, naProblem, naMeeting,
+  oaIndexProblem, parseOaPage, oaProblem, oaMeeting, parseSlaaCell, slaaProblem, slaaMeeting, textProblem, clean,
 };

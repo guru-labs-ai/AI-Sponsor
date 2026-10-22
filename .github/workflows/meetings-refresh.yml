@@ -3,7 +3,8 @@
 # the fellowships' own directories every week, well inside that window: a
 # missed week or two just means a slightly older list, never a wrong one.
 #
-# Seven programs from six directories (DA, BDA, WA, AA, Al-Anon, ACA, UA). When
+# Ten programs from nine directories (DA, BDA, WA, AA, Al-Anon, ACA, UA, NA,
+# OA, SLAA); OA reads ~1,100 meeting pages, so a run takes about 7 minutes. When
 # one directory fails or comes back thin (a layout change, not a quiet week),
 # that program keeps its last good meetings with their old check date, so the
 # 21-day guard still retires them, and the run shows a yellow warning naming it.

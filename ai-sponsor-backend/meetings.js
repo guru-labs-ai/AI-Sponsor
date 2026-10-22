@@ -34,6 +34,8 @@ const PROGRAMS = {
   'Al-Anon': { match: /^(al-?anon|al anon)$/i, label: 'Al-Anon', finder: 'https://al-anon.org/al-anon-meetings/find-an-al-anon-meeting/' },
   AA: { match: /^(aa|alcoholics anonymous)$/i, label: 'Alcoholics Anonymous', finder: 'https://www.aa.org/find-aa' },
   NA: { match: /^(na|narcotics anonymous)$/i, label: 'Narcotics Anonymous', finder: 'https://www.na.org/meetingsearch/' },
+  OA: { match: /^(oa|overeaters anonymous)$/i, label: 'Overeaters Anonymous', finder: 'https://oa.org/find-a-meeting/' },
+  SLAA: { match: /^(slaa|sex and love addicts anonymous)$/i, label: 'Sex and Love Addicts Anonymous', finder: 'https://slaafws.org/onlinemeetings/' },
 };
 
 /* Programs people sign up with that we hold no meetings for yet. For these the
@@ -43,8 +45,6 @@ const PROGRAMS = {
    Addicts Anonymous is left out on purpose: foodaddicts.org is a different
    fellowship (Food Addicts in Recovery Anonymous). */
 const OTHERS = {
-  OA: { match: /^(oa|overeaters anonymous)$/i, mention: [/\bOA\b/, /\bovereaters anonymous\b|\boa(?=\s+(meetings?|groups?|zoom))/i], label: 'Overeaters Anonymous', finder: 'https://oa.org/find-a-meeting/' },
-  SLAA: { match: /^(slaa|sex and love addicts anonymous)$/i, mention: [/\bslaa\b/i, /\bsex and love addicts anonymous\b/i], label: 'Sex and Love Addicts Anonymous', finder: 'https://slaafws.org/meetings/' },
   GA: { match: /^(ga|gamblers anonymous)$/i, mention: [/\bGA\b/, /\bgamblers anonymous\b|\bga(?=\s+(meetings?|groups?|zoom))/i], label: 'Gamblers Anonymous', finder: 'https://gamblersanonymous.org/find-a-meeting/' },
   MA: { match: /^marijuana anonymous$/i, mention: [/\bmarijuana anonymous\b/i], label: 'Marijuana Anonymous', finder: 'https://www.marijuana-anonymous.org/meetings' },
   'S-Anon': { match: /^s[- ]?anon\b/i, mention: [/\bs-?\s?anon\b/i], label: 'S-Anon', finder: 'https://sanon.org/find-a-meeting/' },
@@ -90,10 +90,20 @@ const MENTIONS = {
   'Al-Anon': [/\bal-?\s?anon\b/i],
   AA: [/\bAA\b/, new RegExp(`\\balcoholics anonymous\\b|\\baa${BEFORE_MEETING}`, 'i')],
   NA: [/\bNA\b/, new RegExp(`\\bnarcotics anonymous\\b|\\bna${BEFORE_MEETING}`, 'i')],
+  OA: [/\bOA\b/, new RegExp(`\\bovereaters anonymous\\b|\\boa${BEFORE_MEETING}`, 'i')],
+  SLAA: [/\bslaa\b/i, /\bsex and love addicts anonymous\b/i],
 };
-function programsIn(text) {
+/* Inside a conversation about meetings, people write "Ua?", "Bda?", "how about
+   right now for da" and "al-anob" (21 Oct, Matt and Mariam). Short names then
+   count in any case, and Al-Anon with a slipped last letter. Outside meeting
+   talk the strict forms above still apply, so "da" in ordinary words is safe. */
+const LOOSE = {
+  DA: /\bda\b/i, BDA: /\bbda\b/i, WA: /\bwa\b/i, UA: /\bua\b/i, ACA: /\baca\b/i,
+  'Al-Anon': /\bal[- ]?an[oa][a-z]\b/i, AA: /\baa\b/i, NA: /\bna\b/i, OA: /\boa\b/i, SLAA: /\bslaa\b/i,
+};
+function programsIn(text, { loose = false } = {}) {
   const t = String(text || '');
-  return Object.keys(PROGRAMS).filter((key) => MENTIONS[key].some((re) => re.test(t)));
+  return Object.keys(PROGRAMS).filter((key) => MENTIONS[key].some((re) => re.test(t)) || (loose && LOOSE[key] && LOOSE[key].test(t)));
 }
 function othersIn(text) {
   const t = String(text || '');
@@ -110,6 +120,22 @@ function programsOf(programField) {
 function othersOf(programField) {
   const parts = fieldParts(programField);
   return Object.keys(OTHERS).filter((key) => parts.some((p) => OTHERS[key].match.test(p)));
+}
+
+/* Said in every meetings block, because three things went wrong on 21 Oct:
+   the sponsor kept saying "I can't look up meetings" after it could (its own
+   earlier replies in the chat said so), it said "no UA list" when it simply
+   had not been handed UA, and it made up underearnersanonymous.com. */
+const ALL_FINDERS = [
+  ...Object.values(PROGRAMS).map((p) => `${p.label} ${p.finder}`),
+  ...Object.values(OTHERS).filter((o) => o.finder).map((o) => `${o.label} ${o.finder}`),
+].join('; ');
+function standingLines() {
+  return [
+    `You can search real online meetings for: ${ALL_LABELS}. Never say you cannot look up meetings or schedules: you can. If earlier in this chat you said you could not, that has changed, so do not repeat it.`,
+    'If they ask about one of these programs and its meetings are not listed here, never say you have no list for it: say you will look and ask them to name it once more (for example "Want UA meetings too? Just say UA and I\'ll search.").',
+    `Never make up a website. The official meeting finders are: ${ALL_FINDERS}.`,
+  ];
 }
 
 /* What the sponsor says for a program it holds no meetings for: the finder
@@ -232,13 +258,14 @@ function upcoming(programs, now, data, userZone) {
    own zone and labelled as such, never silently converted to a guess. */
 function buildMeetingsBlock({ message, programField, userZone, now = Date.now(), recentMessages = '', lastUserMessage = '' }) {
   try {
-    const named = programsIn(message);
+    const meetingTalk = asksAboutMeetings(message) || asksAboutMeetings(recentMessages);
+    const named = programsIn(message, { loose: meetingTalk });
     /* A conversation about meetings carries on past the message that started
        it: "AA" answering "Which program?", "any more tomorrow?", "and Friday?".
        recentMessages is their previous message and the sponsor's reply (the
        sponsor's question alone is often just "Which program?", seen 21 Oct),
        so while either of those was about meetings, this turn gets the block. */
-    if (!asksAboutMeetings(message) && !asksAboutMeetings(recentMessages)) return '';
+    if (!meetingTalk) return '';
     /* Which program, Mariam's rules (21 Oct):
        - named now (one or several): those, whatever they registered with,
          since people move between programs (Matt asked the same)
@@ -251,7 +278,7 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
        Never open with "I can't". */
     const namedOthers = othersIn(message);
     const nowNamed = named.length || namedOthers.length;
-    let programs = nowNamed ? named : programsIn(lastUserMessage);
+    let programs = nowNamed ? named : programsIn(lastUserMessage, { loose: true });
     let others = nowNamed ? namedOthers : othersIn(lastUserMessage);
     if (!programs.length && !others.length) {
       const fileCovered = programsOf(programField);
@@ -267,7 +294,7 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
           onFile.length
             ? `They signed up with several programs (${onFile.join(', ')}). Before naming any meeting, ask which program, or programs, they are looking for, in one short, warm question (for example "Which program, or programs, are you looking for?"). Once they say, you will have the meetings.`
             : 'They have not said which program, and none is on file. Before naming any meeting, ask what program, or programs, they are looking for today and say you will search, in one short, warm line (for example "What programs are you looking for today? I\'ll search for you."). Once they say, you will have the meetings.',
-          `You can find real online meetings for ${ALL_LABELS}. Never open with what you cannot do.`,
+          ...standingLines(),
           'Never name a meeting, time, link or passcode that you were not given here.',
         ].join('\n');
       }
@@ -278,7 +305,7 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
         '## RECOVERY MEETINGS',
         'Use this only if they are asking about a recovery meeting; otherwise ignore it.',
         ...otherLines,
-        `If they also go to one of these, you can find real online meetings for it: ${ALL_LABELS}.`,
+        ...standingLines(),
         'Never name a meeting, time, link or passcode that you were not given here.',
       ].join('\n');
     }
@@ -295,7 +322,7 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
     const staleLine = stale.length
       ? `For ${stale.map((p) => PROGRAMS[p].label).join(' and ')}, do not name any specific meeting, time or link: your list for it is out of date. Lead with the official finder as the answer itself, warmly: ${finderFor(stale)}`
       : null;
-    if (!fresh.length) return ['## RECOVERY MEETINGS', staleLine, ...otherLines].join('\n');
+    if (!fresh.length) return ['## RECOVERY MEETINGS', staleLine, ...otherLines, ...standingLines()].join('\n');
 
     const lists = upcoming(fresh, now, data, userZone);
     const lines = [];
@@ -316,7 +343,7 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
     if (!lines.length) {
       // Nothing at a sensible hour in the coming days: still something to give.
       const empty = fresh.map((p) => `For ${PROGRAMS[p].label}, none of your listed meetings falls at a sensible hour for them soon. Lead with the official finder as the answer itself, warmly: ${PROGRAMS[p].finder}`);
-      return ['## RECOVERY MEETINGS', ...empty, ...(staleLine ? [staleLine] : []), ...otherLines, 'Never name a meeting, time, link or passcode that you were not given here.'].join('\n');
+      return ['## RECOVERY MEETINGS', ...empty, ...(staleLine ? [staleLine] : []), ...otherLines, ...standingLines(), 'Never name a meeting, time, link or passcode that you were not given here.'].join('\n');
     }
 
     const checked = new Date(Math.min(...shown.map(checkedAt)))
@@ -329,6 +356,7 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
       ...lines,
       ...(staleLine ? [staleLine] : []),
       ...otherLines,
+      ...standingLines(),
       'How to use it:',
       '- Offer one to three that fit what they asked for, never the whole list.',
       '- Copy the name, time, link and passcode exactly as written here. Never change, shorten or make up a link, a time, a passcode or a meeting, and never offer one that is not on this list.',

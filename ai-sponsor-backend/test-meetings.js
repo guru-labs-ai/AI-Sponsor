@@ -41,7 +41,9 @@ group('which programs we cover, from what registration stores');
 check('codes',                meetings.programsOf('DA, BDA, UA, ACA, WA, Al-Anon'), ['DA', 'BDA', 'WA', 'UA', 'ACA', 'Al-Anon']);
 check('long names',           meetings.programsOf('Debtors Anonymous, Workaholics Anonymous'), ['DA', 'WA']);
 check('AA, NA and Al-Anon',   meetings.programsOf('AA, NA, Al-Anon'), ['Al-Anon', 'AA', 'NA']);
-check('nothing we hold',      meetings.programsOf('OA, SLAA, S Anon, Chronic Pain Anon'), []);
+check('nothing we hold',      meetings.programsOf('GA, S Anon, Chronic Pain Anon'), []);
+check('OA and SLAA are searchable', meetings.programsOf('OA, SLAA'), ['OA', 'SLAA']);
+check('"slaa meeting" and "an OA meeting"', [meetings.programsIn('any slaa meetings?'), meetings.programsIn('find me an OA meeting')], [['SLAA'], ['OA']]);
 check('UA is not DA',         meetings.programsOf('UA'), ['UA']);
 check('ACA by its long name', meetings.programsOf('Adult Children of Alcoholics'), ['ACA']);
 
@@ -97,17 +99,17 @@ check('tells it never to invent', block.includes('never offer one that is not on
 
 check('nothing when they are not asking',
   meetings.buildMeetingsBlock({ message: 'I feel low today', programField: 'DA', userZone: 'Europe/London', now: tueNoonUtc }), '');
-const uncovered = meetings.buildMeetingsBlock({ message: 'any OA meetings today?', programField: 'DA', userZone: 'Europe/London', now: tueNoonUtc });
+const uncovered = meetings.buildMeetingsBlock({ message: 'any GA meetings today?', programField: 'DA', userZone: 'Europe/London', now: tueNoonUtc });
 check('a program we hold no meetings for: leads with its official finder, names no meeting',
-  [uncovered.includes('https://oa.org/find-a-meeting/'), uncovered.includes('Do not open with what you cannot do'), uncovered.includes('Tuesday Visions')], [true, true, false]);
+  [uncovered.includes('https://gamblersanonymous.org/find-a-meeting/'), uncovered.includes('Do not open with what you cannot do'), uncovered.includes('Tuesday Visions')], [true, true, false]);
 const coda = meetings.buildMeetingsBlock({ message: 'CoDA meetings?', programField: '', userZone: 'Europe/London', now: tueNoonUtc });
-check('a program with no checked finder link: no link is made up', [coda.includes('never make up a link'), /https?:\/\//.test(coda)], [true, false]);
+check('a program with no checked finder link: no link is made up', [coda.includes('never make up a link'), /coda\.org/i.test(coda)], [true, false]);
 const oneOnFile = meetings.buildMeetingsBlock({ message: 'can you look for the meetings of today', programField: 'NA', userZone: 'Asia/Tbilisi', now: tueNoonUtc });
 check('one program on file, none named: straight to that program, no question (Mariam\'s rule, 21 Oct)',
-  [oneOnFile.includes('ask'), oneOnFile.includes('Narcotics Anonymous'), oneOnFile.includes('https://www.na.org/meetingsearch/')], [false, true, true]);
+  [/ask (which|what) program/.test(oneOnFile), oneOnFile.includes('Narcotics Anonymous'), oneOnFile.includes('https://www.na.org/meetingsearch/')], [false, true, true]);
 const nothingOnFile = meetings.buildMeetingsBlock({ message: 'can you look for the meetings of today', programField: '', userZone: 'Asia/Tbilisi', now: tueNoonUtc });
 check('nothing on file (Mariam, Matt): asks what programs they are looking for today, and that it will search',
-  [nothingOnFile.includes('"What programs are you looking for today? I\'ll search for you."'), nothingOnFile.includes('Never open with what you cannot do'), /zoom\.us/.test(nothingOnFile)], [true, true, false]);
+  [nothingOnFile.includes('"What programs are you looking for today? I\'ll search for you."'), nothingOnFile.includes('Never say you cannot look up meetings'), /zoom\.us/.test(nothingOnFile)], [true, true, false]);
 check('says it has no in-person list', block.includes('These are online meetings only'), true);
 
 const daily = meetings.buildMeetingsBlock({ message: 'WA meetings this week?', programField: 'WA', userZone: 'Europe/London', now: tueNoonUtc });
@@ -229,6 +231,24 @@ check('someone in DA who just asked for AA: "what about Friday?" is still AA',
   [followDa.includes('"Women on the Way"'), followDa.includes('Tuesday Visions')], [true, false]);
 check('once the talk has moved on, nothing is added',
   meetings.buildMeetingsBlock({ message: 'ok', programField: 'DA', userZone: 'Europe/London', now: tueNoonUtc, recentMessages: 'I am tired today\nThat sounds hard.', lastUserMessage: 'I am tired today' }), '');
+group('Matt\'s and Mariam\'s real messages, 21 Oct');
+const waReply = 'WA\n"Sober Play" today at 5:30pm, open: https://zoom.us/j/88237374526?pwd=N04';
+const programsInBlock = (b) => [...b.matchAll(/^(Debtors Anonymous|Business Debtors Anonymous|Workaholics Anonymous|Underearners Anonymous|Adult Children of Alcoholics|Al-Anon|Alcoholics Anonymous|Narcotics Anonymous|Overeaters Anonymous|Sex and Love Addicts Anonymous):$/gm)].map((x) => x[1]);
+const fakeData = { generatedAt: '2026-10-20T08:00:00Z', meetings: ['DA', 'BDA', 'UA', 'WA', 'Al-Anon'].map((p, i) => ({ ...WA_DAILY, id: `x-${i}`, program: p, name: `${p} meeting` })) };
+meetings._setData(fakeData);
+const ask = (message, lastUserMessage) => programsInBlock(meetings.buildMeetingsBlock({ message, programField: '', userZone: 'Europe/London', now: tueNoonUtc, recentMessages: waReply, lastUserMessage }));
+check('"How about right now for da" after WA means DA, not WA', ask('How about right now for da', 'WA'), ['Debtors Anonymous']);
+check('"Bda?"', ask('Bda?', 'How about right now for da'), ['Business Debtors Anonymous']);
+check('"Ua?"', ask('Ua?', 'Bda?'), ['Underearners Anonymous']);
+check('"What about al-anob and BDA" brings both', ask('What about al-anob and BDA', 'And what about debtors anonymous meetings?'), ['Business Debtors Anonymous', 'Al-Anon']);
+check('outside meeting talk, "da" is still not a program', meetings.programsIn('da da da'), []);
+check('"Alanna" is not Al-Anon even in meeting talk', meetings.programsIn('Alanna said hi', { loose: true }), []);
+const anyBlock = meetings.buildMeetingsBlock({ message: 'Ua?', programField: '', userZone: 'Europe/London', now: tueNoonUtc, recentMessages: waReply, lastUserMessage: 'WA' });
+check('every block says it CAN look meetings up, and to drop an earlier "I can\'t"',
+  [anyBlock.includes('Never say you cannot look up meetings or schedules: you can'), anyBlock.includes('If earlier in this chat you said you could not, that has changed')], [true, true]);
+check('every block carries the real finder links, so none is made up (UA is .org)',
+  anyBlock.includes('Underearners Anonymous https://underearnersanonymous.org/meetings-underearners-anonymous/'), true);
+
 check('asking about another program overrides the one on file',
   meetings.buildMeetingsBlock({ message: 'any AA meetings?', programField: 'DA', userZone: 'Europe/London', now: tueNoonUtc }).includes('Tuesday Visions'), false);
 
@@ -246,6 +266,58 @@ check('NA with a blank time zone is left out, never guessed', refresh.naProblem(
 check('NA in another language is left out', refresh.naProblem({ ...naRow, lang_enum: 'pt' }), 'language is pt');
 check('an NA service committee is left out', refresh.naProblem({ ...naRow, meeting_name: 'Policy Review Subcommittee' }), 'service meeting');
 
+group('asking for the link, told apart from a contact line (real listing text, 21 Oct)');
+const asks = (t) => refresh.textProblem('X', t) === 'listing says to ask someone for the link or password';
+for (const t of ['Please email us to receive the password.', 'To get the zoom password, please email women@example.com to retrieve the password.',
+  'Contact morning.group@gmail.com for log in information.', 'Please email atl.group@gmail.com for the zoom link password.', 'Email Group Rep for Zoom Link!',
+  'PLEASE Email nyc.rep@gmail.com for OUR 35 WEEKLY Meeting LINKS', 'Password: email us at a@b.com', 'Ask the meeting contact for login information prior to the meeting.']) {
+  check(`asks: "${t.slice(0, 45)}"`, asks(t), true);
+}
+for (const t of ['Group email: | ua.group@gmail.com | Zoom', 'If you have problems connecting, please contact this group using the information on this listing.',
+  'Join Zoom Meeting | Meeting ID: 811 0517 7232 | Passcode: 1212 | One tap mobile | call-in number', 'Contact: a.b@c.com for questions about the group']) {
+  check(`does not ask: "${t.slice(0, 45)}"`, asks(t), false);
+}
+
+group('reading OA meeting pages');
+const oaPage = (head, online) => `<h1>Meeting 800011</h1><p>Meeting search</p><p>${head}</p><p>Meeting #: 800011</p><p>Online</p>
+  <p>Meeting details:</p><p>Spoken Language</p><p>:</p><p>English</p><p>Visitor Access</p><p>:</p><p>Closed</p><p>Specific Topic</p><p>:</p><p>Meditation</p>
+  <p>Location &amp; access:</p><p>Online meeting access</p>${online}<p>Phone meeting access</p>`;
+const oaGood = refresh.parseOaPage(oaPage('<span>Saturday 12:00 PM</span><span>Eastern Time</span><span>⁦Meets Once a week⁩</span>',
+  '<p>Join the meeting (full link provided).</p><a href="https://zoom.us/j/98842499977?pwd=K0hs">Join meeting</a><p>Meeting ID:</p><p>988 4249 9977</p><p>Passcode:</p><p>1212</p>'));
+check('a good OA page is kept', refresh.oaProblem(oaGood), null);
+const oaM = refresh.oaMeeting(oaGood, { id: 15706, link: 'https://oa.org/meetings/800011/', modified: '2026-08-13T13:11:20', class_list: ['specific_focus-women'] });
+check('OA day, time and zone', (({ days, start, zone }) => ({ days, start, zone }))(oaM), { days: [6], start: '12:00', zone: 'America/New_York' });
+check('a nameless OA meeting is called by number and topic', oaM.name, 'OA meeting #800011 (Meditation)');
+check('OA women focus is marked', oaM.who, 'women');
+check('"Ask the meeting contact for login information" is left out',
+  refresh.oaProblem(refresh.parseOaPage(oaPage('<span>Monday 7:00 AM</span><span>Pacific Time</span>', '<p>Ask the meeting contact for login information prior to the meeting.</p><a href="https://zoom.us/join">Join meeting</a>'))),
+  'listing says to ask someone for the link or password');
+check('an OA zone we cannot map exactly is left out',
+  refresh.oaProblem(refresh.parseOaPage(oaPage('<span>Monday 7:00 AM</span><span>Greenwich Mean Time</span>', '<a href="https://zoom.us/j/98842499977?pwd=K">Join</a>'))),
+  'time zone not mapped exactly (Greenwich Mean Time)');
+
+group('reading SLAA listings');
+const slaaCell = (schedule, name, pairs, updated = '2/2/2026') => `ResultSetListViewTableEvenCell"><script> var gi = 'Group'
+  if (gi == 'Intergroup') { x.innerHTML = 'no'; } else if (gi == 'Group') { x.innerHTML = '<span>Last Updated: ${updated}<br>ID: 40041385</span><b style="font-size: 22px;">| ${name}</b><br /><span style="text-transform:uppercase; font-size: 20px; font-weight: 500;color:orange;">${schedule}</span>'; }</script>
+  ${pairs.map(([k, v]) => `<span class="cbResultSetListViewDataLabel cbResultSetNestedAlign">${k}&nbsp;</span><span class="cbResultSetData cbResultSetNestedAlign">${v}</span><br />`).join('')}`;
+const slaaPairs = [['&#8226;', 'Closed Meeting (Only those identifying with sex and love addiction may attend)'], ['Meeting Format', 'Men and Women Welcome (MW)'], ['Languages Spoken', 'English'],
+  ['Email', '<a href="mailto:x@example.com">Send Email to This Group</a>'], ['Meeting Links', '<a href="https://us02web.zoom.us/j/89522611873?pwd=d2Vy">Visit Link</a>'],
+  ['Online Meeting ID', '895 2261 1873'], ['Connection Instructions', 'Password = 101011&nbsp;']];
+const sGood = refresh.parseSlaaCell(slaaCell('Every Day 9:00 PM ET', 'Daily 10th Step', slaaPairs));
+check('a good SLAA listing is kept (the "Send Email" button is not "email for the link")', refresh.slaaProblem(sGood, now), null);
+check('SLAA every day, time, zone, closed', (({ days, start, zone, access }) => ({ days, start, zone, access }))(refresh.slaaMeeting(sGood)),
+  { days: [0, 1, 2, 3, 4, 5, 6], start: '21:00', zone: 'America/New_York', access: 'closed' });
+check('SLAA "7PM EST" on two days', (({ days, start, zone }) => ({ days, start, zone }))(refresh.slaaMeeting(refresh.parseSlaaCell(slaaCell('Sunday, Thursday 7PM EST', 'Trailblazers', slaaPairs)))),
+  { days: [0, 4], start: '19:00', zone: 'America/New_York' });
+check('SLAA with no time zone is left out, never guessed', refresh.slaaProblem(refresh.parseSlaaCell(slaaCell('Tuesday 7:00 PM', 'X', slaaPairs)), now), 'time zone not mapped exactly (blank)');
+check('SLAA name and schedule disagreeing is left out',
+  refresh.slaaProblem(refresh.parseSlaaCell(slaaCell('Every Day 12:00 AM UTC', 'Sober Dating Workshop Noon Thursdays', slaaPairs)), now), 'name and schedule disagree');
+check('SLAA "Password = 101011" with no pwd in the link', refresh.slaaMeeting(refresh.parseSlaaCell(slaaCell('Every Day 9:00 PM ET', 'X',
+  slaaPairs.map(([k, v]) => (k === 'Meeting Links' ? [k, '<a href="https://example.org">Visit Link</a>'] : [k, v]))))).passcode, '101011');
+check('SLAA "please email us for the password" is left out', refresh.slaaProblem(refresh.parseSlaaCell(slaaCell('Every Day 9:00 PM ET', 'X',
+  [...slaaPairs.filter(([k]) => k !== 'Connection Instructions'), ['Connection Instructions', 'Please email sunrise@example.com for the meeting password.']])), now),
+  'listing says to ask someone for the link or password');
+
 group('reading the new directories');
 check('a phone number is never taken for a Zoom id', refresh.zoomFrom('Call 412-924-7162 access 947757'), null);
 check('"Zoom ID# 432860084" becomes a link', refresh.zoomFrom('ZOOM ONLY Zoom ID# 432860084 Password 135048').link, 'https://zoom.us/j/432860084');
@@ -259,6 +331,7 @@ check('"Passcode: Email us" is not a passcode', refresh.passcodeFrom('ID: 853 53
 check('"the password for the meeting" is not a passcode', refresh.passcodeFrom('To get the password for the meeting, please write'), null);
 check('a pwd= token inside a link is not something to type', refresh.passcodeFrom('https://zoom.us/j/81105177232?pwd=MYZHk9ggWM6ODKS5mdbL'), null);
 check('trailing full stop is dropped', refresh.passcodeFrom('Passcode: 296471.'), '296471');
+check('"Password-First164" is First164', refresh.passcodeFrom('Connection Instructions | Password-First164 |'), 'First164');
 check('Al-Anon times', refresh.alAnonWhen('Tuesday 08:15 PM'), { day: 2, start: '20:15' });
 check('Al-Anon around the clock is left out', refresh.alAnonProblem({ is_24_7: true, url: 'https://zoom.us/j/12345678901?pwd=a', languages: 'English', times: '', timezone: 'America/Chicago' }), 'runs around the clock, no fixed time');
 const acaRow = {
