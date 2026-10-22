@@ -79,9 +79,25 @@ const ago = (days, hours = 0) =>
     has(`block ${i + 1} forbids morning/afternoon/tonight`, b, 'Do not say morning, afternoon or tonight');
   });
 
+  group('with their zone (from their phone number) it knows their clock');
+  /* Mariam, 23 Oct: a sponsor needs a sense of time, above all for meetings.
+     On 22 Oct it was past midnight in Pakistan while this block said Thursday,
+     and the sponsor offered a Saturday meeting for Friday. */
+  const karachi = buildTimeBlock(null, NOW, 'Asia/Karachi');
+  has('their date and time', karachi, 'Where they are it is Tuesday, 25 August 2026, 5:00pm.');
+  has('where the clock comes from, and that theirs wins', karachi, 'if they tell you their time, go with theirs');
+  check('no "you do not know" line when it does know', karachi.includes('You do not know their local time of day'), false);
+  has('just after midnight it is already the next day there',
+    buildTimeBlock(null, new Date(Date.UTC(2026, 9, 22, 19, 7)), 'Asia/Karachi'), 'Friday, 23 October 2026, 12:07am');
+  has('the last message is dated on their clock too',
+    buildTimeBlock(new Date(Date.UTC(2026, 9, 21, 20, 0)), new Date(Date.UTC(2026, 9, 22, 19, 7)), 'Asia/Karachi'), '(Thursday 22 October)');
+  const nonsense = buildTimeBlock(null, NOW, 'Not/AZone');
+  check('an unknown zone is treated as unknown, never guessed',
+    [nonsense.includes('Today is Tuesday, 25 August 2026.'), nonsense.includes('You do not know their local time of day')], [true, true]);
+
   group('wiring');
-  check('the block is actually sent to the model',
-    server.includes("systemBlocks.push({ type: 'text', text: buildTimeBlock(lastAt) })"), true);
+  check('the block is actually sent to the model, with their zone',
+    server.includes("systemBlocks.push({ type: 'text', text: buildTimeBlock(lastAt, new Date(), userZone) })"), true);
   check('last-contact time is read from the database',
     server.includes('db.getLastMessageAt(userId)'), true);
   /* If this ever throws, somebody loses their reply over a date line. */
@@ -96,7 +112,7 @@ const ago = (days, hours = 0) =>
   check('read before the turn is persisted, so the gap is the PREVIOUS contact',
     fn.indexOf('db.getLastMessageAt(userId)') < fn.indexOf('persistExchange(userId'), true);
   check('not marked for caching',
-    /buildTimeBlock\(lastAt\) \}\);/.test(server) && !/buildTimeBlock\(lastAt\)[^)]*cache_control/.test(server), true);
+    /buildTimeBlock\(lastAt, new Date\(\), userZone\) \}\);/.test(server) && !/buildTimeBlock\(lastAt[^\n]*cache_control/.test(server), true);
   check('db exposes it', src('db.js').includes('getLastMessageAt,'), true);
 
   console.log(`\n${pass} passed, ${fail} failed`);

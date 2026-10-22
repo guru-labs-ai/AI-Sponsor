@@ -1331,11 +1331,13 @@ async function loadSession(userId) {
 
    Two things go in: today's date, and how long since this person last spoke.
 
-   ⚠️ WHAT IT DELIBERATELY DOES NOT CLAIM: their local time of day. The server
-   is UTC and has no idea where anyone is, and a sponsor confidently saying
-   "tonight" at nine in the morning is worse than one that simply does not
-   mention it. So the block says the date plainly and tells the model to leave
-   time of day alone unless the person raises it first.
+   Their local time of day too, but only when we know where they are (their
+   phone number gives the zone). A sponsor confidently saying "tonight" at nine
+   in the morning is worse than one that simply does not mention it, so without
+   a zone the block says the date and tells the model to leave time of day
+   alone. With one, it knows their clock (Mariam, 23 Oct: a sponsor needs a
+   sense of time, above all for meetings; on 22 Oct it did not know it was past
+   midnight in Pakistan and offered a Saturday meeting for Friday).
 
    Kept OUT of the cached prefix on purpose. MASTER_SYSTEM_PROMPT carries the
    ephemeral cache_control; this block changes every day and every conversation,
@@ -1357,25 +1359,28 @@ function describeGap(lastAt, now) {
   return `${Math.round(days / 30)} months ago`;
 }
 
-/* The date is theirs when we know where they are. On 22 Oct this said Thursday
-   (UTC) while it was already Friday in Pakistan, and the sponsor counted the
-   meetings block's "tomorrow" from the wrong day. */
+/* The date and time are theirs when we know where they are. On 22 Oct this said
+   Thursday (UTC) while it was already Friday in Pakistan, and the sponsor
+   counted the meetings block's "tomorrow" from the wrong day. */
 function buildTimeBlock(lastAt, now = new Date(), zone = null) {
-  let tz = 'UTC';
+  let tz = null;
   if (zone) {
-    try { new Intl.DateTimeFormat('en-GB', { timeZone: zone }); tz = zone; } catch { /* unknown zone: UTC */ }
+    try { new Intl.DateTimeFormat('en-GB', { timeZone: zone }); tz = zone; } catch { /* unknown zone: not known */ }
   }
   const date = now.toLocaleDateString('en-GB', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: tz,
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: tz || 'UTC',
   });
-  const lines = [`Today is ${date}${tz === 'UTC' ? '' : ' where they are'}.`];
+  const time = tz && now.toLocaleTimeString('en-US', {
+    hour: 'numeric', minute: '2-digit', hour12: true, timeZone: tz,
+  }).replace(' ', '').toLowerCase();
+  const lines = [tz ? `Where they are it is ${date}, ${time}.` : `Today is ${date}.`];
 
   const gap = describeGap(lastAt, now);
   if (!gap) {
     lines.push('This is the first time this person has spoken to you.');
   } else {
     const then = new Date(lastAt).toLocaleDateString('en-GB', {
-      weekday: 'long', day: 'numeric', month: 'long', timeZone: tz,
+      weekday: 'long', day: 'numeric', month: 'long', timeZone: tz || 'UTC',
     });
     lines.push(`They last messaged you ${gap} (${then}).`);
     /* The whole point. A fortnight's silence is information, and the sponsor
@@ -1386,7 +1391,9 @@ function buildTimeBlock(lastAt, now = new Date(), zone = null) {
     }
   }
 
-  lines.push('You do not know their local time of day, only the date. Do not say morning, afternoon or tonight unless they mention it first.');
+  lines.push(tz
+    ? `Their clock comes from their phone number (${tz}), so it can be off if they have moved or are travelling; if they tell you their time, go with theirs. Know whether it is morning, evening or the middle of the night for them, and read "today", "tonight" and "tomorrow" on their clock. Just after midnight, "today" can still mean the day that just ended to them, so check when it matters. Mention the hour only when it matters to what they are saying.`
+    : 'You do not know their local time of day, only the date. Do not say morning, afternoon or tonight unless they mention it first.');
   return lines.join('\n');
 }
 

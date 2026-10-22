@@ -182,6 +182,19 @@ function dateIn(zone, instant) {
   return { y: Number(parts.year), mo: Number(parts.month) - 1, d: Number(parts.day) };
 }
 
+/* "in 1 hour 34 minutes", for a meeting starting within twelve hours, so the
+   sponsor has a sense of how soon it is without doing clock sums. */
+function startsIn(instant, now) {
+  const mins = Math.round((instant - now) / 60000);
+  if (mins <= 0 || mins >= 12 * 60) return '';
+  const h = Math.floor(mins / 60);
+  const mm = mins % 60;
+  const parts = [];
+  if (h) parts.push(`${h} hour${h === 1 ? '' : 's'}`);
+  if (mm) parts.push(`${mm} minute${mm === 1 ? '' : 's'}`);
+  return `in ${parts.join(' ')}`;
+}
+
 /* Every time this meeting starts in the coming week, as instants. A meeting
    that began up to ten minutes ago still counts: most rooms let people in for
    a while. */
@@ -271,6 +284,9 @@ const MIN_GAP_MINUTES = 120;
 // Today and the next day that has meetings, plus any weekday they name.
 const DAYS_SHOWN = 2;
 
+const LATE_NIGHT_WINDOW_MS = 2 * 3600000;
+const inWaking = (hour) => hour >= WAKING.from && hour < WAKING.to;
+
 function localHourAt(zone, instant) {
   return Number(fmt('gb-hour', zone, { hour: 'numeric', hour12: false })
     .format(new Date(instant))) % 24;
@@ -308,15 +324,30 @@ function upcoming(programs, now, data, userZone, askedDays = []) {
     const all = mine.flatMap((m) => starts(m, now).map((at) => ({ m, at }))).sort((a, b) => a.at - b.at);
     for (const x of all) {
       const h = localHourAt(userZone, x.at);
-      if (h < WAKING.from || h >= WAKING.to) continue;
+      if (!inWaking(h)) continue;
       const { y, mo, d } = dateIn(userZone, x.at);
       const key = `${y}-${mo}-${d}`;
       if (!days.has(key)) days.set(key, { weekday: new Date(Date.UTC(y, mo, d)).getUTCDay(), list: [] });
       days.get(key).list.push({ ...x, h });
     }
-    out[p] = [...days.values()]
+    /* Up late (10pm to 7am for them), somebody asking for a meeting may need
+       one now, not at a sensible hour tomorrow. Then the next two starting
+       within two hours are offered too, whatever the hour. */
+    const nowHour = localHourAt(userZone, now);
+    const late = nowHour < WAKING.from || nowHour >= WAKING.to;
+    const night = late
+      ? all.filter((x) => x.at <= now + LATE_NIGHT_WINDOW_MS && !inWaking(localHourAt(userZone, x.at)))
+      : [];
+    // Open before women- or men-only, and not two starting at the same time.
+    const soonest = [];
+    for (const x of [...night.filter((n) => !n.m.who), ...night.filter((n) => n.m.who)]) {
+      if (soonest.length >= 2) break;
+      if (soonest.every((s) => Math.abs(s.at - x.at) >= 30 * 60000)) soonest.push(x);
+    }
+    soonest.sort((a, b) => a.at - b.at);
+    out[p] = [...soonest, ...[...days.values()]
       .filter((day, i) => i < DAYS_SHOWN || askedDays.includes(day.weekday))
-      .flatMap((day) => spreadDay(day.list));
+      .flatMap((day) => spreadDay(day.list))];
   }
   return out;
 }
@@ -338,10 +369,9 @@ function alreadyGiven(text, data) {
    inside a name is never read as theirs. "Listed as" and the source are there
    so that, questioned, the sponsor can show where a meeting comes from. */
 function meetingLine(m, at, userZone, now) {
-  const fields = [
-    userZone ? describeWhen(at, userZone, now) : `${describeWhen(at, m.zone, now, { relative: false })} ${m.zone} time`,
-    `"${cleanName(m.name)}"`,
-  ];
+  const when = userZone ? describeWhen(at, userZone, now) : `${describeWhen(at, m.zone, now, { relative: false })} ${m.zone} time`;
+  const soon = startsIn(at, now);
+  const fields = [soon ? `${when} (${soon})` : when, `"${cleanName(m.name)}"`];
   if (userZone) fields.push(`listed as ${fmt('weekday', m.zone, { weekday: 'long' }).format(new Date(at))} ${clock(at, m.zone)} ${m.zone} time`);
   if (m.access) fields.push(m.access);
   if (m.who) fields.push(`${m.who} only`);
@@ -460,7 +490,7 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
       'Use this only if they are asking about a recovery meeting. If "meeting" here means seeing a person, or anything else, ignore this section completely.',
       `These are upcoming online meetings for their program, read from each meeting's official listing on ${checked}.`,
       userZone
-        ? `Where they are (${userZone}, from their phone number) it is now ${describeWhen(now, userZone, now, { relative: false }).replace(' at ', ', ')}. Each line starts with the meeting's day, date and time for them, already worked out, and only ones at a sensible hour for them are listed. Use that day and date exactly as written; never work out a day yourself from "today" or "tomorrow". "Listed as" is the day and time the directory gives, in the meeting's own time zone.`
+        ? `Where they are (${userZone}, from their phone number) it is now ${describeWhen(now, userZone, now, { relative: false }).replace(' at ', ', ')}. Each line starts with the meeting's day, date and time for them, already worked out, and how soon it starts. ${inWaking(localHourAt(userZone, now)) ? 'Only ones at a sensible hour for them are listed.' : 'They are up late, so the first ones are the next meetings starting within two hours, whatever the hour, in case they need one now; the rest are at a sensible hour.'} Use that day and date exactly as written; never work out a day yourself from "today" or "tomorrow". "Listed as" is the day and time the directory gives, in the meeting's own time zone.`
         : 'We do not know where they are, so each time is in the meeting\'s own time zone, as labelled.',
       ...lines,
       ...givenSection,
@@ -486,7 +516,7 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
 
 module.exports = {
   buildMeetingsBlock, asksAboutMeetings, programsOf, programsIn, nextStart, starts, describeWhen, instantFor,
-  cleanName, weekdaysIn, alreadyGiven,
+  cleanName, weekdaysIn, alreadyGiven, startsIn,
   offsetMinutes, STALE_AFTER_DAYS, PROGRAMS, OTHERS, othersIn,
   _setData(d) { cache = d; },
 };

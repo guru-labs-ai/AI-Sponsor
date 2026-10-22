@@ -77,7 +77,7 @@ console.log('\n── Volatile things below it ──');
 check('the time block is BELOW the marker', () => {
   // The whole reason the prefix was uncacheable. If this ever moves back up,
   // caching silently stops working and the bill roughly doubles.
-  assert.ok(at('text: buildTimeBlock(lastAt)') > at(MARKER),
+  assert.ok(at('text: buildTimeBlock(lastAt') > at(MARKER),
     'the time block is above the cache marker again, which kills all caching');
 });
 

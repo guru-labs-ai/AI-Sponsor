@@ -90,7 +90,7 @@ const nyBlock = meetings.buildMeetingsBlock({
   message: 'can you find me a DA meeting', programField: 'DA', userZone: 'America/New_York', now: tueNoonUtc,
 });
 check('a New Yorker gets it tonight, exact link and passcode',
-  nyBlock.includes('- today, Tuesday 20 October, at 7:30pm | "Tuesday Visions" | listed as Tuesday 7:30pm America/New_York time | closed | https://us02web.zoom.us/j/12345678901 | passcode 512788'), true);
+  nyBlock.includes('- today, Tuesday 20 October, at 7:30pm (in 11 hours 30 minutes) | "Tuesday Visions" | listed as Tuesday 7:30pm America/New_York time | closed | https://us02web.zoom.us/j/12345678901 | passcode 512788'), true);
 check('has the BDA meeting, next Monday',
   block.includes('- Monday 26 October at 9:15am | "Prosperity and Serenity" | listed as Monday 9:15am Europe/London time | open | https://zoom.us/j/952138930?pwd=abc'), true);
 check('no WA meetings for someone not in WA', block.includes('Underscheduling'), false);
@@ -115,11 +115,11 @@ check('says it has no in-person list', block.includes('These are online meetings
 const daily = meetings.buildMeetingsBlock({ message: 'WA meetings this week?', programField: 'WA', userZone: 'Europe/London', now: tueNoonUtc });
 check('a daily meeting is listed once a day, today and tomorrow',
   (daily.match(/"Underscheduling"/g) || []).length, 2);
-check('and today\'s is first', daily.includes('- today, Tuesday 20 October, at 6pm | "Underscheduling"'), true);
+check('and today\'s is first, with how soon it is', daily.includes('- today, Tuesday 20 October, at 6pm (in 5 hours) | "Underscheduling"'), true);
 
 const unplaced = meetings.buildMeetingsBlock({ message: 'WA meeting?', programField: 'WA', userZone: null, now: tueNoonUtc });
 check('no zone: time stays in the meeting\'s own zone, labelled',
-  [unplaced.includes('- Tuesday 20 October at 6pm Europe/London time | "Underscheduling"'), /^- (today|tomorrow)/m.test(unplaced)], [true, false]);
+  [unplaced.includes('- Tuesday 20 October at 6pm Europe/London time (in 5 hours) | "Underscheduling"'), /^- (today|tomorrow)/m.test(unplaced)], [true, false]);
 
 group('a list nobody refreshed is never shown');
 meetings._setData(fresh('2026-09-01T08:00:00Z'));
@@ -389,7 +389,7 @@ check('the Saturday meeting says Saturday 24 October, not just "tomorrow"',
   uaPk.includes('- tomorrow, Saturday 24 October, at 7:30pm | "Saturday-LGBTQ2SIA+ UA Rainbow Recovery" | listed as Saturday 10:30am America/New_York time'), true);
 const aaPk = meetings.buildMeetingsBlock({ message: 'Can you find an online AA meeting today after 7 PM Pakistan time?', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-22T19:11:48Z') });
 check('9pm Pacific is 9am in Pakistan, and the "9:00 PM PST" in its name is gone',
-  aaPk.includes('- today, Friday 23 October, at 9am | "22:22 Presents: The Wheel of Surrender" | listed as Thursday 9pm America/Los_Angeles time'), true);
+  aaPk.includes('- today, Friday 23 October, at 9am (in 8 hours 48 minutes) | "22:22 Presents: The Wheel of Surrender" | listed as Thursday 9pm America/Los_Angeles time'), true);
 check('it is told a time in a name is never their time', aaPk.includes('never its time for them'), true);
 const daPk = meetings.buildMeetingsBlock({ message: 'Can you find me an online DA meeting today after 7 PM Pakistan time?', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-22T14:26:57Z') });
 check('each meeting carries its own official listing, to show when asked',
@@ -412,6 +412,18 @@ check('asked about a meeting it gave, after it started and with no program named
   [/ask what program/.test(askedAgain), askedAgain.includes('- started 23 minutes ago (Thursday 22 October, 9pm) | "Together We Prosper"'), askedAgain.includes('source https://www.debtorsanonymous.org/meeting-search-detail/?mid=3141')],
   [false, true, true]);
 check('a meeting ID typed with spaces is still found', meetings.alreadyGiven('is 819 9042 4358 right?', { meetings: [DA_3141] }).length, 1);
+check('how soon, in words', [meetings.startsIn(at('2026-10-20T13:34:00Z'), tueNoonUtc), meetings.startsIn(at('2026-10-20T13:00:00Z'), tueNoonUtc), meetings.startsIn(at('2026-10-20T12:01:00Z'), tueNoonUtc), meetings.startsIn(at('2026-10-21T13:00:00Z'), tueNoonUtc)],
+  ['in 1 hour 34 minutes', 'in 1 hour', 'in 1 minute', '']);
+const NIGHT_A = { ...DA_3141, id: 'da-n1', name: 'Night One', meetingId: null, link: 'https://zoom.us/j/11111111111', days: [4], start: '17:00', zone: 'America/New_York' };
+const NIGHT_B = { ...NIGHT_A, id: 'da-n2', name: 'Night Two', link: 'https://zoom.us/j/22222222222', start: '17:00', zone: 'America/New_York' };
+const NIGHT_C = { ...NIGHT_A, id: 'da-n3', name: 'Night Three', link: 'https://zoom.us/j/33333333333', start: '18:00', zone: 'America/New_York' };
+meetings._setData({ generatedAt: '2026-10-22T07:58:00Z', meetings: [NIGHT_A, NIGHT_B, NIGHT_C, DA_3141] });
+const twoAm = meetings.buildMeetingsBlock({ message: 'I need a DA meeting right now', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-22T21:05:00Z') });
+check('up at 2am: a meeting that just started and the next one are offered, not two at the same time',
+  [twoAm.includes('- started 5 minutes ago (Friday 23 October, 2am) | "Night One"'), twoAm.includes('"Night Two"'), twoAm.includes('- today, Friday 23 October, at 3am (in 55 minutes) | "Night Three"')], [true, false, true]);
+check('and it is told why those are outside the usual hours', twoAm.includes('They are up late'), true);
+const twoPm = meetings.buildMeetingsBlock({ message: 'I need a DA meeting', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-22T09:05:00Z') });
+check('in the daytime, night meetings are still left out', twoPm.includes('"Night Three"'), false);
 check('weekdays named in a message', [meetings.weekdaysIn('what about Saturday?'), meetings.weekdaysIn('any weds or thurs ones'), meetings.weekdaysIn('the sun sat on the mat')], [[6], [3, 4], []]);
 
 group('fast enough with thousands of meetings');
@@ -426,8 +438,8 @@ const took = Date.now() - t0;
 console.log(`      (3,000 meetings: ${took} ms)`);
 check('3,000 meetings in under half a second', took < 500, true);
 const minutesOf = (x) => { const [h, mi] = x[1].split(':').map(Number); return (h % 12 + (x[2] === 'pm' ? 12 : 0)) * 60 + (mi || 0); };
-const todays = [...big.matchAll(/^- today, [A-Za-z]+ \d+ [A-Za-z]+, at ([0-9:]+)(am|pm) \|/gm)].map(minutesOf);
-const tomorrows = [...big.matchAll(/^- tomorrow, [A-Za-z]+ \d+ [A-Za-z]+, at ([0-9:]+)(am|pm) \|/gm)].map(minutesOf);
+const todays = [...big.matchAll(/^- today, [A-Za-z]+ \d+ [A-Za-z]+, at ([0-9:]+)(am|pm)( \(in [^)]+\))? \|/gm)].map(minutesOf);
+const tomorrows = [...big.matchAll(/^- tomorrow, [A-Za-z]+ \d+ [A-Za-z]+, at ([0-9:]+)(am|pm)( \(in [^)]+\))? \|/gm)].map(minutesOf);
 check('two days, at most four a day', [(big.match(/^- [^|\n]+ \| "/gm) || []).length <= 8, tomorrows.length], [true, 4]);
 check('today\'s choices are spread out, not all starting now',
   todays.length >= 2 && todays.every((t, i) => i === 0 || t - todays[i - 1] >= 120), true);
