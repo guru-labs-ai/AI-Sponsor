@@ -1357,18 +1357,25 @@ function describeGap(lastAt, now) {
   return `${Math.round(days / 30)} months ago`;
 }
 
-function buildTimeBlock(lastAt, now = new Date()) {
+/* The date is theirs when we know where they are. On 22 Oct this said Thursday
+   (UTC) while it was already Friday in Pakistan, and the sponsor counted the
+   meetings block's "tomorrow" from the wrong day. */
+function buildTimeBlock(lastAt, now = new Date(), zone = null) {
+  let tz = 'UTC';
+  if (zone) {
+    try { new Intl.DateTimeFormat('en-GB', { timeZone: zone }); tz = zone; } catch { /* unknown zone: UTC */ }
+  }
   const date = now.toLocaleDateString('en-GB', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: tz,
   });
-  const lines = [`Today is ${date}.`];
+  const lines = [`Today is ${date}${tz === 'UTC' ? '' : ' where they are'}.`];
 
   const gap = describeGap(lastAt, now);
   if (!gap) {
     lines.push('This is the first time this person has spoken to you.');
   } else {
     const then = new Date(lastAt).toLocaleDateString('en-GB', {
-      weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC',
+      weekday: 'long', day: 'numeric', month: 'long', timeZone: tz,
     });
     lines.push(`They last messaged you ${gap} (${then}).`);
     /* The whole point. A fortnight's silence is information, and the sponsor
@@ -1825,20 +1832,27 @@ async function getSponsorReply(userId, message, context) {
   );
   if (reactionBlock) systemBlocks.push({ type: 'text', text: reactionBlock });
 
+  /* Where they are, from the number they write from; a reg- id carries no
+     number, so the profile's phone. The date below and the meetings block both
+     use it, so "today" means the same day in each. */
+  const userZone = timezones.zoneForPhone(String(userId).startsWith('wa-') ? userId : (profile && profile.phone) || '');
+
   // Carries the gap since they last wrote, so it changes on every message.
-  systemBlocks.push({ type: 'text', text: buildTimeBlock(lastAt) });
+  systemBlocks.push({ type: 'text', text: buildTimeBlock(lastAt, new Date(), userZone) });
 
   /* Only when they mention meetings, and below the cache marker because it is
-     built from this message and the clock. Their zone comes from the number
-     they write from; a reg- id carries no number, so the profile's phone. */
+     built from this message and the clock. */
   const meetingsBlock = meetings.buildMeetingsBlock({
     message,
     programField: profile && profile.program,
-    userZone: timezones.zoneForPhone(String(userId).startsWith('wa-') ? userId : (profile && profile.phone) || ''),
+    userZone,
     // So "AA" answering "which program?", or "any more tomorrow?", still
     // brings the meetings, for the program they were just asking about.
     recentMessages: (history || []).slice(-2).map((m) => (typeof m.content === 'string' ? m.content : '')).join('\n'),
     lastUserMessage: ((history || []).filter((m) => m.role === 'user' && typeof m.content === 'string').slice(-1)[0] || {}).content || '',
+    // So a meeting it gave them a few messages back is still in front of it
+    // when they ask about that meeting.
+    earlierChat: (history || []).slice(-6).map((m) => (typeof m.content === 'string' ? m.content : '')).join('\n'),
   });
   if (meetingsBlock) systemBlocks.push({ type: 'text', text: meetingsBlock });
 

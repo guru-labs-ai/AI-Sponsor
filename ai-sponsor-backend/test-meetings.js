@@ -69,12 +69,12 @@ const tueNoonUtc = at('2026-10-20T12:00:00Z');
 const next = meetings.nextStart(NY_TUESDAY, tueNoonUtc);
 check('NY Tuesday meeting is tonight', next, at('2026-10-20T23:30:00Z'));
 check('a Londoner hears it as half past midnight tomorrow',
-  meetings.describeWhen(next, 'Europe/London', tueNoonUtc), 'tomorrow at 12:30am');
+  meetings.describeWhen(next, 'Europe/London', tueNoonUtc), 'tomorrow, Wednesday 21 October, at 12:30am');
 check('a New Yorker hears it as tonight',
-  meetings.describeWhen(next, 'America/New_York', tueNoonUtc), 'today at 7:30pm');
+  meetings.describeWhen(next, 'America/New_York', tueNoonUtc), 'today, Tuesday 20 October, at 7:30pm');
 check('the gap week: London hears 11:30pm once the UK has changed',
   meetings.describeWhen(meetings.nextStart(NY_TUESDAY, at('2026-10-27T12:00:00Z')), 'Europe/London', at('2026-10-27T12:00:00Z')),
-  'today at 11:30pm');
+  'today, Tuesday 27 October, at 11:30pm');
 check('just started still counts',
   meetings.nextStart(NY_TUESDAY, at('2026-10-20T23:35:00Z')), at('2026-10-20T23:30:00Z'));
 check('long started moves to next week',
@@ -90,11 +90,11 @@ const nyBlock = meetings.buildMeetingsBlock({
   message: 'can you find me a DA meeting', programField: 'DA', userZone: 'America/New_York', now: tueNoonUtc,
 });
 check('a New Yorker gets it tonight, exact link and passcode',
-  nyBlock.includes('"Tuesday Visions", today at 7:30pm, closed, https://us02web.zoom.us/j/12345678901, passcode 512788'), true);
+  nyBlock.includes('- today, Tuesday 20 October, at 7:30pm | "Tuesday Visions" | listed as Tuesday 7:30pm America/New_York time | closed | https://us02web.zoom.us/j/12345678901 | passcode 512788'), true);
 check('has the BDA meeting, next Monday',
-  block.includes('"Prosperity and Serenity", Monday at 9:15am, open, https://zoom.us/j/952138930?pwd=abc'), true);
+  block.includes('- Monday 26 October at 9:15am | "Prosperity and Serenity" | listed as Monday 9:15am Europe/London time | open | https://zoom.us/j/952138930?pwd=abc'), true);
 check('no WA meetings for someone not in WA', block.includes('Underscheduling'), false);
-check('says when it was checked', block.includes('checked on 20 October'), true);
+check('says when it was checked', block.includes('official listing on 20 October'), true);
 check('tells it never to invent', block.includes('never offer one that is not on this list'), true);
 
 check('nothing when they are not asking',
@@ -113,13 +113,13 @@ check('nothing on file (Mariam, Matt): asks what programs they are looking for t
 check('says it has no in-person list', block.includes('These are online meetings only'), true);
 
 const daily = meetings.buildMeetingsBlock({ message: 'WA meetings this week?', programField: 'WA', userZone: 'Europe/London', now: tueNoonUtc });
-check('a daily meeting is listed once, at its next time',
-  (daily.match(/"Underscheduling"/g) || []).length, 1);
-check('and that is today', daily.includes('"Underscheduling", today at 6pm'), true);
+check('a daily meeting is listed once a day, today and tomorrow',
+  (daily.match(/"Underscheduling"/g) || []).length, 2);
+check('and today\'s is first', daily.includes('- today, Tuesday 20 October, at 6pm | "Underscheduling"'), true);
 
 const unplaced = meetings.buildMeetingsBlock({ message: 'WA meeting?', programField: 'WA', userZone: null, now: tueNoonUtc });
 check('no zone: time stays in the meeting\'s own zone, labelled',
-  unplaced.includes('today at 6pm (Europe/London time)'), true);
+  [unplaced.includes('- Tuesday 20 October at 6pm Europe/London time | "Underscheduling"'), /^- (today|tomorrow)/m.test(unplaced)], [true, false]);
 
 group('a list nobody refreshed is never shown');
 meetings._setData(fresh('2026-09-01T08:00:00Z'));
@@ -194,8 +194,8 @@ check('in one program and none named: straight to its meetings',
 check('in several programs it asks "Which program, or programs"', several.includes('"Which program, or programs, are you looking for?"'), true);
 check('naming it brings the meetings straight away',
   meetings.buildMeetingsBlock({ message: 'any AA meetings tonight?', programField: 'AA', userZone: 'Europe/London', now: tueNoonUtc }).includes('"Women on the Way"'), true);
-check('a women-only meeting says so', mixed.includes('"Women on the Way", today at 6pm, closed, women only, https://zoom.us/j/11122233344?pwd=x'), true);
-check('unknown open/closed is simply left out', mixed.includes('"Prosperity Tuesday", today at 7pm, https://zoom.us/j/55566677788?pwd=y'), true);
+check('a women-only meeting says so', mixed.includes('| "Women on the Way" | listed as Tuesday 6pm Europe/London time | closed | women only | https://zoom.us/j/11122233344?pwd=x'), true);
+check('unknown open/closed is simply left out', mixed.includes('| "Prosperity Tuesday" | listed as Tuesday 7pm Europe/London time | https://zoom.us/j/55566677788?pwd=y'), true);
 check('it is told who a gendered meeting is for', mixed.includes('only for people of that gender'), true);
 check('a program whose own list is stale is not offered', mixed.includes('Underscheduling'), false);
 check('and leads with its finder instead',
@@ -365,6 +365,55 @@ check('a group that shifts with daylight saving is left out',
 check('a Farsi-speaking group is left out',
   refresh.uaProblem(refresh.parseIcs(ics([]).replace('SUMMARY:Neurodiversity and UA', 'SUMMARY:Mohajeran UA (Farsi speaking)'))[0], now), 'not in English');
 
+group('Bilal\'s QA, 22 Oct: Pakistan, just after midnight there');
+const SAT_UA = {
+  id: 'ua-2', program: 'UA', name: 'Saturday-LGBTQ2SIA+ UA Rainbow Recovery', days: [6], start: '10:30', zone: 'America/New_York',
+  link: 'https://us02web.zoom.us/j/85752382310', passcode: 'Being', access: null, who: null,
+  source: 'https://underearnersanonymous.org/meetings-underearners-anonymous/',
+};
+const AA_2222 = {
+  id: 'aa-2', program: 'AA', name: '22:22 Presents: The Wheel of Surrender  - Daily 9:00 PM PST', days: [4], start: '21:00', zone: 'America/Los_Angeles',
+  link: 'https://us06web.zoom.us/j/88007279944?pwd=B.1', passcode: null, access: 'open', who: null,
+  source: 'https://aa-intergroup.org/meetings/2222-presents-the-wheel-of-surrender-4',
+};
+const DA_3141 = {
+  id: 'da-3141', program: 'DA', name: 'Together We Prosper', days: [4], start: '12:00', zone: 'America/New_York',
+  link: 'https://zoom.us/j/81990424358', meetingId: '81990424358', passcode: '382437', access: 'open',
+  source: 'https://www.debtorsanonymous.org/meeting-search-detail/?mid=3141',
+};
+meetings._setData({ generatedAt: '2026-10-22T07:58:00Z', meetings: [SAT_UA, AA_2222, DA_3141] });
+const pkMidnight = at('2026-10-22T19:07:44Z'); // Friday 12:07am in Pakistan, still Thursday in UTC
+const uaPk = meetings.buildMeetingsBlock({ message: 'Can you find me an online ua meeting tomorrow after 7 PM Pakistan time?', programField: '', userZone: 'Asia/Karachi', now: pkMidnight });
+check('it is told it is already Friday where they are', uaPk.includes('it is now Friday 23 October, 12:07am'), true);
+check('the Saturday meeting says Saturday 24 October, not just "tomorrow"',
+  uaPk.includes('- tomorrow, Saturday 24 October, at 7:30pm | "Saturday-LGBTQ2SIA+ UA Rainbow Recovery" | listed as Saturday 10:30am America/New_York time'), true);
+const aaPk = meetings.buildMeetingsBlock({ message: 'Can you find an online AA meeting today after 7 PM Pakistan time?', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-22T19:11:48Z') });
+check('9pm Pacific is 9am in Pakistan, and the "9:00 PM PST" in its name is gone',
+  aaPk.includes('- today, Friday 23 October, at 9am | "22:22 Presents: The Wheel of Surrender" | listed as Thursday 9pm America/Los_Angeles time'), true);
+check('it is told a time in a name is never their time', aaPk.includes('never its time for them'), true);
+const daPk = meetings.buildMeetingsBlock({ message: 'Can you find me an online DA meeting today after 7 PM Pakistan time?', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-22T14:26:57Z') });
+check('each meeting carries its own official listing, to show when asked',
+  daPk.includes('| passcode 382437 | source https://www.debtorsanonymous.org/meeting-search-detail/?mid=3141'), true);
+check('questioned, it stands by the list instead of taking it back', daPk.includes('If they question a meeting, do not take it back'), true);
+check('schedule tags at the end of a name go, the rest of the name stays', [
+  meetings.cleanName('UA Prosper Team - 30 mins (4.30pm UK)'),
+  meetings.cleanName("'Women's Fellowship Corner' Monday 05:30 PM PST"),
+  meetings.cleanName('SLAA Step 11 Group Meditation Daily 7:05 AM Eastern Time'),
+  meetings.cleanName("Sisters in Sobriety Texas - 8 PM Women's Closed Meeting Of Alcoholics Anonymous"),
+  meetings.cleanName('6am Sunrisers Meeting'),
+], ['UA Prosper Team - 30 mins', "'Women's Fellowship Corner'", 'SLAA Step 11 Group Meditation', "Sisters in Sobriety Texas - 8 PM Women's Closed Meeting Of Alcoholics Anonymous", '6am Sunrisers Meeting']);
+const askedAgain = meetings.buildMeetingsBlock({
+  message: 'I couldn\'t find the Zoom details through that page. Can you provide the official source for meeting ID 81990424358 and passcode 382437?',
+  programField: '', userZone: 'Asia/Karachi', now: at('2026-10-22T16:22:36Z'),
+  recentMessages: 'Please share the official listing\nHere it is: https://www.debtorsanonymous.org/meeting-search-detail/?mid=3141',
+  lastUserMessage: 'Please share the official listing for "Together We Prosper"',
+});
+check('asked about a meeting it gave, after it started and with no program named: it still has it, with its source',
+  [/ask what program/.test(askedAgain), askedAgain.includes('- started 23 minutes ago (Thursday 22 October, 9pm) | "Together We Prosper"'), askedAgain.includes('source https://www.debtorsanonymous.org/meeting-search-detail/?mid=3141')],
+  [false, true, true]);
+check('a meeting ID typed with spaces is still found', meetings.alreadyGiven('is 819 9042 4358 right?', { meetings: [DA_3141] }).length, 1);
+check('weekdays named in a message', [meetings.weekdaysIn('what about Saturday?'), meetings.weekdaysIn('any weds or thurs ones'), meetings.weekdaysIn('the sun sat on the mat')], [[6], [3, 4], []]);
+
 group('fast enough with thousands of meetings');
 const many = Array.from({ length: 3000 }, (_, i) => ({
   ...AA_WOMEN, id: `aa-${i}`, who: null, days: [i % 7], start: `${String(i % 24).padStart(2, '0')}:${i % 2 ? '30' : '00'}`,
@@ -376,12 +425,17 @@ const big = meetings.buildMeetingsBlock({ message: 'AA meeting tonight?', progra
 const took = Date.now() - t0;
 console.log(`      (3,000 meetings: ${took} ms)`);
 check('3,000 meetings in under half a second', took < 500, true);
-check('and still at most six offered', (big.match(/^- "[^"]+", /gm) || []).length, 6);
-const todays = [...big.matchAll(/^- "[^"]+", today at ([0-9:]+)(am|pm)/gm)].map((x) => {
-  const [h, mi] = x[1].split(':').map(Number); return (h % 12 + (x[2] === 'pm' ? 12 : 0)) * 60 + (mi || 0);
-});
+const minutesOf = (x) => { const [h, mi] = x[1].split(':').map(Number); return (h % 12 + (x[2] === 'pm' ? 12 : 0)) * 60 + (mi || 0); };
+const todays = [...big.matchAll(/^- today, [A-Za-z]+ \d+ [A-Za-z]+, at ([0-9:]+)(am|pm) \|/gm)].map(minutesOf);
+const tomorrows = [...big.matchAll(/^- tomorrow, [A-Za-z]+ \d+ [A-Za-z]+, at ([0-9:]+)(am|pm) \|/gm)].map(minutesOf);
+check('two days, at most four a day', [(big.match(/^- [^|\n]+ \| "/gm) || []).length <= 8, tomorrows.length], [true, 4]);
 check('today\'s choices are spread out, not all starting now',
   todays.length >= 2 && todays.every((t, i) => i === 0 || t - todays[i - 1] >= 120), true);
+check('a whole day has a morning, midday, afternoon and evening meeting (22 Oct: none after 7pm)',
+  [tomorrows.some((t) => t < 11 * 60), tomorrows.some((t) => t >= 11 * 60 && t < 15 * 60), tomorrows.some((t) => t >= 15 * 60 && t < 19 * 60), tomorrows.some((t) => t >= 19 * 60)], [true, true, true, true]);
+const satAsked = meetings.buildMeetingsBlock({ message: 'any AA meetings on Saturday?', programField: 'AA', userZone: 'Europe/London', now: tueNoonUtc });
+check('a weekday they name is added to the list', /^- Saturday 24 October at /m.test(satAsked), true);
+check('and not when they name none', /^- Saturday 24 October at /m.test(big), false);
 
 group('the real list, as written');
 const real = JSON.parse(require('fs').readFileSync(path.resolve(__dirname, 'meetings-data.json'), 'utf8'));

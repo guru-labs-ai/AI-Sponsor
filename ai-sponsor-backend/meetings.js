@@ -182,81 +182,179 @@ function dateIn(zone, instant) {
   return { y: Number(parts.year), mo: Number(parts.month) - 1, d: Number(parts.day) };
 }
 
-/* The next time this meeting starts, as an instant. A meeting that began up to
-   ten minutes ago still counts: most rooms let people in for a while. */
-function nextStart(meeting, now) {
+/* Every time this meeting starts in the coming week, as instants. A meeting
+   that began up to ten minutes ago still counts: most rooms let people in for
+   a while. */
+function starts(meeting, now) {
   const [hh, mm] = meeting.start.split(':').map(Number);
   const today = dateIn(meeting.zone, now);
-  let best = null;
+  const out = [];
   for (let k = -1; k <= 7; k++) {
     const day = new Date(Date.UTC(today.y, today.mo, today.d + k));
     if (!meeting.days.includes(day.getUTCDay())) continue;
     const t = instantFor(meeting.zone, day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), hh, mm);
-    if (t >= now - 10 * 60000 && (best === null || t < best)) best = t;
+    if (t >= now - 10 * 60000 && t < now + 8 * 86400000) out.push(t);
   }
-  return best;
+  return out.sort((a, b) => a - b);
 }
 
-// "today at 7:30pm", "tomorrow at 9am", "Thursday at 12:15pm"
-function describeWhen(instant, zone, now) {
-  const time = fmt('time', zone, { hour: 'numeric', minute: '2-digit', hour12: true })
+// The next time this meeting starts, as an instant, or null.
+function nextStart(meeting, now) {
+  const all = starts(meeting, now);
+  return all.length ? all[0] : null;
+}
+
+// "7:30pm", "9am"
+function clock(instant, zone) {
+  return fmt('time', zone, { hour: 'numeric', minute: '2-digit', hour12: true })
     .format(new Date(instant)).replace(':00', '').replace(' ', '').toLowerCase();
+}
+
+/* "today, Friday 23 October, at 9am", "Monday 26 October at 7am". The day and
+   date are always written out. On 22 Oct, just after midnight in Pakistan, our
+   "tomorrow" meant Saturday, but the sponsor counted it from its own date (still
+   Thursday in UTC) and offered a Saturday meeting for Friday. `relative` is off
+   when the zone is the meeting's and not theirs: their "today" is unknown. */
+function describeWhen(instant, zone, now, { relative = true } = {}) {
+  const time = clock(instant, zone);
+  const date = fmt('gb-longdate', zone, { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(instant));
+  if (instant < now) return `started ${Math.round((now - instant) / 60000)} minutes ago (${date}, ${time})`;
   const a = dateIn(zone, now);
   const b = dateIn(zone, instant);
   const gap = Math.round((Date.UTC(b.y, b.mo, b.d) - Date.UTC(a.y, a.mo, a.d)) / 86400000);
-  const day = gap === 0 ? 'today'
-    : gap === 1 ? 'tomorrow'
-    : fmt('weekday', zone, { weekday: 'long' }).format(new Date(instant));
-  if (instant < now) return `started ${Math.round((now - instant) / 60000)} minutes ago (${time})`;
-  return `${day} at ${time}`;
+  const rel = !relative ? '' : gap === 0 ? 'today' : gap === 1 ? 'tomorrow' : '';
+  return rel ? `${rel}, ${date}, at ${time}` : `${date} at ${time}`;
+}
+
+/* Some directories put the schedule in the name ("22:22 Presents: The Wheel of
+   Surrender - Daily 9:00 PM PST"). On 22 Oct the sponsor took that 9pm as the
+   time in Pakistan, where the meeting is at 9am. A schedule tag at the end of a
+   name is dropped; a time anywhere else is part of the name and stays, and the
+   block tells the sponsor a time in a name is never their time. */
+const DAYWORD = '(?:daily|every ?day|(?:mon|tues?|wed(?:nes)?|thu(?:rs)?|fri|sat(?:ur)?|sun)(?:day)?s?)';
+const CLOCK = '\\d{1,2}(?:[:.]\\d{2})?\\s*(?:am|pm|a\\.m\\.|p\\.m\\.)';
+const ZONEWORD = '(?:[ECMP][SD]?T|GMT|UTC|BST|CET|CEST|AEST|AEDT|UK|eastern|central|mountain|pacific)(?:\\s+time)?';
+const SCHEDULE_TAIL = [
+  new RegExp(`\\s*[-–|]\\s*(?:${DAYWORD}\\s+)?${CLOCK}(?:\\s*\\(?${ZONEWORD}\\)?)?\\s*$`, 'i'),
+  new RegExp(`\\s*\\([^()]*${CLOCK}[^()]*\\)\\s*$`, 'i'),
+  new RegExp(`\\s+${DAYWORD}\\s+${CLOCK}\\s*${ZONEWORD}\\s*$`, 'i'),
+];
+function cleanName(name) {
+  let n = String(name || '').replace(/\s+/g, ' ').trim();
+  for (const re of SCHEDULE_TAIL) {
+    const shorter = n.replace(re, '').trim();
+    if (shorter.length >= 4) n = shorter;
+  }
+  return n;
+}
+
+// Weekdays named in a message, as 0 (Sunday) to 6: "what about Saturday?"
+const WEEKDAY_NAMES = [/\bsundays?\b/i, /\bmondays?\b/i, /\btues(day)?s?\b/i, /\bwed(nesday|s)s?\b/i, /\bthurs(day)?s?\b/i, /\bfridays?\b/i, /\bsaturdays?\b/i];
+function weekdaysIn(text) {
+  const t = String(text || '');
+  return WEEKDAY_NAMES.map((re, i) => (re.test(t) ? i : -1)).filter((i) => i >= 0);
 }
 
 /* Most meetings are American, so "the next four" for somebody in London were
    all at midnight or later (seen 20 Oct). When we know where they are, only
-   meetings starting in their waking hours are offered, and no more than two on
-   any one day, so there is a choice of days and not just tonight. */
+   meetings starting in their waking hours are offered. */
 const WAKING = { from: 7, to: 22 };
 /* AA and Al-Anon have hundreds of meetings a day, so "the next two" were always
-   the two starting this minute; asked for one tonight on 21 Oct, the sponsor
-   could only offer 3:30pm and 3:55pm. Spread across the day instead. */
-const PER_DAY = 3;
+   the two starting this minute (21 Oct), and the earliest three of a day were
+   7am, 9am and 11:30am, so asked for one after 7pm on 22 Oct the sponsor had
+   none to give. Each of their days is cut into four parts and the first meeting
+   in each part is offered, so morning, midday, afternoon and evening all have
+   one. A program with few meetings fills the rest, two hours apart. */
+const DAY_PARTS = [[7, 11], [11, 15], [15, 19], [19, 22]];
+const PER_DAY = 4;
 const MIN_GAP_MINUTES = 120;
+// Today and the next day that has meetings, plus any weekday they name.
+const DAYS_SHOWN = 2;
 
 function localHourAt(zone, instant) {
   return Number(fmt('gb-hour', zone, { hour: 'numeric', hour12: false })
     .format(new Date(instant))) % 24;
 }
 
-function upcoming(programs, now, data, userZone) {
+/* One day's picks. Within a part of the day an open meeting comes before a
+   women- or men-only one, which the sponsor may only offer when it fits them. */
+function spreadDay(list) {
+  const picked = [];
+  for (const [from, to] of DAY_PARTS) {
+    const inPart = list.filter((x) => x.h >= from && x.h < to);
+    const first = inPart.find((x) => !x.m.who) || inPart[0];
+    if (first) picked.push(first);
+  }
+  for (const x of list) {
+    if (picked.length >= PER_DAY) break;
+    if (picked.every((p) => Math.abs(p.at - x.at) >= MIN_GAP_MINUTES * 60000)) picked.push(x);
+  }
+  return picked.sort((a, b) => a.at - b.at);
+}
+
+function upcoming(programs, now, data, userZone, askedDays = []) {
   const out = {};
   for (const p of programs) {
-    const soonest = data.meetings
-      .filter((m) => m.program === p)
-      .map((m) => ({ m, at: nextStart(m, now) }))
-      .filter((x) => x.at !== null)
-      .sort((a, b) => a.at - b.at);
-    if (!userZone) { out[p] = soonest.slice(0, PER_PROGRAM); continue; }
-    const perDay = {};
-    const lastAt = {};
-    out[p] = soonest.filter(({ at }) => {
-      const h = localHourAt(userZone, at);
-      if (h < WAKING.from || h >= WAKING.to) return false;
-      const { y, mo, d } = dateIn(userZone, at);
+    const mine = data.meetings.filter((m) => m.program === p);
+    if (!userZone) {
+      out[p] = mine
+        .map((m) => ({ m, at: nextStart(m, now) }))
+        .filter((x) => x.at !== null)
+        .sort((a, b) => a.at - b.at)
+        .slice(0, PER_PROGRAM);
+      continue;
+    }
+    const days = new Map(); // their calendar day -> its meetings in waking hours, in time order
+    const all = mine.flatMap((m) => starts(m, now).map((at) => ({ m, at }))).sort((a, b) => a.at - b.at);
+    for (const x of all) {
+      const h = localHourAt(userZone, x.at);
+      if (h < WAKING.from || h >= WAKING.to) continue;
+      const { y, mo, d } = dateIn(userZone, x.at);
       const key = `${y}-${mo}-${d}`;
-      if ((perDay[key] || 0) >= PER_DAY) return false;
-      if (lastAt[key] !== undefined && at - lastAt[key] < MIN_GAP_MINUTES * 60000) return false;
-      perDay[key] = (perDay[key] || 0) + 1;
-      lastAt[key] = at;
-      return true;
-    }).slice(0, PER_PROGRAM);
+      if (!days.has(key)) days.set(key, { weekday: new Date(Date.UTC(y, mo, d)).getUTCDay(), list: [] });
+      days.get(key).list.push({ ...x, h });
+    }
+    out[p] = [...days.values()]
+      .filter((day, i) => i < DAYS_SHOWN || askedDays.includes(day.weekday))
+      .flatMap((day) => spreadDay(day.list));
   }
   return out;
+}
+
+/* Meetings the sponsor already gave them, found by Zoom link or meeting ID in
+   the chat. Asked about one later ("I couldn't find that passcode"), it needs
+   the meeting in front of it. On 22 Oct it did not have it: the meeting had
+   started twenty minutes before, so it was off the list, and the follow-up
+   named no program, so the sponsor was asking "which program?". It said it
+   could not verify details that were right. */
+function alreadyGiven(text, data) {
+  const t = String(text || '');
+  if (!t || !data) return [];
+  const digits = t.replace(/[\s-]/g, '');
+  return data.meetings.filter((m) => t.includes(m.link) || (m.meetingId && digits.includes(m.meetingId))).slice(0, 6);
+}
+
+/* One meeting as the sponsor sees it. Time first, then the name, so a time
+   inside a name is never read as theirs. "Listed as" and the source are there
+   so that, questioned, the sponsor can show where a meeting comes from. */
+function meetingLine(m, at, userZone, now) {
+  const fields = [
+    userZone ? describeWhen(at, userZone, now) : `${describeWhen(at, m.zone, now, { relative: false })} ${m.zone} time`,
+    `"${cleanName(m.name)}"`,
+  ];
+  if (userZone) fields.push(`listed as ${fmt('weekday', m.zone, { weekday: 'long' }).format(new Date(at))} ${clock(at, m.zone)} ${m.zone} time`);
+  if (m.access) fields.push(m.access);
+  if (m.who) fields.push(`${m.who} only`);
+  fields.push(m.link);
+  if (m.passcode) fields.push(`passcode ${m.passcode}`);
+  if (m.source) fields.push(`source ${m.source}`);
+  return `- ${fields.join(' | ')}`;
 }
 
 /* The system block, or '' when there is nothing to add. userZone is where they
    are (from their phone number); without it, times are given in each meeting's
    own zone and labelled as such, never silently converted to a guess. */
-function buildMeetingsBlock({ message, programField, userZone, now = Date.now(), recentMessages = '', lastUserMessage = '' }) {
+function buildMeetingsBlock({ message, programField, userZone, now = Date.now(), recentMessages = '', lastUserMessage = '', earlierChat = '' }) {
   try {
     const meetingTalk = asksAboutMeetings(message) || asksAboutMeetings(recentMessages);
     const named = programsIn(message, { loose: meetingTalk });
@@ -270,16 +368,25 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
        - named now (one or several): those, whatever they registered with,
          since people move between programs (Matt asked the same)
        - else named just before ("any more tomorrow?" after asking for AA)
+       - else the program of a meeting it just gave them, which they are now
+         asking about (Bilal's QA, 22 Oct)
        - else exactly one program on file: that one, straight away
        - else several on file: ask "Which program, or programs, are you
          looking for?" first
        - else nothing on file (started on WhatsApp): ask what programs they
          are looking for today, and that you will search
        Never open with "I can't". */
+    const data = load();
+    /* Each program carries its own check date, because one directory can fail
+       while the others refresh. Files from before that have only generatedAt. */
+    const checkedAt = (p) => Date.parse((data && data.checked && data.checked[p]) || (data && data.generatedAt));
+    const isFresh = (p) => (now - checkedAt(p)) / 86400000 <= STALE_AFTER_DAYS;
+    const asked = alreadyGiven(`${message}\n${recentMessages}`, data).filter((m) => isFresh(m.program));
     const namedOthers = othersIn(message);
     const nowNamed = named.length || namedOthers.length;
     let programs = nowNamed ? named : programsIn(lastUserMessage, { loose: true });
     let others = nowNamed ? namedOthers : othersIn(lastUserMessage);
+    if (!programs.length && !others.length && asked.length) programs = [...new Set(asked.map((m) => m.program))];
     if (!programs.length && !others.length) {
       const fileCovered = programsOf(programField);
       const fileOthers = othersOf(programField);
@@ -309,14 +416,8 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
         'Never name a meeting, time, link or passcode that you were not given here.',
       ].join('\n');
     }
-    const data = load();
     const finderFor = (list) => [...new Set(list.map((p) => PROGRAMS[p].finder))].join(' and ');
     const finders = finderFor(programs);
-
-    /* Each program carries its own check date, because one directory can fail
-       while the others refresh. Files from before that have only generatedAt. */
-    const checkedAt = (p) => Date.parse((data && data.checked && data.checked[p]) || (data && data.generatedAt));
-    const isFresh = (p) => (now - checkedAt(p)) / 86400000 <= STALE_AFTER_DAYS;
     const fresh = data ? programs.filter(isFresh) : [];
     const stale = programs.filter((p) => !fresh.includes(p));
     const staleLine = stale.length
@@ -324,42 +425,53 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
       : null;
     if (!fresh.length) return ['## RECOVERY MEETINGS', staleLine, ...otherLines, ...standingLines()].join('\n');
 
-    const lists = upcoming(fresh, now, data, userZone);
+    const lists = upcoming(fresh, now, data, userZone, weekdaysIn(message));
     const lines = [];
     const shown = [];
     for (const p of fresh) {
       if (!lists[p].length) continue;
       shown.push(p);
       lines.push(`${PROGRAMS[p].label}:`);
-      for (const { m, at } of lists[p]) {
-        const zone = userZone || m.zone;
-        const when = describeWhen(at, zone, now) + (userZone ? '' : ` (${m.zone} time)`);
-        const access = m.access ? `, ${m.access}` : '';
-        const who = m.who ? `, ${m.who} only` : '';
-        const pass = m.passcode ? `, passcode ${m.passcode}` : '';
-        lines.push(`- "${m.name}", ${when}${access}${who}, ${m.link}${pass}`);
-      }
+      for (const { m, at } of lists[p]) lines.push(meetingLine(m, at, userZone, now));
     }
-    if (!lines.length) {
+    /* Ones it gave them earlier in the chat and not listed above, shown at the
+       time that just passed if it began in the last three hours ("started 20
+       minutes ago"), otherwise at the next one. */
+    const listed = new Set(fresh.flatMap((p) => lists[p].map((x) => `${x.m.id}@${x.at}`)));
+    const given = alreadyGiven(`${message}\n${recentMessages}\n${earlierChat}`, data)
+      .filter((m) => isFresh(m.program))
+      .map((m) => ({ m, at: starts(m, now - 3 * 3600000).filter((t) => t <= now).pop() || nextStart(m, now) }))
+      .filter(({ m, at }) => at && !listed.has(`${m.id}@${at}`));
+    const givenLines = given.map(({ m, at }) => meetingLine(m, at, userZone, now));
+    const givenSection = givenLines.length
+      ? ['Meetings you already gave them in this chat, as listed (if they ask about one, this is it):', ...givenLines]
+      : [];
+    if (!lines.length && !givenLines.length) {
       // Nothing at a sensible hour in the coming days: still something to give.
       const empty = fresh.map((p) => `For ${PROGRAMS[p].label}, none of your listed meetings falls at a sensible hour for them soon. Lead with the official finder as the answer itself, warmly: ${PROGRAMS[p].finder}`);
       return ['## RECOVERY MEETINGS', ...empty, ...(staleLine ? [staleLine] : []), ...otherLines, ...standingLines(), 'Never name a meeting, time, link or passcode that you were not given here.'].join('\n');
     }
 
-    const checked = new Date(Math.min(...shown.map(checkedAt)))
+    const checked = new Date(Math.min(...[...shown, ...given.map((g) => g.m.program)].map(checkedAt)))
       .toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' });
 
     return [
       '## RECOVERY MEETINGS YOU CAN OFFER',
       'Use this only if they are asking about a recovery meeting. If "meeting" here means seeing a person, or anything else, ignore this section completely.',
-      `These are upcoming online meetings for their program, taken from the official directories and checked on ${checked}. ${userZone ? 'The times are already in their own local time, and only ones at a sensible hour for them are listed.' : 'We do not know where they are, so each time is in the meeting\'s own time zone, as labelled.'}`,
+      `These are upcoming online meetings for their program, read from each meeting's official listing on ${checked}.`,
+      userZone
+        ? `Where they are (${userZone}, from their phone number) it is now ${describeWhen(now, userZone, now, { relative: false }).replace(' at ', ', ')}. Each line starts with the meeting's day, date and time for them, already worked out, and only ones at a sensible hour for them are listed. Use that day and date exactly as written; never work out a day yourself from "today" or "tomorrow". "Listed as" is the day and time the directory gives, in the meeting's own time zone.`
+        : 'We do not know where they are, so each time is in the meeting\'s own time zone, as labelled.',
       ...lines,
+      ...givenSection,
       ...(staleLine ? [staleLine] : []),
       ...otherLines,
       ...standingLines(),
       'How to use it:',
       '- Offer one to three that fit what they asked for, never the whole list.',
       '- Copy the name, time, link and passcode exactly as written here. Never change, shorten or make up a link, a time, a passcode or a meeting, and never offer one that is not on this list.',
+      '- A meeting\'s name can contain a day, time or time zone (for example "Daily 9:00 PM PST"). That is part of its name, in the meeting\'s own time zone, never its time for them.',
+      `- If they question a meeting, do not take it back: every detail here was on its official listing when it was checked on ${checked}. Never say you cannot verify it, that it is unconfirmed, or that you should not have shared it. Give them its source link, its listed day and time, and that date. Not finding a detail on the listing does not make it wrong: listings often write a meeting ID with spaces (819 9042 4358), and some sources are a directory page where they search for the meeting by name, so tell them that. Only if they say the listing now shows something different (another day, time, link or passcode) do you thank them, go with the listing, and point them to the official finder.`,
       '- "Closed" means members only: the people the program is for. That is them, so a closed meeting is still theirs to go to.',
       '- A meeting marked "women only" or "men only" is only for people of that gender. Offer it only when you know it fits them; otherwise choose another.',
       `- These are online meetings only. If they want one in person, give them the official finder, which lists in-person meetings too: ${finders}`,
@@ -373,7 +485,8 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
 }
 
 module.exports = {
-  buildMeetingsBlock, asksAboutMeetings, programsOf, programsIn, nextStart, describeWhen, instantFor,
+  buildMeetingsBlock, asksAboutMeetings, programsOf, programsIn, nextStart, starts, describeWhen, instantFor,
+  cleanName, weekdaysIn, alreadyGiven,
   offsetMinutes, STALE_AFTER_DAYS, PROGRAMS, OTHERS, othersIn,
   _setData(d) { cache = d; },
 };
