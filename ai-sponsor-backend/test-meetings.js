@@ -594,6 +594,43 @@ check('asked for all with no time filter, every Tuesday one is given (26 Oct: no
 check('and told to give every pick, not one to three', [allAsk.includes('They asked for all of them. Answer like this'), allAsk.includes('Offer one to three')], [true, false]);
 check('and it may never say it is not holding more', allAsk.includes('never say the picks are all you have, that you are not holding more'), true);
 
+group('asked for more after another question (Bilal\'s re-test, 26 Oct: "Anymore meetings tomorrow?" got "which program?")');
+const tueAca = (i, hhmm, who) => ({
+  id: `aca-${i}`, program: 'ACA', name: `Tuesday ACA ${i}`, days: [2], start: hhmm, zone: 'America/New_York',
+  link: `https://zoom.us/j/6${String(i).padStart(9, '0')}`, passcode: null, access: 'open', who,
+});
+meetings._setData({ generatedAt: '2026-10-26T11:17:00Z', meetings: [tueAca(1, '09:00', 'women'), tueAca(2, '09:30', null), tueAca(3, '11:00', 'men')] });
+const acaThread = {
+  programField: 'DA, BDA, UA, AA, Al-Anon, NA, OA, GA, ACA, SLAA, WA', userZone: 'Asia/Karachi', now: at('2026-10-26T16:26:00Z'),
+  lastUserMessage: 'Thanks. Separate question: how can I prepare for a presentation to my boss?',
+  recentMessages: 'Thanks. Separate question: how can I prepare for a presentation to my boss?\nHappy to shift gears, Bilal. What\'s the presentation about?',
+  earlierAsks: [
+    'Please provide the specific official listing or meeting ID for this ACA meeting, showing its Monday start time, source timezone, and stated attendance restrictions. Also search the remaining dates through Sunday, 1 November, for other women’s ACA meetings.',
+    'That ID comes from Zoom, not the ACA directory. Please provide the ACA listing URL or directory record number supporting the schedule and “open, women only” details.',
+    'Thanks. Separate question: how can I prepare for a presentation to my boss?',
+  ],
+};
+const anymore = meetings.buildMeetingsBlock({ ...acaThread, message: 'Anymore meetings tomorrow?' });
+check('"Anymore meetings tomorrow?" stays with ACA, women\'s meetings first, and no men\'s one',
+  [programsInBlock(anymore), anymore.includes('women\'s meetings first'), anymore.includes('"Tuesday ACA 1"'), anymore.includes('"Tuesday ACA 3"')],
+  [['Adult Children of Alcoholics'], true, true, false]);
+check('"the remaining dates through Sunday, 1 November" runs from today (26 Oct: read as Sunday alone)', [
+  labels('Also search the remaining dates through Sunday, 1 November, for other women’s ACA meetings.'),
+  labels('anything until Thursday?'),
+  labels('from 28 October through 1 November').length,
+], [
+  ['Monday 26 October', 'Tuesday 27 October', 'Wednesday 28 October', 'Thursday 29 October', 'Friday 30 October', 'Saturday 31 October', 'Sunday 1 November'],
+  ['Monday 26 October', 'Tuesday 27 October', 'Wednesday 28 October', 'Thursday 29 October'],
+  5,
+]);
+const room = (i) => ({ ...tueAca(10 + i, `1${i}:00`, 'women'), link: 'https://zoom.us/j/5555555555', name: `Shared Room ${i}` });
+const given = [room(1), room(2), room(3), ...[4, 5, 6, 7, 8].map((i) => ({ ...tueAca(20 + i, '08:00', 'women'), name: `Given ${i}` }))];
+const givenText = given.map((m) => m.link).filter((l, i, a) => a.indexOf(l) === i).join('\n');
+check('every meeting given is kept, not the first six (26 Oct: one room with three listings pushed three out)',
+  meetings.alreadyGiven(givenText, { meetings: given }).length, 8);
+const fresh26 = meetings.buildMeetingsBlock({ ...acaThread, message: 'Any meetings tomorrow?' });
+check('without "more", the program stays but women\'s is not assumed', [programsInBlock(fresh26), fresh26.includes('women\'s meetings first')], [['Adult Children of Alcoholics'], false]);
+
 group('the real list, as written');
 const real = JSON.parse(require('fs').readFileSync(path.resolve(__dirname, 'meetings-data.json'), 'utf8'));
 const ids = new Set(real.meetings.map((m) => m.id));

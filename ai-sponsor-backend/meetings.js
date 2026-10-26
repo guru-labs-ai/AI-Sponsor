@@ -404,6 +404,8 @@ function genderAsked(text) {
    many there are in all. */
 const ALL_ASK = /\b(all|every|complete|entire|remaining)\b[^.?!]{0,40}\b(meetings?|matches|results|entries)\b|\bshow (me )?(all|everything)\b/i;
 const PER_ALL = 8;
+// "Any more", "another", "else": carrying on with the search they were on.
+const CONTINUES = /\b(any ?more|more|another|others?|else|again|also|too|continu\w*|same|as well)\b/i;
 const MORE_DAYS =/\b(this|next|the|whole|coming) week\b|\b(following|next|coming|other) (few |couple of )?days\b|\brest of the week\b|\blater (in|this) (the )?week\b|\bdays after\b|\bweek ahead\b/i;
 const WEEKEND = /\bweekends?\b/i;
 
@@ -426,6 +428,9 @@ const MONTH = '(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?
 const DAYNUM = '(\\d{1,2})(?:st|nd|rd|th)?';
 const DATE_RE = new RegExp(`\\b(?:${DAYNUM}\\s+(?:of\\s+)?${MONTH}|${MONTH}\\s+${DAYNUM}\\b)(?:,?\\s+(\\d{4}))?`, 'gi');
 const RANGE_GAP = /^\s*,?\s*(?:-|–|to|through|thru|till|until)\s*(?:(?:mon|tues?|wed(?:nes)?|thu(?:rs)?|fri|sat(?:ur)?|sun)(?:day)?,?\s*)?$/i;
+const WEEKDAY_WORD = '(?:mon|tues?|wed(?:nes)?|thu(?:rs)?|fri|sat(?:ur)?|sun)(?:day)?';
+const UNTIL_BEFORE = new RegExp(`\\b(?:through|thru|until|till|up to|up until)\\s+(?:${WEEKDAY_WORD},?\\s*)?$`, 'i');
+const UNTIL_WEEKDAY = new RegExp(`\\b(?:through|thru|until|till|up to|up until)\\s+${WEEKDAY_WORD}\\b`, 'i');
 const MAX_DAYS_AHEAD = 31;
 const monthIndex = (s) => ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'].indexOf(s.slice(0, 3).toLowerCase());
 const dayKey = ({ y, mo, d }) => `${y}-${mo}-${d}`;
@@ -444,12 +449,26 @@ function datesIn(text, zone, now) {
     found.push({ at: m.index, end: m.index + m[0].length, k: Math.round((Date.UTC(y, mo, d) - base) / 86400000) });
   }
   const ks = [];
+  /* "the remaining dates through Sunday, 1 November" has no first date: it
+     runs from today. On 26 Oct it was read as Sunday alone, the week's other
+     meetings were not in front of the sponsor, and it took back a list it had
+     given a minute before. */
+  const rangeEnds = new Set();
   found.forEach((f, i) => {
     const next = found[i + 1];
-    if (next && next.k > f.k && RANGE_GAP.test(t.slice(f.end, next.at))) for (let k = f.k; k < next.k; k++) ks.push(k);
-    else ks.push(f.k);
+    if (next && next.k > f.k && RANGE_GAP.test(t.slice(f.end, next.at))) {
+      for (let k = f.k; k < next.k; k++) ks.push(k);
+      rangeEnds.add(i + 1);
+    } else if (!rangeEnds.has(i) && UNTIL_BEFORE.test(t.slice(Math.max(0, f.at - 40), f.at))) {
+      for (let k = 0; k <= f.k; k++) ks.push(k);
+    } else ks.push(f.k);
   });
-  if (!found.length) {
+  const untilDay = !found.length && UNTIL_WEEKDAY.exec(t);
+  if (untilDay) {
+    const w = weekdaysIn(untilDay[0])[0];
+    for (let k = 0; k <= (w - new Date(base).getUTCDay() + 7) % 7; k++) ks.push(k);
+  }
+  if (!found.length && !untilDay) {
     if (/\bday after tomorrow\b/i.test(t)) ks.push(2);
     else if (/\btomorrow\b/i.test(t)) ks.push(1);
     if (/\b(today|tonight)\b/i.test(t)) ks.push(0);
@@ -618,7 +637,13 @@ function alreadyGiven(text, data) {
   const t = String(text || '');
   if (!t || !data) return [];
   const digits = t.replace(/[\s-]/g, '');
-  return data.meetings.filter((m) => t.includes(m.link) || (m.meetingId && digits.includes(m.meetingId))).slice(0, 6);
+  /* In the order they came up, every listing of each room, up to fourteen. It
+     was the first six in file order: on 26 Oct one room with three listings
+     took half of them, three meetings it had just given were not here, and the
+     sponsor said it had given them "without them being in front of me". */
+  const at = (m) => { const i = t.indexOf(m.link); return i >= 0 ? i : t.length; };
+  return data.meetings.filter((m) => t.includes(m.link) || (m.meetingId && digits.includes(m.meetingId)))
+    .sort((a, b) => at(a) - at(b)).slice(0, 14);
 }
 
 /* One meeting as the sponsor sees it. Time first, then the name, so a time
@@ -740,6 +765,20 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
         ask.zone = ask.zone || zoneIn(lastUserMessage, userZone);
       }
       ask.want = ask.want || before.want;
+      /* "Anymore meetings tomorrow?" after women's ACA meetings and a question
+         about a presentation (Bilal, 26 Oct) means more women's ACA meetings.
+         Asked for more, the women's or men's and the time they asked for a few
+         messages back come along, from their asks about the same program. */
+      if (CONTINUES.test(message)) {
+        for (const t of [...earlierAsks].reverse()) {
+          const its = programsIn(t, { loose: true });
+          if (!asksAboutMeetings(t) && !its.length) continue;
+          if (its.length && !its.some((p) => programs.includes(p))) continue;
+          const e = askIn(t);
+          if (!ask.want && e.want) ask.want = e.want;
+          if (!ask.window && e.window) { ask.window = e.window; ask.zone = ask.zone || zoneIn(t, userZone); }
+        }
+      }
     }
     if (userZone) ask.dates = datesIn(message, ask.zone || userZone, now);
     const { lists, counts } = upcoming(fresh, now, data, userZone, ask);
@@ -806,7 +845,8 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
       ...(Object.keys(counts).length ? ['- The count by day was checked against every meeting you hold. A day it gives as none really has none that fit what they asked: say so plainly, then offer the nearest other time or day, or the official finder. A day with a number has that many, so never say it has none.'] : []),
       '- You hold every meeting in the count, and the picks here are only some of them. If they ask for all of them or for more, say how many there are, give the picks here, and offer more by narrowing the time (or the official finder). Never give none, and never say the picks are all you have, that you are not holding more, or that your list is only a working set.',
       '- If what they want is not here (another day, a later or earlier time, a women\'s or men\'s meeting) and no count above says none, never say there is none, that your list ends tomorrow, or that you hold nothing later, and never call the ones you give all you have: you hold meetings for every day of the coming week, and these are only a few. Say you\'ll look, and ask them for the day and time in one line (for example "Tell me the day and time, like Saturday after 8pm, and I\'ll look"). You can give the official finder as well.',
-      '- Copy the name, time, link and passcode exactly as written here. Never change, shorten or make up a link, a time, a passcode or a meeting, and never offer one that is not on this list.',
+      '- Copy the name, time, link and passcode exactly as written here, and how soon it starts. Never change, shorten or make up a link, a time, a passcode or a meeting, and never offer one that is not on this list.',
+      '- Never take back or "correct" a meeting you gave earlier in this chat because it is not in front of you now: every one you gave came from these official listings. If they ask about one you cannot see here, say you will look it up and ask for its name or day.',
       '- A meeting\'s name can contain a day, time or time zone (for example "Daily 9:00 PM PST"). That is part of its name, in the meeting\'s own time zone, never its time for them.',
       `- If they question a meeting, do not take it back: every detail here was on its official listing when it was checked on ${checked}. Never say you cannot verify it, that it is unconfirmed, or that you should not have shared it. Give them its source link, its listed day and time, and that date. Not finding a detail on the listing does not make it wrong: listings often write a meeting ID with spaces (819 9042 4358), and some sources are a directory page where they search for the meeting by name, so tell them that. Only if they say the listing now shows something different (another day, time, link or passcode) do you thank them, go with the listing, and point them to the official finder.`,
       '- "Closed" means members only: the people the program is for. That is them, so a closed meeting is still theirs to go to.',
