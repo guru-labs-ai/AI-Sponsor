@@ -455,6 +455,7 @@ check('a weekday they name is added to the list', /^- Saturday 24 October at /m.
 check('and not when they name none', /^- Saturday 24 October at /m.test(big), false);
 
 group('what they ask for (Bilal\'s re-test on the fixed build, 23 Oct)');
+// "after 7 PM" starts at 7:01: a meeting at 7 is not after 7 (26 Oct, item 2).
 check('a time read from a message', [
   meetings.timeWindowIn('aa tonight after 7 PM Pakistan time'),
   meetings.timeWindowIn('starting strictly after 7 PM'),
@@ -463,7 +464,7 @@ check('a time read from a message', [
   meetings.timeWindowIn('tomorrow evening'),
   meetings.timeWindowIn('after 19:30'),
   meetings.timeWindowIn('after noon'),
-], [{ from: 1140, to: 1440 }, { from: 1140, to: 1440 }, { from: 1080, to: 1260 }, { from: 360, to: 600 }, { from: 1020, to: 1440 }, { from: 1170, to: 1440 }, { from: 720, to: 1440 }]);
+], [{ from: 1141, to: 1440 }, { from: 1141, to: 1440 }, { from: 1080, to: 1260 }, { from: 360, to: 600 }, { from: 1020, to: 1440 }, { from: 1171, to: 1440 }, { from: 721, to: 1440 }]);
 check('no time when the hour is a guess or there is none',
   [meetings.timeWindowIn('any after 7?'), meetings.timeWindowIn('from 2 programs'), meetings.timeWindowIn('can you find me a meeting')], [null, null, null]);
 check('who they want',
@@ -507,8 +508,8 @@ const drift = meetings.buildMeetingsBlock({
 });
 check('"any more tomorrow?" after an unrelated question stays with the AA they asked for (23 Oct: drifted to DA)', programsInBlock(drift), ['Alcoholics Anonymous']);
 const following = meetings.buildMeetingsBlock({ message: 'Anymore the following days.', programField: 'DA, AA', userZone: 'Asia/Karachi', now: friEvePk, lastUserMessage: 'I am talking about AA meeting tomorrow after 7pm Pakistan time.', recentMessages: 'I am talking about AA meeting tomorrow after 7pm Pakistan time.\nHere are AA meetings tomorrow after 7pm' });
-check('a follow-up keeps the time they just asked for, over the whole week',
-  [following.includes('all inside the time they asked for'), following.includes('for each day of the coming week'), /at 7pm \| "Saturday AA 1"/.test(following), /^- [^\n]*at (10|11)am \|/m.test(following)], [true, true, true, false]);
+check('a follow-up keeps the time they just asked for, over the whole week (and "after 7pm" leaves out 7pm)',
+  [following.includes('all inside the time they asked for'), following.includes('for each day of the coming week'), /at 7pm \| "Saturday AA 1"/.test(following), /at 7:30pm \| "Saturday AA 2"/.test(following), /^- [^\n]*at (10|11)am \|/m.test(following)], [true, true, false, true, false]);
 meetings._setData({ generatedAt: '2026-10-22T07:58:00Z', meetings: [{ ...satNy(10, '10:30', null, 'UA'), access: null }] });
 check('a listing that gives neither open nor closed says so on the line (23 Oct: Rainbow Recovery)',
   meetings.buildMeetingsBlock({ message: 'UA meetings tomorrow?', programField: '', userZone: 'Asia/Karachi', now: friEvePk }).includes('"Saturday UA 10" | listed as Saturday 10:30am America/New_York time | open or closed not stated on its listing |'), true);
@@ -545,7 +546,7 @@ const range = meetings.buildMeetingsBlock({ message: 'Find online Al Anon meetin
 check('every day of the range is in front of the sponsor',
   ['Wednesday 28 October', 'Friday 30 October', 'Saturday 31 October', 'Sunday 1 November'].map((d) => range.includes(`- ${d} at`)), [true, true, true, true]);
 check('with a count per day checked against everything held, and a real none',
-  range.includes('by day: Wednesday 28 October: 1; Thursday 29 October: none; Friday 30 October: 1; Saturday 31 October: 3; Sunday 1 November: 2.'), true);
+  range.includes('at a sensible hour for them (7am to 10pm), by day: Wednesday 28 October: 1 fit, 1 of them shown below; Thursday 29 October: none; Friday 30 October: 1 fit, 1 of them shown below; Saturday 31 October: 3 fit, 3 of them shown below; Sunday 1 November: 2 fit, 2 of them shown below.'), true);
 check('and told a counted none is a real none', range.includes('A day it gives as none really has none'), true);
 check('nothing outside the range', /^- (today|tomorrow), /m.test(range), false);
 const namedThree = meetings.buildMeetingsBlock({ message: 'Find online Al Anon meetings for Saturday, 31 October 2026, at any time in Pakistan time. Do you have “Legacy Study AFG,” “First Things First AFG,” or “Just for Today AFG” on that date?', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-26T16:58:00Z') });
@@ -554,6 +555,44 @@ check('the three he named are all there for Saturday 31 October ("Just for Today
 check('Just for Today AFG at 11am Dublin is 4pm in Pakistan (Ireland is back on GMT by then)', namedThree.includes('- Saturday 31 October at 4pm | "Just for Today AFG"'), true);
 check('a quoted name only matches meetings of the program asked about',
   meetings.namedIn('any DA meetings? “Legacy Study AFG”', { meetings: [afg(3, 'Legacy Study AFG', [6], '09:00', 'America/Chicago')] }, ['DA']).length, 0);
+
+group('a time window, both ends and the zone it is in (Bilal\'s re-test, 26 Oct: a 10am meeting offered for "after 10 AM")');
+check('after and before together, "from" keeps the hour, "until" keeps it too', [
+  meetings.timeWindowIn('starting after 10 AM and before 3 PM New York time'),
+  meetings.timeWindowIn('anything from 10am'),
+  meetings.timeWindowIn('no earlier than 7pm'),
+  meetings.timeWindowIn('no later than 9pm'),
+  meetings.timeWindowIn('until 3pm'),
+], [{ from: 601, to: 900 }, { from: 600, to: 1440 }, { from: 1140, to: 1440 }, { from: 360, to: 1261 }, { from: 360, to: 901 }]);
+check('the zone they ask in, not where they are', [
+  meetings.zoneIn('For this request only, use America/New_York. Find online AA meetings on Tuesday, 27 October 2026, starting after 10 AM and before 3 PM New York time. Show each result in both New York and Pakistan time.', 'Asia/Karachi'),
+  meetings.zoneIn('Any online AA meetings tomorrow after 7 PM Pakistan time?', 'Asia/Karachi'),
+  meetings.zoneIn('any after 7pm EST?', 'Asia/Karachi'),
+  meetings.zoneIn('is "6 am EST Check-up from the Neck Up" open?', 'Asia/Karachi'),
+  meetings.zoneIn('I live in the eastern part of town', 'Asia/Karachi'),
+], ['America/New_York', null, 'America/New_York', null, null]);
+const tueNy = (i, hhmm) => ({
+  id: `tue-${i}`, program: 'AA', name: `Tuesday AA ${i}`, days: [2], start: hhmm, zone: 'America/New_York',
+  link: `https://us02web.zoom.us/j/7${String(i).padStart(9, '0')}`, passcode: null, access: 'open', who: null,
+});
+meetings._setData({ generatedAt: '2026-10-26T11:17:00Z', meetings: [tueNy(1, '10:00'), tueNy(2, '10:30'), tueNy(3, '14:59'), tueNy(4, '15:00'), tueNy(5, '06:00')] });
+const nyAsk = meetings.buildMeetingsBlock({
+  message: 'For this request only, use America/New_York. Find online AA meetings on Tuesday, 27 October 2026, starting after 10 AM and before 3 PM New York time. Search your available list again rather than only filtering the four meetings above. Include official listings and show each result in both New York and Pakistan time.',
+  programField: 'DA, BDA, UA, AA, Al-Anon, NA, OA, GA, ACA, SLAA, WA', userZone: 'Asia/Karachi', now: at('2026-10-26T16:01:00Z'),
+});
+check('10am and 3pm New York are out, 10:30am and 2:59pm are in',
+  ['"Tuesday AA 1"', '"Tuesday AA 2"', '"Tuesday AA 3"', '"Tuesday AA 4"', '"Tuesday AA 5"'].map((n) => nyAsk.includes(n)), [false, true, true, false, false]);
+check('each line gives Pakistan and New York time, worked out', nyAsk.includes('- tomorrow, Tuesday 27 October, at 7:30pm | Tuesday 27 October at 10:30am America/New_York time | "Tuesday AA 2"'), true);
+check('the count is for the window in New York, with how many are shown', nyAsk.includes('by day: Tuesday 27 October: 2 fit, 2 of them shown below.'), true);
+check('and it is told the zone it was asked in', nyAsk.includes('They asked about days and times in America/New_York'), true);
+check('"show all" and "all matches" are asks for all, "all genders" is not',
+  ['Show all online AA meetings available in your list for Tuesday', 'Include all matches and distinguish missing data', 'Please show only meetings open to all genders, starting after 7 PM', 'any AA tomorrow?'].map((t) => meetings.askIn(t).all),
+  [true, true, false, false]);
+const allAsk = meetings.buildMeetingsBlock({ message: 'Show all online AA meetings available in your list for Tuesday, 27 October 2026, in Pakistan time, with no time or gender filter.', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-26T15:58:00Z') });
+check('asked for all with no time filter, every Tuesday one is given (26 Oct: none given); 3pm New York is Wednesday in Pakistan',
+  ['"Tuesday AA 1"', '"Tuesday AA 2"', '"Tuesday AA 3"', '"Tuesday AA 4"', '"Tuesday AA 5"'].map((n) => allAsk.includes(n)), [true, true, true, false, true]);
+check('and told to give every pick, not one to three', [allAsk.includes('They asked for all of them. Answer like this'), allAsk.includes('Offer one to three')], [true, false]);
+check('and it may never say it is not holding more', allAsk.includes('never say the picks are all you have, that you are not holding more'), true);
 
 group('the real list, as written');
 const real = JSON.parse(require('fs').readFileSync(path.resolve(__dirname, 'meetings-data.json'), 'utf8'));

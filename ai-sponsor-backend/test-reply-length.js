@@ -122,6 +122,25 @@ check('a reply with no question is untouched', () => {
   assert.strictEqual(dropTrailingQuestion(t), t);
 });
 
+check('a reply with links keeps every line (26 Oct: a meeting list came out as "org/meetings/...")', () => {
+  const t = [
+    'Here they are:',
+    '',
+    '- 10:15am NY / 7:15pm Karachi | "God is Everything" | open | https://us06web.zoom.us/j/81836241216?pwd=v6jd | https://aa-intergroup.org/meetings/god-is-everything-2',
+    '- 12:30pm NY / 9:30pm Karachi | "Lunch Bunch" | open | https://us02web.zoom.us/j/6604577555 | passcode AKRON1 | https://aa-intergroup.org/meetings/lunch-bunch-virtual-group-1',
+    '',
+    'There are more in that window. The finder has them all: https://www.aa.org/find-aa',
+    '',
+    'That\'s a lot of checking tonight. What\'s going on underneath it?',
+  ].join('\n');
+  assert.strictEqual(dropTrailingQuestion(t), t.replace(' What\'s going on underneath it?', ''));
+});
+
+check('a list ending on a question line loses only that line', () => {
+  const t = 'Two for tonight:\n- 7pm | "A" | https://zoom.us/j/1\n- 8pm | "B" | https://zoom.us/j/2\nWant more?';
+  assert.strictEqual(dropTrailingQuestion(t), 'Two for tonight:\n- 7pm | "A" | https://zoom.us/j/1\n- 8pm | "B" | https://zoom.us/j/2');
+});
+
 check('it never returns something too short to send', () => {
   const out = dropTrailingQuestion('Yeah. Why?');
   assert.ok(words(out) >= 2, `left "${out}"`);

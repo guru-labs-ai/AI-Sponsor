@@ -331,20 +331,61 @@ function timeWindowIn(text) {
     const to = toMinutes(m[4], m[5], m[6], fallback);
     if (from !== null && to !== null && to > from) return { from, to };
   }
-  m = new RegExp(`\\b(?:after|from|later than|past|no earlier than)\\s+${TIME}`, 'i').exec(t);
-  if (m) {
-    const from = toMinutes(m[1], m[2], m[3], fallback);
-    if (from !== null && from < 24 * 60) return { from, to: 24 * 60 };
-  }
-  m = new RegExp(`\\b(?:before|until|by|no later than|earlier than)\\s+${TIME}`, 'i').exec(t);
-  if (m) {
-    const to = toMinutes(m[1], m[2], m[3], fallback);
-    if (to !== null && to > 6 * 60) return { from: 6 * 60, to };
+  /* "after 10am" means later than 10, so a meeting at 10 is out; "from 10am"
+     and "no earlier than 10am" keep it. "before 3pm" leaves 3pm out, "until
+     3pm" and "no later than 3pm" keep it. Start times are whole minutes, so a
+     minute either way draws the line. Both ends count: on 26 Oct "after 10 AM
+     and before 3 PM" was read as 10am to midnight, and a 10am meeting offered. */
+  const a = new RegExp(`\\b(after|(?<!no )later than|past|from|no earlier than)\\s+${TIME}`, 'i').exec(t);
+  const b = new RegExp(`\\b(before|(?<!no )earlier than|until|till|by|no later than)\\s+${TIME}`, 'i').exec(t);
+  let from = a ? toMinutes(a[2], a[3], a[4], fallback) : null;
+  let to = b ? toMinutes(b[2], b[3], b[4], fallback) : null;
+  if (from !== null && /^(after|later than|past)$/i.test(a[1])) from += 1;
+  if (to !== null && /^(until|till|by|no later than)$/i.test(b[1])) to += 1;
+  if (from !== null || to !== null) {
+    const win = { from: from !== null ? from : 6 * 60, to: to !== null ? to : 24 * 60 };
+    if (win.from < 24 * 60 && win.to > win.from) return win;
   }
   for (const [re, from, to] of PARTS_OF_DAY) if (re.test(t)) return { from: from * 60, to: to * 60 };
   // "at any time": the whole day, not only the sensible hours.
-  if (/\b(any ?time|all day|whole day|any hour|no time (filter|limit))\b/i.test(t)) return { from: 0, to: 24 * 60 };
+  if (/\b(any ?time|all day|whole day|any hour|no time)\b/i.test(t)) return { from: 0, to: 24 * 60 };
   return null;
+}
+
+/* A time zone they name for the times they ask about: "before 3 PM New York
+   time", "use America/New_York". On 26 Oct Bilal asked for 10am to 3pm New
+   York time and it was read as Pakistan time. A short code counts only right
+   after a clock time ("10am EST"): meeting names carry them too. Where they
+   are does not count as asking for another zone, so with both named ("in New
+   York and Pakistan time") the other one wins. */
+const ZONE_WORDS = [
+  [/\b(new york|nyc?|eastern|us eastern|east coast)\s+time\b/i, /\d\s*(?:am|pm)?\s*(?:EST|EDT|ET)\b/, 'America/New_York'],
+  [/\b(chicago|central|us central)\s+time\b/i, /\d\s*(?:am|pm)?\s*(?:CST|CDT|CT)\b/, 'America/Chicago'],
+  [/\b(denver|mountain)\s+time\b/i, /\d\s*(?:am|pm)?\s*(?:MST|MDT)\b/, 'America/Denver'],
+  [/\b(los angeles|la|pacific|west coast|california)\s+time\b/i, /\d\s*(?:am|pm)?\s*(?:PST|PDT|PT)\b/, 'America/Los_Angeles'],
+  [/\b(london|uk|british)\s+time\b/i, /\d\s*(?:am|pm)?\s*(?:GMT|BST)\b/, 'Europe/London'],
+  [/\b(pakistan|karachi|lahore|islamabad)\s+time\b/i, /\d\s*(?:am|pm)?\s*PKT\b/, 'Asia/Karachi'],
+  [/\b(india|indian)\s+time\b/i, /\d\s*(?:am|pm)?\s*IST\b/, 'Asia/Kolkata'],
+  [/\b(sydney|melbourne)\s+time\b/i, /\d\s*(?:am|pm)?\s*(?:AEST|AEDT)\b/, 'Australia/Sydney'],
+  [/\b(dubai|uae)\s+time\b/i, null, 'Asia/Dubai'],
+  [/\butc\s+time\b/i, /\d\s*(?:am|pm)?\s*UTC\b/, 'UTC'],
+];
+function zoneIn(text, userZone = null) {
+  // A quoted meeting name ("6 am EST Check-up from the Neck Up") is not their ask.
+  const t = String(text || '').replace(/["“][^"“”]*["”]/g, ' ');
+  const named = [];
+  const iana = /\b((?:America|Europe|Asia|Africa|Australia|Pacific|Atlantic|Indian)\/[A-Za-z_]+(?:\/[A-Za-z_]+)?)/.exec(t);
+  if (iana) {
+    try { new Intl.DateTimeFormat('en', { timeZone: iana[1] }); named.push({ at: iana.index, zone: iana[1] }); } catch { /* not a zone */ }
+  }
+  for (const [phrase, short, zone] of ZONE_WORDS) {
+    for (const re of [phrase, short]) {
+      const m = re && re.exec(t);
+      if (m) named.push({ at: m.index, zone });
+    }
+  }
+  const other = named.filter((x) => x.zone !== userZone).sort((x, y) => x.at - y.at);
+  return other.length ? other[0].zone : null;
 }
 
 // 'women', 'men', 'all' (no women- or men-only ones) or null.
@@ -357,7 +398,13 @@ function genderAsked(text) {
   return women ? 'women' : men ? 'men' : null;
 }
 
-const MORE_DAYS = /\b(this|next|the|whole|coming) week\b|\b(following|next|coming|other) (few |couple of )?days\b|\brest of the week\b|\blater (in|this) (the )?week\b|\bdays after\b|\bweek ahead\b/i;
+/* "Show all", "include all matches": on 26 Oct, asked for all 264 AA meetings
+   on a Tuesday, the sponsor gave none and said it was "not holding back a
+   bigger list". Asked for all, a day gets more picks, and the count says how
+   many there are in all. */
+const ALL_ASK = /\b(all|every|complete|entire|remaining)\b[^.?!]{0,40}\b(meetings?|matches|results|entries)\b|\bshow (me )?(all|everything)\b/i;
+const PER_ALL = 8;
+const MORE_DAYS =/\b(this|next|the|whole|coming) week\b|\b(following|next|coming|other) (few |couple of )?days\b|\brest of the week\b|\blater (in|this) (the )?week\b|\bdays after\b|\bweek ahead\b/i;
 const WEEKEND = /\bweekends?\b/i;
 
 function askIn(text) {
@@ -366,6 +413,7 @@ function askIn(text) {
     window: timeWindowIn(text),
     want: genderAsked(text),
     week: MORE_DAYS.test(String(text || '')),
+    all: ALL_ASK.test(String(text || '').replace(/\ball genders?\b/gi, '')),
   };
 }
 
@@ -462,10 +510,10 @@ function spreadDay(list, want = null, week = false) {
 /* Asked for a time, the day's picks all fall inside it: the best fits first,
    half an hour apart so they are real choices, then the rest. */
 const PER_WINDOW = 5;
-function windowDay(list, want = null, week = false, win = null) {
+function windowDay(list, want = null, week = false, win = null, most = null) {
   const ok = list.filter(fits(want));
   const better = rank(want);
-  const max = week ? 3 : PER_WINDOW;
+  const max = most || (week ? 3 : PER_WINDOW);
   const picked = [];
   /* A wide window ("at any time", "evening") is cut into parts so the picks
      spread across it, not the first few after it opens. */
@@ -497,6 +545,8 @@ function upcoming(programs, now, data, userZone, ask = {}) {
   const ahead = dates.length ? Math.max(7, dates[dates.length - 1].k + 1) : 7;
   const perDayFew = ask.week || dates.length > 2;
   const win = ask.window || null;
+  // The zone their days and times are in: theirs, or one they named.
+  const frame = ask.zone || userZone;
   const out = {};
   const counts = {};
   for (const p of programs) {
@@ -513,24 +563,23 @@ function upcoming(programs, now, data, userZone, ask = {}) {
     const all = mine.flatMap((m) => starts(m, now, ahead).map((at) => ({ m, at }))).sort((a, b) => a.at - b.at);
     for (const x of all) {
       const h = localHourAt(userZone, x.at);
-      const mins = h * 60 + localMinuteAt(userZone, x.at);
+      const mins = localHourAt(frame, x.at) * 60 + localMinuteAt(frame, x.at);
       // A time they asked for wins over "a sensible hour": they chose it.
       if (win) {
         if (mins < win.from || mins >= win.to) continue;
       } else if (!inWaking(h)) continue;
-      const { y, mo, d } = dateIn(userZone, x.at);
+      const { y, mo, d } = dateIn(frame, x.at);
       const key = dayKey({ y, mo, d });
       if (wanted && !wanted.has(key)) continue;
       if (!days.has(key)) days.set(key, { weekday: new Date(Date.UTC(y, mo, d)).getUTCDay(), list: [] });
       days.get(key).list.push({ ...x, h, mins });
     }
-    if (wanted) counts[p] = dates.map(({ key, label }) => ({ label, n: ((days.get(key) || {}).list || []).filter(fits(ask.want)).length }));
     /* Up late (10pm to 7am for them), somebody asking for a meeting may need
        one now, not at a sensible hour tomorrow. Then the next two starting
        within two hours are offered too, whatever the hour. Not when they
        named a time, or days other than today: then that is what they want. */
     const nowHour = localHourAt(userZone, now);
-    const late = !win && (!wanted || wanted.has(dayKey(dateIn(userZone, now)))) && (nowHour < WAKING.from || nowHour >= WAKING.to);
+    const late = !win && (!wanted || wanted.has(dayKey(dateIn(frame, now)))) && (nowHour < WAKING.from || nowHour >= WAKING.to);
     const night = late
       ? all.filter((x) => x.at <= now + LATE_NIGHT_WINDOW_MS && !inWaking(localHourAt(userZone, x.at))).filter(fits(ask.want))
       : [];
@@ -541,9 +590,20 @@ function upcoming(programs, now, data, userZone, ask = {}) {
       if (soonest.every((s) => Math.abs(s.at - x.at) >= 30 * 60000)) soonest.push(x);
     }
     soonest.sort((a, b) => a.at - b.at);
-    out[p] = [...soonest, ...[...days.values()]
-      .filter((day, i) => wanted || ask.week || i < DAYS_SHOWN || askedDays.includes(day.weekday))
-      .flatMap((day) => (win ? windowDay(day.list, ask.want, perDayFew, win) : spreadDay(day.list, ask.want, perDayFew)))];
+    const picks = new Map([...days.entries()]
+      .filter(([, day], i) => wanted || ask.week || i < DAYS_SHOWN || askedDays.includes(day.weekday))
+      .map(([key, day]) => [key, ask.all && !perDayFew
+        ? windowDay(day.list, ask.want, false, win || { from: WAKING.from * 60, to: WAKING.to * 60 }, PER_ALL)
+        : win ? windowDay(day.list, ask.want, perDayFew, win) : spreadDay(day.list, ask.want, perDayFew)]));
+    out[p] = [...soonest, ...[...picks.values()].flat()];
+    // Per day: how many fit, and how many of those are shown, so it never takes the few for all.
+    if (wanted) {
+      counts[p] = dates.map(({ key, label }) => ({
+        label,
+        n: ((days.get(key) || {}).list || []).filter(fits(ask.want)).length,
+        shown: (picks.get(key) || []).length,
+      }));
+    }
   }
   return { lists: out, counts };
 }
@@ -564,10 +624,13 @@ function alreadyGiven(text, data) {
 /* One meeting as the sponsor sees it. Time first, then the name, so a time
    inside a name is never read as theirs. "Listed as" and the source are there
    so that, questioned, the sponsor can show where a meeting comes from. */
-function meetingLine(m, at, userZone, now) {
+function meetingLine(m, at, userZone, now, askZone = null) {
   const when = userZone ? describeWhen(at, userZone, now) : `${describeWhen(at, m.zone, now, { relative: false })} ${m.zone} time`;
   const soon = startsIn(at, now);
-  const fields = [soon ? `${when} (${soon})` : when, `"${cleanName(m.name)}"`];
+  const fields = [soon ? `${when} (${soon})` : when];
+  // Asked in another zone, the time there too, worked out here, never by the sponsor.
+  if (userZone && askZone) fields.push(`${describeWhen(at, askZone, now, { relative: false })} ${askZone} time`);
+  fields.push(`"${cleanName(m.name)}"`);
   if (userZone) fields.push(`listed as ${fmt('weekday', m.zone, { weekday: 'long' }).format(new Date(at))} ${clock(at, m.zone)} ${m.zone} time`);
   /* Said either way. On 23 Oct a UA listing that gives neither was called
      "LGBTQ only" from its name, then "open to everyone" from nothing. */
@@ -666,14 +729,19 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
       : null;
     if (!fresh.length) return ['## RECOVERY MEETINGS', staleLine, ...otherLines, ...standingLines()].join('\n');
 
-    const ask = userZone ? { ...askIn(message), dates: datesIn(message, userZone, now) } : { days: weekdaysIn(message) };
+    const ask = userZone ? { ...askIn(message), zone: zoneIn(message, userZone) } : { days: weekdaysIn(message) };
     /* A follow-up keeps what they asked for just before: "anymore the
-       following days" after "AA tomorrow after 7pm" still means after 7pm. */
+       following days" after "AA tomorrow after 7pm" still means after 7pm.
+       A time carried over keeps the zone it was asked in. */
     if (userZone && !nowNamed) {
       const before = askIn(lastUserMessage);
-      ask.window = ask.window || before.window;
+      if (!ask.window && before.window) {
+        ask.window = before.window;
+        ask.zone = ask.zone || zoneIn(lastUserMessage, userZone);
+      }
       ask.want = ask.want || before.want;
     }
+    if (userZone) ask.dates = datesIn(message, ask.zone || userZone, now);
     const { lists, counts } = upcoming(fresh, now, data, userZone, ask);
     const held = (p) => data.meetings.filter((m) => m.program === p).length.toLocaleString('en-US');
     const lines = [];
@@ -683,8 +751,8 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
       if (!lists[p].length && !count) continue;
       shown.push(p);
       lines.push(`${PROGRAMS[p].label}: a few picks from the ${held(p)} you hold, which meet on every day of the week:`);
-      if (count) lines.push(`How many of the ${held(p)} fit what they asked, by day: ${count.map(({ label, n }) => `${label}: ${n || 'none'}`).join('; ')}. The picks below are a few of each.`);
-      for (const { m, at } of lists[p]) lines.push(meetingLine(m, at, userZone, now));
+      if (count) lines.push(`How many of the ${held(p)} fit what they asked${ask.window ? '' : ', at a sensible hour for them (7am to 10pm)'}, by day: ${count.map(({ label, n, shown: s }) => `${label}: ${n ? `${n} fit, ${s} of them shown below` : 'none'}`).join('; ')}. You hold every one that fits; only the ones below are in front of you.`);
+      for (const { m, at } of lists[p]) lines.push(meetingLine(m, at, userZone, now, ask.zone));
     }
     /* Ones it gave them earlier in the chat and not listed above, shown at the
        time that just passed if it began in the last three hours ("started 20
@@ -694,7 +762,7 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
       .filter((m) => isFresh(m.program))
       .map((m) => ({ m, at: starts(m, now - 3 * 3600000).filter((t) => t <= now).pop() || nextStart(m, now) }))
       .filter(({ m, at }) => at && !listed.has(`${m.id}@${at}`));
-    const givenLines = given.map(({ m, at }) => meetingLine(m, at, userZone, now));
+    const givenLines = given.map(({ m, at }) => meetingLine(m, at, userZone, now, ask.zone));
     const givenSection = givenLines.length
       ? ['Meetings you already gave them in this chat, as listed (if they ask about one, this is it):', ...givenLines]
       : [];
@@ -702,8 +770,8 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
     const askedKeys = new Set(askedDates.map((x) => x.key));
     const namedLines = namedIn(message, data, fresh).flatMap((m) => {
       const all = starts(m, now, askedDates.length ? Math.max(7, askedDates[askedDates.length - 1].k + 1) : 7);
-      const onDays = userZone && askedKeys.size ? all.filter((t) => askedKeys.has(dayKey(dateIn(userZone, t)))) : [];
-      return (onDays.length ? onDays : all.slice(0, 1)).filter((at) => !listed.has(`${m.id}@${at}`)).map((at) => meetingLine(m, at, userZone, now));
+      const onDays = userZone && askedKeys.size ? all.filter((t) => askedKeys.has(dayKey(dateIn(ask.zone || userZone, t)))) : [];
+      return (onDays.length ? onDays : all.slice(0, 1)).filter((at) => !listed.has(`${m.id}@${at}`)).map((at) => meetingLine(m, at, userZone, now, ask.zone));
     });
     const namedSection = namedLines.length
       ? ['Meetings they named, as listed (on the days they asked about when it meets then, otherwise its next time):', ...namedLines]
@@ -723,7 +791,7 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
       'Use this only if they are asking about a recovery meeting. If "meeting" here means seeing a person, or anything else, ignore this section completely.',
       `These are upcoming online meetings for their program, read from each meeting's official listing on ${checked}. They are a few picks for this message${askedDates.length ? `, for ${askedDates.map((x) => x.label).join(', ')}` : ''}${ask.window ? ', all inside the time they asked for' : ''}${ask.want === 'women' || ask.want === 'men' ? `, ${ask.want}'s meetings first` : ''}${ask.want === 'all' ? ', none of them women- or men-only' : ''}${ask.week ? ', for each day of the coming week' : ''}, not everything you hold.`,
       userZone
-        ? `Where they are (${userZone}, from their phone number) it is now ${describeWhen(now, userZone, now, { relative: false }).replace(' at ', ', ')}. Each line starts with the meeting's day, date and time for them, already worked out, and how soon it starts. ${inWaking(localHourAt(userZone, now)) ? 'Only ones at a sensible hour for them are listed.' : 'They are up late, so the first ones are the next meetings starting within two hours, whatever the hour, in case they need one now; the rest are at a sensible hour.'} Use that day and date exactly as written; never work out a day yourself from "today" or "tomorrow". "Listed as" is the day and time the directory gives, in the meeting's own time zone.`
+        ? `Where they are (${userZone}, from their phone number) it is now ${describeWhen(now, userZone, now, { relative: false }).replace(' at ', ', ')}. Each line starts with the meeting's day, date and time for them, already worked out, and how soon it starts. ${inWaking(localHourAt(userZone, now)) ? 'Only ones at a sensible hour for them are listed.' : 'They are up late, so the first ones are the next meetings starting within two hours, whatever the hour, in case they need one now; the rest are at a sensible hour.'} Use that day and date exactly as written; never work out a day yourself from "today" or "tomorrow". "Listed as" is the day and time the directory gives, in the meeting's own time zone.${ask.zone ? ` They asked about days and times in ${ask.zone}: those were matched in ${ask.zone}, and each line gives the time there as well, already worked out. Use both as written; never convert a time yourself.` : ''}`
         : 'We do not know where they are, so each time is in the meeting\'s own time zone, as labelled.',
       ...lines,
       ...givenSection,
@@ -732,8 +800,11 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
       ...otherLines,
       ...standingLines(),
       'How to use it:',
-      '- Offer one to three that fit what they asked for, never the whole list.',
+      ask.all
+        ? '- They asked for all of them. Answer like this: say how many fit in all (the count), say here are some spread across the day, then list every pick below in full (day and time, name, link, passcode), then offer more if they give a narrower time. Listing none, or only ones you gave before, is wrong.'
+        : '- Offer one to three that fit what they asked for, never the whole list.',
       ...(Object.keys(counts).length ? ['- The count by day was checked against every meeting you hold. A day it gives as none really has none that fit what they asked: say so plainly, then offer the nearest other time or day, or the official finder. A day with a number has that many, so never say it has none.'] : []),
+      '- You hold every meeting in the count, and the picks here are only some of them. If they ask for all of them or for more, say how many there are, give the picks here, and offer more by narrowing the time (or the official finder). Never give none, and never say the picks are all you have, that you are not holding more, or that your list is only a working set.',
       '- If what they want is not here (another day, a later or earlier time, a women\'s or men\'s meeting) and no count above says none, never say there is none, that your list ends tomorrow, or that you hold nothing later, and never call the ones you give all you have: you hold meetings for every day of the coming week, and these are only a few. Say you\'ll look, and ask them for the day and time in one line (for example "Tell me the day and time, like Saturday after 8pm, and I\'ll look"). You can give the official finder as well.',
       '- Copy the name, time, link and passcode exactly as written here. Never change, shorten or make up a link, a time, a passcode or a meeting, and never offer one that is not on this list.',
       '- A meeting\'s name can contain a day, time or time zone (for example "Daily 9:00 PM PST"). That is part of its name, in the meeting\'s own time zone, never its time for them.',
@@ -753,7 +824,7 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
 
 module.exports = {
   buildMeetingsBlock, asksAboutMeetings, programsOf, programsIn, nextStart, starts, describeWhen, instantFor,
-  cleanName, weekdaysIn, alreadyGiven, startsIn, timeWindowIn, genderAsked, askIn, datesIn, namedIn,
+  cleanName, weekdaysIn, alreadyGiven, startsIn, timeWindowIn, genderAsked, askIn, datesIn, namedIn, zoneIn,
   offsetMinutes, STALE_AFTER_DAYS, PROGRAMS, OTHERS, othersIn,
   _setData(d) { cache = d; },
 };

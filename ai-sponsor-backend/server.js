@@ -1618,15 +1618,24 @@ const lastReplyAskedSomething = new Map();
 function dropTrailingQuestion(text) {
   const t = String(text || '').trim();
   if (!ENDS_ON_QUESTION.test(t) || CRISIS_RESOURCE.test(t)) return text;
-  /* Split on sentence ends, keeping them, then drop trailing question
-     sentences. Bails out rather than returning something too short to send. */
+  /* Cut whole sentences off the end, one at a time while the end is still a
+     question, and keep everything before them exactly as written. It used to
+     rebuild the reply from the pieces that end in a full stop, and a reply with
+     links in it lost every line that did not: on 26 Oct a list of meetings
+     came out as "org/meetings/lunch-bunch-virtual-group-1 ... org/find-aa".
+     A new line ends a sentence too, so a list keeps its lines. Bails out
+     rather than returning something too short to send. */
   // Chinese and Japanese put no space after a full stop, so 。！？ end a
-  // sentence on their own; . ! ? still need a space or the end after them.
-  const parts = t.match(/[^.!?。！？؟।]+(?:[.!?]+(?:\s|$)|[。！？؟।]+\s*)/g);
-  if (!parts || parts.length < 2) return text;
-  let kept = parts.slice();
-  while (kept.length && ENDS_ON_QUESTION.test(kept[kept.length - 1].trim())) kept.pop();
-  const out = kept.join('').trim();
+  // sentence on their own; . ! ? still need a space after them.
+  let out = t;
+  while (ENDS_ON_QUESTION.test(out)) {
+    const ends = /[.!?]+\s+|[。！？؟।]+\s*|\n+/g;
+    let start = -1;
+    for (let m = ends.exec(out); m && m.index + m[0].length < out.length; m = ends.exec(out)) start = m.index + m[0].length;
+    if (start <= 0) break;
+    out = out.slice(0, start).trim();
+  }
+  if (out === t) return text;
   /* Two words, not four. An earlier version used four and threw away "That
      lands hard.", which is exactly the reply this whole change is trying to
      produce. The floor is only here to stop a fragment going out, and the
@@ -1984,7 +1993,8 @@ async function getSponsorReply(userId, message, context) {
   const windowSliding = updatedHistory.length > RECENT_TURNS;
   const response = await client.messages.create({
     model: 'claude-opus-4-8',
-    max_tokens: 1024,
+    // A list of meetings with links runs long: on 26 Oct nine of them stopped mid-sentence at 1024.
+    max_tokens: offersMeetings ? 2048 : 1024,
     system: systemBlocks,
     // recent window; older turns live in the digest + DB
     messages: withLanguageNote(withCachedHistory(updatedHistory.slice(-RECENT_TURNS), windowSliding), replyLanguage),
