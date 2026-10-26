@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Site language: shows this article in the language the visitor chose on the
+       homepage or sign-up (?lang= or their saved choice), English otherwise.
+       See i18n.js. -->
+  <script src="/i18n.js?v=95bb4892cb" data-i18n-extra="blogpost"></script>
+
+  <!-- Cookie consent gate. GA4, the Meta pixel, the OpenAI ads pixel and Clarity
+       all load through this instead of firing on their own: nothing sets a
+       cookie until somebody has actually accepted. See /cookie-consent.js. -->
+  <script src="/cookie-consent.js?v=95bb4892cb"></script>
+  <script>AISCookieConsent.init({ clarity: true });</script>
+
+  <!-- HYROS Universal Tracking Script -->
+  <script>
+    var head = document.head;
+    var script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = "https://215466.t.hyros.com/v1/lst/universal-script?ph=395a23f1c62bf26a497b91f272b6fc6b27906736d5a140cd7a9e220d722c2456&tag=!ai_sponsor&ref_url=" + encodeURI(document.URL);
+    head.appendChild(script);
+  </script>
+
+  <!-- Attribution: first touch wins. See /blog/index.html for the full note. -->
+  <script>
+  (function(){
+    try{
+      if (localStorage.getItem('ais_attr')) return;
+      var p = new URLSearchParams(location.search);
+      var refHost = '';
+      try {
+        if (document.referrer) refHost = new URL(document.referrer).hostname.replace(/^www\./,'');
+      } catch(e){}
+      if (refHost && refHost === location.hostname.replace(/^www\./,'')) refHost = '';
+      localStorage.setItem('ais_attr', JSON.stringify({
+        utmSource:   p.get('utm_source')   || '',
+        utmMedium:   p.get('utm_medium')   || '',
+        utmCampaign: p.get('utm_campaign') || '',
+        referrer:    refHost,
+        landing:     location.pathname,
+        at:          new Date().toISOString()
+      }));
+    }catch(e){}
+  })();
+  </script>
+  <title>5 ACA Convention Talks to Start With | AI Sponsor</title>
+  <meta name="description" content="ACA recorded its 2026 world convention. Five talks to start with, how ACA study groups work, and the 2027 convention on Zoom in April.">
+  <link rel="canonical" href="https://getaisponsor.com/blog/aca-convention-talks-and-study-groups/">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="AI Sponsor">
+  <meta property="og:title" content="Something to listen to, someone to work with: ACA">
+  <meta property="og:description" content="Five talks from ACA's 2026 world convention, how ACA study groups work, and the next convention on Zoom in April 2027.">
+  <meta property="og:url" content="https://getaisponsor.com/blog/aca-convention-talks-and-study-groups/">
+  <meta property="og:image" content="https://getaisponsor.com/og-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-10-26">
+  <meta property="article:modified_time" content="2026-10-26">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Something to listen to, someone to work with: ACA">
+  <meta name="twitter:description" content="Five talks from ACA's 2026 world convention, how ACA study groups work, and the next convention on Zoom in April 2027.">
+  <meta name="twitter:image" content="https://getaisponsor.com/og-card.png">
+
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/blog/blog.css?v=95bb4892cb">
+
+  <!-- This post is a listening and study guide, not a program explainer, so it
+       carries its own card styles instead of the .answer box and FAQ block. -->
+  <style>
+    .art { margin: 8px 0 28px; border-radius: 16px; overflow: hidden; background: var(--blue-pale); }
+    .art svg { display: block; width: 100%; height: auto; }
+    .art-small { max-width: 420px; margin-left: auto; margin-right: auto; }
+    .lede { font-size: 18px; line-height: 1.75; color: var(--text); }
+    .listen { list-style: none; padding: 0 !important; margin: 24px 0 8px !important; }
+    .listen li {
+      background: var(--white); border: 1px solid var(--border); border-radius: 14px;
+      padding: 18px 18px 16px; margin: 0 0 14px !important;
+    }
+    .listen .for {
+      display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--blue); background: var(--blue-pale);
+      border-radius: 999px; padding: 4px 10px; margin-bottom: 10px;
+    }
+    .listen h3 { margin: 0 0 6px !important; font-size: 18px; line-height: 1.35; }
+    .listen p { font-size: 15px !important; margin: 0 0 10px !important; color: var(--sub); }
+    .listen .play {
+      display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600;
+      text-decoration: none; color: var(--white) !important; background: var(--blue);
+      border-radius: 999px; padding: 8px 16px;
+    }
+    .listen .play:hover { background: var(--blue-light); }
+    .gather { border-left: 3px solid var(--gold); padding: 2px 0 2px 16px; margin: 22px 0; }
+    .gather .when { font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
+    .gather h3 { margin: 0 0 8px !important; }
+    .gather p { margin-bottom: 8px; }
+    .checked { font-size: 14px; color: var(--sub); font-style: italic; }
+    @media (min-width: 768px) {
+      .listen li { padding: 22px 24px 20px; }
+      .listen h3 { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav id="nav">
+  <a href="/" class="nav-logo">AI Sponsor</a>
+  <div class="nav-right">
+    <a href="/blog/" class="nav-link">Blog</a>
+    <a href="/#pricing" class="nav-link">Pricing</a>
+    <a href="/#faq" class="nav-link">FAQ</a>
+    <a href="/ai-sponsor-registration.html" class="nav-cta">Get Started Free</a>
+  </div>
+</nav>
+
+<main class="wrap">
+  <article class="article">
+
+    <div class="breadcrumb">
+      <a href="/">Home</a> &rsaquo; <a href="/blog/">Blog</a> &rsaquo; ACA: talks and study groups
+    </div>
+
+    <h1>Something to listen to, someone to work with: Adult Children of Alcoholics</h1>
+
+    <div class="byline">
+      <span>By the <strong>AI Sponsor team</strong></span>
+      <span class="sep">&bull;</span>
+      <span>Published <time datetime="2026-10-26">26 October 2026</time></span>
+      <span class="sep">&bull;</span>
+      <span>4 min read</span>
+    </div>
+
+    <!-- Illustration drawn for this post. No fellowship logos, book covers or event photos. -->
+    <div class="art" role="img" aria-label="Illustration of an open notebook and a pen beside sound waves">
+      <svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="640" height="260" fill="#E8F4FD"/>
+        <circle cx="548" cy="52" r="72" fill="#D6EAF8"/>
+        <circle cx="70" cy="226" r="58" fill="#D6EAF8"/>
+        <g fill="#0080D4">
+          <rect x="92" y="114" width="12" height="32" rx="6"/>
+          <rect x="116" y="96" width="12" height="68" rx="6"/>
+          <rect x="140" y="78" width="12" height="104" rx="6"/>
+          <rect x="164" y="102" width="12" height="56" rx="6"/>
+          <rect x="188" y="120" width="12" height="20" rx="6"/>
+        </g>
+        <g transform="translate(250 58)">
+          <rect width="300" height="150" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+          <line x1="150" y1="10" x2="150" y2="140" stroke="#E2E8F0" stroke-width="2"/>
+          <g stroke="#CBD5E1" stroke-width="5" stroke-linecap="round">
+            <line x1="24" y1="40" x2="124" y2="40"/><line x1="24" y1="64" x2="112" y2="64"/>
+            <line x1="24" y1="88" x2="124" y2="88"/><line x1="24" y1="112" x2="92" y2="112"/>
+            <line x1="176" y1="40" x2="276" y2="40"/><line x1="176" y1="64" x2="250" y2="64"/>
+          </g>
+          <path d="M184 104 q22 -22 44 0 t44 0" fill="none" stroke="#0066B3" stroke-width="6" stroke-linecap="round"/>
+        </g>
+        <g transform="translate(470 150) rotate(-35)">
+          <rect width="96" height="14" rx="7" fill="#D97706"/>
+          <path d="M96 0 l18 7 l-18 7 z" fill="#0B1A2C"/>
+        </g>
+      </svg>
+    </div>
+
+    <p class="lede">Adult Children of Alcoholics and Dysfunctional Families (ACA) held its 2026 Annual World Convention online on 27 and 28 March. The theme was "Transformation from Hurting to Healing to Helping". ACA says it had 17 workshops and panels, presented by members from around the world, and the recordings are now on ACA's own store.</p>
+
+    <p>One thing has changed since the spring. From 1 October 2026, ACA's World Service Organization charges $3 for each downloadable recording. It charged the same before COVID, made newer recordings free during it, and says bringing the fee back helps cover the cost of keeping its audio library going. So these are $3 a talk, paid to ACA, not to us.</p>
+
+    <p>Nobody needs all 17. These are the five we would start with, depending on where you are right now.</p>
+
+    <h2>Five talks to start with</h2>
+
+    <ul class="listen">
+      <li>
+        <span class="for">If the Laundry List sounds like you</span>
+        <h3>3 Keys for Transforming &amp; Healing the Laundry Lists</h3>
+        <p>ACA describes it as a workshop about healing the Laundry List traits: the fourteen traits ACA says many adult children have in common.</p>
+        <a class="play" href="https://shop.adultchildren.org/products/2026-awc-3-keys-for-transforming-healing-the-laundry-lists" target="_blank" rel="noopener">&#9654; Listen ($3)</a>
+      </li>
+      <li>
+        <span class="for">If an old voice still criticizes you</span>
+        <h3>Identifying and Reframing Critical Childhood Messages</h3>
+        <p>In ACA's words, a workshop about identifying the critical messages heard in childhood.</p>
+        <a class="play" href="https://shop.adultchildren.org/products/2026-awc-identifying-and-reframing-critical-childhood-messages" target="_blank" rel="noopener">&#9654; Listen ($3)</a>
+      </li>
+      <li>
+        <span class="for">If you are raising children</span>
+        <h3>Parenting While ReParenting</h3>
+        <p>ACA describes it as a workshop about parenting your children while reparenting the child inside you. For anyone doing both at once.</p>
+        <a class="play" href="https://shop.adultchildren.org/products/2026-awc-parenting-while-reparenting" target="_blank" rel="noopener">&#9654; Listen ($3)</a>
+      </li>
+      <li>
+        <span class="for">If recovery has started to feel like homework</span>
+        <h3>Permission to Play: Healing the Inner Child Through Joy</h3>
+        <p>A workshop about healing the inner child through joy and play.</p>
+        <a class="play" href="https://shop.adultchildren.org/products/2026-awc-permission-to-play-healing-the-inner-child-through-joy" target="_blank" rel="noopener">&#9654; Listen ($3)</a>
+      </li>
+      <li>
+        <span class="for">If your body is carrying it</span>
+        <h3>Finding Safety in the Body Through the 5 Senses</h3>
+        <p>A workshop about finding safety in the body, through the five senses.</p>
+        <a class="play" href="https://shop.adultchildren.org/products/2026-awc-finding-safety-in-the-body-through-5-senses" target="_blank" rel="noopener">&#9654; Listen ($3)</a>
+      </li>
+    </ul>
+
+    <p>The rest are on <a href="https://adultchildren.org/2026-awc-workshops/" target="_blank" rel="noopener">ACA's 2026 convention page</a>. ACA also keeps the recordings of its earlier world conventions, going back to 2016, on its <a href="https://adultchildren.org/audio-recordings/" target="_blank" rel="noopener">audio recordings page</a>.</p>
+
+    <p>If $3 a talk is not possible right now, the reading is free. <a href="https://adultchildren.org/laundry-list/" target="_blank" rel="noopener">The Laundry List</a> is on ACA's site, and ACA has <a href="https://adultchildren.org/literature/free-literature/" target="_blank" rel="noopener">free literature to download</a> in more than 30 languages.</p>
+
+    <h2>If you would rather work through it with others</h2>
+
+    <div class="art art-small" role="img" aria-label="Illustration of a small circle of chairs around an open book">
+      <svg viewBox="0 0 420 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="420" height="200" fill="#E8F4FD"/>
+        <g transform="translate(176 80)">
+          <path d="M0 6 q17 -10 34 0 v34 q-17 -10 -34 0 z" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+          <path d="M34 6 q17 -10 34 0 v34 q-17 -10 -34 0 z" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+        </g>
+        <g fill="#0066B3">
+          <rect x="198" y="22" width="24" height="22" rx="5"/>
+          <rect x="198" y="156" width="24" height="22" rx="5"/>
+          <rect x="120" y="89" width="24" height="22" rx="5"/>
+          <rect x="276" y="89" width="24" height="22" rx="5"/>
+          <rect x="146" y="42" width="24" height="22" rx="5"/>
+          <rect x="146" y="136" width="24" height="22" rx="5"/>
+          <rect x="250" y="136" width="24" height="22" rx="5"/>
+        </g>
+        <rect x="250" y="42" width="24" height="22" rx="5" fill="#D97706"/>
+      </svg>
+    </div>
+
+    <p>In most 12-step programs the deep work happens one to one, with a sponsor. ACA's site says adult children have also found another way: small study groups that meet regularly to work through an ACA workbook together, in person, online or by phone. ACA's Fellowship Text, the Big Red Book, calls this "indirect sponsorship".</p>
+
+    <p>Two things are worth knowing before you look. New groups are listed only while they are taking members, and most close to newcomers after the first several meetings. ACA says that is on purpose, so the group can build safety and trust. And a study group sits alongside regular ACA meetings: ACA says it does not replace them.</p>
+
+    <p><a href="https://adultchildren.org/find-a-study-group/" target="_blank" rel="noopener">Find a study group on ACA's site</a>. You can filter by in person, online or telephone, and by time zone.</p>
+
+    <h2>Something to put in the calendar</h2>
+
+    <div class="gather">
+      <div class="when">On Zoom &middot; 9 and 10 April 2027</div>
+      <h3>ACA Annual World Convention 2027</h3>
+      <p>The next world convention is online again. The theme, voted by the fellowship, is "Reparenting Our Inner Family - From Isolation to Connection".</p>
+      <p><a href="https://adultchildren.org/awc/" target="_blank" rel="noopener">Details on ACA's convention page</a></p>
+    </div>
+
+    <p class="checked">We took these dates, prices and details from ACA's own pages on 26 October 2026. Plans change, so check ACA's page before you plan around it.</p>
+
+    <h2>And the hours in between</h2>
+
+    <p>A recording helps when you can't sleep. A study group helps when you are ready to do the work with other people. A lot of the hard moments happen somewhere else: after a phone call with family, or when an old reaction takes over and you only notice it later.</p>
+
+    <p>That is where an AI sponsor fits. You can text it at any hour, say what just happened, and work out one small next step to take to your next meeting or study group. It can also look up online ACA meetings for you, from ACA's own meeting search, with the time where you are. It is not a therapist, and it does not replace a meeting, a study group or a fellow traveler. It is not affiliated with ACA, and under its Sixth Tradition ACA does not lend its name to outside enterprises.</p>
+
+    <p>If you are in crisis, call or text 988, or text HOME to 741741.</p>
+
+    <p><em>Related: <a href="/blog/da-convention-recordings-and-gatherings/">Something to listen to, somewhere to go: Debtors Anonymous at 50</a> and <a href="/blog/what-is-an-ai-sponsor/">What is an AI sponsor?</a></em></p>
+
+    <div class="article-cta">
+      <h3>Something for tonight, too.</h3>
+      <p>A private companion for Adult Children of Alcoholics, and for Al-Anon, AA, NA, DA, UA and more. It knows your program, it remembers what you tell it, and it answers whenever you need it. For every subscription sold, we give one away to someone who cannot afford it.</p>
+      <a class="btn" href="/ai-sponsor-registration.html">Get your AI sponsor</a>
+    </div>
+
+  </article>
+</main>
+
+<footer>
+  <a href="/" class="footer-logo">AI Sponsor</a>
+  <nav class="footer-nav">
+    <a href="/#how" class="footer-nav-link">How It Works</a>
+    <a href="/#pricing" class="footer-nav-link">Pricing</a>
+    <a href="/#faq" class="footer-nav-link">FAQ</a>
+    <a href="/blog/" class="footer-nav-link">Blog</a>
+    <a href="/ai-sponsor-registration.html" class="footer-nav-link">Get Started</a>
+    <a href="/privacy" class="footer-nav-link">Privacy</a>
+    <a href="/terms" class="footer-nav-link">Terms</a>
+    <a href="#" class="footer-nav-link" onclick="AISCookieConsent.reset({clarity:true});return false;">Cookie preferences</a>
+  </nav>
+  <p class="footer-disclaimer">AI Sponsor is a private product and is not affiliated with, endorsed by, or connected to Alcoholics Anonymous, Narcotics Anonymous, Overeaters Anonymous, Underearners Anonymous, Debtors Anonymous, Adult Children of Alcoholics, or any 12-step program or organisation. If you are in crisis, please contact the Crisis Text Line (text HOME to 741741) or call 988.</p>
+</footer>
+<div style="background:#060E1A;text-align:center;padding:16px 24px;border-top:1px solid rgba(255,255,255,.06);">
+  <p style="font-size:12px;color:rgba(255,255,255,.25);">&copy; 2026 Conscious LLC. All rights reserved.</p>
+  <p style="font-size:12px;color:rgba(255,255,255,.25);">AI Sponsor is a service of Conscious LLC.</p>
+</div>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BlogPosting",
+      "@id": "https://getaisponsor.com/blog/aca-convention-talks-and-study-groups/#post",
+      "headline": "Something to listen to, someone to work with: Adult Children of Alcoholics",
+      "description": "ACA recorded its 2026 world convention. Five talks to start with, how ACA study groups work, and the 2027 convention on Zoom in April.",
+      "url": "https://getaisponsor.com/blog/aca-convention-talks-and-study-groups/",
+      "datePublished": "2026-10-26",
+      "dateModified": "2026-10-26",
+      "inLanguage": "en",
+      "author": { "@type": "Organization", "@id": "https://getaisponsor.com/#org", "name": "AI Sponsor", "url": "https://getaisponsor.com/" },
+      "publisher": { "@type": "Organization", "@id": "https://getaisponsor.com/#org", "name": "AI Sponsor", "url": "https://getaisponsor.com/", "logo": "https://getaisponsor.com/logo.png" },
+      "isPartOf": { "@id": "https://getaisponsor.com/blog/#blog", "name": "AI Sponsor Blog", "url": "https://getaisponsor.com/blog/" },
+      "mainEntityOfPage": "https://getaisponsor.com/blog/aca-convention-talks-and-study-groups/",
+      "image": "https://getaisponsor.com/logo.png",
+      "about": [
+        { "@type": "Organization", "name": "Adult Children of Alcoholics and Dysfunctional Families", "sameAs": "https://adultchildren.org/" },
+        { "@type": "Thing", "name": "12-step recovery" }
+      ]
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "AI Sponsor", "item": "https://getaisponsor.com/" },
+        { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://getaisponsor.com/blog/" },
+        { "@type": "ListItem", "position": 3, "name": "ACA: talks and study groups", "item": "https://getaisponsor.com/blog/aca-convention-talks-and-study-groups/" }
+      ]
+    }
+  ]
+}
+</script>
+
+</body>
+</html>
