@@ -2020,7 +2020,11 @@ async function getSponsorReply(userId, message, context) {
      only once. It costs a second call on the messages that earn it. Falls back
      to the original on any failure: a long reply is worse than a short one, and
      both are far better than no reply at all. */
-  const listsMeetings = offersMeetings && /zoom\.us\/j\//.test(rawReply);
+  /* A link, or the name of a meeting it was given: on 26 Oct an answer naming
+     four meetings with their dates, offsets and sums (no links) was cut to
+     four bare times, dropping what Bilal had asked for. */
+  const namesGiven = offersMeetings ? [...meetingsBlock.matchAll(/\| "([^"]{4,})" \|/g)].map((m) => m[1]) : [];
+  const listsMeetings = offersMeetings && (/zoom\.us\/j\//.test(rawReply) || namesGiven.some((n) => rawReply.includes(n)));
   if (listsMeetings && budget.ceiling && words(rawReply) > budget.ceiling) console.log(`[sponsor] long reply kept: it lists meetings (${words(rawReply)} words)`);
   if (budget.ceiling && !madeCheckinOffer && !listsMeetings && words(rawReply) > budget.ceiling) {
     const before = words(rawReply);

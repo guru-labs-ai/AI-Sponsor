@@ -166,8 +166,10 @@ check('an overshoot is actually rewritten, not just noted', () => {
 });
 
 check('the meetings exception covers only a reply that lists meetings it was given', () => {
-  assert.ok(/const listsMeetings = offersMeetings && \/zoom\\\.us\\\/j\\\/\/\.test\(rawReply\);/.test(src),
+  assert.ok(src.includes("const listsMeetings = offersMeetings && (/zoom\\.us\\/j\\//.test(rawReply) || namesGiven.some((n) => rawReply.includes(n)));"),
     'any reply in a meetings conversation escapes the length rewrite');
+  assert.ok(src.includes('const namesGiven = offersMeetings ? [...meetingsBlock.matchAll('),
+    'the names it may list are not the ones in the block');
   assert.ok(/const offersMeetings = \/\^## RECOVERY MEETINGS YOU CAN OFFER\/\.test\(meetingsBlock/.test(src),
     'the exception is not tied to the block that hands it meetings');
 });

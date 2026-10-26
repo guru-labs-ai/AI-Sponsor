@@ -166,6 +166,52 @@ function offsetMinutes(zone, instant) {
   return m ? (m[1] === '-' ? -1 : 1) * (parseInt(m[2], 10) * 60 + parseInt(m[3], 10)) : 0;
 }
 
+// "UTC-5", "UTC+5:30", "UTC+0", from minutes east of UTC.
+function utcLabel(mins) {
+  const a = Math.abs(mins);
+  return `UTC${mins < 0 ? '-' : '+'}${Math.floor(a / 60)}${a % 60 ? `:${String(a % 60).padStart(2, '0')}` : ''}`;
+}
+
+/* Clock changes in these zones between two instants, from the zones' own
+   rules, each to the minute. On 26 Oct the sponsor said US clocks go back on
+   2 November (in 2026 it is the 1st), gave Los Angeles UTC-7 for a time after
+   the change, then got the sum wrong. It is told these instead of recalling
+   them. */
+function clockChanges(zones, from, to) {
+  const out = [];
+  for (const zone of zones) {
+    let t = from;
+    let before = offsetMinutes(zone, t);
+    while (t < to) {
+      const next = Math.min(t + 6 * 3600000, to);
+      const after = offsetMinutes(zone, next);
+      if (after !== before) {
+        let lo = t;
+        let hi = next;
+        while (hi - lo > 60000) {
+          const mid = Math.floor((lo + hi) / 2);
+          if (offsetMinutes(zone, mid) === before) lo = mid; else hi = mid;
+        }
+        out.push({ zone, at: hi - (hi % 60000), from: before, to: after });
+        before = after;
+      }
+      t = next;
+    }
+  }
+  return out.sort((a, b) => a.at - b.at);
+}
+
+// "America/Chicago: clocks went back an hour at 2am on Sunday 1 November, from UTC-5 to UTC-6"
+function clockChangeLine({ zone, at, from, to }, now) {
+  const wall = new Date(at + from * 60000);
+  const h = wall.getUTCHours();
+  const mm = wall.getUTCMinutes();
+  const time = `${h % 12 || 12}${mm ? `:${String(mm).padStart(2, '0')}` : ''}${h < 12 ? 'am' : 'pm'}`;
+  const day = fmt('gb-longdate', zone, { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(at - 60000));
+  const hours = Math.abs(to - from) === 60 ? 'an hour' : `${Math.abs(to - from)} minutes`;
+  return `${zone}: clocks ${at < now ? 'went' : 'go'} ${to < from ? 'back' : 'forward'} ${hours} at ${time} on ${day}, from ${utcLabel(from)} to ${utcLabel(to)}`;
+}
+
 // The instant at which it is y-mo-d hh:mm on the wall clock in `zone`.
 function instantFor(zone, y, mo, d, hh, mm) {
   const guess = Date.UTC(y, mo, d, hh, mm);
@@ -432,18 +478,28 @@ const WEEKDAY_WORD = '(?:mon|tues?|wed(?:nes)?|thu(?:rs)?|fri|sat(?:ur)?|sun)(?:
 const UNTIL_BEFORE = new RegExp(`\\b(?:through|thru|until|till|up to|up until)\\s+(?:${WEEKDAY_WORD},?\\s*)?$`, 'i');
 const UNTIL_WEEKDAY = new RegExp(`\\b(?:through|thru|until|till|up to|up until)\\s+${WEEKDAY_WORD}\\b`, 'i');
 const MAX_DAYS_AHEAD = 31;
+const CLOCK_TALK = /\b(daylight|dst|clocks?|fall(s|ing)? back|fall-back|spring(s)? forward|utc offset|offsets?)\b/i;
 const monthIndex = (s) => ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'].indexOf(s.slice(0, 3).toLowerCase());
 const dayKey = ({ y, mo, d }) => `${y}-${mo}-${d}`;
 
 function datesIn(text, zone, now) {
-  const t = String(text || '');
+  /* A date they mention is not always a day they want meetings for: "US
+     clocks fall back on November 1, not November 2", "November 2 is Monday"
+     (Bilal, 26 Oct). A sentence about clocks that does not ask for meetings is
+     left out, and so is a date after "not" or followed by "is Monday". */
+  const t = String(text || '').split(/(?<=[.!?])\s+/)
+    .map((s) => (CLOCK_TALK.test(s) && !/\bmeetings?\b/i.test(s) ? ' '.repeat(s.length) : s)).join(' ');
   const today = dateIn(zone, now);
   const base = Date.UTC(today.y, today.mo, today.d);
   const found = [];
+  const left = []; // the spans left out, so "is Monday" is not then read as a day either
   for (const m of t.matchAll(DATE_RE)) {
     const d = Number(m[1] || m[4]);
     const mo = monthIndex(m[2] || m[3]);
     if (d < 1 || d > 31) continue;
+    if (/\bnot\s+(?:on\s+)?$/i.test(t.slice(Math.max(0, m.index - 8), m.index))) continue;
+    const statement = new RegExp(`^\\s*(?:is|was|falls on)\\s+(?:a\\s+)?${WEEKDAY_WORD}\\b`, 'i').exec(t.slice(m.index + m[0].length));
+    if (statement) { left.push([m.index, m.index + m[0].length + statement[0].length]); continue; }
     let y = m[5] ? Number(m[5]) : today.y;
     if (!m[5] && Date.UTC(y, mo, d) < base - 7 * 86400000) y += 1; // "2 January", said in December
     found.push({ at: m.index, end: m.index + m[0].length, k: Math.round((Date.UTC(y, mo, d) - base) / 86400000) });
@@ -469,10 +525,11 @@ function datesIn(text, zone, now) {
     for (let k = 0; k <= (w - new Date(base).getUTCDay() + 7) % 7; k++) ks.push(k);
   }
   if (!found.length && !untilDay) {
-    if (/\bday after tomorrow\b/i.test(t)) ks.push(2);
-    else if (/\btomorrow\b/i.test(t)) ks.push(1);
-    if (/\b(today|tonight)\b/i.test(t)) ks.push(0);
-    for (const w of weekdaysIn(t)) ks.push((w - new Date(base).getUTCDay() + 7) % 7);
+    const rest = left.reduce((s, [a, b]) => s.slice(0, a) + ' '.repeat(b - a) + s.slice(b), t);
+    if (/\bday after tomorrow\b/i.test(rest)) ks.push(2);
+    else if (/\btomorrow\b/i.test(rest)) ks.push(1);
+    if (/\b(today|tonight)\b/i.test(rest)) ks.push(0);
+    for (const w of weekdaysIn(rest)) ks.push((w - new Date(base).getUTCDay() + 7) % 7);
   }
   return [...new Set(ks)].filter((k) => k >= 0 && k <= MAX_DAYS_AHEAD).sort((a, b) => a - b).map((k) => {
     const x = new Date(base + k * 86400000);
@@ -656,7 +713,8 @@ function meetingLine(m, at, userZone, now, askZone = null) {
   // Asked in another zone, the time there too, worked out here, never by the sponsor.
   if (userZone && askZone) fields.push(`${describeWhen(at, askZone, now, { relative: false })} ${askZone} time`);
   fields.push(`"${cleanName(m.name)}"`);
-  if (userZone) fields.push(`listed as ${fmt('weekday', m.zone, { weekday: 'long' }).format(new Date(at))} ${clock(at, m.zone)} ${m.zone} time`);
+  // Its own date and UTC offset there too, so asked "what offset, which day there?" it never works one out.
+  if (userZone) fields.push(`listed as ${fmt('gb-longdate', m.zone, { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(at))}, ${clock(at, m.zone)} ${m.zone} time (${utcLabel(offsetMinutes(m.zone, at))})`);
   /* Said either way. On 23 Oct a UA listing that gives neither was called
      "LGBTQ only" from its name, then "open to everyone" from nothing. */
   fields.push(m.access || 'open or closed not stated on its listing');
@@ -781,6 +839,18 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
       }
     }
     if (userZone) ask.dates = datesIn(message, ask.zone || userZone, now);
+    /* A follow-up with no day of its own is about the day they were just on:
+       "for each of the four meetings, show the UTC offset" after Sunday 1
+       November (Bilal, 26 Oct). Not a fresh "any meetings?". */
+    const followsUp = CONTINUES.test(message) || !asksAboutMeetings(message) || /\b(these|those|them|the (two|three|four|five|ones?|same))\b/i.test(message);
+    if (userZone && !nowNamed && followsUp && !ask.dates.length && !ask.week) {
+      for (const t of [...earlierAsks].reverse()) {
+        const its = programsIn(t, { loose: true });
+        if (its.length && !its.some((p) => programs.includes(p))) continue;
+        const d = datesIn(t, ask.zone || userZone, now);
+        if (d.length) { ask.dates = d; break; }
+      }
+    }
     const { lists, counts } = upcoming(fresh, now, data, userZone, ask);
     const held = (p) => data.meetings.filter((m) => m.program === p).length.toLocaleString('en-US');
     const lines = [];
@@ -825,13 +895,22 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
     const checked = new Date(Math.min(...[...shown, ...given.map((g) => g.m.program)].map(checkedAt)))
       .toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' });
 
+    // Clock changes from a week back to the last day in front of it, in every zone it can see.
+    const zonesSeen = new Set([userZone, ask.zone, ...fresh.flatMap((p) => lists[p].map((x) => x.m.zone)), ...given.map((g) => g.m.zone), ...namedIn(message, data, fresh).map((m) => m.zone)].filter(Boolean));
+    const lastDay = askedDates.length ? Math.max(8, askedDates[askedDates.length - 1].k + 2) : 8;
+    const changes = clockChanges([...zonesSeen], now - 7 * 86400000, now + lastDay * 86400000);
+    const changesLine = changes.length
+      ? `Clock changes near these days, from the IANA time zone database (the rules phones and computers use; name it if they ask for a source), already in every time here: ${changes.map((c) => clockChangeLine(c, now)).join('; ')}.`
+      : null;
+
     return [
       '## RECOVERY MEETINGS YOU CAN OFFER',
       'Use this only if they are asking about a recovery meeting. If "meeting" here means seeing a person, or anything else, ignore this section completely.',
       `These are upcoming online meetings for their program, read from each meeting's official listing on ${checked}. They are a few picks for this message${askedDates.length ? `, for ${askedDates.map((x) => x.label).join(', ')}` : ''}${ask.window ? ', all inside the time they asked for' : ''}${ask.want === 'women' || ask.want === 'men' ? `, ${ask.want}'s meetings first` : ''}${ask.want === 'all' ? ', none of them women- or men-only' : ''}${ask.week ? ', for each day of the coming week' : ''}, not everything you hold.`,
       userZone
-        ? `Where they are (${userZone}, from their phone number) it is now ${describeWhen(now, userZone, now, { relative: false }).replace(' at ', ', ')}. Each line starts with the meeting's day, date and time for them, already worked out, and how soon it starts. ${inWaking(localHourAt(userZone, now)) ? 'Only ones at a sensible hour for them are listed.' : 'They are up late, so the first ones are the next meetings starting within two hours, whatever the hour, in case they need one now; the rest are at a sensible hour.'} Use that day and date exactly as written; never work out a day yourself from "today" or "tomorrow". "Listed as" is the day and time the directory gives, in the meeting's own time zone.${ask.zone ? ` They asked about days and times in ${ask.zone}: those were matched in ${ask.zone}, and each line gives the time there as well, already worked out. Use both as written; never convert a time yourself.` : ''}`
+        ? `Where they are (${userZone}, from their phone number) it is now ${describeWhen(now, userZone, now, { relative: false }).replace(' at ', ', ')} (${utcLabel(offsetMinutes(userZone, now))}). Each line starts with the meeting's day, date and time for them, already worked out, and how soon it starts. ${ask.window ? 'Only ones inside the time they asked for are listed.' : inWaking(localHourAt(userZone, now)) || (askedKeys.size && !askedKeys.has(dayKey(dateIn(ask.zone || userZone, now)))) ? 'Only ones at a sensible hour for them are listed.' : 'They are up late, so the first ones are the next meetings starting within two hours, whatever the hour, in case they need one now; the rest are at a sensible hour.'} Use that day and date exactly as written; never work out a day yourself from "today" or "tomorrow". "Listed as" is the day and time the directory gives, in the meeting's own time zone, with its date there and the UTC offset there at that moment.${ask.zone ? ` They asked about days and times in ${ask.zone}: those were matched in ${ask.zone}, and each line gives the time there as well, already worked out. Use both as written; never convert a time yourself.` : ''}`
         : 'We do not know where they are, so each time is in the meeting\'s own time zone, as labelled.',
+      ...(changesLine ? [changesLine] : []),
       ...lines,
       ...givenSection,
       ...namedSection,
@@ -846,6 +925,7 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
       '- You hold every meeting in the count, and the picks here are only some of them. If they ask for all of them or for more, say how many there are, give the picks here, and offer more by narrowing the time (or the official finder). Never give none, and never say the picks are all you have, that you are not holding more, or that your list is only a working set.',
       '- If what they want is not here (another day, a later or earlier time, a women\'s or men\'s meeting) and no count above says none, never say there is none, that your list ends tomorrow, or that you hold nothing later, and never call the ones you give all you have: you hold meetings for every day of the coming week, and these are only a few. Say you\'ll look, and ask them for the day and time in one line (for example "Tell me the day and time, like Saturday after 8pm, and I\'ll look"). You can give the official finder as well.',
       '- Copy the name, time, link and passcode exactly as written here, and how soon it starts. Never change, shorten or make up a link, a time, a passcode or a meeting, and never offer one that is not on this list.',
+      '- Every time here already allows for clock changes. The date and UTC offset in each meeting\'s own zone, and any clock change, are written here: use them as written. Never work out a date, offset, clock change or time difference yourself, never name a clock-change date that is not written here, and never say a time may be an hour out because of a clock change. If they ask about a zone or date not written here, say you will check and ask which meeting or day they mean.',
       '- Never take back or "correct" a meeting you gave earlier in this chat because it is not in front of you now: every one you gave came from these official listings. If they ask about one you cannot see here, say you will look it up and ask for its name or day.',
       '- A meeting\'s name can contain a day, time or time zone (for example "Daily 9:00 PM PST"). That is part of its name, in the meeting\'s own time zone, never its time for them.',
       `- If they question a meeting, do not take it back: every detail here was on its official listing when it was checked on ${checked}. Never say you cannot verify it, that it is unconfirmed, or that you should not have shared it. Give them its source link, its listed day and time, and that date. Not finding a detail on the listing does not make it wrong: listings often write a meeting ID with spaces (819 9042 4358), and some sources are a directory page where they search for the meeting by name, so tell them that. Only if they say the listing now shows something different (another day, time, link or passcode) do you thank them, go with the listing, and point them to the official finder.`,
@@ -865,6 +945,6 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
 module.exports = {
   buildMeetingsBlock, asksAboutMeetings, programsOf, programsIn, nextStart, starts, describeWhen, instantFor,
   cleanName, weekdaysIn, alreadyGiven, startsIn, timeWindowIn, genderAsked, askIn, datesIn, namedIn, zoneIn,
-  offsetMinutes, STALE_AFTER_DAYS, PROGRAMS, OTHERS, othersIn,
+  offsetMinutes, utcLabel, clockChanges, STALE_AFTER_DAYS, PROGRAMS, OTHERS, othersIn,
   _setData(d) { cache = d; },
 };

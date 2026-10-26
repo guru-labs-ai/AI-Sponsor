@@ -90,9 +90,9 @@ const nyBlock = meetings.buildMeetingsBlock({
   message: 'can you find me a DA meeting', programField: 'DA', userZone: 'America/New_York', now: tueNoonUtc,
 });
 check('a New Yorker gets it tonight, exact link and passcode',
-  nyBlock.includes('- today, Tuesday 20 October, at 7:30pm (in 11 hours 30 minutes) | "Tuesday Visions" | listed as Tuesday 7:30pm America/New_York time | closed | https://us02web.zoom.us/j/12345678901 | passcode 512788'), true);
+  nyBlock.includes('- today, Tuesday 20 October, at 7:30pm (in 11 hours 30 minutes) | "Tuesday Visions" | listed as Tuesday 20 October, 7:30pm America/New_York time (UTC-4) | closed | https://us02web.zoom.us/j/12345678901 | passcode 512788'), true);
 check('has the BDA meeting, next Monday',
-  block.includes('- Monday 26 October at 9:15am | "Prosperity and Serenity" | listed as Monday 9:15am Europe/London time | open | https://zoom.us/j/952138930?pwd=abc'), true);
+  block.includes('- Monday 26 October at 9:15am | "Prosperity and Serenity" | listed as Monday 26 October, 9:15am Europe/London time (UTC+0) | open | https://zoom.us/j/952138930?pwd=abc'), true);
 check('no WA meetings for someone not in WA', block.includes('Underscheduling'), false);
 check('says when it was checked', block.includes('official listing on 20 October'), true);
 check('tells it never to invent', block.includes('never offer one that is not on this list'), true);
@@ -197,8 +197,8 @@ check('in one program and none named: straight to its meetings',
 check('in several programs it asks "Which program, or programs"', several.includes('"Which program, or programs, are you looking for?"'), true);
 check('naming it brings the meetings straight away',
   meetings.buildMeetingsBlock({ message: 'any AA meetings tonight?', programField: 'AA', userZone: 'Europe/London', now: tueNoonUtc }).includes('"Women on the Way"'), true);
-check('a women-only meeting says so', mixed.includes('| "Women on the Way" | listed as Tuesday 6pm Europe/London time | closed | women only | https://zoom.us/j/11122233344?pwd=x'), true);
-check('unknown open/closed is said, not left for the sponsor to guess', mixed.includes('| "Prosperity Tuesday" | listed as Tuesday 7pm Europe/London time | open or closed not stated on its listing | https://zoom.us/j/55566677788?pwd=y'), true);
+check('a women-only meeting says so', mixed.includes('| "Women on the Way" | listed as Tuesday 20 October, 6pm Europe/London time (UTC+1) | closed | women only | https://zoom.us/j/11122233344?pwd=x'), true);
+check('unknown open/closed is said, not left for the sponsor to guess', mixed.includes('| "Prosperity Tuesday" | listed as Tuesday 20 October, 7pm Europe/London time (UTC+1) | open or closed not stated on its listing | https://zoom.us/j/55566677788?pwd=y'), true);
 check('it is told who a gendered meeting is for', mixed.includes('only for people of that gender'), true);
 check('a program whose own list is stale is not offered', mixed.includes('Underscheduling'), false);
 check('and leads with its finder instead',
@@ -389,10 +389,10 @@ const pkMidnight = at('2026-10-22T19:07:44Z'); // Friday 12:07am in Pakistan, st
 const uaPk = meetings.buildMeetingsBlock({ message: 'Can you find me an online ua meeting tomorrow after 7 PM Pakistan time?', programField: '', userZone: 'Asia/Karachi', now: pkMidnight });
 check('it is told it is already Friday where they are', uaPk.includes('it is now Friday 23 October, 12:07am'), true);
 check('the Saturday meeting says Saturday 24 October, not just "tomorrow"',
-  uaPk.includes('- tomorrow, Saturday 24 October, at 7:30pm | "Saturday-LGBTQ2SIA+ UA Rainbow Recovery" | listed as Saturday 10:30am America/New_York time'), true);
+  uaPk.includes('- tomorrow, Saturday 24 October, at 7:30pm | "Saturday-LGBTQ2SIA+ UA Rainbow Recovery" | listed as Saturday 24 October, 10:30am America/New_York time (UTC-4)'), true);
 const aaPk = meetings.buildMeetingsBlock({ message: 'Can you find an online AA meeting today?', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-22T19:11:48Z') });
 check('9pm Pacific is 9am in Pakistan, and the "9:00 PM PST" in its name is gone',
-  aaPk.includes('- today, Friday 23 October, at 9am (in 8 hours 48 minutes) | "22:22 Presents: The Wheel of Surrender" | listed as Thursday 9pm America/Los_Angeles time'), true);
+  aaPk.includes('- today, Friday 23 October, at 9am (in 8 hours 48 minutes) | "22:22 Presents: The Wheel of Surrender" | listed as Thursday 22 October, 9pm America/Los_Angeles time (UTC-7)'), true);
 check('it is told a time in a name is never their time', aaPk.includes('never its time for them'), true);
 const aaPkAfter7 = meetings.buildMeetingsBlock({ message: 'Can you find an online AA meeting today after 7 PM Pakistan time?', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-22T19:11:48Z') });
 check('asked for after 7pm, the 9am one is not offered at all', aaPkAfter7.includes('Wheel of Surrender'), false);
@@ -512,7 +512,7 @@ check('a follow-up keeps the time they just asked for, over the whole week (and 
   [following.includes('all inside the time they asked for'), following.includes('for each day of the coming week'), /at 7pm \| "Saturday AA 1"/.test(following), /at 7:30pm \| "Saturday AA 2"/.test(following), /^- [^\n]*at (10|11)am \|/m.test(following)], [true, true, false, true, false]);
 meetings._setData({ generatedAt: '2026-10-22T07:58:00Z', meetings: [{ ...satNy(10, '10:30', null, 'UA'), access: null }] });
 check('a listing that gives neither open nor closed says so on the line (23 Oct: Rainbow Recovery)',
-  meetings.buildMeetingsBlock({ message: 'UA meetings tomorrow?', programField: '', userZone: 'Asia/Karachi', now: friEvePk }).includes('"Saturday UA 10" | listed as Saturday 10:30am America/New_York time | open or closed not stated on its listing |'), true);
+  meetings.buildMeetingsBlock({ message: 'UA meetings tomorrow?', programField: '', userZone: 'Asia/Karachi', now: friEvePk }).includes('"Saturday UA 10" | listed as Saturday 24 October, 10:30am America/New_York time (UTC-4) | open or closed not stated on its listing |'), true);
 check('a long earlier message with "na" in it is not NA',
   programsInBlock(meetings.buildMeetingsBlock({ message: 'any meetings?', programField: 'DA, AA', userZone: 'Asia/Karachi', now: friEvePk, earlierAsks: ['na I told him I am not going back there again because it hurts too much'] })), []);
 
@@ -630,6 +630,38 @@ check('every meeting given is kept, not the first six (26 Oct: one room with thr
   meetings.alreadyGiven(givenText, { meetings: given }).length, 8);
 const fresh26 = meetings.buildMeetingsBlock({ ...acaThread, message: 'Any meetings tomorrow?' });
 check('without "more", the program stays but women\'s is not assumed', [programsInBlock(fresh26), fresh26.includes('women\'s meetings first')], [['Adult Children of Alcoholics'], false]);
+
+group('clock changes and UTC offsets, worked out here (Bilal\'s re-test, 26 Oct: "US clocks fall back 2 November", UTC-7 for Los Angeles)');
+meetings._setData({ generatedAt: '2026-10-26T11:17:00Z', meetings: [
+  afg(6, 'AFG LGBTQA', [0], '08:00', 'America/Los_Angeles'),
+  afg(7, 'Serenity Nite Live AFG', [6], '21:00', 'America/Chicago'),
+  afg(8, 'Time to Reflect AFG', [0], '16:00', 'Africa/Johannesburg'),
+] });
+const dst = meetings.buildMeetingsBlock({ message: 'Find online Al Anon meetings for Sunday, 1 November 2026, at any time in Pakistan time. Show each meeting’s original date, time and timezone alongside its converted Pakistan date and time, accounting for any daylight saving change.', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-26T18:32:00Z') });
+check('8am Los Angeles on 1 November is after the change: UTC-8, 9pm in Pakistan',
+  dst.includes('- Sunday 1 November at 9pm | "AFG LGBTQA" | listed as Sunday 1 November, 8am America/Los_Angeles time (UTC-8)'), true);
+check('9pm Chicago on Saturday 31 October is before it: UTC-5, 7am Sunday in Pakistan',
+  dst.includes('- Sunday 1 November at 7am | "Serenity Nite Live AFG" | listed as Saturday 31 October, 9pm America/Chicago time (UTC-5)'), true);
+check('the US change is given as 2am on Sunday 1 November, with both offsets',
+  [dst.includes('America/Los_Angeles: clocks go back an hour at 2am on Sunday 1 November, from UTC-7 to UTC-8'),
+    dst.includes('America/Chicago: clocks go back an hour at 2am on Sunday 1 November, from UTC-5 to UTC-6')], [true, true]);
+check('no change named for a zone that has none, and where they are carries its offset',
+  [/Africa\/Johannesburg: clocks/.test(dst), dst.includes('11:32pm (UTC+5)')], [false, true]);
+check('and it is told never to work one out itself', dst.includes('Never work out a date, offset, clock change or time difference yourself'), true);
+const dstNow = at('2026-10-26T18:34:00Z');
+check('dates in talk about clocks are not days asked for ("fall back on November 1, not November 2", "November 2 is Monday")', [
+  labels('Please recheck your daylight saving explanation. US clocks fall back on November 1, 2026, not November 2. For each of the four meetings, show the source calendar date.', dstNow),
+  labels('November 2 is Monday, and 8 AM plus 12 hours equals 8 PM, not 9 PM.', dstNow),
+  labels('Find online Al Anon meetings for Sunday, 1 November 2026, at any time in Pakistan time, accounting for any daylight saving change.', dstNow),
+], [[], [], ['Sunday 1 November']]);
+const dstFollow = meetings.buildMeetingsBlock({
+  message: 'Please recheck your daylight saving explanation. US clocks fall back on November 1, 2026, not November 2. For each of the four meetings, show the source calendar date, local time, UTC offset at that exact time, and converted Pakistan date and time.',
+  programField: '', userZone: 'Asia/Karachi', now: dstNow,
+  lastUserMessage: 'Find online Al Anon meetings for Sunday, 1 November 2026, at any time in Pakistan time.',
+  recentMessages: 'Find online Al Anon meetings for Sunday, 1 November 2026, at any time in Pakistan time.\nHere are some for Sunday 1 November.',
+  earlierAsks: ['Find online Al Anon meetings for Sunday, 1 November 2026, at any time in Pakistan time.'],
+});
+check('a follow-up about "the four meetings" stays on Sunday 1 November', [dstFollow.includes('for Sunday 1 November,'), dstFollow.includes('Monday 2 November')], [true, false]);
 
 group('the real list, as written');
 const real = JSON.parse(require('fs').readFileSync(path.resolve(__dirname, 'meetings-data.json'), 'utf8'));
