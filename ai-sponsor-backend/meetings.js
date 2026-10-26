@@ -166,6 +166,14 @@ function offsetMinutes(zone, instant) {
   return m ? (m[1] === '-' ? -1 : 1) * (parseInt(m[2], 10) * 60 + parseInt(m[3], 10)) : 0;
 }
 
+/* "Tuesday 27 October": the day after today where they are. On 26 Oct, three
+   days after a reply that said "through tomorrow, Sunday 25 October", the
+   sponsor answered "tomorrow, Sunday 25 October" from that old reply. */
+function tomorrowFor(zone, now) {
+  const { y, mo, d } = dateIn(zone, now);
+  return new Date(Date.UTC(y, mo, d + 1, 12)).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+}
+
 // "UTC-5", "UTC+5:30", "UTC+0", from minutes east of UTC.
 function utcLabel(mins) {
   const a = Math.abs(mins);
@@ -908,7 +916,7 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
       'Use this only if they are asking about a recovery meeting. If "meeting" here means seeing a person, or anything else, ignore this section completely.',
       `These are upcoming online meetings for their program, read from each meeting's official listing on ${checked}. They are a few picks for this message${askedDates.length ? `, for ${askedDates.map((x) => x.label).join(', ')}` : ''}${ask.window ? ', all inside the time they asked for' : ''}${ask.want === 'women' || ask.want === 'men' ? `, ${ask.want}'s meetings first` : ''}${ask.want === 'all' ? ', none of them women- or men-only' : ''}${ask.week ? ', for each day of the coming week' : ''}, not everything you hold.`,
       userZone
-        ? `Where they are (${userZone}, from their phone number) it is now ${describeWhen(now, userZone, now, { relative: false }).replace(' at ', ', ')} (${utcLabel(offsetMinutes(userZone, now))}). Each line starts with the meeting's day, date and time for them, already worked out, and how soon it starts. ${ask.window ? 'Only ones inside the time they asked for are listed.' : inWaking(localHourAt(userZone, now)) || (askedKeys.size && !askedKeys.has(dayKey(dateIn(ask.zone || userZone, now)))) ? 'Only ones at a sensible hour for them are listed.' : 'They are up late, so the first ones are the next meetings starting within two hours, whatever the hour, in case they need one now; the rest are at a sensible hour.'} Use that day and date exactly as written; never work out a day yourself from "today" or "tomorrow". "Listed as" is the day and time the directory gives, in the meeting's own time zone, with its date there and the UTC offset there at that moment.${ask.zone ? ` They asked about days and times in ${ask.zone}: those were matched in ${ask.zone}, and each line gives the time there as well, already worked out. Use both as written; never convert a time yourself.` : ''}`
+        ? `Where they are (${userZone}, from their phone number) it is now ${describeWhen(now, userZone, now, { relative: false }).replace(' at ', ', ')} (${utcLabel(offsetMinutes(userZone, now))}), so their tomorrow is ${tomorrowFor(userZone, now)}. A "today" or "tomorrow" in older messages in this chat meant another day. Each line starts with the meeting's day, date and time for them, already worked out, and how soon it starts. ${ask.window ? 'Only ones inside the time they asked for are listed.' : inWaking(localHourAt(userZone, now)) || (askedKeys.size && !askedKeys.has(dayKey(dateIn(ask.zone || userZone, now)))) ? 'Only ones at a sensible hour for them are listed.' : 'They are up late, so the first ones are the next meetings starting within two hours, whatever the hour, in case they need one now; the rest are at a sensible hour.'} Use that day and date exactly as written; never work out a day yourself from "today" or "tomorrow". "Listed as" is the day and time the directory gives, in the meeting's own time zone, with its date there and the UTC offset there at that moment.${ask.zone ? ` They asked about days and times in ${ask.zone}: those were matched in ${ask.zone}, and each line gives the time there as well, already worked out. Use both as written; never convert a time yourself.` : ''}`
         : 'We do not know where they are, so each time is in the meeting\'s own time zone, as labelled.',
       ...(changesLine ? [changesLine] : []),
       ...lines,

@@ -663,6 +663,14 @@ const dstFollow = meetings.buildMeetingsBlock({
 });
 check('a follow-up about "the four meetings" stays on Sunday 1 November', [dstFollow.includes('for Sunday 1 November,'), dstFollow.includes('Monday 2 November')], [true, false]);
 
+group('"tomorrow" is from today, not from an old message (Bilal\'s re-test, 26 Oct: "tomorrow, Sunday 25 October")');
+const tomorrow26 = meetings.buildMeetingsBlock({ message: 'Any online AA meetings tomorrow after 7 PM Pakistan time?', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-26T15:50:13Z'),
+  earlierChat: 'Here\'s the honest limit first, Bilal: my list only reaches through tomorrow, Sunday 25 October.' });
+check('their tomorrow is named, and the old ones are said to be another day',
+  [tomorrow26.includes('so their tomorrow is Tuesday 27 October.'), tomorrow26.includes('in older messages in this chat meant another day')], [true, true]);
+check('just before midnight there, tomorrow is still the next day there', meetings.buildMeetingsBlock({ message: 'AA meetings tomorrow?', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-26T18:59:00Z') }).includes('so their tomorrow is Tuesday 27 October.'), true);
+check('and just after, it moves on', meetings.buildMeetingsBlock({ message: 'AA meetings tomorrow?', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-26T19:01:00Z') }).includes('so their tomorrow is Wednesday 28 October.'), true);
+
 group('the real list, as written');
 const real = JSON.parse(require('fs').readFileSync(path.resolve(__dirname, 'meetings-data.json'), 'utf8'));
 const ids = new Set(real.meetings.map((m) => m.id));
