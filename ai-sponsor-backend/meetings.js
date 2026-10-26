@@ -783,6 +783,11 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
         if (found.length || foundOthers.length) { programs = found; others = foundOthers; break; }
       }
     }
+    /* Not named now but carried from their earlier asks. Shown ACA meetings
+       for "Anymore meetings tomorrow?", the sponsor still asked "which
+       program?" in a long chat that had AA and Al-Anon in it too (26 Oct
+       replay), so the block says so outright. */
+    const carriedOver = !nowNamed && (programs.length + others.length) > 0;
     if (!programs.length && !others.length) {
       const fileCovered = programsOf(programField);
       const fileOthers = othersOf(programField);
@@ -881,6 +886,13 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
       .map((m) => ({ m, at: starts(m, now - 3 * 3600000).filter((t) => t <= now).pop() || nextStart(m, now) }))
       .filter(({ m, at }) => at && !listed.has(`${m.id}@${at}`));
     const givenLines = given.map(({ m, at }) => meetingLine(m, at, userZone, now, ask.zone));
+    /* Asked for women's (or men's) meetings with none new in front of it, it
+       said "a few more women's ACA" over meetings open to everyone (26 Oct
+       replay). Whether any are women-only is a fact, so it is stated. */
+    const onlyFor = ask.want === 'women' || ask.want === 'men' ? ask.want : null;
+    const givenRooms = new Set(alreadyGiven(`${message}\n${recentMessages}\n${earlierChat}`, data).map((m) => m.link));
+    const noneNewFor = onlyFor && lines.length
+      && !fresh.some((p) => lists[p].some((x) => x.m.who === onlyFor && !givenRooms.has(x.m.link)));
     const givenSection = givenLines.length
       ? ['Meetings you already gave them in this chat, as listed (if they ask about one, this is it):', ...givenLines]
       : [];
@@ -914,11 +926,14 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
 
     return [
       '## RECOVERY MEETINGS YOU CAN OFFER',
+      ...(carriedOver ? [`They are asking for more ${shown.map((p) => PROGRAMS[p].label).join(' and ')} meetings, carrying on their earlier search. You already know the program: give them meetings from below in this reply. Asking "which program?" here is wrong.`] : []),
       'Use this only if they are asking about a recovery meeting. If "meeting" here means seeing a person, or anything else, ignore this section completely.',
       `These are upcoming online meetings for their program, read from each meeting's official listing on ${checked}. They are a few picks for this message${askedDates.length ? `, for ${askedDates.map((x) => x.label).join(', ')}` : ''}${ask.window ? ', all inside the time they asked for' : ''}${ask.want === 'women' || ask.want === 'men' ? `, ${ask.want}'s meetings first` : ''}${ask.want === 'all' ? ', none of them women- or men-only' : ''}${ask.week ? ', for each day of the coming week' : ''}, not everything you hold.`,
       userZone
         ? `Where they are (${userZone}, from their phone number) it is now ${describeWhen(now, userZone, now, { relative: false }).replace(' at ', ', ')} (${utcLabel(offsetMinutes(userZone, now))}), so their tomorrow is ${tomorrowFor(userZone, now)}. A "today" or "tomorrow" in older messages in this chat meant another day. Each line starts with the meeting's day, date and time for them, already worked out, and how soon it starts. ${ask.window ? 'Only ones inside the time they asked for are listed.' : inWaking(localHourAt(userZone, now)) || (askedKeys.size && !askedKeys.has(dayKey(dateIn(ask.zone || userZone, now)))) ? 'Only ones at a sensible hour for them are listed.' : 'They are up late, so the first ones are the next meetings starting within two hours, whatever the hour, in case they need one now; the rest are at a sensible hour.'} Use that day and date exactly as written; never work out a day yourself from "today" or "tomorrow". "Listed as" is the day and time the directory gives, in the meeting's own time zone, with its date there and the UTC offset there at that moment.${ask.zone ? ` They asked about days and times in ${ask.zone}: those were matched in ${ask.zone}, and each line gives the time there as well, already worked out. Use both as written; never convert a time yourself.` : ''}`
         : 'We do not know where they are, so each time is in the meeting\'s own time zone, as labelled.',
+      ...(noneNewFor ? [`None of the meetings below is ${onlyFor}-only, apart from any you already gave them. Open with that plainly (for example "No more ${onlyFor}'s meetings that day, but these are open to everyone"), then offer them as open to everyone.`] : []),
+      ...(carriedOver ? [`They did not name a program this time: they are carrying on with their earlier search, so these are ${shown.map((p) => PROGRAMS[p].label).join(' and ')} meetings${ask.want === 'women' || ask.want === 'men' ? `, ${ask.want}'s first, as before` : ''}. Answer with them, and do not ask which program; if they meant another one, they will say.`] : []),
       ...(changesLine ? [changesLine] : []),
       ...lines,
       ...givenSection,
@@ -940,6 +955,8 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
       `- If they question a meeting, do not take it back: every detail here was on its official listing when it was checked on ${checked}. Never say you cannot verify it, that it is unconfirmed, or that you should not have shared it. Give them its source link, its listed day and time, and that date. Not finding a detail on the listing does not make it wrong: listings often write a meeting ID with spaces (819 9042 4358), and some sources are a directory page where they search for the meeting by name, so tell them that. When a line gives a meeting # on its listing, that number is the directory's own reference for the meeting, and its source link opens that one meeting: give both when they ask where a meeting comes from. A Zoom meeting ID is Zoom's, never the directory's reference. Only if they say the listing now shows something different (another day, time, link or passcode) do you thank them, go with the listing, and point them to the official finder.`,
       '- "Closed" means members only: the people the program is for. That is them, so a closed meeting is still theirs to go to.',
       '- A meeting marked "women only" or "men only" is only for people of that gender. Offer it only when you know it fits them; otherwise choose another.',
+      // 26 Oct full replay: "a few more women's ACA" over two meetings open to everyone.
+      '- Call a meeting a women\'s or men\'s meeting only when its line says "women only" or "men only". If they asked for women\'s or men\'s meetings and the ones here do not say so, tell them plainly there are no more of those for that day, and that these are open to everyone.',
       '- Who may come is only what a line says: open, closed, women only, men only. A name or topic (LGBTQ+, newcomers, a book, a language) says what the meeting focuses on, not who is let in, so never tell them they cannot go because of a name. If a line says neither open nor closed, the listing does not say: tell them that and give its source.',
       `- These are online meetings only. If they want one in person, lead with the official finder as the answer itself, warmly, since it lists in-person meetings too (for example "Here's where you'll find in-person meetings near you, just put in your city: ${finders}"). Do not open with what you cannot do.`,
       `- If the link does not open for them, or they want something else, the official finder has every meeting: ${finders}`,

@@ -632,6 +632,13 @@ const given = [room(1), room(2), room(3), ...[4, 5, 6, 7, 8].map((i) => ({ ...tu
 const givenText = given.map((m) => m.link).filter((l, i, a) => a.indexOf(l) === i).join('\n');
 check('every meeting given is kept, not the first six (26 Oct: one room with three listings pushed three out)',
   meetings.alreadyGiven(givenText, { meetings: given }).length, 8);
+check('and it is told outright to answer with ACA, not ask which program (26 Oct full replay: it still asked)',
+  anymore.includes('they are carrying on with their earlier search, so these are Adult Children of Alcoholics meetings, women\'s first, as before. Answer with them, and do not ask which program'), true);
+const womenGiven = meetings.buildMeetingsBlock({ ...acaThread, message: 'Anymore meetings tomorrow?', earlierChat: 'Tuesday 7am "Tuesday ACA 1" https://zoom.us/j/6000000001' });
+check('no women-only one beyond the one already given: it is told to say so first (26 Oct replay: "more women\'s ACA" over mixed ones)',
+  [womenGiven.includes('None of the meetings below is women-only, apart from any you already gave them'), anymore.includes('None of the meetings below is women-only')], [true, false]);
+check('a program named now is not called carried over',
+  meetings.buildMeetingsBlock({ ...acaThread, message: 'Any ACA meetings tomorrow?' }).includes('carrying on with their earlier search'), false);
 const fresh26 = meetings.buildMeetingsBlock({ ...acaThread, message: 'Any meetings tomorrow?' });
 check('without "more", the program stays but women\'s is not assumed', [programsInBlock(fresh26), fresh26.includes('women\'s meetings first')], [['Adult Children of Alcoholics'], false]);
 
