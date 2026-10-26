@@ -1860,8 +1860,16 @@ async function getSponsorReply(userId, message, context) {
     // So a meeting it gave them a few messages back is still in front of it
     // when they ask about that meeting.
     earlierChat: (history || []).slice(-6).map((m) => (typeof m.content === 'string' ? m.content : '')).join('\n'),
+    // Their own words from those messages, so "any more tomorrow?" after an
+    // unrelated question still means the program they were asking about.
+    earlierAsks: (history || []).slice(-6).filter((m) => m.role === 'user' && typeof m.content === 'string').map((m) => m.content),
   });
   if (meetingsBlock) systemBlocks.push({ type: 'text', text: meetingsBlock });
+  /* A list of meetings is what they asked for, not an essay. On 26 Oct a
+     reply with two Al-Anon meetings for each of five days was cut from 173
+     words to 43 by the length rewrite below, which kept two days: Bilal read
+     the other three as having nothing. */
+  const offersMeetings = /^## RECOVERY MEETINGS YOU CAN OFFER/.test(meetingsBlock || '');
 
   /* Tell it where it is. Without this it insists it "can't hear audio" and
      "can't send voice messages" to people who just sent it a voice note and are
@@ -1941,6 +1949,7 @@ async function getSponsorReply(userId, message, context) {
       `They just wrote ${budget.theirWords} word${budget.theirWords === 1 ? '' : 's'}. Aim for about ${budget.target} back.`,
       'This is not a style note, it is the length of this message. Somebody who texts you a line does not expect three paragraphs, and getting seven times what you wrote is the clearest sign there is that nobody is really there.',
       'Say the one thing that matters and stop. If it genuinely needs more, take more, but the bar for that is high and it is not most messages.',
+      ...(offersMeetings ? ['Meetings you list for them do not count toward this: give each one its day, time, name, link and passcode in full, and keep the words around them short.'] : []),
     ].join('\n') });
   }
 
@@ -2001,7 +2010,9 @@ async function getSponsorReply(userId, message, context) {
      only once. It costs a second call on the messages that earn it. Falls back
      to the original on any failure: a long reply is worse than a short one, and
      both are far better than no reply at all. */
-  if (budget.ceiling && !madeCheckinOffer && words(rawReply) > budget.ceiling) {
+  const listsMeetings = offersMeetings && /zoom\.us\/j\//.test(rawReply);
+  if (listsMeetings && budget.ceiling && words(rawReply) > budget.ceiling) console.log(`[sponsor] long reply kept: it lists meetings (${words(rawReply)} words)`);
+  if (budget.ceiling && !madeCheckinOffer && !listsMeetings && words(rawReply) > budget.ceiling) {
     const before = words(rawReply);
     try {
       const tighter = await client.messages.create({

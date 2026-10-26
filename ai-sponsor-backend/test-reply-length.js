@@ -138,10 +138,19 @@ check('the budget is computed and put in front of the model', () => {
 
 check('an overshoot is actually rewritten, not just noted', () => {
   /* Sep 17: one exception, the reply that offers check-ins. Shortening that one
-     can cut the question it is asking, and then nobody can answer it. */
-  assert.ok(/if \(budget\.ceiling && !madeCheckinOffer && words\(rawReply\) > budget\.ceiling\)/.test(src),
+     can cut the question it is asking, and then nobody can answer it.
+     Oct 26: and a reply listing the meetings they asked for, which the rewrite
+     cut from five days to two. */
+  assert.ok(/if \(budget\.ceiling && !madeCheckinOffer && !listsMeetings && words\(rawReply\) > budget\.ceiling\)/.test(src),
     'nothing acts on the ceiling');
   assert.ok(/rawReply = cut;/.test(src), 'the tightened copy is never used');
+});
+
+check('the meetings exception covers only a reply that lists meetings it was given', () => {
+  assert.ok(/const listsMeetings = offersMeetings && \/zoom\\\.us\\\/j\\\/\/\.test\(rawReply\);/.test(src),
+    'any reply in a meetings conversation escapes the length rewrite');
+  assert.ok(/const offersMeetings = \/\^## RECOVERY MEETINGS YOU CAN OFFER\/\.test\(meetingsBlock/.test(src),
+    'the exception is not tied to the block that hands it meetings');
 });
 
 check('the question rule is enforced on the way out, not just requested', () => {
