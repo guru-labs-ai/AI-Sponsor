@@ -1895,8 +1895,21 @@ async function getSponsorReply(userId, message, context) {
      qualified, the routing is stated as a fact about this one message, and the
      rule connecting them is spelled out so it can repeat it if asked. */
   if (context && context.channel === 'whatsapp') {
+    /* Which of its replies they heard rather than read. The history above is
+       words only, so on 26 Oct, asked for the text of the voice note it had
+       sent nine minutes before, it said everything from it had been text. */
+    const spoken = await db.recentVoiceReplies(userId).catch(() => []);
+    const spokenLines = spoken.map((m) => {
+      const when = new Date(m.created_at).toLocaleString('en-GB', { timeZone: userZone || 'UTC', weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' });
+      const start = String(m.content).split(/\s+/).slice(0, 14).join(' ');
+      return `- "${start}..." (${when}${userZone ? ' their time' : ' UTC'})`;
+    });
     systemBlocks.push({ type: 'text', text: [
       '## WHERE THIS CONVERSATION IS HAPPENING',
+      ...(spokenLines.length ? [
+        'These replies of yours went out as voice notes, so they heard them rather than read them (newest first). If they ask about a voice note you sent, it is one of these: never say everything from you has been text. Asked for its words, give them.',
+        ...spokenLines,
+      ] : []),
       'You are on WhatsApp, not a web chat. You can hear voice notes, and you can send them. Both are true of you always.',
       context.viaVoice
         ? 'They sent you a voice note, and it was transcribed for you.'

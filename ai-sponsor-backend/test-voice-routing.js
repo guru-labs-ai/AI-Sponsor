@@ -98,5 +98,16 @@ group('true things the sponsor says about voice must be left alone');
   "I'll say it out loud if that lands better.",
 ].forEach((t) => check(JSON.stringify(t.slice(0, 50)), FALSE_VOICE_CLAIM.test(t), false));
 
+// 26 Oct: asked for the text of a voice note it had sent nine minutes before,
+// the sponsor said "everything from me's been text". It is now shown which
+// of its replies went out spoken.
+const serverSrc = fs.readFileSync(path.resolve(__dirname, 'server.js'), 'utf8');
+const dbSrc = fs.readFileSync(path.resolve(__dirname, 'db.js'), 'utf8');
+const whereBlock = serverSrc.slice(serverSrc.indexOf("if (context && context.channel === 'whatsapp') {"), serverSrc.indexOf("'## WHERE THIS CONVERSATION IS HAPPENING',") + 600);
+check('the WhatsApp block reads which of its replies went out as voice notes', whereBlock.includes('await db.recentVoiceReplies(userId)'), true);
+check('and is told never to say everything from it has been text', whereBlock.includes('never say everything from you has been text'), true);
+check('and those are its own spoken replies from the last week only',
+  /role = 'assistant' AND medium = 'voice' AND created_at > now\(\) - interval '7 days'/.test(dbSrc), true);
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

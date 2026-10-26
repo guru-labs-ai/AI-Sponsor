@@ -1270,6 +1270,21 @@ async function getHistory(userId, limit = 40) {
   return decryptRows(r.rows);
 }
 
+/* The sponsor's own replies that went out as voice notes this past week,
+   newest first. The history it is shown is words only, so on 26 Oct, asked
+   for the text of a voice note it had sent nine minutes before, it said
+   everything from it had been text. */
+async function recentVoiceReplies(userId, limit = 5) {
+  if (!enabled || !userId) return [];
+  const r = await pool.query(
+    `SELECT content, created_at FROM messages
+     WHERE user_id = $1 AND role = 'assistant' AND medium = 'voice' AND created_at > now() - interval '7 days'
+     ORDER BY id DESC LIMIT $2`,
+    [userId, limit]
+  );
+  return decryptRows(r.rows);
+}
+
 /* When did this person last say anything, before the message being answered
    right now? getSponsorReply calls this BEFORE persistExchange writes the
    current turn, so it is genuinely the previous contact and not this one.
@@ -1959,7 +1974,7 @@ async function getFullThread(person) {
 
 module.exports = {
   listConversations, getFullThread, getWeekOverWeek, getCollected, phonesByPerson,
-  getLastMessageAt,
+  getLastMessageAt, recentVoiceReplies,
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
   // Exported so the Slack alerts label a signup's source with the SAME rule the
   // dashboard groups on. Two implementations would eventually disagree.
