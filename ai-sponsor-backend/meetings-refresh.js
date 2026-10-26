@@ -643,7 +643,12 @@ function acaMeeting(m) {
     access: m.OpenClosed === 'C' ? 'closed' : m.OpenClosed === 'O' ? 'open' : null,
     who: whoFrom({ text: m.Type || '' }),
     focus: String(m.Focus || '').replace(/,\s*$/, ''),
-    source: ACA_PAGE,
+    /* Its own listing. ACA numbers every meeting ("Meeting #: WEB0577" on the
+       listing), and its search opens just that one from ?meeting=<number>
+       (checked 26 Oct: one result each). Asked for the directory's reference
+       on 26 Oct, the sponsor had only the search page and a Zoom ID. */
+    source: m.WSONumber ? `${ACA_PAGE}?meeting=${encodeURIComponent(m.WSONumber)}` : ACA_PAGE,
+    listingNumber: m.WSONumber || null,
     sourceUpdated: String(m.LastUpdate).slice(0, 10),
   };
 }

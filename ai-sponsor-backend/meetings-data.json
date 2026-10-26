@@ -1,16 +1,16 @@
 {
- "generatedAt": "2026-10-26T11:17:51.648Z",
+ "generatedAt": "2026-10-26T19:59:18.013Z",
  "checked": {
-  "DA": "2026-10-26T11:17:51.648Z",
-  "BDA": "2026-10-26T11:17:51.648Z",
-  "NA": "2026-10-26T11:17:51.648Z",
-  "OA": "2026-10-26T11:17:51.648Z",
-  "SLAA": "2026-10-26T11:17:51.648Z",
-  "WA": "2026-10-26T11:17:51.648Z",
-  "AA": "2026-10-26T11:17:51.648Z",
-  "Al-Anon": "2026-10-26T11:17:51.648Z",
-  "ACA": "2026-10-26T11:17:51.648Z",
-  "UA": "2026-10-26T11:17:51.648Z"
+  "DA": "2026-10-26T19:59:18.013Z",
+  "BDA": "2026-10-26T19:59:18.013Z",
+  "NA": "2026-10-26T19:59:18.013Z",
+  "OA": "2026-10-26T19:59:18.013Z",
+  "SLAA": "2026-10-26T19:59:18.013Z",
+  "WA": "2026-10-26T19:59:18.013Z",
+  "AA": "2026-10-26T19:59:18.013Z",
+  "Al-Anon": "2026-10-26T19:59:18.013Z",
+  "ACA": "2026-10-26T19:59:18.013Z",
+  "UA": "2026-10-26T19:59:18.013Z"
  },
  "rules": "weekly, online with a direct Zoom link and a known passcode, English, no ask-for-access, not a service meeting, listing updated within 730 days (Al-Anon publishes no such date)",
  "meetings": [
@@ -34097,7 +34097,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=CT087",
+   "listingNumber": "CT087",
    "sourceUpdated": "2025-11-25"
   },
   {
@@ -34116,7 +34117,8 @@
    "access": "closed",
    "who": "women",
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=CT112",
+   "listingNumber": "CT112",
    "sourceUpdated": "2026-06-11"
   },
   {
@@ -34135,7 +34137,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Speaker",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=DC008",
+   "listingNumber": "DC008",
    "sourceUpdated": "2026-09-26"
   },
   {
@@ -34154,7 +34157,8 @@
    "access": "open",
    "who": "men",
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=AZ0125",
+   "listingNumber": "AZ0125",
    "sourceUpdated": "2026-08-19"
   },
   {
@@ -34173,7 +34177,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=FL167",
+   "listingNumber": "FL167",
    "sourceUpdated": "2026-06-30"
   },
   {
@@ -34192,7 +34197,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=FL183",
+   "listingNumber": "FL183",
    "sourceUpdated": "2025-02-19"
   },
   {
@@ -34211,7 +34217,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=FL218",
+   "listingNumber": "FL218",
    "sourceUpdated": "2026-09-24"
   },
   {
@@ -34230,7 +34237,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=IA031",
+   "listingNumber": "IA031",
    "sourceUpdated": "2026-04-05"
   },
   {
@@ -34249,7 +34257,8 @@
    "access": "closed",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=IL005",
+   "listingNumber": "IL005",
    "sourceUpdated": "2026-04-04"
   },
   {
@@ -34268,7 +34277,8 @@
    "access": "closed",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=IL193",
+   "listingNumber": "IL193",
    "sourceUpdated": "2026-07-18"
   },
   {
@@ -34287,7 +34297,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=IL209",
+   "listingNumber": "IL209",
    "sourceUpdated": "2026-08-13"
   },
   {
@@ -34306,7 +34317,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Speaker, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=IN075",
+   "listingNumber": "IN075",
    "sourceUpdated": "2025-07-30"
   },
   {
@@ -34325,7 +34337,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=MA0068",
+   "listingNumber": "MA0068",
    "sourceUpdated": "2025-12-17"
   },
   {
@@ -34344,7 +34357,8 @@
    "access": "closed",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=MD034",
+   "listingNumber": "MD034",
    "sourceUpdated": "2025-01-19"
   },
   {
@@ -34363,7 +34377,8 @@
    "access": "closed",
    "who": null,
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=MI146",
+   "listingNumber": "MI146",
    "sourceUpdated": "2026-02-18"
   },
   {
@@ -34382,7 +34397,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=MT028",
+   "listingNumber": "MT028",
    "sourceUpdated": "2026-05-20"
   },
   {
@@ -34401,7 +34417,8 @@
    "access": "closed",
    "who": null,
    "focus": "",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=CA1006",
+   "listingNumber": "CA1006",
    "sourceUpdated": "2025-04-16"
   },
   {
@@ -34420,7 +34437,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=NC0086",
+   "listingNumber": "NC0086",
    "sourceUpdated": "2026-07-17"
   },
   {
@@ -34439,7 +34457,8 @@
    "access": "open",
    "who": null,
    "focus": "12 Steps Yellow Workbook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=NJ0152",
+   "listingNumber": "NJ0152",
    "sourceUpdated": "2026-03-31"
   },
   {
@@ -34458,7 +34477,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=NJ127",
+   "listingNumber": "NJ127",
    "sourceUpdated": "2025-10-28"
   },
   {
@@ -34477,7 +34497,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Steps, Traditions",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=NM033",
+   "listingNumber": "NM033",
    "sourceUpdated": "2025-08-19"
   },
   {
@@ -34496,7 +34517,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=NY0142",
+   "listingNumber": "NY0142",
    "sourceUpdated": "2026-03-12"
   },
   {
@@ -34515,7 +34537,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Speaker, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=NY0176",
+   "listingNumber": "NY0176",
    "sourceUpdated": "2025-12-21"
   },
   {
@@ -34534,7 +34557,8 @@
    "access": "open",
    "who": null,
    "focus": "Laundry Lists Workbook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=CA1040",
+   "listingNumber": "CA1040",
    "sourceUpdated": "2025-10-03"
   },
   {
@@ -34553,7 +34577,8 @@
    "access": "open",
    "who": null,
    "focus": "12 Steps Yellow Workbook, Discussion, Fellowship Text (BRB), Speaker, Steps, Strengthening My Recovery, Traditions",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=NY076",
+   "listingNumber": "NY076",
    "sourceUpdated": "2026-05-27"
   },
   {
@@ -34572,7 +34597,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Laundry Lists Workbook, Speaker, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=NY084",
+   "listingNumber": "NY084",
    "sourceUpdated": "2026-05-29"
   },
   {
@@ -34591,7 +34617,8 @@
    "access": "closed",
    "who": null,
    "focus": "12 Steps Yellow Workbook, A New Hope, Discussion, Fellowship Text (BRB), Laundry Lists Workbook, Loving Parent Guidebook, Speaker, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=NY098",
+   "listingNumber": "NY098",
    "sourceUpdated": "2026-08-17"
   },
   {
@@ -34610,7 +34637,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB), Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=OR090",
+   "listingNumber": "OR090",
    "sourceUpdated": "2026-10-01"
   },
   {
@@ -34629,7 +34657,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=PA078",
+   "listingNumber": "PA078",
    "sourceUpdated": "2026-03-30"
   },
   {
@@ -34648,7 +34677,8 @@
    "access": "closed",
    "who": "women",
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=PA095",
+   "listingNumber": "PA095",
    "sourceUpdated": "2025-11-30"
   },
   {
@@ -34667,7 +34697,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Speaker, Steps, Traditions",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=PA102",
+   "listingNumber": "PA102",
    "sourceUpdated": "2024-12-18"
   },
   {
@@ -34686,7 +34717,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Loving Parent Guidebook, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=SD002",
+   "listingNumber": "SD002",
    "sourceUpdated": "2024-11-01"
   },
   {
@@ -34705,7 +34737,8 @@
    "access": "open",
    "who": null,
    "focus": "Laundry Lists Workbook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=TX0183",
+   "listingNumber": "TX0183",
    "sourceUpdated": "2026-09-27"
   },
   {
@@ -34724,7 +34757,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Speaker, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=CA1169",
+   "listingNumber": "CA1169",
    "sourceUpdated": "2026-04-22"
   },
   {
@@ -34743,7 +34777,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=UT032",
+   "listingNumber": "UT032",
    "sourceUpdated": "2026-10-10"
   },
   {
@@ -34762,7 +34797,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=VA080",
+   "listingNumber": "VA080",
    "sourceUpdated": "2026-10-18"
   },
   {
@@ -34781,7 +34817,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB), Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=VA113",
+   "listingNumber": "VA113",
    "sourceUpdated": "2026-10-06"
   },
   {
@@ -34800,7 +34837,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Loving Parent Guidebook, Steps, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=CA1181",
+   "listingNumber": "CA1181",
    "sourceUpdated": "2025-08-24"
   },
   {
@@ -34819,7 +34857,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Speaker, Steps, Traditions",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WA0207",
+   "listingNumber": "WA0207",
    "sourceUpdated": "2025-11-30"
   },
   {
@@ -34838,7 +34877,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=THA0007",
+   "listingNumber": "THA0007",
    "sourceUpdated": "2026-10-18"
   },
   {
@@ -34857,7 +34897,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB), Speaker",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=MI0178",
+   "listingNumber": "MI0178",
    "sourceUpdated": "2025-03-29"
   },
   {
@@ -34876,7 +34917,8 @@
    "access": "closed",
    "who": null,
    "focus": "",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB381",
+   "listingNumber": "WEB381",
    "sourceUpdated": "2026-04-06"
   },
   {
@@ -34895,7 +34937,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=TX0206",
+   "listingNumber": "TX0206",
    "sourceUpdated": "2026-08-03"
   },
   {
@@ -34914,7 +34957,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=TX0206",
+   "listingNumber": "TX0206",
    "sourceUpdated": "2026-08-03"
   },
   {
@@ -34933,7 +34977,8 @@
    "access": "open",
    "who": null,
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=CA1267",
+   "listingNumber": "CA1267",
    "sourceUpdated": "2026-08-18"
   },
   {
@@ -34952,7 +34997,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=CA1398",
+   "listingNumber": "CA1398",
    "sourceUpdated": "2026-03-18"
   },
   {
@@ -34971,7 +35017,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=DC0020",
+   "listingNumber": "DC0020",
    "sourceUpdated": "2025-01-06"
   },
   {
@@ -34990,7 +35037,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Laundry Lists Workbook, Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=CO0088",
+   "listingNumber": "CO0088",
    "sourceUpdated": "2026-09-15"
   },
   {
@@ -35009,7 +35057,8 @@
    "access": "closed",
    "who": "women",
    "focus": "Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0090",
+   "listingNumber": "WEB0090",
    "sourceUpdated": "2025-01-09"
   },
   {
@@ -35028,7 +35077,8 @@
    "access": "open",
    "who": null,
    "focus": "A New Hope, Discussion, Fellowship Text (BRB), Loving Parent Guidebook, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=CO0091",
+   "listingNumber": "CO0091",
    "sourceUpdated": "2026-10-02"
   },
   {
@@ -35047,7 +35097,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=CA1283",
+   "listingNumber": "CA1283",
    "sourceUpdated": "2026-08-01"
   },
   {
@@ -35066,7 +35117,8 @@
    "access": "closed",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=CT0131",
+   "listingNumber": "CT0131",
    "sourceUpdated": "2026-04-17"
   },
   {
@@ -35085,7 +35137,8 @@
    "access": "open",
    "who": null,
    "focus": "",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=RI0028",
+   "listingNumber": "RI0028",
    "sourceUpdated": "2026-06-10"
   },
   {
@@ -35104,7 +35157,8 @@
    "access": "open",
    "who": null,
    "focus": "Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0096",
+   "listingNumber": "WEB0096",
    "sourceUpdated": "2025-02-05"
   },
   {
@@ -35123,7 +35177,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=MA0103",
+   "listingNumber": "MA0103",
    "sourceUpdated": "2025-07-22"
   },
   {
@@ -35142,7 +35197,8 @@
    "access": "open",
    "who": null,
    "focus": "Laundry Lists Workbook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=THA0010",
+   "listingNumber": "THA0010",
    "sourceUpdated": "2026-10-18"
   },
   {
@@ -35161,7 +35217,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Laundry Lists Workbook, Loving Parent Guidebook, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=CA1312",
+   "listingNumber": "CA1312",
    "sourceUpdated": "2025-11-14"
   },
   {
@@ -35180,7 +35237,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=ZAF0003",
+   "listingNumber": "ZAF0003",
    "sourceUpdated": "2026-07-23"
   },
   {
@@ -35199,7 +35257,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Laundry Lists Workbook, Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=MEX0042",
+   "listingNumber": "MEX0042",
    "sourceUpdated": "2026-03-30"
   },
   {
@@ -35218,7 +35277,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Laundry Lists Workbook, Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=MEX0042",
+   "listingNumber": "MEX0042",
    "sourceUpdated": "2026-03-30"
   },
   {
@@ -35237,7 +35297,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Laundry Lists Workbook, Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=MEX0042",
+   "listingNumber": "MEX0042",
    "sourceUpdated": "2026-03-30"
   },
   {
@@ -35256,7 +35317,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0165",
+   "listingNumber": "WEB0165",
    "sourceUpdated": "2026-08-29"
   },
   {
@@ -35275,7 +35337,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0167",
+   "listingNumber": "WEB0167",
    "sourceUpdated": "2026-02-18"
   },
   {
@@ -35294,7 +35357,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0188",
+   "listingNumber": "WEB0188",
    "sourceUpdated": "2026-04-06"
   },
   {
@@ -35313,7 +35377,8 @@
    "access": "open",
    "who": null,
    "focus": "Speaker",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0193",
+   "listingNumber": "WEB0193",
    "sourceUpdated": "2026-09-03"
   },
   {
@@ -35332,7 +35397,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=CA1331",
+   "listingNumber": "CA1331",
    "sourceUpdated": "2025-11-21"
   },
   {
@@ -35351,7 +35417,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0207",
+   "listingNumber": "WEB0207",
    "sourceUpdated": "2026-08-06"
   },
   {
@@ -35370,7 +35437,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0207",
+   "listingNumber": "WEB0207",
    "sourceUpdated": "2026-08-06"
   },
   {
@@ -35389,7 +35457,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0207",
+   "listingNumber": "WEB0207",
    "sourceUpdated": "2026-08-06"
   },
   {
@@ -35408,7 +35477,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0207",
+   "listingNumber": "WEB0207",
    "sourceUpdated": "2026-08-06"
   },
   {
@@ -35427,7 +35497,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0209",
+   "listingNumber": "WEB0209",
    "sourceUpdated": "2026-09-16"
   },
   {
@@ -35446,7 +35517,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0227",
+   "listingNumber": "WEB0227",
    "sourceUpdated": "2026-03-17"
   },
   {
@@ -35465,7 +35537,8 @@
    "access": "open",
    "who": "women",
    "focus": "12 Steps Yellow Workbook, Discussion, Fellowship Text (BRB), Laundry Lists Workbook, Loving Parent Guidebook, Steps, Strengthening My Recovery, Workshop",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0230",
+   "listingNumber": "WEB0230",
    "sourceUpdated": "2026-09-23"
   },
   {
@@ -35484,7 +35557,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0233",
+   "listingNumber": "WEB0233",
    "sourceUpdated": "2026-06-29"
   },
   {
@@ -35503,7 +35577,8 @@
    "access": "open",
    "who": "men",
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0299",
+   "listingNumber": "WEB0299",
    "sourceUpdated": "2026-07-14"
   },
   {
@@ -35522,7 +35597,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Speaker",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0310",
+   "listingNumber": "WEB0310",
    "sourceUpdated": "2025-05-11"
   },
   {
@@ -35541,7 +35617,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Speaker",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0310",
+   "listingNumber": "WEB0310",
    "sourceUpdated": "2025-05-11"
   },
   {
@@ -35560,7 +35637,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Speaker",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0310",
+   "listingNumber": "WEB0310",
    "sourceUpdated": "2025-05-11"
   },
   {
@@ -35579,7 +35657,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Speaker",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0310",
+   "listingNumber": "WEB0310",
    "sourceUpdated": "2025-05-11"
   },
   {
@@ -35598,7 +35677,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Speaker",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0310",
+   "listingNumber": "WEB0310",
    "sourceUpdated": "2025-05-11"
   },
   {
@@ -35617,7 +35697,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Speaker",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0310",
+   "listingNumber": "WEB0310",
    "sourceUpdated": "2025-05-11"
   },
   {
@@ -35636,7 +35717,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Speaker",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0310",
+   "listingNumber": "WEB0310",
    "sourceUpdated": "2025-05-11"
   },
   {
@@ -35655,7 +35737,8 @@
    "access": "closed",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=CA428",
+   "listingNumber": "CA428",
    "sourceUpdated": "2026-04-30"
   },
   {
@@ -35674,7 +35757,8 @@
    "access": "closed",
    "who": null,
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0323",
+   "listingNumber": "WEB0323",
    "sourceUpdated": "2026-05-21"
   },
   {
@@ -35693,7 +35777,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0350",
+   "listingNumber": "WEB0350",
    "sourceUpdated": "2025-05-09"
   },
   {
@@ -35712,7 +35797,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0390",
+   "listingNumber": "WEB0390",
    "sourceUpdated": "2024-11-27"
   },
   {
@@ -35731,7 +35817,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0390",
+   "listingNumber": "WEB0390",
    "sourceUpdated": "2024-11-27"
   },
   {
@@ -35750,7 +35837,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0390",
+   "listingNumber": "WEB0390",
    "sourceUpdated": "2024-11-27"
   },
   {
@@ -35769,7 +35857,8 @@
    "access": "closed",
    "who": null,
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0394",
+   "listingNumber": "WEB0394",
    "sourceUpdated": "2026-06-25"
   },
   {
@@ -35788,7 +35877,8 @@
    "access": "closed",
    "who": null,
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0394",
+   "listingNumber": "WEB0394",
    "sourceUpdated": "2026-06-25"
   },
   {
@@ -35807,7 +35897,8 @@
    "access": "closed",
    "who": null,
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0394",
+   "listingNumber": "WEB0394",
    "sourceUpdated": "2026-06-25"
   },
   {
@@ -35826,7 +35917,8 @@
    "access": "closed",
    "who": null,
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0394",
+   "listingNumber": "WEB0394",
    "sourceUpdated": "2026-06-25"
   },
   {
@@ -35845,7 +35937,8 @@
    "access": "closed",
    "who": null,
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0394",
+   "listingNumber": "WEB0394",
    "sourceUpdated": "2026-06-25"
   },
   {
@@ -35864,7 +35957,8 @@
    "access": "closed",
    "who": null,
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0394",
+   "listingNumber": "WEB0394",
    "sourceUpdated": "2026-06-25"
   },
   {
@@ -35883,7 +35977,8 @@
    "access": "closed",
    "who": null,
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0394",
+   "listingNumber": "WEB0394",
    "sourceUpdated": "2026-06-25"
   },
   {
@@ -35902,7 +35997,8 @@
    "access": "closed",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0399",
+   "listingNumber": "WEB0399",
    "sourceUpdated": "2026-08-21"
   },
   {
@@ -35921,7 +36017,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Loving Parent Guidebook, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WI0150",
+   "listingNumber": "WI0150",
    "sourceUpdated": "2026-05-29"
   },
   {
@@ -35940,7 +36037,8 @@
    "access": "open",
    "who": "men",
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0420",
+   "listingNumber": "WEB0420",
    "sourceUpdated": "2026-08-19"
   },
   {
@@ -35959,7 +36057,8 @@
    "access": "open",
    "who": "men",
    "focus": "12 Steps Yellow Workbook, Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0448",
+   "listingNumber": "WEB0448",
    "sourceUpdated": "2026-07-15"
   },
   {
@@ -35978,7 +36077,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0473",
+   "listingNumber": "WEB0473",
    "sourceUpdated": "2025-10-06"
   },
   {
@@ -35997,7 +36097,8 @@
    "access": "open",
    "who": "women",
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0482",
+   "listingNumber": "WEB0482",
    "sourceUpdated": "2024-11-27"
   },
   {
@@ -36016,7 +36117,8 @@
    "access": "open",
    "who": "men",
    "focus": "Speaker",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0483",
+   "listingNumber": "WEB0483",
    "sourceUpdated": "2026-04-02"
   },
   {
@@ -36035,7 +36137,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB), Loving Parent Guidebook, Speaker",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0496",
+   "listingNumber": "WEB0496",
    "sourceUpdated": "2026-07-05"
   },
   {
@@ -36054,7 +36157,8 @@
    "access": "open",
    "who": null,
    "focus": "Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0504",
+   "listingNumber": "WEB0504",
    "sourceUpdated": "2026-08-05"
   },
   {
@@ -36073,7 +36177,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0507",
+   "listingNumber": "WEB0507",
    "sourceUpdated": "2025-11-08"
   },
   {
@@ -36092,7 +36197,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=TX0238",
+   "listingNumber": "TX0238",
    "sourceUpdated": "2025-12-04"
   },
   {
@@ -36111,7 +36217,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0579",
+   "listingNumber": "WEB0579",
    "sourceUpdated": "2026-04-10"
   },
   {
@@ -36130,7 +36237,8 @@
    "access": "open",
    "who": null,
    "focus": "12 Steps Yellow Workbook, Discussion, Fellowship Text (BRB), Speaker",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=ME0043",
+   "listingNumber": "ME0043",
    "sourceUpdated": "2025-05-06"
   },
   {
@@ -36149,7 +36257,8 @@
    "access": "open",
    "who": "women",
    "focus": "Discussion, Fellowship Text (BRB), Laundry Lists Workbook, Loving Parent Guidebook, Speaker, Steps, Traditions",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0589",
+   "listingNumber": "WEB0589",
    "sourceUpdated": "2026-07-31"
   },
   {
@@ -36168,7 +36277,8 @@
    "access": "open",
    "who": "women",
    "focus": "Discussion, Fellowship Text (BRB), Laundry Lists Workbook, Loving Parent Guidebook, Speaker, Steps, Traditions",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0589",
+   "listingNumber": "WEB0589",
    "sourceUpdated": "2026-07-31"
   },
   {
@@ -36187,7 +36297,8 @@
    "access": "open",
    "who": "women",
    "focus": "Discussion, Fellowship Text (BRB), Laundry Lists Workbook, Loving Parent Guidebook, Speaker, Steps, Traditions",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0589",
+   "listingNumber": "WEB0589",
    "sourceUpdated": "2026-07-31"
   },
   {
@@ -36206,7 +36317,8 @@
    "access": "open",
    "who": "women",
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0623",
+   "listingNumber": "WEB0623",
    "sourceUpdated": "2026-03-23"
   },
   {
@@ -36225,7 +36337,8 @@
    "access": "open",
    "who": "women",
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0623",
+   "listingNumber": "WEB0623",
    "sourceUpdated": "2026-03-23"
   },
   {
@@ -36244,7 +36357,8 @@
    "access": "closed",
    "who": null,
    "focus": "",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0649",
+   "listingNumber": "WEB0649",
    "sourceUpdated": "2025-04-30"
   },
   {
@@ -36263,7 +36377,8 @@
    "access": "closed",
    "who": null,
    "focus": "12 Steps Yellow Workbook, Fellowship Text (BRB), Laundry Lists Workbook, Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0655",
+   "listingNumber": "WEB0655",
    "sourceUpdated": "2026-07-29"
   },
   {
@@ -36282,7 +36397,8 @@
    "access": "closed",
    "who": null,
    "focus": "12 Steps Yellow Workbook, Fellowship Text (BRB), Laundry Lists Workbook, Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0655",
+   "listingNumber": "WEB0655",
    "sourceUpdated": "2026-07-29"
   },
   {
@@ -36301,7 +36417,8 @@
    "access": "closed",
    "who": null,
    "focus": "12 Steps Yellow Workbook, Fellowship Text (BRB), Laundry Lists Workbook, Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0655",
+   "listingNumber": "WEB0655",
    "sourceUpdated": "2026-07-29"
   },
   {
@@ -36320,7 +36437,8 @@
    "access": "closed",
    "who": null,
    "focus": "12 Steps Yellow Workbook, Fellowship Text (BRB), Laundry Lists Workbook, Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0655",
+   "listingNumber": "WEB0655",
    "sourceUpdated": "2026-07-29"
   },
   {
@@ -36339,7 +36457,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0695",
+   "listingNumber": "WEB0695",
    "sourceUpdated": "2026-09-07"
   },
   {
@@ -36358,7 +36477,8 @@
    "access": "open",
    "who": null,
    "focus": "",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0732",
+   "listingNumber": "WEB0732",
    "sourceUpdated": "2026-10-11"
   },
   {
@@ -36377,7 +36497,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=PA0171",
+   "listingNumber": "PA0171",
    "sourceUpdated": "2026-09-25"
   },
   {
@@ -36396,27 +36517,9 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0757",
+   "listingNumber": "WEB0757",
    "sourceUpdated": "2026-08-15"
-  },
-  {
-   "id": "aca-6754-5-0700",
-   "program": "ACA",
-   "name": "Closed BIPOC Rainbow",
-   "days": [
-    5
-   ],
-   "start": "07:00",
-   "end": null,
-   "zone": "America/New_York",
-   "link": "https://us02web.zoom.us/j/8618149594?pwd=cWpNNWRZc2VpSVhtb0h5dEMyRVByUT09",
-   "meetingId": "8618149594",
-   "passcode": null,
-   "access": "closed",
-   "who": null,
-   "focus": "Discussion, Fellowship Text (BRB), Laundry Lists Workbook",
-   "source": "https://adultchildren.org/meeting-search/",
-   "sourceUpdated": "2026-07-31"
   },
   {
    "id": "aca-6789-5-0730",
@@ -36434,7 +36537,8 @@
    "access": "open",
    "who": null,
    "focus": "Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0790",
+   "listingNumber": "WEB0790",
    "sourceUpdated": "2026-06-01"
   },
   {
@@ -36453,7 +36557,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB), Loving Parent Guidebook, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0793",
+   "listingNumber": "WEB0793",
    "sourceUpdated": "2025-10-06"
   },
   {
@@ -36472,7 +36577,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB), Loving Parent Guidebook, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0793",
+   "listingNumber": "WEB0793",
    "sourceUpdated": "2025-10-06"
   },
   {
@@ -36491,7 +36597,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB), Loving Parent Guidebook, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0793",
+   "listingNumber": "WEB0793",
    "sourceUpdated": "2025-10-06"
   },
   {
@@ -36510,7 +36617,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB), Loving Parent Guidebook, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0793",
+   "listingNumber": "WEB0793",
    "sourceUpdated": "2025-10-06"
   },
   {
@@ -36529,7 +36637,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB), Loving Parent Guidebook, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0793",
+   "listingNumber": "WEB0793",
    "sourceUpdated": "2025-10-06"
   },
   {
@@ -36548,7 +36657,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB), Loving Parent Guidebook, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0793",
+   "listingNumber": "WEB0793",
    "sourceUpdated": "2025-10-06"
   },
   {
@@ -36567,7 +36677,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB), Loving Parent Guidebook, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0793",
+   "listingNumber": "WEB0793",
    "sourceUpdated": "2025-10-06"
   },
   {
@@ -36586,7 +36697,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0796",
+   "listingNumber": "WEB0796",
    "sourceUpdated": "2026-08-26"
   },
   {
@@ -36605,7 +36717,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0796",
+   "listingNumber": "WEB0796",
    "sourceUpdated": "2026-08-26"
   },
   {
@@ -36624,7 +36737,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=CA1521",
+   "listingNumber": "CA1521",
    "sourceUpdated": "2026-10-24"
   },
   {
@@ -36643,7 +36757,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0858",
+   "listingNumber": "WEB0858",
    "sourceUpdated": "2026-10-19"
   },
   {
@@ -36662,7 +36777,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=TX0253",
+   "listingNumber": "TX0253",
    "sourceUpdated": "2026-02-14"
   },
   {
@@ -36681,7 +36797,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB), Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0872",
+   "listingNumber": "WEB0872",
    "sourceUpdated": "2026-07-31"
   },
   {
@@ -36700,7 +36817,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB), Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0872",
+   "listingNumber": "WEB0872",
    "sourceUpdated": "2026-07-31"
   },
   {
@@ -36719,7 +36837,8 @@
    "access": "closed",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0882",
+   "listingNumber": "WEB0882",
    "sourceUpdated": "2025-06-07"
   },
   {
@@ -36738,7 +36857,8 @@
    "access": "open",
    "who": null,
    "focus": "",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=IL0277",
+   "listingNumber": "IL0277",
    "sourceUpdated": "2025-04-23"
   },
   {
@@ -36757,7 +36877,8 @@
    "access": "closed",
    "who": null,
    "focus": "",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0890",
+   "listingNumber": "WEB0890",
    "sourceUpdated": "2026-10-03"
   },
   {
@@ -36776,7 +36897,8 @@
    "access": "closed",
    "who": null,
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0906",
+   "listingNumber": "WEB0906",
    "sourceUpdated": "2026-03-12"
   },
   {
@@ -36795,7 +36917,8 @@
    "access": "closed",
    "who": null,
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0907",
+   "listingNumber": "WEB0907",
    "sourceUpdated": "2025-03-13"
   },
   {
@@ -36814,7 +36937,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0929",
+   "listingNumber": "WEB0929",
    "sourceUpdated": "2026-10-10"
   },
   {
@@ -36833,7 +36957,8 @@
    "access": "closed",
    "who": "women",
    "focus": "Discussion, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=CAN0395",
+   "listingNumber": "CAN0395",
    "sourceUpdated": "2026-10-17"
   },
   {
@@ -36852,7 +36977,8 @@
    "access": "closed",
    "who": null,
    "focus": "Loving Parent Guidebook, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0933",
+   "listingNumber": "WEB0933",
    "sourceUpdated": "2026-02-23"
   },
   {
@@ -36871,7 +36997,8 @@
    "access": "closed",
    "who": null,
    "focus": "Loving Parent Guidebook, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0933",
+   "listingNumber": "WEB0933",
    "sourceUpdated": "2026-02-23"
   },
   {
@@ -36890,7 +37017,8 @@
    "access": "closed",
    "who": null,
    "focus": "Loving Parent Guidebook, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0933",
+   "listingNumber": "WEB0933",
    "sourceUpdated": "2026-02-23"
   },
   {
@@ -36909,7 +37037,8 @@
    "access": "closed",
    "who": null,
    "focus": "Loving Parent Guidebook, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0933",
+   "listingNumber": "WEB0933",
    "sourceUpdated": "2026-02-23"
   },
   {
@@ -36928,7 +37057,8 @@
    "access": "closed",
    "who": null,
    "focus": "Loving Parent Guidebook, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0933",
+   "listingNumber": "WEB0933",
    "sourceUpdated": "2026-02-23"
   },
   {
@@ -36947,7 +37077,8 @@
    "access": "closed",
    "who": null,
    "focus": "",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=CA915",
+   "listingNumber": "CA915",
    "sourceUpdated": "2026-02-15"
   },
   {
@@ -36966,7 +37097,8 @@
    "access": "closed",
    "who": null,
    "focus": "Speaker",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0979",
+   "listingNumber": "WEB0979",
    "sourceUpdated": "2025-11-25"
   },
   {
@@ -36985,7 +37117,8 @@
    "access": "open",
    "who": null,
    "focus": "",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1009",
+   "listingNumber": "WEB1009",
    "sourceUpdated": "2025-10-06"
   },
   {
@@ -37004,7 +37137,8 @@
    "access": "closed",
    "who": "women",
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1010",
+   "listingNumber": "WEB1010",
    "sourceUpdated": "2026-09-16"
   },
   {
@@ -37023,7 +37157,8 @@
    "access": "open",
    "who": "women",
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1073",
+   "listingNumber": "WEB1073",
    "sourceUpdated": "2026-10-19"
   },
   {
@@ -37042,7 +37177,8 @@
    "access": "closed",
    "who": null,
    "focus": "Discussion, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1074",
+   "listingNumber": "WEB1074",
    "sourceUpdated": "2025-11-19"
   },
   {
@@ -37061,7 +37197,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Speaker, Steps, Traditions",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=TEL0525",
+   "listingNumber": "TEL0525",
    "sourceUpdated": "2026-06-01"
   },
   {
@@ -37080,7 +37217,8 @@
    "access": "open",
    "who": null,
    "focus": "12 Steps Yellow Workbook, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1088",
+   "listingNumber": "WEB1088",
    "sourceUpdated": "2026-01-12"
   },
   {
@@ -37099,7 +37237,8 @@
    "access": "closed",
    "who": null,
    "focus": "Loving Parent Guidebook, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1096",
+   "listingNumber": "WEB1096",
    "sourceUpdated": "2026-06-01"
   },
   {
@@ -37118,7 +37257,8 @@
    "access": "closed",
    "who": null,
    "focus": "Loving Parent Guidebook, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1096",
+   "listingNumber": "WEB1096",
    "sourceUpdated": "2026-06-01"
   },
   {
@@ -37137,7 +37277,8 @@
    "access": "closed",
    "who": null,
    "focus": "Loving Parent Guidebook, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1096",
+   "listingNumber": "WEB1096",
    "sourceUpdated": "2026-06-01"
   },
   {
@@ -37156,7 +37297,8 @@
    "access": "closed",
    "who": "women",
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1099",
+   "listingNumber": "WEB1099",
    "sourceUpdated": "2026-06-01"
   },
   {
@@ -37175,7 +37317,8 @@
    "access": "open",
    "who": null,
    "focus": "12 Steps Yellow Workbook, Loving Parent Guidebook, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1112",
+   "listingNumber": "WEB1112",
    "sourceUpdated": "2025-04-22"
   },
   {
@@ -37194,7 +37337,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1115",
+   "listingNumber": "WEB1115",
    "sourceUpdated": "2026-03-24"
   },
   {
@@ -37213,7 +37357,8 @@
    "access": "closed",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Steps, Workshop",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1119",
+   "listingNumber": "WEB1119",
    "sourceUpdated": "2026-09-18"
   },
   {
@@ -37232,7 +37377,8 @@
    "access": "closed",
    "who": null,
    "focus": "Discussion, Steps, Workshop",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1120",
+   "listingNumber": "WEB1120",
    "sourceUpdated": "2026-09-18"
   },
   {
@@ -37251,7 +37397,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=IN0111",
+   "listingNumber": "IN0111",
    "sourceUpdated": "2026-03-01"
   },
   {
@@ -37270,7 +37417,8 @@
    "access": "closed",
    "who": null,
    "focus": "",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1130",
+   "listingNumber": "WEB1130",
    "sourceUpdated": "2026-10-03"
   },
   {
@@ -37289,7 +37437,8 @@
    "access": "closed",
    "who": "women",
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1131",
+   "listingNumber": "WEB1131",
    "sourceUpdated": "2026-07-27"
   },
   {
@@ -37308,7 +37457,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1135",
+   "listingNumber": "WEB1135",
    "sourceUpdated": "2025-03-15"
   },
   {
@@ -37327,7 +37477,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1143",
+   "listingNumber": "WEB1143",
    "sourceUpdated": "2026-03-03"
   },
   {
@@ -37346,7 +37497,8 @@
    "access": "closed",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1152",
+   "listingNumber": "WEB1152",
    "sourceUpdated": "2026-10-18"
   },
   {
@@ -37365,7 +37517,8 @@
    "access": "closed",
    "who": "men",
    "focus": "Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1166",
+   "listingNumber": "WEB1166",
    "sourceUpdated": "2025-08-02"
   },
   {
@@ -37384,7 +37537,8 @@
    "access": "closed",
    "who": "men",
    "focus": "Laundry Lists Workbook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1167",
+   "listingNumber": "WEB1167",
    "sourceUpdated": "2026-10-15"
   },
   {
@@ -37403,7 +37557,8 @@
    "access": "open",
    "who": null,
    "focus": "12 Steps Yellow Workbook, A New Hope, Discussion, Fellowship Text (BRB), Laundry Lists Workbook, Loving Parent Guidebook, Speaker, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1172",
+   "listingNumber": "WEB1172",
    "sourceUpdated": "2026-10-02"
   },
   {
@@ -37422,7 +37577,8 @@
    "access": "open",
    "who": "women",
    "focus": "A New Hope",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1192",
+   "listingNumber": "WEB1192",
    "sourceUpdated": "2025-10-04"
   },
   {
@@ -37441,7 +37597,8 @@
    "access": "open",
    "who": null,
    "focus": "Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1201",
+   "listingNumber": "WEB1201",
    "sourceUpdated": "2026-04-23"
   },
   {
@@ -37460,7 +37617,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Speaker, Steps, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=FL0405",
+   "listingNumber": "FL0405",
    "sourceUpdated": "2026-09-11"
   },
   {
@@ -37479,7 +37637,8 @@
    "access": "closed",
    "who": "men",
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1206",
+   "listingNumber": "WEB1206",
    "sourceUpdated": "2026-02-24"
   },
   {
@@ -37498,7 +37657,8 @@
    "access": "closed",
    "who": "men",
    "focus": "Discussion, Speaker",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=CA988",
+   "listingNumber": "CA988",
    "sourceUpdated": "2025-02-09"
   },
   {
@@ -37517,7 +37677,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1231",
+   "listingNumber": "WEB1231",
    "sourceUpdated": "2025-05-06"
   },
   {
@@ -37536,7 +37697,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Steps, Workshop",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1237",
+   "listingNumber": "WEB1237",
    "sourceUpdated": "2026-09-17"
   },
   {
@@ -37555,7 +37717,8 @@
    "access": "closed",
    "who": "women",
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1240",
+   "listingNumber": "WEB1240",
    "sourceUpdated": "2025-04-19"
   },
   {
@@ -37574,7 +37737,8 @@
    "access": "closed",
    "who": null,
    "focus": "Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1241",
+   "listingNumber": "WEB1241",
    "sourceUpdated": "2025-04-28"
   },
   {
@@ -37593,7 +37757,8 @@
    "access": "open",
    "who": null,
    "focus": "",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1289",
+   "listingNumber": "WEB1289",
    "sourceUpdated": "2026-06-05"
   },
   {
@@ -37612,7 +37777,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Steps, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=TX0288",
+   "listingNumber": "TX0288",
    "sourceUpdated": "2026-06-30"
   },
   {
@@ -37631,7 +37797,8 @@
    "access": "open",
    "who": null,
    "focus": "",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1305",
+   "listingNumber": "WEB1305",
    "sourceUpdated": "2026-06-05"
   },
   {
@@ -37650,7 +37817,8 @@
    "access": "closed",
    "who": "women",
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1306",
+   "listingNumber": "WEB1306",
    "sourceUpdated": "2026-05-11"
   },
   {
@@ -37669,7 +37837,8 @@
    "access": "open",
    "who": null,
    "focus": "",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1307",
+   "listingNumber": "WEB1307",
    "sourceUpdated": "2026-06-05"
   },
   {
@@ -37688,7 +37857,8 @@
    "access": "open",
    "who": null,
    "focus": "",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1308",
+   "listingNumber": "WEB1308",
    "sourceUpdated": "2026-06-05"
   },
   {
@@ -37707,7 +37877,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WI0167",
+   "listingNumber": "WI0167",
    "sourceUpdated": "2026-03-31"
   },
   {
@@ -37726,7 +37897,8 @@
    "access": "open",
    "who": null,
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1330",
+   "listingNumber": "WEB1330",
    "sourceUpdated": "2026-07-23"
   },
   {
@@ -37745,7 +37917,8 @@
    "access": "open",
    "who": null,
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1330",
+   "listingNumber": "WEB1330",
    "sourceUpdated": "2026-07-23"
   },
   {
@@ -37764,7 +37937,8 @@
    "access": "open",
    "who": null,
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1330",
+   "listingNumber": "WEB1330",
    "sourceUpdated": "2026-07-23"
   },
   {
@@ -37783,7 +37957,8 @@
    "access": "open",
    "who": null,
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1330",
+   "listingNumber": "WEB1330",
    "sourceUpdated": "2026-07-23"
   },
   {
@@ -37802,7 +37977,8 @@
    "access": "open",
    "who": null,
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1330",
+   "listingNumber": "WEB1330",
    "sourceUpdated": "2026-07-23"
   },
   {
@@ -37821,7 +37997,8 @@
    "access": "open",
    "who": null,
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1330",
+   "listingNumber": "WEB1330",
    "sourceUpdated": "2026-07-23"
   },
   {
@@ -37840,7 +38017,8 @@
    "access": "open",
    "who": null,
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1330",
+   "listingNumber": "WEB1330",
    "sourceUpdated": "2026-07-23"
   },
   {
@@ -37859,7 +38037,8 @@
    "access": "open",
    "who": null,
    "focus": "Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1332",
+   "listingNumber": "WEB1332",
    "sourceUpdated": "2026-07-23"
   },
   {
@@ -37878,7 +38057,8 @@
    "access": "open",
    "who": "women",
    "focus": "",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1335",
+   "listingNumber": "WEB1335",
    "sourceUpdated": "2026-07-26"
   },
   {
@@ -37897,7 +38077,8 @@
    "access": "open",
    "who": null,
    "focus": "Laundry Lists Workbook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1337",
+   "listingNumber": "WEB1337",
    "sourceUpdated": "2026-09-21"
   },
   {
@@ -37916,7 +38097,8 @@
    "access": "open",
    "who": null,
    "focus": "12 Steps Yellow Workbook, Speaker, Traditions",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1351",
+   "listingNumber": "WEB1351",
    "sourceUpdated": "2026-05-26"
   },
   {
@@ -37935,7 +38117,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1354",
+   "listingNumber": "WEB1354",
    "sourceUpdated": "2026-09-21"
   },
   {
@@ -37954,7 +38137,8 @@
    "access": "closed",
    "who": "men",
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1359",
+   "listingNumber": "WEB1359",
    "sourceUpdated": "2026-09-11"
   },
   {
@@ -37973,7 +38157,8 @@
    "access": "closed",
    "who": null,
    "focus": "Laundry Lists Workbook, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1370",
+   "listingNumber": "WEB1370",
    "sourceUpdated": "2026-06-05"
   },
   {
@@ -37992,7 +38177,8 @@
    "access": "open",
    "who": null,
    "focus": "Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1372",
+   "listingNumber": "WEB1372",
    "sourceUpdated": "2026-08-10"
   },
   {
@@ -38011,7 +38197,8 @@
    "access": "open",
    "who": null,
    "focus": "12 Steps Yellow Workbook, Discussion, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1377",
+   "listingNumber": "WEB1377",
    "sourceUpdated": "2025-02-24"
   },
   {
@@ -38030,27 +38217,9 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB), Steps, Traditions",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1383",
+   "listingNumber": "WEB1383",
    "sourceUpdated": "2024-11-18"
-  },
-  {
-   "id": "aca-8420-5-1900",
-   "program": "ACA",
-   "name": "ACA MABUHAY PHILIPPINES Drop-in Friday- Walang Sala",
-   "days": [
-    5
-   ],
-   "start": "19:00",
-   "end": null,
-   "zone": "Asia/Manila",
-   "link": "https://us02web.zoom.us/j/84096903784?pwd=UPpP7Zy4SIFNb3o4xtkfH7r1bPyjOx.1",
-   "meetingId": "84096903784",
-   "passcode": null,
-   "access": "closed",
-   "who": null,
-   "focus": "",
-   "source": "https://adultchildren.org/meeting-search/",
-   "sourceUpdated": "2026-06-05"
   },
   {
    "id": "aca-8422-6-1400",
@@ -38068,7 +38237,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1387",
+   "listingNumber": "WEB1387",
    "sourceUpdated": "2026-09-12"
   },
   {
@@ -38087,7 +38257,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1388",
+   "listingNumber": "WEB1388",
    "sourceUpdated": "2026-10-04"
   },
   {
@@ -38106,7 +38277,8 @@
    "access": "open",
    "who": null,
    "focus": "",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=NC0134",
+   "listingNumber": "NC0134",
    "sourceUpdated": "2025-11-17"
   },
   {
@@ -38125,7 +38297,8 @@
    "access": "closed",
    "who": null,
    "focus": "Workshop",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1399",
+   "listingNumber": "WEB1399",
    "sourceUpdated": "2026-05-16"
   },
   {
@@ -38144,7 +38317,8 @@
    "access": "closed",
    "who": null,
    "focus": "Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1415",
+   "listingNumber": "WEB1415",
    "sourceUpdated": "2026-10-20"
   },
   {
@@ -38163,7 +38337,8 @@
    "access": "open",
    "who": null,
    "focus": "12 Steps Yellow Workbook, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1416",
+   "listingNumber": "WEB1416",
    "sourceUpdated": "2026-10-04"
   },
   {
@@ -38182,7 +38357,8 @@
    "access": "open",
    "who": null,
    "focus": "Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1422",
+   "listingNumber": "WEB1422",
    "sourceUpdated": "2026-05-23"
   },
   {
@@ -38201,7 +38377,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=CO0142",
+   "listingNumber": "CO0142",
    "sourceUpdated": "2025-06-10"
   },
   {
@@ -38220,7 +38397,8 @@
    "access": "closed",
    "who": null,
    "focus": "Laundry Lists Workbook, Workshop",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1439",
+   "listingNumber": "WEB1439",
    "sourceUpdated": "2026-08-11"
   },
   {
@@ -38239,7 +38417,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=IL0296",
+   "listingNumber": "IL0296",
    "sourceUpdated": "2025-11-02"
   },
   {
@@ -38258,7 +38437,8 @@
    "access": "closed",
    "who": null,
    "focus": "12 Steps Yellow Workbook, Steps, Workshop",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1447",
+   "listingNumber": "WEB1447",
    "sourceUpdated": "2026-08-11"
   },
   {
@@ -38277,7 +38457,8 @@
    "access": "open",
    "who": null,
    "focus": "Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1448",
+   "listingNumber": "WEB1448",
    "sourceUpdated": "2026-01-03"
   },
   {
@@ -38296,7 +38477,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=MA0136",
+   "listingNumber": "MA0136",
    "sourceUpdated": "2025-04-18"
   },
   {
@@ -38315,7 +38497,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1452",
+   "listingNumber": "WEB1452",
    "sourceUpdated": "2026-05-23"
   },
   {
@@ -38334,7 +38517,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1457",
+   "listingNumber": "WEB1457",
    "sourceUpdated": "2026-05-23"
   },
   {
@@ -38353,7 +38537,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1494",
+   "listingNumber": "WEB1494",
    "sourceUpdated": "2025-07-27"
   },
   {
@@ -38372,7 +38557,8 @@
    "access": "open",
    "who": null,
    "focus": "",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1498",
+   "listingNumber": "WEB1498",
    "sourceUpdated": "2026-08-09"
   },
   {
@@ -38391,7 +38577,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB), Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1507",
+   "listingNumber": "WEB1507",
    "sourceUpdated": "2025-12-08"
   },
   {
@@ -38410,7 +38597,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB), Laundry Lists Workbook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1516",
+   "listingNumber": "WEB1516",
    "sourceUpdated": "2025-08-27"
   },
   {
@@ -38429,7 +38617,8 @@
    "access": "closed",
    "who": "women",
    "focus": "Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1519",
+   "listingNumber": "WEB1519",
    "sourceUpdated": "2026-08-10"
   },
   {
@@ -38448,7 +38637,8 @@
    "access": "closed",
    "who": "men",
    "focus": "Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1520",
+   "listingNumber": "WEB1520",
    "sourceUpdated": "2026-09-11"
   },
   {
@@ -38467,7 +38657,8 @@
    "access": "closed",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1523",
+   "listingNumber": "WEB1523",
    "sourceUpdated": "2026-05-24"
   },
   {
@@ -38486,7 +38677,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Speaker, Steps, Traditions",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1564",
+   "listingNumber": "WEB1564",
    "sourceUpdated": "2025-12-02"
   },
   {
@@ -38505,7 +38697,8 @@
    "access": "open",
    "who": null,
    "focus": "Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1576",
+   "listingNumber": "WEB1576",
    "sourceUpdated": "2026-10-09"
   },
   {
@@ -38524,7 +38717,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Loving Parent Guidebook, Speaker, Steps, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1578",
+   "listingNumber": "WEB1578",
    "sourceUpdated": "2026-03-13"
   },
   {
@@ -38543,7 +38737,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Loving Parent Guidebook, Speaker, Steps, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1578",
+   "listingNumber": "WEB1578",
    "sourceUpdated": "2026-03-13"
   },
   {
@@ -38562,7 +38757,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Loving Parent Guidebook, Speaker, Steps, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1578",
+   "listingNumber": "WEB1578",
    "sourceUpdated": "2026-03-13"
   },
   {
@@ -38581,7 +38777,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Loving Parent Guidebook, Speaker, Steps, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1578",
+   "listingNumber": "WEB1578",
    "sourceUpdated": "2026-03-13"
   },
   {
@@ -38600,7 +38797,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Loving Parent Guidebook, Speaker, Steps, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1578",
+   "listingNumber": "WEB1578",
    "sourceUpdated": "2026-03-13"
   },
   {
@@ -38619,7 +38817,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Loving Parent Guidebook, Speaker, Steps, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1578",
+   "listingNumber": "WEB1578",
    "sourceUpdated": "2026-03-13"
   },
   {
@@ -38638,7 +38837,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Loving Parent Guidebook, Speaker, Steps, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1578",
+   "listingNumber": "WEB1578",
    "sourceUpdated": "2026-03-13"
   },
   {
@@ -38657,7 +38857,8 @@
    "access": "closed",
    "who": "men",
    "focus": "A New Hope, Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1581",
+   "listingNumber": "WEB1581",
    "sourceUpdated": "2026-01-18"
   },
   {
@@ -38676,7 +38877,8 @@
    "access": "open",
    "who": "women",
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1591",
+   "listingNumber": "WEB1591",
    "sourceUpdated": "2026-02-17"
   },
   {
@@ -38695,7 +38897,8 @@
    "access": "open",
    "who": null,
    "focus": "12 Steps Yellow Workbook, Discussion, Fellowship Text (BRB), Laundry Lists Workbook, Loving Parent Guidebook, Speaker, Strengthening My Recovery, Workshop",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=NY0310",
+   "listingNumber": "NY0310",
    "sourceUpdated": "2026-09-03"
   },
   {
@@ -38714,7 +38917,8 @@
    "access": "closed",
    "who": null,
    "focus": "Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1595",
+   "listingNumber": "WEB1595",
    "sourceUpdated": "2026-03-01"
   },
   {
@@ -38733,7 +38937,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1601",
+   "listingNumber": "WEB1601",
    "sourceUpdated": "2026-03-12"
   },
   {
@@ -38752,7 +38957,8 @@
    "access": "open",
    "who": null,
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1606",
+   "listingNumber": "WEB1606",
    "sourceUpdated": "2026-04-02"
   },
   {
@@ -38771,7 +38977,8 @@
    "access": "open",
    "who": null,
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1606",
+   "listingNumber": "WEB1606",
    "sourceUpdated": "2026-04-02"
   },
   {
@@ -38790,7 +38997,8 @@
    "access": "open",
    "who": null,
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1606",
+   "listingNumber": "WEB1606",
    "sourceUpdated": "2026-04-02"
   },
   {
@@ -38809,7 +39017,8 @@
    "access": "closed",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1607",
+   "listingNumber": "WEB1607",
    "sourceUpdated": "2026-06-02"
   },
   {
@@ -38828,7 +39037,8 @@
    "access": "closed",
    "who": "men",
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1615",
+   "listingNumber": "WEB1615",
    "sourceUpdated": "2026-04-08"
   },
   {
@@ -38847,7 +39057,8 @@
    "access": "open",
    "who": null,
    "focus": "Fellowship Text (BRB), Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1616",
+   "listingNumber": "WEB1616",
    "sourceUpdated": "2026-04-15"
   },
   {
@@ -38866,7 +39077,8 @@
    "access": "closed",
    "who": "women",
    "focus": "Discussion, Laundry Lists Workbook, Speaker, Steps, Workshop",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1625",
+   "listingNumber": "WEB1625",
    "sourceUpdated": "2026-09-28"
   },
   {
@@ -38885,7 +39097,8 @@
    "access": "open",
    "who": null,
    "focus": "",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1635",
+   "listingNumber": "WEB1635",
    "sourceUpdated": "2026-06-22"
   },
   {
@@ -38904,7 +39117,8 @@
    "access": "open",
    "who": null,
    "focus": "",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1635",
+   "listingNumber": "WEB1635",
    "sourceUpdated": "2026-06-22"
   },
   {
@@ -38923,7 +39137,8 @@
    "access": "open",
    "who": null,
    "focus": "",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1635",
+   "listingNumber": "WEB1635",
    "sourceUpdated": "2026-06-22"
   },
   {
@@ -38942,7 +39157,8 @@
    "access": "open",
    "who": null,
    "focus": "",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1635",
+   "listingNumber": "WEB1635",
    "sourceUpdated": "2026-06-22"
   },
   {
@@ -38961,7 +39177,8 @@
    "access": "open",
    "who": null,
    "focus": "Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1640",
+   "listingNumber": "WEB1640",
    "sourceUpdated": "2026-07-24"
   },
   {
@@ -38980,7 +39197,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1641",
+   "listingNumber": "WEB1641",
    "sourceUpdated": "2026-07-28"
   },
   {
@@ -38999,7 +39217,8 @@
    "access": "open",
    "who": null,
    "focus": "Laundry Lists Workbook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1644",
+   "listingNumber": "WEB1644",
    "sourceUpdated": "2026-09-21"
   },
   {
@@ -39018,7 +39237,8 @@
    "access": "open",
    "who": null,
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1646",
+   "listingNumber": "WEB1646",
    "sourceUpdated": "2026-08-15"
   },
   {
@@ -39037,7 +39257,8 @@
    "access": "open",
    "who": null,
    "focus": "Laundry Lists Workbook",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=HI0048",
+   "listingNumber": "HI0048",
    "sourceUpdated": "2026-08-16"
   },
   {
@@ -39056,7 +39277,8 @@
    "access": "closed",
    "who": "women",
    "focus": "12 Steps Yellow Workbook, Discussion, Fellowship Text (BRB), Speaker, Steps",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1653",
+   "listingNumber": "WEB1653",
    "sourceUpdated": "2026-09-07"
   },
   {
@@ -39075,7 +39297,8 @@
    "access": "closed",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1660",
+   "listingNumber": "WEB1660",
    "sourceUpdated": "2026-10-11"
   },
   {
@@ -39094,7 +39317,8 @@
    "access": "closed",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1660",
+   "listingNumber": "WEB1660",
    "sourceUpdated": "2026-10-11"
   },
   {
@@ -39113,7 +39337,8 @@
    "access": "closed",
    "who": null,
    "focus": "Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1660",
+   "listingNumber": "WEB1660",
    "sourceUpdated": "2026-10-11"
   },
   {
@@ -39132,7 +39357,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB), Speaker, Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1661",
+   "listingNumber": "WEB1661",
    "sourceUpdated": "2026-09-15"
   },
   {
@@ -39151,7 +39377,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Workshop",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=TEL0548",
+   "listingNumber": "TEL0548",
    "sourceUpdated": "2026-10-01"
   },
   {
@@ -39170,7 +39397,8 @@
    "access": "closed",
    "who": "women",
    "focus": "12 Steps Yellow Workbook, Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1663",
+   "listingNumber": "WEB1663",
    "sourceUpdated": "2026-10-13"
   },
   {
@@ -39189,7 +39417,8 @@
    "access": "closed",
    "who": "women",
    "focus": "12 Steps Yellow Workbook, Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1663",
+   "listingNumber": "WEB1663",
    "sourceUpdated": "2026-10-13"
   },
   {
@@ -39208,7 +39437,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1665",
+   "listingNumber": "WEB1665",
    "sourceUpdated": "2026-09-28"
   },
   {
@@ -39227,7 +39457,8 @@
    "access": "open",
    "who": null,
    "focus": "Discussion, Fellowship Text (BRB)",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=GA0088",
+   "listingNumber": "GA0088",
    "sourceUpdated": "2026-10-13"
   },
   {
@@ -39246,7 +39477,8 @@
    "access": "open",
    "who": null,
    "focus": "Strengthening My Recovery",
-   "source": "https://adultchildren.org/meeting-search/",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1670",
+   "listingNumber": "WEB1670",
    "sourceUpdated": "2026-10-14"
   },
   {
@@ -39757,6 +39989,101 @@
    "meetingId": "82531378370",
    "passcode": "123123",
    "access": "open",
+   "who": null,
+   "focus": "",
+   "source": "https://al-anon.org/al-anon-meetings/electronic-meetings/",
+   "sourceUpdated": null
+  },
+  {
+   "id": "alanon-30737251-1-1300",
+   "program": "Al-Anon",
+   "name": "One Day at a Time Midday Check In AFG",
+   "days": [
+    1
+   ],
+   "start": "13:00",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us04web.zoom.us/j/72542845313",
+   "meetingId": "72542845313",
+   "passcode": "ODAT1PM",
+   "access": "closed",
+   "who": null,
+   "focus": "",
+   "source": "https://al-anon.org/al-anon-meetings/electronic-meetings/",
+   "sourceUpdated": null
+  },
+  {
+   "id": "alanon-30737251-2-1300",
+   "program": "Al-Anon",
+   "name": "One Day at a Time Midday Check In AFG",
+   "days": [
+    2
+   ],
+   "start": "13:00",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us04web.zoom.us/j/72542845313",
+   "meetingId": "72542845313",
+   "passcode": "ODAT1PM",
+   "access": "closed",
+   "who": null,
+   "focus": "",
+   "source": "https://al-anon.org/al-anon-meetings/electronic-meetings/",
+   "sourceUpdated": null
+  },
+  {
+   "id": "alanon-30737251-3-1300",
+   "program": "Al-Anon",
+   "name": "One Day at a Time Midday Check In AFG",
+   "days": [
+    3
+   ],
+   "start": "13:00",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us04web.zoom.us/j/72542845313",
+   "meetingId": "72542845313",
+   "passcode": "ODAT1PM",
+   "access": "closed",
+   "who": null,
+   "focus": "",
+   "source": "https://al-anon.org/al-anon-meetings/electronic-meetings/",
+   "sourceUpdated": null
+  },
+  {
+   "id": "alanon-30737251-4-1300",
+   "program": "Al-Anon",
+   "name": "One Day at a Time Midday Check In AFG",
+   "days": [
+    4
+   ],
+   "start": "13:00",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us04web.zoom.us/j/72542845313",
+   "meetingId": "72542845313",
+   "passcode": "ODAT1PM",
+   "access": "closed",
+   "who": null,
+   "focus": "",
+   "source": "https://al-anon.org/al-anon-meetings/electronic-meetings/",
+   "sourceUpdated": null
+  },
+  {
+   "id": "alanon-30737251-5-1300",
+   "program": "Al-Anon",
+   "name": "One Day at a Time Midday Check In AFG",
+   "days": [
+    5
+   ],
+   "start": "13:00",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us04web.zoom.us/j/72542845313",
+   "meetingId": "72542845313",
+   "passcode": "ODAT1PM",
+   "access": "closed",
    "who": null,
    "focus": "",
    "source": "https://al-anon.org/al-anon-meetings/electronic-meetings/",
@@ -44013,6 +44340,25 @@
    "meetingId": "5056554661",
    "passcode": "615621",
    "access": "open",
+   "who": null,
+   "focus": "",
+   "source": "https://al-anon.org/al-anon-meetings/electronic-meetings/",
+   "sourceUpdated": null
+  },
+  {
+   "id": "alanon-30780515-5-1800",
+   "program": "Al-Anon",
+   "name": "Friday Serenity AFG",
+   "days": [
+    5
+   ],
+   "start": "18:00",
+   "end": null,
+   "zone": "America/Chicago",
+   "link": "https://us02web.zoom.us/j/84113595158",
+   "meetingId": "84113595158",
+   "passcode": "AFG",
+   "access": "closed",
    "who": null,
    "focus": "",
    "source": "https://al-anon.org/al-anon-meetings/electronic-meetings/",
@@ -90701,25 +91047,6 @@
    "sourceUpdated": null
   },
   {
-   "id": "na-84528",
-   "program": "NA",
-   "name": "Clean But Not Straight",
-   "days": [
-    3
-   ],
-   "start": "19:00",
-   "end": null,
-   "zone": "America/New_York",
-   "link": "https://zoom.us/j/83359567326",
-   "meetingId": "83359567326",
-   "passcode": "Serenity1",
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://www.na.org/meetingsearch/",
-   "sourceUpdated": null
-  },
-  {
    "id": "na-84547",
    "program": "NA",
    "name": "A High You Cannot Buy",
@@ -97520,25 +97847,6 @@
    "sourceUpdated": "2025-09-15"
   },
   {
-   "id": "oa-10299",
-   "program": "OA",
-   "name": "Compassionate Recovery",
-   "days": [
-    1
-   ],
-   "start": "16:00",
-   "end": null,
-   "zone": "America/Los_Angeles",
-   "link": "https://us06web.zoom.us/j/81383259463?pwd=KhGpSzbZfQlRElJTe0PRlBbiBMcsl0.1",
-   "meetingId": "81383259463",
-   "passcode": null,
-   "access": "closed",
-   "who": null,
-   "focus": "Recovery from Relapse",
-   "source": "https://oa.org/meetings/801972/",
-   "sourceUpdated": "2026-08-06"
-  },
-  {
    "id": "oa-10307",
    "program": "OA",
    "name": "Friday 6:30PM Zoom",
@@ -100584,6 +100892,25 @@
    "sourceUpdated": "2026-06-23"
   },
   {
+   "id": "oa-14859",
+   "program": "OA",
+   "name": "Thursday Spitalfields",
+   "days": [
+    4
+   ],
+   "start": "07:30",
+   "end": null,
+   "zone": "Europe/London",
+   "link": "https://zoom.us/j/91307231091?pwd=N2xRcGxzdVpadG4vcGYxZmplcGxQUT09",
+   "meetingId": "91307231091",
+   "passcode": null,
+   "access": "open",
+   "who": null,
+   "focus": "Big Book",
+   "source": "https://oa.org/meetings/800241/",
+   "sourceUpdated": "2026-10-26"
+  },
+  {
    "id": "oa-14886",
    "program": "OA",
    "name": "OA meeting #800233 (Literature)",
@@ -101421,6 +101748,44 @@
    "focus": "Topics vary",
    "source": "https://oa.org/meetings/89530/",
    "sourceUpdated": "2026-09-16"
+  },
+  {
+   "id": "oa-17883",
+   "program": "OA",
+   "name": "OA Steps & Traditions",
+   "days": [
+    4
+   ],
+   "start": "17:00",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/4225656954?pwd=SDJpV2pBTDUzQlRrQzNoYkErRjZHQT09",
+   "meetingId": "4225656954",
+   "passcode": null,
+   "access": "open",
+   "who": null,
+   "focus": "OA Steps and/or Traditions Study",
+   "source": "https://oa.org/meetings/89508/",
+   "sourceUpdated": "2026-10-26"
+  },
+  {
+   "id": "oa-17893",
+   "program": "OA",
+   "name": "Wednesday Evening Arroyo Grande Meeting",
+   "days": [
+    3
+   ],
+   "start": "18:15",
+   "end": null,
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/89670841993?pwd=ubNTSMlxybD5OveXQtMOz8wag6v0zq.1",
+   "meetingId": "89670841993",
+   "passcode": null,
+   "access": "open",
+   "who": null,
+   "focus": "Big Book",
+   "source": "https://oa.org/meetings/89506/",
+   "sourceUpdated": "2026-10-26"
   },
   {
    "id": "oa-17901",
@@ -104137,6 +104502,25 @@
    "sourceUpdated": "2026-09-14"
   },
   {
+   "id": "oa-42838",
+   "program": "OA",
+   "name": "Monday Bristol, UK Whiteladies Road",
+   "days": [
+    1
+   ],
+   "start": "12:00",
+   "end": null,
+   "zone": "Europe/London",
+   "link": "https://us06web.zoom.us/j/87160615080?pwd=L0Nwa3pHQ1U1Rml4Q0pSMjQ0VTNVUT09",
+   "meetingId": "87160615080",
+   "passcode": null,
+   "access": "open",
+   "who": null,
+   "focus": "Literature",
+   "source": "https://oa.org/meetings/00267/",
+   "sourceUpdated": "2026-10-05"
+  },
+  {
    "id": "oa-43107",
    "program": "OA",
    "name": "OA meeting #800673 (Big Book, Newcomer)",
@@ -104748,6 +105132,25 @@
    "focus": "Literature",
    "source": "https://oa.org/meetings/802196/",
    "sourceUpdated": "2026-06-05"
+  },
+  {
+   "id": "oa-52577",
+   "program": "OA",
+   "name": "Compassionate Recovery",
+   "days": [
+    6
+   ],
+   "start": "16:00",
+   "end": null,
+   "zone": "America/Los_Angeles",
+   "link": "https://us06web.zoom.us/j/81383259463?pwd=KhGpSzbZfQlRElJTe0PRlBbiBMcsl0.1",
+   "meetingId": "81383259463",
+   "passcode": null,
+   "access": "closed",
+   "who": null,
+   "focus": "Recovery from Relapse",
+   "source": "https://oa.org/meetings/802207/",
+   "sourceUpdated": "2026-08-13"
   },
   {
    "id": "oa-54690",
@@ -106387,6 +106790,25 @@
    "sourceUpdated": "2025-01-08"
   },
   {
+   "id": "slaa-40041466",
+   "program": "SLAA",
+   "name": "Primary Purpose Group of S.L.A.A.",
+   "days": [
+    0
+   ],
+   "start": "09:00",
+   "end": null,
+   "zone": "America/Los_Angeles",
+   "link": "https://us06web.zoom.us/j/85612481078?pwd=c3NUNWwxQ0tYSXQ3MTVYY3gyQUw5dz09",
+   "meetingId": "85612481078",
+   "passcode": null,
+   "access": "open",
+   "who": null,
+   "focus": "Book Study (BS)",
+   "source": "https://slaafws.org/onlinemeetings/",
+   "sourceUpdated": "2026-10-26"
+  },
+  {
    "id": "slaa-40041468",
    "program": "SLAA",
    "name": "Women's Literature Meeting",
@@ -107174,7 +107596,7 @@
    "who": null,
    "focus": "Book Study (BS), Men and Women Welcome (MW), Step Study (SS)",
    "source": "https://slaafws.org/onlinemeetings/",
-   "sourceUpdated": "2026-03-04"
+   "sourceUpdated": "2026-10-26"
   },
   {
    "id": "slaa-40041598",
@@ -107466,6 +107888,25 @@
    "focus": "Women Only (WO)",
    "source": "https://slaafws.org/onlinemeetings/",
    "sourceUpdated": "2026-10-16"
+  },
+  {
+   "id": "slaa-40041649",
+   "program": "SLAA",
+   "name": "Monday 6:35PM DC/MD/VA Meeting",
+   "days": [
+    1
+   ],
+   "start": "18:35",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/82177381572?pwd=M0pqa0lIV3hUeHpkT0o0OUU2QXZjUT09",
+   "meetingId": "82177381572",
+   "passcode": null,
+   "access": "closed",
+   "who": null,
+   "focus": "Men and Women Welcome (MW)",
+   "source": "https://slaafws.org/onlinemeetings/",
+   "sourceUpdated": "2026-10-26"
   },
   {
    "id": "slaa-40041684",

@@ -346,6 +346,10 @@ check('ACA day code 4 is Wednesday', refresh.acaMeeting(acaRow).days, [3]);
 check('ACA id is unique per day and time', refresh.acaMeeting(acaRow).id, 'aca-6193-3-1130');
 check('ACA escaped quotes in a name are undone', refresh.acaMeeting({ ...acaRow, MeetName: "Tony A\\'s Steps U.S." }).name, "Tony A's Steps U.S.");
 check('ACA time and zone', [refresh.acaMeeting(acaRow).start, refresh.acaMeeting(acaRow).zone], ['11:30', 'America/Los_Angeles']);
+check('ACA keeps the meeting\'s own number and the link that opens just it (26 Oct: only the search page and a Zoom ID)',
+  [refresh.acaMeeting({ ...acaRow, WSONumber: 'WEB0577' }).source, refresh.acaMeeting({ ...acaRow, WSONumber: 'WEB0577' }).listingNumber],
+  ['https://adultchildren.org/meeting-search/?meeting=WEB0577', 'WEB0577']);
+check('ACA without a number keeps the search page', [refresh.acaMeeting(acaRow).source, refresh.acaMeeting(acaRow).listingNumber], ['https://adultchildren.org/meeting-search/', null]);
 check('ACA men-only is marked', refresh.acaMeeting(acaRow).who, 'men');
 check('ACA "Women Only", no hyphen, is marked too', refresh.acaMeeting({ ...acaRow, Type: 'Women Only, LGBTQ+, ' }).who, 'women');
 check('an ACA teen meeting is left out', refresh.acaProblem({ ...acaRow, Type: 'ACA Teen (Ages 12 to 18), ' }, now), 'teen meeting');
