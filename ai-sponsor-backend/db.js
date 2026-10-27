@@ -1477,6 +1477,54 @@ async function getMetrics() {
   return { ...users.rows[0], ...activity.rows[0], ...week.rows[0], signupsByDay };
 }
 
+/* ─── The Sunday weekly review, week by week ────────────────────────────────
+   Matt, 18 Oct: "are we able to measure/track the weekly click through rate
+   on this? ... like 1 in 3 people go to it ... it's kinda a reactivation and
+   reuptake metric". Per person, team and tests left out, for each review
+   Sunday: how many it went to, were delivered it, read it (WhatsApp read
+   receipts, which people can switch off, so a floor), and opened their page in
+   the seven days after. `everyone` is every registered person by that Sunday,
+   active or not, the share Matt asked for. Aggregates only. A review sent late
+   on Saturday in UTC is already Sunday for most people, so it counts there. */
+async function getWeeklyReviewStats(weeks = 6) {
+  if (!enabled) return [];
+  const sundayOf = (col) => `((${col} AT TIME ZONE 'UTC')::date + ((7 - EXTRACT(DOW FROM ${col} AT TIME ZONE 'UTC')::int) % 7))`;
+  const [rows, people] = await Promise.all([
+    pool.query(`
+      WITH per AS (
+        SELECT ${sundayOf('o.sent_at')} AS sunday, ${PERSON_KEY_U} AS person, MIN(o.sent_at) AS first_sent,
+               BOOL_OR(o.delivered_at IS NOT NULL OR o.status IN ('delivered', 'read')) AS delivered,
+               BOOL_OR(o.read_at IS NOT NULL OR o.status = 'read') AS was_read
+          FROM outbound_messages o JOIN users u ON u.user_id = o.user_id
+         WHERE o.kind = 'weekly' AND o.sent_at > now() - make_interval(weeks => $1::int)${NOT_EXCLUDED_U}
+         GROUP BY 1, 2
+      ),
+      opens AS (
+        SELECT ${PERSON_KEY_U} AS person, s.opened_at
+          FROM settings_opens s JOIN users u ON u.user_id = s.user_id
+      )
+      SELECT p.sunday,
+             COUNT(*)::int                                AS sent,
+             COUNT(*) FILTER (WHERE p.delivered)::int     AS delivered,
+             COUNT(*) FILTER (WHERE p.was_read)::int      AS read,
+             COUNT(*) FILTER (WHERE EXISTS (
+               SELECT 1 FROM opens x WHERE x.person = p.person
+                 AND x.opened_at >= p.first_sent AND x.opened_at < p.first_sent + interval '7 days'))::int AS opened
+        FROM per p GROUP BY p.sunday ORDER BY p.sunday DESC`, [weeks]),
+    pool.query(`SELECT MIN(signup_date) AS first_signup FROM users WHERE true${NOT_EXCLUDED} GROUP BY ${PERSON_KEY}`),
+  ]);
+  const firsts = people.rows.map((r) => (r.first_signup ? new Date(r.first_signup).getTime() : 0));
+  return rows.rows.map((r) => {
+    const sunday = new Date(r.sunday);
+    const endOfSunday = Date.UTC(sunday.getUTCFullYear(), sunday.getUTCMonth(), sunday.getUTCDate() + 1);
+    return {
+      sunday: sunday.toISOString().slice(0, 10),
+      everyone: firsts.filter((t) => t < endOfSunday).length,
+      sent: r.sent, delivered: r.delivered, read: r.read, opened: r.opened,
+    };
+  });
+}
+
 /* ─── Who they are / what they're doing ─────────────────────────────────────
    Replaces the June-22 "GHL reporting dashboard" spec (86aj5mrtp), which asked
    for qualified leads / meetings booked / pipeline value — a lead-gen funnel
@@ -1989,7 +2037,7 @@ async function getFullThread(person) {
 
 module.exports = {
   listConversations, getFullThread, getWeekOverWeek, getCollected, phonesByPerson,
-  getLastMessageAt, recentVoiceReplies, meetingReports,
+  getLastMessageAt, recentVoiceReplies, meetingReports, getWeeklyReviewStats,
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
   // Exported so the Slack alerts label a signup's source with the SAME rule the
   // dashboard groups on. Two implementations would eventually disagree.

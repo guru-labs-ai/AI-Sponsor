@@ -2253,7 +2253,7 @@ app.get('/api/metrics/northstar', async (req, res) => {
     return res.json(metricsCache.data);
   }
   try {
-    const [contacts, subs, usage, breakdowns, wow, collected, phones] = await Promise.all([
+    const [contacts, subs, usage, breakdowns, wow, collected, phones, weeklyReview] = await Promise.all([
       ghl.listSponsorContacts(),
       stripeModule.listSponsorSubscriptions().catch((e) => {
         console.error('[Metrics] Stripe list failed:', e.message);
@@ -2278,6 +2278,11 @@ app.get('/api/metrics/northstar', async (req, res) => {
       db.phonesByPerson().catch((e) => {
         console.error('[Metrics] DB phones failed:', e.message);
         return [];
+      }),
+      // The Sunday review, week by week (Matt, 18 Oct): its own page on the dashboard.
+      db.getWeeklyReviewStats(6).catch((e) => {
+        console.error('[Metrics] DB weekly review failed:', e.message);
+        return null;
       }),
     ]);
 
@@ -2340,6 +2345,7 @@ app.get('/api/metrics/northstar', async (req, res) => {
     const data = {
       generatedAt: new Date().toISOString(),
       source: dbFirst ? 'db' : 'ghl',
+      weeklyReview,
       northStar: {
         cumulativeRecoveryDays: nsCumulative,
         activeUsers: nsUsers,
