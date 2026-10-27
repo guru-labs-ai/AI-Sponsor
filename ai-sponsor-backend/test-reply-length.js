@@ -165,6 +165,13 @@ check('an overshoot is actually rewritten, not just noted', () => {
   assert.ok(/rawReply = cut;/.test(src), 'the tightened copy is never used');
 });
 
+check('a "meeting did not work" note is taken out before the length rewrite can cut it', () => {
+  const taken = src.indexOf('const reportedNow = meetings.meetingProblemsIn(rawReply);');
+  assert.ok(taken > 0, 'the note is never taken out of the reply');
+  assert.ok(taken < src.indexOf('const tighter = await client.messages.create'), 'the length rewrite runs before the note is taken out');
+  assert.ok(src.includes("db.recordEvent(userId, 'meeting_problem'") && src.includes('alerts.meetingProblem(p)'), 'a report is neither recorded nor sent to the team');
+});
+
 check('the meetings exception covers only a reply that lists meetings it was given', () => {
   assert.ok(src.includes("const listsMeetings = offersMeetings && (/zoom\\.us\\/j\\//.test(rawReply) || namesGiven.some((n) => rawReply.includes(n)));"),
     'any reply in a meetings conversation escapes the length rewrite');

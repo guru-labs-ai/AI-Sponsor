@@ -1760,6 +1760,21 @@ function buildReactionBlock(reactions, history) {
   return lines.join('\n');
 }
 
+/* "This meeting did not work" reports, read at most every five minutes: every
+   reply that might offer meetings needs them, and they change rarely. A failed
+   read keeps the last list rather than offering everything again. */
+const meetingReportsCache = { at: 0, rows: [] };
+async function meetingReportsCached() {
+  if (!db.enabled || Date.now() - meetingReportsCache.at < 5 * 60000) return meetingReportsCache.rows;
+  try {
+    meetingReportsCache.rows = await db.meetingReports(meetings.REPORT_DAYS);
+    meetingReportsCache.at = Date.now();
+  } catch (e) {
+    console.warn('[meetings] reports not read:', e.message);
+  }
+  return meetingReportsCache.rows;
+}
+
 async function getSponsorReply(userId, message, context) {
   /* Trigger 3: anybody talking to the sponsor has just woken this instance, and
      on a free tier that is the most dependable scheduler the product has.
@@ -1859,6 +1874,8 @@ async function getSponsorReply(userId, message, context) {
   /* Only when they mention meetings, and below the cache marker because it is
      built from this message and the clock. */
   const meetingsBlock = meetings.buildMeetingsBlock({
+    // Meetings somebody told us did not work, not offered until their listing is updated.
+    reported: meetings.hiddenFrom(await meetingReportsCached()),
     message,
     programField: profile && profile.program,
     userZone,
@@ -2017,6 +2034,19 @@ async function getSponsorReply(userId, message, context) {
     .filter((block) => block.type === 'text')
     .map((block) => block.text)
     .join('');
+
+  /* "That meeting didn't work": the sponsor marks it at the end of its reply.
+     Taken out first, before the length rewrite could cut it, and on every
+     channel, so it never reaches anyone. Recorded and posted to the team. */
+  const reportedNow = meetings.meetingProblemsIn(rawReply);
+  rawReply = reportedNow.clean;
+  for (const p of reportedNow.problems) {
+    console.log(`[meetings] reported not working: ${p.program} "${p.name}"`);
+    db.recordEvent(userId, 'meeting_problem', { link: p.link, name: p.name, program: p.program, what: p.what }, context && context.channel)
+      .then(() => { meetingReportsCache.at = 0; })
+      .catch((e) => console.warn('[meetings] report not recorded:', e.message));
+    alerts.meetingProblem(p);
+  }
 
   /* Did it make the check-in offer? Read before the length rewrite below,
      which would happily cut the question or the marker, and that rewrite is

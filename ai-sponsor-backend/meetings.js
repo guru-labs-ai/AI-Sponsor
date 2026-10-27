@@ -711,6 +711,44 @@ function alreadyGiven(text, data) {
     .sort((a, b) => at(a) - at(b)).slice(0, 14);
 }
 
+/* Telling us a meeting did not work. Our list is a copy of each directory,
+   so a group that stops meeting or changes its link without updating its
+   listing leaves us offering a dead room. When somebody says one did not
+   work, the sponsor ends its reply with
+     [[meeting-problem: <link> | <what happened>]]
+   which is taken out here before anyone sees it (Mariam, 27 Oct). */
+const PROBLEM_MARKER = /\[\[\s*meeting-problem\s*:\s*([^|\]]*?)\s*(?:\|\s*([^\]]*?))?\s*\]\]/gi;
+function meetingProblemsIn(reply, data = load()) {
+  const problems = [];
+  const clean = String(reply || '').replace(PROBLEM_MARKER, (all, link, what) => {
+    const digits = String(link || '').replace(/\D/g, '');
+    const m = ((data && data.meetings) || []).find((x) => x.link === String(link).trim() || (x.meetingId && digits.includes(x.meetingId)));
+    if (m) problems.push({ link: m.link, name: cleanName(m.name), program: m.program, source: m.source || null, what: String(what || '').trim().slice(0, 200) });
+    return '';
+  }).replace(/[ \t]+\n/g, '\n').trim();
+  return { clean, problems };
+}
+
+/* Which links not to offer: reported in the last 60 days, and its listing not
+   updated in its directory since (the group may have fixed it). Link ->
+   { day, what }. */
+const REPORT_DAYS = 60;
+function hiddenFrom(reports, now = Date.now(), data = load()) {
+  const updated = new Map();
+  for (const m of (data && data.meetings) || []) {
+    const t = Date.parse(m.sourceUpdated || '');
+    if (!Number.isNaN(t)) updated.set(m.link, Math.max(updated.get(m.link) || 0, t));
+  }
+  const out = new Map();
+  for (const r of reports || []) {
+    const at = Date.parse(r.at);
+    if (!r.link || Number.isNaN(at) || now - at > REPORT_DAYS * 86400000) continue;
+    if ((updated.get(r.link) || 0) > at) continue;
+    out.set(r.link, { day: new Date(at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' }), what: r.what || '' });
+  }
+  return out;
+}
+
 /* One meeting as the sponsor sees it. Time first, then the name, so a time
    inside a name is never read as theirs. "Listed as" and the source are there
    so that, questioned, the sponsor can show where a meeting comes from. */
@@ -737,7 +775,7 @@ function meetingLine(m, at, userZone, now, askZone = null) {
 /* The system block, or '' when there is nothing to add. userZone is where they
    are (from their phone number); without it, times are given in each meeting's
    own zone and labelled as such, never silently converted to a guess. */
-function buildMeetingsBlock({ message, programField, userZone, now = Date.now(), recentMessages = '', lastUserMessage = '', earlierChat = '', earlierAsks = [] }) {
+function buildMeetingsBlock({ message, programField, userZone, now = Date.now(), recentMessages = '', lastUserMessage = '', earlierChat = '', earlierAsks = [], reported = new Map() }) {
   try {
     const meetingTalk = asksAboutMeetings(message) || asksAboutMeetings(recentMessages);
     const named = programsIn(message, { loose: meetingTalk });
@@ -865,7 +903,9 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
         if (d.length) { ask.dates = d; break; }
       }
     }
-    const { lists, counts } = upcoming(fresh, now, data, userZone, ask);
+    // Meetings somebody said did not work are not offered (see hiddenFrom).
+    const offerable = reported.size ? { ...data, meetings: data.meetings.filter((m) => !reported.has(m.link)) } : data;
+    const { lists, counts } = upcoming(fresh, now, offerable, userZone, ask);
     const held = (p) => data.meetings.filter((m) => m.program === p).length.toLocaleString('en-US');
     const lines = [];
     const shown = [];
@@ -885,7 +925,8 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
       .filter((m) => isFresh(m.program))
       .map((m) => ({ m, at: starts(m, now - 3 * 3600000).filter((t) => t <= now).pop() || nextStart(m, now) }))
       .filter(({ m, at }) => at && !listed.has(`${m.id}@${at}`));
-    const givenLines = given.map(({ m, at }) => meetingLine(m, at, userZone, now, ask.zone));
+    const givenLines = given.map(({ m, at }) => meetingLine(m, at, userZone, now, ask.zone)
+      + (reported.has(m.link) ? ` | someone told us on ${reported.get(m.link).day} it did not work: offer another` : ''));
     /* Asked for women's (or men's) meetings with none new in front of it, it
        said "a few more women's ACA" over meetings open to everyone (26 Oct
        replay). Whether any are women-only is a fact, so it is stated. */
@@ -898,7 +939,7 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
       : [];
     const askedDates = ask.dates || [];
     const askedKeys = new Set(askedDates.map((x) => x.key));
-    const namedLines = namedIn(message, data, fresh).flatMap((m) => {
+    const namedLines = namedIn(message, offerable, fresh).flatMap((m) => {
       const all = starts(m, now, askedDates.length ? Math.max(7, askedDates[askedDates.length - 1].k + 1) : 7);
       const onDays = userZone && askedKeys.size ? all.filter((t) => askedKeys.has(dayKey(dateIn(ask.zone || userZone, t)))) : [];
       return (onDays.length ? onDays : all.slice(0, 1)).filter((at) => !listed.has(`${m.id}@${at}`)).map((at) => meetingLine(m, at, userZone, now, ask.zone));
@@ -950,6 +991,7 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
       '- If what they want is not here (another day, a later or earlier time, a women\'s or men\'s meeting) and no count above says none, never say there is none, that your list ends tomorrow, or that you hold nothing later, and never call the ones you give all you have: you hold meetings for every day of the coming week, and these are only a few. Say you\'ll look, and ask them for the day and time in one line (for example "Tell me the day and time, like Saturday after 8pm, and I\'ll look"). You can give the official finder as well.',
       '- Copy the name, time, link and passcode exactly as written here, and how soon it starts. Never change, shorten or make up a link, a time, a passcode or a meeting, and never offer one that is not on this list.',
       '- Every time here already allows for clock changes. The date and UTC offset in each meeting\'s own zone, and any clock change, are written here: use them as written. Never work out a date, offset, clock change or time difference yourself, never name a clock-change date that is not written here, and never say a time may be an hour out because of a clock change. If they ask about a zone or date not written here, say you will check and ask which meeting or day they mean.',
+      '- If they tell you a meeting you gave them did not work (the link would not open, the passcode was wrong, nobody was there, it said the meeting does not exist or has ended), say sorry plainly, give them another one from here, and put [[meeting-problem: <that meeting\'s link exactly as written here> | <what happened, in a few words>]] at the very end of your reply. It is taken out before they see it, and it tells the team to check that listing. Only for a meeting you gave them, and only when they say it did not work.',
       '- Never take back or "correct" a meeting you gave earlier in this chat because it is not in front of you now: every one you gave came from these official listings. If they ask about one you cannot see here, say you will look it up and ask for its name or day.',
       '- A meeting\'s name can contain a day, time or time zone (for example "Daily 9:00 PM PST"). That is part of its name, in the meeting\'s own time zone, never its time for them.',
       `- If they question a meeting, do not take it back: every detail here was on its official listing when it was checked on ${checked}. Never say you cannot verify it, that it is unconfirmed, or that you should not have shared it. Give them its source link, its listed day and time, and that date. Not finding a detail on the listing does not make it wrong: listings often write a meeting ID with spaces (819 9042 4358), and some sources are a directory page where they search for the meeting by name, so tell them that. When a line gives a meeting # on its listing, that number is the directory's own reference for the meeting, and its source link opens that one meeting: give both when they ask where a meeting comes from. A Zoom meeting ID is Zoom's, never the directory's reference. Only if they say the listing now shows something different (another day, time, link or passcode) do you thank them, go with the listing, and point them to the official finder.`,
@@ -971,6 +1013,7 @@ function buildMeetingsBlock({ message, programField, userZone, now = Date.now(),
 module.exports = {
   buildMeetingsBlock, asksAboutMeetings, programsOf, programsIn, nextStart, starts, describeWhen, instantFor,
   cleanName, weekdaysIn, alreadyGiven, startsIn, timeWindowIn, genderAsked, askIn, datesIn, namedIn, zoneIn,
+  meetingProblemsIn, hiddenFrom, REPORT_DAYS,
   offsetMinutes, utcLabel, clockChanges, STALE_AFTER_DAYS, PROGRAMS, OTHERS, othersIn,
   _setData(d) { cache = d; },
 };

@@ -209,6 +209,18 @@ const paid = safe(({
   invoiceId ? `*Invoice:* ${invoiceId}` : null,
 ]);
 
+/* Somebody told the sponsor a meeting it gave them did not work. Our list is a
+   copy of each directory, so this is how a dead room comes to light. Nobody
+   is named: the meeting is what needs checking, not the person. */
+const meetingProblem = safe(({ name, program, what, link, source }) => [
+  ':warning: *A meeting did not work for someone*',
+  `*Meeting:* ${name || 'unknown'}${program ? ` (${program})` : ''}`,
+  what ? `*What they said:* ${what}` : null,
+  link ? `*Link:* ${link}` : null,
+  source ? `*Listing:* ${source}` : null,
+  '*Now:* the sponsor stops offering it until its listing is updated in the directory, or for 60 days.',
+]);
+
 /* Three days before we take the first $5. The window to save the customer. */
 const trialEnding = safe(({ name, email, trialEnd }) => [
   ':hourglass_flowing_sand: *Trial ends in 3 days*',
@@ -254,6 +266,7 @@ module.exports = {
   trialStarted,
   paid,
   trialEnding,
+  meetingProblem,
   paymentFailed,
   cancelled,
   // exported for the test harness

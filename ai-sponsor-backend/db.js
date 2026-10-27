@@ -1270,6 +1270,21 @@ async function getHistory(userId, limit = 40) {
   return decryptRows(r.rows);
 }
 
+/* Every "this meeting did not work" report from the last `days`, across
+   everybody, newest first. The meeting finder stops offering those links
+   until their listing is updated (meetings.hiddenFrom). */
+async function meetingReports(days = 60) {
+  if (!enabled) return [];
+  const r = await pool.query(
+    `SELECT detail->>'link' AS link, detail->>'what' AS what, created_at
+       FROM account_events
+      WHERE event = 'meeting_problem' AND created_at > now() - make_interval(days => $1::int)
+      ORDER BY id DESC LIMIT 500`,
+    [days]
+  );
+  return r.rows.map((x) => ({ link: x.link, what: x.what, at: new Date(x.created_at).toISOString() }));
+}
+
 /* The sponsor's own replies that went out as voice notes this past week,
    newest first. The history it is shown is words only, so on 26 Oct, asked
    for the text of a voice note it had sent nine minutes before, it said
@@ -1974,7 +1989,7 @@ async function getFullThread(person) {
 
 module.exports = {
   listConversations, getFullThread, getWeekOverWeek, getCollected, phonesByPerson,
-  getLastMessageAt, recentVoiceReplies,
+  getLastMessageAt, recentVoiceReplies, meetingReports,
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
   // Exported so the Slack alerts label a signup's source with the SAME rule the
   // dashboard groups on. Two implementations would eventually disagree.

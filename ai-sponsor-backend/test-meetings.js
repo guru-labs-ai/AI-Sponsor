@@ -682,6 +682,30 @@ check('their tomorrow is named, and the old ones are said to be another day',
 check('just before midnight there, tomorrow is still the next day there', meetings.buildMeetingsBlock({ message: 'AA meetings tomorrow?', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-26T18:59:00Z') }).includes('so their tomorrow is Tuesday 27 October.'), true);
 check('and just after, it moves on', meetings.buildMeetingsBlock({ message: 'AA meetings tomorrow?', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-26T19:01:00Z') }).includes('so their tomorrow is Wednesday 28 October.'), true);
 
+group('a meeting somebody says did not work (Mariam, 27 Oct)');
+const deadRoom = { ...tueAca(40, '09:00', null), name: 'Dead Room ACA', link: 'https://zoom.us/j/6100000040', meetingId: '6100000040', sourceUpdated: '2026-10-01' };
+const liveRoom = { ...tueAca(41, '09:30', null), name: 'Live Room ACA', link: 'https://zoom.us/j/6100000041', meetingId: '6100000041', sourceUpdated: '2026-10-01' };
+const roomData = { generatedAt: '2026-10-26T11:17:00Z', meetings: [deadRoom, liveRoom] };
+const said = meetings.meetingProblemsIn('Sorry about that, Bilal. Try this one instead.\n[[meeting-problem: https://zoom.us/j/6100000040 | invalid meeting ID]]', roomData);
+check('the note is taken out and the meeting found', [said.clean, said.problems.map((p) => [p.name, p.program, p.what])],
+  ['Sorry about that, Bilal. Try this one instead.', [['Dead Room ACA', 'ACA', 'invalid meeting ID']]]);
+check('a link not on the list is taken out but not recorded', meetings.meetingProblemsIn('Ok. [[meeting-problem: https://zoom.us/j/999 | nobody there]]', roomData), { clean: 'Ok.', problems: [] });
+check('found by its meeting ID too, typed with spaces', meetings.meetingProblemsIn('x [[meeting-problem: 610 000 0040]]', roomData).problems.map((p) => p.name), ['Dead Room ACA']);
+const rep = [{ link: deadRoom.link, what: 'invalid meeting ID', at: '2026-10-27T10:00:00Z' }];
+check('a reported meeting is hidden', [...meetings.hiddenFrom(rep, at('2026-10-27T12:00:00Z'), roomData).keys()], [deadRoom.link]);
+check('it comes back once its listing is updated after the report',
+  meetings.hiddenFrom(rep, at('2026-11-03T12:00:00Z'), { meetings: [{ ...deadRoom, sourceUpdated: '2026-10-30' }] }).size, 0);
+check('and after 60 days', meetings.hiddenFrom(rep, at('2026-12-27T12:00:00Z'), roomData).size, 0);
+meetings._setData(roomData);
+const hiddenBlock = meetings.buildMeetingsBlock({ message: 'ACA meetings tomorrow?', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-26T16:00:00Z'),
+  reported: meetings.hiddenFrom(rep, at('2026-10-27T12:00:00Z'), roomData) });
+check('it is not offered, the other one is', [hiddenBlock.includes('"Dead Room ACA"'), hiddenBlock.includes('"Live Room ACA"')], [false, true]);
+const askedAbout = meetings.buildMeetingsBlock({ message: 'did that one work for anyone?', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-26T16:00:00Z'),
+  recentMessages: 'ACA meetings tomorrow?\nTry "Dead Room ACA" https://zoom.us/j/6100000040', lastUserMessage: 'ACA meetings tomorrow?',
+  reported: meetings.hiddenFrom(rep, at('2026-10-27T12:00:00Z'), roomData) });
+check('asked about after it was reported, the sponsor sees that and offers another', askedAbout.includes('"Dead Room ACA"') && askedAbout.includes('it did not work: offer another'), true);
+check('and it is told how to report one', hiddenBlock.includes('[[meeting-problem: <that meeting\'s link exactly as written here> | <what happened, in a few words>]]'), true);
+
 group('the real list, as written');
 const real = JSON.parse(require('fs').readFileSync(path.resolve(__dirname, 'meetings-data.json'), 'utf8'));
 const ids = new Set(real.meetings.map((m) => m.id));
