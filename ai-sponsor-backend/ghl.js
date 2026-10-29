@@ -2,13 +2,19 @@
 // Saves each website registration into the "Conscious AI" GHL location as a
 // contact, mapping onboarding answers onto the custom fields Abdul set up.
 //
-// IMPORTANT — SILENCED BY DESIGN (dnd: true):
+// IMPORTANT — SILENCED BY DESIGN (every channel except email):
 // The GHL location is SHARED with ~80 other-product workflows (Academy,
 // Accelerator, webinars, etc.). To guarantee an AI Sponsor contact can never be
-// messaged by one of those workflows, every contact we create is flagged
-// Do-Not-Disturb across all channels. AI Sponsor never messages people through
-// GHL (our chat runs over Twilio/our backend), so this costs us nothing and is
-// reversible per-contact later. This is our own guardrail — no GHL admin needed.
+// messaged by one of those workflows, every contact we write is flagged
+// Do-Not-Disturb on calls, SMS, WhatsApp, Google and Facebook. AI Sponsor never
+// messages people there through GHL (our chat runs over our own backend).
+//
+// Email is left out on purpose, since 29 Oct 2026: the AI Sponsor newsletter
+// goes out from GHL, and the old all-channel `dnd: true` blocked every new
+// signup from it (and re-blocked existing people on each Stripe or WhatsApp
+// sync). Leaving Email out of dndSettings means a NEW contact starts with email
+// open, and an EXISTING contact's email setting is never touched, so somebody
+// who unsubscribed stays unsubscribed. Tested live on a throwaway contact.
 //
 // Config comes from env (keeps the token OUT of the repo):
 //   GHL_API_TOKEN     — Private Integration token (required)
@@ -19,6 +25,16 @@
 const GHL_BASE = 'https://services.leadconnectorhq.com';
 const GHL_VERSION = '2021-07-28';
 const LOCATION_ID = process.env.GHL_LOCATION_ID || 'Mgfec8mT0vXxyhp9SizK';
+
+// Sent on every contact write. Never add Email here, and never send `dnd: true`
+// (that blocks email too). See the note at the top.
+const SILENCED_CHANNELS = {
+  Call: { status: 'active' },
+  SMS: { status: 'active' },
+  WhatsApp: { status: 'active' },
+  GMB: { status: 'active' },
+  FB: { status: 'active' },
+};
 
 // Custom field ids (from Abdul's GHL setup — verified via the API).
 const FIELD_IDS = {
@@ -138,7 +154,7 @@ function buildContactBody(data) {
     name: data.name || undefined,
     email: data.email || undefined,
     phone: data.phone || undefined,
-    dnd: true, // <-- silence: no GHL workflow can message this contact
+    dndSettings: SILENCED_CHANNELS, // <-- silence: no GHL workflow can call, text or WhatsApp this contact
     tags,
     customFields,
     source: data.source || 'ai-sponsor-registration',
@@ -242,7 +258,7 @@ async function upsertStripeContact({ email, userId }) {
     body: JSON.stringify({
       locationId: LOCATION_ID,
       email,
-      dnd: true, // same silence guardrail as every other AI Sponsor contact
+      dndSettings: SILENCED_CHANNELS, // same silence guardrail as every other AI Sponsor contact
       customFields,
       source: 'stripe-webhook',
     }),
@@ -275,7 +291,7 @@ async function upsertWhatsAppContact({ phone, userId }) {
     body: JSON.stringify({
       locationId: LOCATION_ID,
       phone,
-      dnd: true, // same silence guardrail as every other AI Sponsor contact
+      dndSettings: SILENCED_CHANNELS, // same silence guardrail as every other AI Sponsor contact
       source: 'whatsapp-inbound',
     }),
   });
@@ -299,7 +315,7 @@ async function upsertWhatsAppContact({ phone, userId }) {
 }
 
 // Save a support-form submission: upsert the contact (tagged ai-sponsor-support,
-// DND like the rest) and attach a note with the subject + message.
+// silenced like the rest) and attach a note with the subject + message.
 async function submitSupport(data) {
   if (!data || !data.email) {
     const err = new Error('email required');
@@ -313,7 +329,7 @@ async function submitSupport(data) {
     lastName,
     name: data.name || undefined,
     email: data.email,
-    dnd: true,
+    dndSettings: SILENCED_CHANNELS,
     tags: ['ai-sponsor', 'ai-sponsor-support'],
     source: data.source || 'ai-sponsor-support-form',
   };
