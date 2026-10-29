@@ -625,17 +625,24 @@ router.get('/data', async (req, res) => {
   }
 });
 
-/* ── The daily check ─────────────────────────────────────────────────────────
-   Triggered from outside, never on a timer in here. Render's free tier spins
-   the instance down, so setInterval simply does not fire, and a scheduler that
-   silently never runs is worse than no scheduler.
+/* ── The check that tells Slack ──────────────────────────────────────────────
+   ⭐ RUNS IN HERE EVERY 15 MINUTES since 29 Oct, when the service moved off
+   Render's free tier onto Starter and stopped sleeping. Before that it could
+   only be triggered from outside, because a timer on a sleeping instance never
+   fires. The outside trigger (GitHub Actions, POST /status/check) was meant to
+   be hourly and in practice ran every 3 to 8 hours: GitHub drops scheduled runs
+   when it is busy. It stays as a backup, it just is not the clock any more.
+
+   ⛔ THIS CANNOT REPORT ITS OWN DEATH. If the whole server is down, nothing in
+   here is running to post anything. That case is UptimeRobot's (Mubashir's
+   5-minute check from outside), not this file's.
 
    ⭐ POSTS ONLY WHEN SOMETHING IS WRONG (Mariam, 9 Sep: "only post inside ai
    sponsor updates if there is any issue"). A daily all-clear becomes wallpaper
    inside a week and then nobody reads the one that matters. */
 /* ⚠️ SAME PROBLEM, SAME MESSAGE, OVER AND OVER is how an alert channel becomes
    something people mute, and a muted channel is worse than no channel. The
-   check runs every few hours so a real outage is caught quickly, but an
+   check runs every 15 minutes so a real outage is caught quickly, but an
    ONGOING one is only repeated twice a day.
 
    Kept in the database rather than in memory on purpose: Render's free tier
@@ -661,14 +668,33 @@ async function alreadyToldThem(signature) {
   return sameProblem && recent;
 }
 
-async function runAndAlert() {
+/* ⚠️ AN AMBER HAS TO STILL BE THERE ON THE NEXT RUN BEFORE IT POSTS. Running
+   every 15 minutes instead of a few times a day means every passing network
+   blip gets caught too (28 Oct 03:17: "Sponsor replies: could not check: fetch
+   failed", gone by the next look). Amber is "could not check" or "worth a
+   look", so waiting 15 minutes costs nothing and keeps the channel worth
+   reading. RED NEVER WAITS: out of credit or a rejected key posts at once.
+   Held in memory on purpose: a restart only means an amber waits one more run. */
+let lastAmber = null;
+
+function holdAmber(overall, signature) {
+  if (overall !== 'warn') { lastAmber = null; return false; }
+  const seenLastRun = lastAmber === signature;
+  lastAmber = signature;
+  return !seenLastRun;
+}
+
+async function checkAndAlert() {
   const data = await getStatus({ fresh: true });
-  if (data.overall === 'ok') return { posted: false, overall: 'ok' };
+  if (data.overall === 'ok') { holdAmber('ok'); return { posted: false, overall: 'ok' }; }
 
   const bad = data.checks.filter((c) => c.state !== 'ok');
   /* The set of things wrong, not their wording: a detail that carries a
      changing figure must not read as a brand new problem every time. */
   const signature = bad.map((c) => `${c.name}:${c.state}`).sort().join('|');
+  if (holdAmber(data.overall, signature)) {
+    return { posted: false, overall: data.overall, held: 'amber, waiting one more run to confirm' };
+  }
   if (await alreadyToldThem(signature)) {
     return { posted: false, overall: data.overall, suppressed: 'same problem already reported' };
   }
@@ -718,6 +744,31 @@ async function runAndAlert() {
   return { posted: true, overall: data.overall, problems: bad.length, pinged: broken };
 }
 
+/* The timer and the GitHub trigger can land in the same second. One run at a
+   time, so the same problem is never posted twice. */
+let inFlight = null;
+function runAndAlert() {
+  if (!inFlight) inFlight = checkAndAlert().finally(() => { inFlight = null; });
+  return inFlight;
+}
+
+/* Every 15 minutes. Not at boot: a deploy's first seconds (database still
+   connecting) must not read as an outage. Only on Render, so running the
+   backend on a laptop with the real Slack token never posts to the team.
+   One log line per run, because a check that is silent when all is well is
+   otherwise indistinguishable from one that has stopped. */
+const EVERY_MS = 15 * 60 * 1000;
+function startInterval() {
+  if (!process.env.RENDER) return null;
+  const t = setInterval(() => {
+    runAndAlert()
+      .then((r) => console.log('[status] 15-minute check:', JSON.stringify(r)))
+      .catch((e) => console.error('[status] 15-minute check failed:', e.message));
+  }, EVERY_MS);
+  if (t.unref) t.unref();
+  return t;
+}
+
 router.post('/check', async (req, res) => {
   const secret = process.env.CRON_SECRET;
   if (!secret) return res.status(404).json({ error: 'Not enabled' });
@@ -733,4 +784,4 @@ router.post('/check', async (req, res) => {
   }
 });
 
-module.exports = { router, enabled, setContext, runChecks, getStatus, runAndAlert, _internals: { timed } };
+module.exports = { router, enabled, setContext, runChecks, getStatus, runAndAlert, startInterval, _internals: { timed, holdAmber } };

@@ -4219,3 +4219,6 @@ voiceCompare.attach(server, MASTER_SYSTEM_PROMPT);
    fires during the minutes somebody else is already using the product, which is
    exactly why it is the last line of defence and not the design. */
 weekly.startInterval(whatsapp);
+
+// The status check, every 15 minutes, posting to Slack only if something is wrong (status.js).
+status.startInterval();
