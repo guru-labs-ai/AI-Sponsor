@@ -1362,7 +1362,7 @@ function describeGap(lastAt, now) {
 /* The date and time are theirs when we know where they are. On 22 Oct this said
    Thursday (UTC) while it was already Friday in Pakistan, and the sponsor
    counted the meetings block's "tomorrow" from the wrong day. */
-function buildTimeBlock(lastAt, now = new Date(), zone = null) {
+function buildTimeBlock(lastAt, now = new Date(), zone = null, told = false) {
   let tz = null;
   if (zone) {
     try { new Intl.DateTimeFormat('en-GB', { timeZone: zone }); tz = zone; } catch { /* unknown zone: not known */ }
@@ -1391,8 +1391,14 @@ function buildTimeBlock(lastAt, now = new Date(), zone = null) {
     }
   }
 
+  /* Where the clock came from. Their own word beats their number: on 29 Oct
+     somebody on a Georgian number said they had moved to Germany, and the
+     next message was on Tbilisi time again, because nothing had kept it. */
+  const source = told
+    ? `Their clock is ${tz}, where they told you they live now, so it is right even though their phone number is from somewhere else. If they say they are travelling or tell you their time, go with theirs.`
+    : `Their clock comes from their phone number (${tz}), so it can be off if they have moved or are travelling; if they tell you their time, go with theirs.`;
   lines.push(tz
-    ? `Their clock comes from their phone number (${tz}), so it can be off if they have moved or are travelling; if they tell you their time, go with theirs. Know whether it is morning, evening or the middle of the night for them, and read "today", "tonight" and "tomorrow" on their clock. Just after midnight, "today" can still mean the day that just ended to them, so check when it matters. Mention the hour only when it matters to what they are saying.`
+    ? `${source} Know whether it is morning, evening or the middle of the night for them, and read "today", "tonight" and "tomorrow" on their clock. Just after midnight, "today" can still mean the day that just ended to them, so check when it matters. Mention the hour only when it matters to what they are saying.`
     : 'You do not know their local time of day, only the date. Do not say morning, afternoon or tonight unless they mention it first.');
   return lines.join('\n');
 }
@@ -1863,13 +1869,16 @@ async function getSponsorReply(userId, message, context) {
   );
   if (reactionBlock) systemBlocks.push({ type: 'text', text: reactionBlock });
 
-  /* Where they are, from the number they write from; a reg- id carries no
-     number, so the profile's phone. The date below and the meetings block both
-     use it, so "today" means the same day in each. */
-  const userZone = timezones.zoneForPhone(String(userId).startsWith('wa-') ? userId : (profile && profile.phone) || '');
+  /* Where they are: where they told us they live (WhatsApp hands it over fresh,
+     the profile here can be a cached copy from before they said it), else the
+     number they write from; a reg- id carries no number, so the profile's
+     phone. The date below and the meetings block both use it, so "today"
+     means the same day in each. */
+  const toldZone = timezones.validZone(context && context.zone) || timezones.validZone(profile && profile.zone);
+  const userZone = toldZone || timezones.zoneForPhone(String(userId).startsWith('wa-') ? userId : (profile && profile.phone) || '');
 
   // Carries the gap since they last wrote, so it changes on every message.
-  systemBlocks.push({ type: 'text', text: buildTimeBlock(lastAt, new Date(), userZone) });
+  systemBlocks.push({ type: 'text', text: buildTimeBlock(lastAt, new Date(), userZone, !!toldZone) });
 
   /* Only when they mention meetings, and below the cache marker because it is
      built from this message and the clock. */
@@ -1879,6 +1888,7 @@ async function getSponsorReply(userId, message, context) {
     message,
     programField: profile && profile.program,
     userZone,
+    zoneTold: !!toldZone,
     // So "AA" answering "which program?", or "any more tomorrow?", still
     // brings the meetings, for the program they were just asking about.
     recentMessages: (history || []).slice(-2).map((m) => (typeof m.content === 'string' ? m.content : '')).join('\n'),
@@ -1981,6 +1991,14 @@ async function getSponsorReply(userId, message, context) {
      question. Both decided here so they cannot be talked out of. */
   const budget = replyBudget(message, { history: usableHistory, isFirst: !history.length });
   const askedLastTime = lastReplyAskedSomething.get(userId) === true;
+  /* The one exception to not two questions in a row. 29 Oct: "I moved
+     to germany actually" got back "it's still evening for you then, thanks
+     for telling me", because the question the sponsor wrote was cut on the
+     way out. A sponsor told about a move, a lost job or a slip asks how they
+     are with it. Decided by the message read (language.js sharesNews), which
+     is kept to real events so this does not turn back into an interview. */
+  const sharedNews = !!(context && context.sharesNews);
+  const holdQuestion = askedLastTime && !sharedNews;
 
   if (budget.target) {
     systemBlocks.push({ type: 'text', text: [
@@ -1992,10 +2010,19 @@ async function getSponsorReply(userId, message, context) {
     ].join('\n') });
   }
 
-  if (askedLastTime) {
+  if (sharedNews) {
+    systemBlocks.push({ type: 'text', text: [
+      '## THEY JUST TOLD YOU SOMETHING THAT CHANGES THEIR LIFE',
+      'Respond to that first, before anything practical. Somebody who says "I moved", "I lost my job" or "I slipped" and gets back only the practical part has not been heard.',
+      'Usually that means asking how they are with it, in your own words: how they are settling in, how it is sitting with them, how they are doing. One question, about them, not about the details. This is the moment a question is right, even straight after one of yours.',
+    ].join('\n') });
+  }
+
+  if (holdQuestion) {
     systemBlocks.push({ type: 'text', text: [
       '## YOUR LAST MESSAGE ENDED WITH A QUESTION',
       'This one must not. Say what you actually think, or say nothing more than the thing itself, and let them come back in their own time.',
+      'If they told you something about themselves, respond to that, not only the practical part: what you make of it, or that you are glad they said, as a statement.',
       'Two questions in a row is an interview. A sponsor is comfortable leaving a silence.',
     ].join('\n') });
   }
@@ -2095,7 +2122,7 @@ async function getSponsorReply(userId, message, context) {
     }
   }
 
-  if (askedLastTime) {
+  if (holdQuestion) {
     const trimmed = dropTrailingQuestion(rawReply);
     if (trimmed !== rawReply) {
       console.log('[sponsor] dropped a second question in a row');

@@ -43,6 +43,7 @@ const access = require('./access'); // who still has access, off unless ACCESS_E
 const SITE_URL = process.env.SITE_URL || 'https://getaisponsor.com';
 const voices = require('./voices'); // the shared voice allow-list + TTS
 const language = require('./language'); // what language a message is in, and what it asks for
+const timezones = require('./timezones'); // where they live, when they tell us
 const metacloud = require('./metacloud'); // voice notes straight to Meta; inert unless configured
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -1264,12 +1265,30 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
 
       const requestedVoice = (cameByVoice || askedForVoice) && !(textOnly && !askedForVoice);
 
+      /* "I moved to Germany". 29 Oct: the sponsor said thanks for telling
+         it and kept nothing, because the zone came from their Georgian
+         number on every message. Saved to every identity the moment they say
+         it, and handed to this reply directly so it is right straight away
+         rather than one message later. Only where they live: somebody away for
+         a week is not moved, and their own "it's 9pm here" still wins in the
+         conversation, which the time block already tells the sponsor. */
+      const livesIn = timezones.validZone(read && read.livesIn);
+      if (livesIn && livesIn !== (profile && profile.zone)) {
+        db.findAllIdentities(userId)
+          .then((ids) => Promise.all(ids.map((id) => db.saveProfile(id, { zone: livesIn }))))
+          .catch((e) => console.warn('[WhatsApp] could not save where they live:', e.message));
+        console.log(`[WhatsApp] ${fromPhone} lives in ${livesIn} now, saved`);
+      }
+
       /* Passed in and read back out afterwards: getSponsorReply sets
          modelWantsVoice on this object when the reply came back marked. */
       const ctx = {
         channel: 'whatsapp', viaVoice: cameByVoice,
         replyIsSpoken: requestedVoice, textOnly,
         replyLanguage,
+        // Real news in their life lets one question through (see server.js).
+        sharesNews: !!(read && read.sharesNews),
+        zone: livesIn || timezones.validZone(profile && profile.zone),
       };
       const replyText = await getSponsorReply(userId, userMessageText, ctx);
       console.log(`[WhatsApp] Claude reply to ${fromPhone}: "${replyText.substring(0, 80)}..."`);

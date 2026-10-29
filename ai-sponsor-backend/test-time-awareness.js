@@ -95,9 +95,24 @@ const ago = (days, hours = 0) =>
   check('an unknown zone is treated as unknown, never guessed',
     [nonsense.includes('Today is Tuesday, 25 August 2026.'), nonsense.includes('You do not know their local time of day')], [true, true]);
 
+  group('where they told us they live beats their number');
+  /* 29 Oct: a Georgian number, living in Germany. They said so, the
+     sponsor thanked them, and the next message was on Tbilisi time again. */
+  const berlin = buildTimeBlock(null, new Date(Date.UTC(2026, 9, 29, 20, 2)), 'Europe/Berlin', true);
+  has('their clock is the place they named', berlin, 'Thursday, 29 October 2026, 9:02pm');
+  has('it is told the clock is theirs, not their number\'s', berlin, 'where they told you they live now');
+  check('not hedged as a guess from their number', berlin.includes('comes from their phone number'), false);
+  check('from the number it still says so',
+    buildTimeBlock(null, NOW, 'Asia/Tbilisi').includes('comes from their phone number (Asia/Tbilisi)'), true);
+
   group('wiring');
   check('the block is actually sent to the model, with their zone',
-    server.includes("systemBlocks.push({ type: 'text', text: buildTimeBlock(lastAt, new Date(), userZone) })"), true);
+    server.includes("systemBlocks.push({ type: 'text', text: buildTimeBlock(lastAt, new Date(), userZone, !!toldZone) })"), true);
+  check('the zone they told us comes first, then their number',
+    /const userZone = toldZone \|\| timezones\.zoneForPhone\(/.test(server), true);
+  check('it is read from what WhatsApp hands over, then the profile',
+    server.includes('timezones.validZone(context && context.zone) || timezones.validZone(profile && profile.zone)'), true);
+  check('the meetings block is told where the zone came from', server.includes('zoneTold: !!toldZone,'), true);
   check('last-contact time is read from the database',
     server.includes('db.getLastMessageAt(userId)'), true);
   /* If this ever throws, somebody loses their reply over a date line. */
@@ -112,7 +127,7 @@ const ago = (days, hours = 0) =>
   check('read before the turn is persisted, so the gap is the PREVIOUS contact',
     fn.indexOf('db.getLastMessageAt(userId)') < fn.indexOf('persistExchange(userId'), true);
   check('not marked for caching',
-    /buildTimeBlock\(lastAt, new Date\(\), userZone\) \}\);/.test(server) && !/buildTimeBlock\(lastAt[^\n]*cache_control/.test(server), true);
+    /buildTimeBlock\(lastAt, new Date\(\), userZone, !!toldZone\) \}\);/.test(server) && !/buildTimeBlock\(lastAt[^\n]*cache_control/.test(server), true);
   check('db exposes it', src('db.js').includes('getLastMessageAt,'), true);
 
   console.log(`\n${pass} passed, ${fail} failed`);

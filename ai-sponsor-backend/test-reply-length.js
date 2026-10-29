@@ -188,6 +188,29 @@ check('the question rule is enforced on the way out, not just requested', () => 
     'nothing remembers whether the last reply asked something');
 });
 
+/* 29 Oct: "I moved to germany actually, so im 3 hours behind" got back
+   only the time difference, because the question the sponsor wrote was cut.
+   Real news in their life is the one place two questions in a row is right. */
+check('news in their life lets the question through, and only that', () => {
+  assert.ok(src.includes('const sharedNews = !!(context && context.sharesNews);'),
+    'the reply never hears that they shared news');
+  assert.ok(src.includes('const holdQuestion = askedLastTime && !sharedNews;'),
+    'news does not lift the question rule');
+  assert.ok(/if \(holdQuestion\) \{\s*const trimmed = dropTrailingQuestion\(rawReply\)/.test(src),
+    'the question is still cut on the way out when they shared news');
+  assert.ok(/if \(holdQuestion\) \{\s*systemBlocks\.push\(\{ type: 'text', text: \[\s*'## YOUR LAST MESSAGE ENDED WITH A QUESTION'/.test(src),
+    'it is still told not to ask when they shared news');
+  assert.ok(/if \(sharedNews\) \{\s*systemBlocks\.push\(\{ type: 'text', text: \[\s*'## THEY JUST TOLD YOU SOMETHING THAT CHANGES THEIR LIFE'/.test(src),
+    'nothing tells it to answer the news itself');
+  assert.ok(/sharesNews: !!\(read && read\.sharesNews\)/.test(fs.readFileSync(require.resolve('./whatsapp.js'), 'utf8')),
+    'WhatsApp never passes the read on');
+});
+
+check('when it cannot ask, it still answers what they told it', () => {
+  const held = src.slice(src.indexOf("'## YOUR LAST MESSAGE ENDED WITH A QUESTION'"), src.indexOf("'Two questions in a row is an interview."));
+  assert.ok(held.includes('respond to that, not only the practical part'), 'the held reply can still be only logistics');
+});
+
 console.log('\n── The same rules in the other languages the sponsor speaks ──');
 
 check('English is still counted exactly as before', () => {

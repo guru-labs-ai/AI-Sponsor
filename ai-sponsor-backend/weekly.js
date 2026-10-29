@@ -688,15 +688,17 @@ async function runSweep({ limit = 25, whatsapp = null, week = null, ignoreWindow
        picked up when it is 9am there and California sixteen hours later,
        from the same schedule. Anyone we cannot place is held rather than
        guessed at: a confident 6am message about somebody's recovery week is
-       worse than a late one. */
-    if (!ignoreWindow && !insideTheirWindow(phone)) {
+       worse than a late one. Where they told their sponsor they live beats
+       their number (29 Oct: a Georgian number, living in Germany). */
+    const saved = await savedZone(userId);
+    if (!ignoreWindow && !insideTheirWindow(phone, new Date(), saved)) {
       out.waiting++;
       /* Two very different reasons to skip somebody, and only one of them
          resolves on its own. Not their morning yet is fine, a later run gets
          them. Cannot place them at all means they will be skipped every run
          forever, which is what happened to Bilal on a +92 number, so it is
          named rather than counted. */
-      if (!tz.zoneForPhone(phone)) out.unplaceable.push(userId);
+      if (!tz.zoneFor(saved, phone)) out.unplaceable.push(userId);
       continue;
     }
 
@@ -734,12 +736,20 @@ async function runSweep({ limit = 25, whatsapp = null, week = null, ignoreWindow
 const SEND_FROM_HOUR = 9;
 const SEND_UNTIL_HOUR = 12;
 
-function insideTheirWindow(phone, now = new Date()) {
-  const zone = tz.zoneForPhone(phone);
+function insideTheirWindow(phone, now = new Date(), saved = null) {
+  const zone = tz.zoneFor(saved, phone);
   if (!zone) return false;
   if (tz.localDay(zone, now) !== 0) return false;      // 0 = Sunday, where they are
   const hour = tz.localHour(zone, now);
   return hour >= SEND_FROM_HOUR && hour < SEND_UNTIL_HOUR;
+}
+
+/* The zone they told their sponsor they live in (whatsapp.js saves it), or
+   null. A failed read is null too, which is their number, as before. */
+async function savedZone(userId) {
+  if (typeof db.getProfile !== 'function') return null;
+  const p = await db.getProfile(userId).catch(() => null);
+  return tz.validZone(p && p.zone);
 }
 
 /* Trigger 3: piggybacked on ordinary traffic. Anybody talking to the sponsor
@@ -776,7 +786,7 @@ module.exports = {
   // Exported for test-weekly.js. These are where a bad model response turns
   // into something the page renders, so they are the parts worth pinning down.
   _parseModelJSON: parseModelJSON, _coerce: coerce, _quietWeekCard: quietWeekCard,
-  _planWeek: planWeek,
+  _planWeek: planWeek, _insideTheirWindow: insideTheirWindow,
   _SYSTEM_PROMPT: SYSTEM_PROMPT, _WEEKLY_MODEL: WEEKLY_MODEL,
   WEEKLY_TEMPLATES, WEEKLY_READY_TEMPLATE, WEEKLY_READY_EN,
 };

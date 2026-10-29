@@ -31,6 +31,24 @@ function zoneForPhone(phone) {
   return countries.place(phone).zone;
 }
 
+/* A zone they told us themselves, or null. 29 Oct: somebody wrote from a
+   Georgian number "I moved to germany actually, so im 3 hours behind", the
+   sponsor said "thanks for telling me", and nothing kept it, so every message
+   after that was on Tbilisi time again. What somebody says about where they
+   live beats what their number says. Only a real IANA name for a place
+   ("Europe/Berlin") counts. "UTC", "Etc/GMT-1" (a fixed offset, wrong half the
+   year) or a bad name from the model is no zone. */
+function validZone(zone) {
+  const z = String(zone || '').trim();
+  if (!/^[A-Za-z]+\/[A-Za-z0-9_+\-\/]+$/.test(z) || /^Etc\//i.test(z)) return null;
+  try { new Intl.DateTimeFormat('en-GB', { timeZone: z }); return z; } catch { return null; }
+}
+
+/* Where somebody is: the place they told us they live, else their number. */
+function zoneFor(savedZone, phone) {
+  return validZone(savedZone) || zoneForPhone(phone);
+}
+
 /* What hour is it where they are, right now? Uses real DST rules rather than a
    stored offset, so it stays correct across a clock change without anyone
    remembering to update anything. */
@@ -58,4 +76,4 @@ function localDay(zone, now = new Date()) {
   }
 }
 
-module.exports = { zoneForPhone, localHour, localDay };
+module.exports = { zoneForPhone, validZone, zoneFor, localHour, localDay };

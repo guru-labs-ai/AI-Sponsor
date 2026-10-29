@@ -105,7 +105,7 @@ async function readMessage(text, opts = {}) {
   try {
     const res = await client.beta.messages.create({
       model: 'claude-opus-5',
-      max_tokens: 160,
+      max_tokens: 220,
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
       thinking: { type: 'disabled' },
@@ -121,8 +121,10 @@ async function readMessage(text, opts = {}) {
               asksForTextOnly: { type: 'boolean' },
               asksForLanguage: { type: 'string', enum: [...SUPPORTED, 'other', 'none'] },
               checkins: { type: 'string', enum: ['start', 'stop', 'none'] },
+              sharesNews: { type: 'boolean' },
+              livesIn: { type: 'string' },
             },
-            required: ['language', 'asksForVoice', 'asksForTextOnly', 'asksForLanguage', 'checkins'],
+            required: ['language', 'asksForVoice', 'asksForTextOnly', 'asksForLanguage', 'checkins', 'sharesNews', 'livesIn'],
             additionalProperties: false,
           },
         },
@@ -134,6 +136,12 @@ async function readMessage(text, opts = {}) {
         'asksForTextOnly: true only if they are asking the sponsor to stop sending voice notes or to only write to them.',
         'asksForLanguage: the code of the language they are asking the sponsor to talk to them in from now on, whatever language the request itself is written in. "Can we talk in English?" and "¿Me puedes escribir en inglés?" are both "en". "other" if they ask for a language not in the list, even one close to a listed language: Punjabi is "other", never "ur" or "hi"; Catalan is "other", never "es". Only ever give the exact language they named. "none" if they are not asking to change language: mentioning a language, saying they speak it, or asking what a word means is "none".',
         'checkins: "start" only if they ask the sponsor to message them or check in on them when they go quiet for a while. "stop" only if they ask the sponsor to stop those check-ins or not to message them first. Otherwise "none": talking about check-ins, meetings or other people checking in on them is "none".',
+        /* 29 Oct: "I moved to germany actually" got back only the time
+           difference, because the question the sponsor wrote was cut by the
+           not-two-questions-in-a-row rule. This is what lets that one
+           question through, so it is kept to real events, not every feeling. */
+        'sharesNews: true only if they are telling the sponsor about a real change or event in their own life: moving home or country, starting or losing a job, a relationship starting or ending, somebody close to them dying or falling seriously ill, a new baby, a diagnosis, a relapse or slip, a clean or sober milestone, joining or leaving a program. How their day went, a feeling, a craving, step work, a question, plans for tonight, or news about somebody else that does not change their own life is false.',
+        'livesIn: the IANA time zone of the place they say they now live, such as "Europe/Berlin" for "I moved to Germany" or "America/Chicago" for "I live in Chicago". "none" if they name no place, if they are only visiting or travelling, if the place spans several time zones and they did not say which part (the US, Canada, Mexico, Brazil, Russia, Australia, Indonesia), or if it is somewhere they used to live, are going to, or somebody else lives. Never a fixed offset such as "Etc/GMT-1".',
         /* Mariam, Sep 17: the sponsor offers check-ins once. The answer to that
            offer is usually a bare "yes please", which means nothing without
            the question, so the question is given as context. */
@@ -152,6 +160,8 @@ async function readMessage(text, opts = {}) {
       asksForTextOnly: out.asksForTextOnly === true,
       asksForLanguage: out.asksForLanguage || 'none',
       checkins: out.checkins || 'none',
+      sharesNews: out.sharesNews === true,
+      livesIn: out.livesIn && out.livesIn !== 'none' ? out.livesIn : null,
     };
   } catch (e) {
     console.warn('[language] could not read message, carrying on without it:', e.message);

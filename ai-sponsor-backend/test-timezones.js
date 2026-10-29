@@ -101,6 +101,17 @@ const inWindow = (phone, now) => {
   check('Arizona stays put in September', tz.localHour('America/Phoenix', t('2026-09-06T16:00:00Z')), 9);
   check('Arizona stays put in December',  tz.localHour('America/Phoenix', t('2026-12-06T16:00:00Z')), 9);
 
+  group('where they told us they live beats their number');
+  /* 29 Oct: a Georgian number, living in Germany. */
+  check('a place they named is kept', tz.validZone('Europe/Berlin'), 'Europe/Berlin');
+  check('and used ahead of their number', tz.zoneFor('Europe/Berlin', '+995598000000'), 'Europe/Berlin');
+  check('nothing said, their number as before', tz.zoneFor(null, '+995598000000'), 'Asia/Tbilisi');
+  check('a bad name from the model is no zone', tz.zoneFor('Germany', '+995598000000'), 'Asia/Tbilisi');
+  check('"none" is no zone', tz.validZone('none'), null);
+  check('UTC is not a place', tz.validZone('UTC'), null);
+  check('a fixed offset is wrong half the year, so refused', tz.validZone('Etc/GMT-1'), null);
+  check('a made-up region is refused', tz.validZone('Europe/Atlantis'), null);
+
   console.log(`\n${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);
 })();

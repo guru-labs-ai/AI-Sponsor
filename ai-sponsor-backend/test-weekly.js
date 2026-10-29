@@ -239,5 +239,19 @@ check('the quiet card only mentions score to disclaim it',
     /type: 'template'/.test(mc), true);
 }
 
+/* 29 Oct: a Georgian number, living in Germany. Sunday 06:00 UTC is
+   10am in Tbilisi and 7am in Berlin, so going by their number alone their week
+   would land at 7am. */
+{
+  const sunday0600 = new Date(Date.UTC(2026, 10, 1, 6, 0));
+  const sunday0900 = new Date(Date.UTC(2026, 10, 1, 9, 0));
+  check('by their number alone it is their morning', w._insideTheirWindow('+995598000000', sunday0600), true);
+  check('where they said they live, 7am is too early', w._insideTheirWindow('+995598000000', sunday0600, 'Europe/Berlin'), false);
+  check('and 10am in Berlin is inside it', w._insideTheirWindow('+995598000000', sunday0900, 'Europe/Berlin'), true);
+  const src = require('fs').readFileSync(require('path').resolve(__dirname, 'weekly.js'), 'utf8');
+  check('the sweep reads where they live before the window',
+    /const saved = await savedZone\(userId\);\s*if \(!ignoreWindow && !insideTheirWindow\(phone, new Date\(\), saved\)\)/.test(src), true);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
