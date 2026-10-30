@@ -396,6 +396,12 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 .save-name{display:block;font-size:15px;font-weight:700;color:var(--blue);line-height:1.35}
 .save-num{display:block;font-size:13.5px;color:var(--sub);margin-top:2px;white-space:nowrap}
 .save-why{font-size:13px;color:var(--sub);line-height:1.6;margin-top:10px;text-align:left}
+/* Hidden until setupSuccessActions() decides they apply, so a phone never shows
+   the computer's steps or the other way round. */
+#saveThen,.code-success .wa-or,.code-success .wa-hint{display:none}
+#saveThen{margin-top:14px}
+.code-success .wa-or{font-size:13.5px;margin-top:20px}
+.code-success .wa-hint{font-size:13.5px;margin-top:10px}
 
 /* The QR exists for people registering on a computer, and it is the only route
    that ever worked. A contact saved on a computer sits on the one device
@@ -1160,8 +1166,13 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
       <div class="code-success" id="codeSuccess">
         <div class="s-icon">✓</div>
         <h2>You're in.</h2>
-        <p>Your <span id="trialLen">access</span> starts now.<br>I'll be here whenever you need me, day or night.</p>
-        <p class="save-why" id="saveWhy">Do this first and I show up by name in WhatsApp instead of a number.</p>
+        <!-- startLine is swapped in setupSuccessActions(). "I'll be here whenever
+             you need me" on its own read as "I'll message you", and people waited
+             for a sponsor who cannot write first: Christine signed up twice on
+             7 Oct and sent nothing for three weeks. Someone who picked WhatsApp is
+             now told the first message is theirs. -->
+        <p>Your <span id="trialLen">access</span> starts now.<br><span id="startLine">I'll be here whenever you need me, day or night.</span></p>
+        <p class="save-why" id="saveWhy">First, save me to your phone so I show up by name in WhatsApp.</p>
         <div class="save-qr" id="saveQr">
           <svg shape-rendering="crispEdges" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 49 49"><path stroke="#212529" d="M4 4.5h7m1 0h1m2 0h2m1 0h1m1 0h1m2 0h1m3 0h2m2 0h2m3 0h1m1 0h7m-41 1h1m5 0h1m1 0h1m1 0h2m1 0h5m3 0h3m1 0h2m1 0h3m3 0h1m5 0h1m-41 1h1m1 0h3m1 0h1m2 0h4m1 0h1m1 0h1m1 0h1m1 0h4m1 0h1m8 0h1m1 0h3m1 0h1m-41 1h1m1 0h3m1 0h1m1 0h1m1 0h2m1 0h2m1 0h1m1 0h1m1 0h4m2 0h1m1 0h5m1 0h1m1 0h3m1 0h1m-41 1h1m1 0h3m1 0h1m2 0h2m3 0h6m1 0h1m4 0h2m1 0h4m1 0h1m1 0h3m1 0h1m-41 1h1m5 0h1m3 0h1m1 0h2m5 0h3m4 0h1m4 0h1m2 0h1m5 0h1m-41 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-33 1h2m2 0h1m1 0h1m1 0h2m1 0h2m1 0h1m1 0h1m1 0h2m1 0h4m-33 1h1m1 0h2m1 0h3m2 0h2m4 0h1m2 0h2m2 0h1m1 0h3m2 0h2m2 0h1m2 0h1m1 0h2m-39 1h4m2 0h3m2 0h1m1 0h1m2 0h2m5 0h1m1 0h3m2 0h1m2 0h2m3 0h1m-41 1h1m2 0h1m1 0h6m2 0h1m2 0h2m2 0h2m1 0h4m6 0h4m-37 1h2m1 0h2m2 0h1m1 0h1m6 0h1m3 0h1m1 0h1m2 0h4m1 0h1m2 0h2m1 0h1m3 0h1m-41 1h1m4 0h8m3 0h2m1 0h1m1 0h4m3 0h1m4 0h1m-34 1h1m2 0h1m4 0h2m3 0h3m1 0h1m3 0h1m1 0h1m2 0h1m1 0h2m10 0h1m-39 1h2m2 0h4m7 0h1m3 0h2m7 0h2m1 0h1m1 0h6m-40 1h1m1 0h1m3 0h5m1 0h4m2 0h4m1 0h1m1 0h2m2 0h6m1 0h1m2 0h1m-39 1h3m1 0h2m2 0h1m2 0h1m2 0h1m2 0h1m1 0h1m1 0h2m3 0h4m3 0h1m1 0h2m-32 1h1m2 0h1m1 0h1m2 0h1m1 0h2m4 0h1m1 0h1m1 0h4m2 0h1m1 0h1m2 0h2m-40 1h1m5 0h1m1 0h1m7 0h2m3 0h1m2 0h1m1 0h5m3 0h6m-38 1h2m1 0h1m2 0h1m1 0h1m1 0h3m1 0h1m3 0h1m1 0h3m1 0h1m1 0h2m4 0h5m1 0h1m-37 1h1m1 0h2m3 0h3m2 0h1m1 0h3m1 0h2m1 0h1m4 0h1m1 0h3m3 0h2m-37 1h1m1 0h1m1 0h1m2 0h1m1 0h2m1 0h1m1 0h2m1 0h1m1 0h1m8 0h2m1 0h1m1 0h2m1 0h1m-38 1h3m1 0h3m1 0h6m1 0h2m1 0h4m4 0h1m4 0h1m2 0h1m1 0h2m-36 1h1m2 0h3m2 0h1m2 0h2m1 0h2m2 0h7m3 0h1m1 0h2m1 0h1m1 0h2m-41 1h4m1 0h2m4 0h2m1 0h1m1 0h1m1 0h1m5 0h1m1 0h1m4 0h1m4 0h4m-39 1h5m6 0h1m1 0h1m1 0h1m2 0h2m1 0h4m3 0h1m5 0h1m1 0h4m-41 1h2m2 0h1m1 0h5m2 0h8m1 0h1m1 0h3m4 0h1m3 0h1m4 0h1m-40 1h2m2 0h1m2 0h2m1 0h3m1 0h2m2 0h1m1 0h4m1 0h3m2 0h5m1 0h1m2 0h1m-39 1h2m1 0h2m3 0h2m1 0h2m3 0h1m3 0h2m2 0h2m1 0h2m1 0h2m1 0h2m1 0h1m-38 1h4m3 0h2m1 0h1m1 0h1m1 0h2m2 0h1m2 0h1m2 0h1m3 0h1m1 0h2m1 0h2m1 0h1m1 0h1m-40 1h1m1 0h1m3 0h1m2 0h3m1 0h1m1 0h1m1 0h2m1 0h2m2 0h1m1 0h3m1 0h1m1 0h3m1 0h3m-37 1h3m2 0h1m1 0h2m3 0h4m2 0h1m1 0h1m4 0h1m1 0h2m3 0h2m1 0h2m1 0h1m-40 1h6m1 0h2m1 0h2m1 0h4m1 0h5m1 0h2m1 0h1m1 0h7m1 0h2m-32 1h4m1 0h1m1 0h2m2 0h1m2 0h1m2 0h1m1 0h2m3 0h1m3 0h1m2 0h1m-40 1h7m1 0h1m2 0h4m1 0h2m3 0h3m6 0h1m1 0h1m1 0h1m1 0h1m2 0h1m-40 1h1m5 0h1m1 0h2m1 0h1m1 0h4m1 0h1m2 0h2m1 0h3m1 0h1m3 0h1m3 0h2m-38 1h1m1 0h3m1 0h1m4 0h1m1 0h1m4 0h1m2 0h4m2 0h2m3 0h5m2 0h2m-41 1h1m1 0h3m1 0h1m1 0h1m3 0h1m2 0h1m2 0h4m1 0h2m1 0h2m1 0h1m1 0h3m1 0h1m1 0h2m1 0h1m-41 1h1m1 0h3m1 0h1m1 0h1m1 0h1m2 0h1m2 0h7m7 0h1m2 0h3m1 0h4m-41 1h1m5 0h1m2 0h2m2 0h1m1 0h1m2 0h1m2 0h1m1 0h2m2 0h1m2 0h1m1 0h2m1 0h1m3 0h1m-40 1h7m1 0h1m1 0h7m1 0h2m1 0h1m2 0h1m2 0h1m1 0h1m1 0h4m2 0h1m1 0h1"/></svg>
           <span>
@@ -1178,10 +1189,16 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
              currently offers WhatsApp as the only selectable option, so in
              practice everyone lands on the WhatsApp-only version; the web chat
              button is the fallback for a resumed, half-finished registration. -->
+        <!-- Computer only. Saving the contact is half the job; without this line
+             nothing told them the next move happens on the phone. -->
+        <p class="save-why" id="saveThen">Then open WhatsApp on your phone, find AI Sponsor and say hi. That's how our conversation starts.</p>
+        <p class="wa-or" id="waOr">Or, if you use WhatsApp on this computer:</p>
         <div class="success-actions" id="successActions">
           <a class="btn wa-btn" id="waBtn" href="https://wa.me/13073234467" target="_blank" rel="noopener">Message me on WhatsApp →</a>
           <button class="btn" id="webBtn" onclick="openChat()">Start talking here →</button>
         </div>
+        <!-- Phone only. The prefill does the writing, but the send is still theirs. -->
+        <p class="wa-hint" id="waHint">It opens WhatsApp with a hello already written for you. Just press send.</p>
         <p class="wa-number" id="waNumber"></p>
       </div>
 
@@ -2401,6 +2418,10 @@ function showSuccess(accessLabel){
   document.getElementById('trialLen').textContent = accessLabel;
   setupSuccessActions();
   document.getElementById('codeSuccess').classList.add('show');
+  /* stepLabel() says "Almost done" for the whole of this screen, which was still
+     there above "You're in" and read like one more step was coming. */
+  const label = document.getElementById('pLabel');
+  if (label) label.textContent = 'All set';
 }
 
 /* Lead with whichever channel they asked for on screen 6, and prefill the first
@@ -2453,14 +2474,34 @@ function setupSuccessActions(){
   const why = document.getElementById('saveWhy');
   const num = document.getElementById('waNumber');
 
+  const computerWa = onComputer && prefersWa;
+
   if (qr) qr.classList.toggle('show', onComputer);
-  if (why) why.style.display = onComputer ? '' : 'none';
+  if (why) why.style.display = computerWa ? '' : 'none';
   if (num) {
     num.style.display = onComputer ? 'none' : '';
     num.innerHTML = prefersWa
       ? 'Save my number so you can reach me any time: <strong>+1 307 323 4467</strong>'
       : 'Or save my number and message any time: <strong>+1 307 323 4467</strong>';
   }
+
+  /* Who writes first. The sponsor cannot open a WhatsApp conversation, so
+     somebody who picked WhatsApp is told the first message is theirs, and how:
+     on a phone, press send on the prefilled hello; on a computer, save the
+     contact and then say hi from the phone, with the button kept for people
+     who run WhatsApp on that computer. */
+  const start = document.getElementById('startLine');
+  const then  = document.getElementById('saveThen');
+  const or    = document.getElementById('waOr');
+  const hint  = document.getElementById('waHint');
+  const acts  = document.getElementById('successActions');
+  if (start) start.textContent = prefersWa
+    ? "Send me a first message on WhatsApp and we'll get started. After that, I'm here whenever you need me, day or night."
+    : "I'll be here whenever you need me, day or night.";
+  if (then) then.style.display = computerWa ? 'block' : 'none';
+  if (or)   or.style.display   = computerWa ? 'block' : 'none';
+  if (acts) acts.style.marginTop = computerWa ? '10px' : '';
+  if (hint) hint.style.display = (prefersWa && !onComputer) ? 'block' : 'none';
 }
 
 // Beta code is validated SERVER-SIDE now — it isn't in this page's source, and
