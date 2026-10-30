@@ -66,6 +66,10 @@ window.AIS_I18N.fr = Object.assign(window.AIS_I18N.fr || {}, {
   "Available 24/7": "Disponible 24h/24, 7j/7",
   "No Judgment, Ever": "Jamais de jugement",
   "Access Logged": "Accès tracés",
+  "Meetings": "Réunions",
+  "Your sponsor can find you a meeting.": "Votre parrain peut vous trouver une réunion.",
+  "Ask for a meeting and your sponsor sends real online meetings from your program's own directory, with the Zoom link, the passcode and the time where you are.": "Demandez une réunion et votre parrain vous envoie de vraies réunions en ligne tirées de l'annuaire officiel de votre programme, avec le lien Zoom, le code d'accès et l'heure chez vous.",
+  "Over 5,700 meetings so far for DA, BDA and UA, plus AA, NA, Al‑Anon, OA, ACA and more, and we add more every week.": "Déjà plus de 5 700 réunions pour DA, BDA et UA, plus AA, NA, Al‑Anon, OA, ACA et d'autres, et nous en ajoutons chaque semaine.",
 
   /* ── Homepage: programs ── */
   "Every program, one sponsor": "Tous les programmes, un seul parrain",
@@ -318,6 +322,7 @@ window.AIS_I18N.fr = Object.assign(window.AIS_I18N.fr || {}, {
   "SAMHSA Helpline:": "Ligne d'écoute SAMHSA :",
   "1-800-662-4357 (free, confidential, 24/7)": "1-800-662-4357 (gratuit, confidentiel, 24h/24)",
   "Once you're registered, you'll be able to find local meetings and in-person support through the platform.": "Une fois inscrit, vous pourrez trouver des réunions près de chez vous et du soutien en personne depuis la plateforme.",
+  "Once you're registered, your sponsor is there to talk whenever you need, and can find you online meetings for any program you're in.": "Une fois inscrit, votre parrain est là pour parler dès que vous en avez besoin, et peut vous trouver des réunions en ligne pour chacun de vos programmes.",
   "I'm ready": "Je suis prêt",
 
   /* ── Sign-up: step 8, the sponsor ── */

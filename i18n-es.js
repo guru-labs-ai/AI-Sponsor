@@ -66,6 +66,10 @@ window.AIS_I18N.es = Object.assign(window.AIS_I18N.es || {}, {
   "Available 24/7": "Disponible 24/7",
   "No Judgment, Ever": "Nunca te va a juzgar",
   "Access Logged": "Accesos registrados",
+  "Meetings": "Reuniones",
+  "Your sponsor can find you a meeting.": "Tu padrino puede encontrarte una reunión.",
+  "Ask for a meeting and your sponsor sends real online meetings from your program's own directory, with the Zoom link, the passcode and the time where you are.": "Pide una reunión y tu padrino te envía reuniones online reales del directorio oficial de tu programa, con el enlace de Zoom, la contraseña y la hora donde estás.",
+  "Over 5,700 meetings so far for DA, BDA and UA, plus AA, NA, Al‑Anon, OA, ACA and more, and we add more every week.": "Ya son más de 5.700 reuniones de DA, BDA y UA, además de AA, NA, Al‑Anon, OA, ACA y más, y añadimos nuevas cada semana.",
 
   /* ── Homepage: programs ── */
   "Every program, one sponsor": "Todos los programas, un solo padrino",
@@ -318,6 +322,7 @@ window.AIS_I18N.es = Object.assign(window.AIS_I18N.es || {}, {
   "SAMHSA Helpline:": "Línea de ayuda SAMHSA:",
   "1-800-662-4357 (free, confidential, 24/7)": "1-800-662-4357 (gratis, confidencial, 24/7)",
   "Once you're registered, you'll be able to find local meetings and in-person support through the platform.": "Una vez registrado podrás encontrar reuniones cercanas y apoyo presencial desde la plataforma.",
+  "Once you're registered, your sponsor is there to talk whenever you need, and can find you online meetings for any program you're in.": "Una vez registrado, tu padrino está para hablar siempre que lo necesites, y puede encontrarte reuniones online de cualquier programa en el que estés.",
   "I'm ready": "Estoy listo",
 
   /* ── Sign-up: step 8, the sponsor ── */
