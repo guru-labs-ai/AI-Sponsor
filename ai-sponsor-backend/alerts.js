@@ -212,13 +212,15 @@ const paid = safe(({
 /* Somebody told the sponsor a meeting it gave them did not work. Our list is a
    copy of each directory, so this is how a dead room comes to light. Nobody
    is named: the meeting is what needs checking, not the person. */
-const meetingProblem = safe(({ name, program, what, link, source }) => [
+const meetingProblem = safe(({ name, program, what, fix, link, source, checkLink }) => [
   ':warning: *A meeting did not work for someone*',
   `*Meeting:* ${name || 'unknown'}${program ? ` (${program})` : ''}`,
   what ? `*What they said:* ${what}` : null,
+  fix ? `*Right details they gave:* ${fix}` : null,
   link ? `*Link:* ${link}` : null,
   source ? `*Listing:* ${source}` : null,
-  '*Now:* the sponsor stops offering it until its listing is updated in the directory, or for 60 days.',
+  '*Now:* the sponsor stops offering it until somebody checks it, or its listing is updated in the directory.',
+  checkLink ? `*Check it:* <${checkLink}|open the meetings to check>` : null,
 ]);
 
 /* Three days before we take the first $5. The window to save the customer. */

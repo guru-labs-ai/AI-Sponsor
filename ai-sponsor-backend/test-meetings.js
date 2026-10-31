@@ -704,7 +704,38 @@ const askedAbout = meetings.buildMeetingsBlock({ message: 'did that one work for
   recentMessages: 'ACA meetings tomorrow?\nTry "Dead Room ACA" https://zoom.us/j/6100000040', lastUserMessage: 'ACA meetings tomorrow?',
   reported: meetings.hiddenFrom(rep, at('2026-10-27T12:00:00Z'), roomData) });
 check('asked about after it was reported, the sponsor sees that and offers another', askedAbout.includes('"Dead Room ACA"') && askedAbout.includes('it did not work: offer another'), true);
-check('and it is told how to report one', hiddenBlock.includes('[[meeting-problem: <that meeting\'s link exactly as written here> | <what happened, in a few words>]]'), true);
+check('and it is told how to report one', hiddenBlock.includes('[[meeting-problem: <that meeting\'s link exactly as written here> | <what happened, in a few words> | <the right link, passcode, day or time, copied exactly as they wrote it>]]'), true);
+
+group('a person checks a reported meeting, and people are asked to tell us (Matt, 30 Oct)');
+check('every reply with meetings ends by asking them to tell us about a dead one', hiddenBlock.includes('- Whenever you give them meetings, end that reply with one short line asking them to tell you if one has ended, its link is broken or a detail is wrong'), true);
+const withFix = meetings.meetingProblemsIn('Thank you. [[meeting-problem: https://zoom.us/j/6100000040 | moved to a new room | https://zoom.us/j/6100000099 passcode 555]]', roomData);
+check('the right details they gave are kept, and the note taken out', [withFix.clean, withFix.problems.map((p) => [p.what, p.fix])],
+  ['Thank you.', [['moved to a new room', 'https://zoom.us/j/6100000099 passcode 555']]]);
+check('without them, there is no third part', said.problems[0].fix, null);
+const checkAt = (verdict, iso, extra = {}) => new Map([[deadRoom.link, { link: deadRoom.link, verdict, at: iso, ...extra }]]);
+check('checked and working: offered again', meetings.hiddenFrom(rep, at('2026-10-28T12:00:00Z'), roomData, checkAt('works', '2026-10-28T09:00:00Z')).size, 0);
+check('checked and stopped: still hidden after 60 days',
+  [...meetings.hiddenFrom(rep, at('2026-12-27T12:00:00Z'), roomData, checkAt('gone', '2026-10-28T09:00:00Z')).keys()], [deadRoom.link]);
+check('until its directory updates the listing after the check',
+  meetings.hiddenFrom(rep, at('2026-12-27T12:00:00Z'), { meetings: [{ ...deadRoom, sourceUpdated: '2026-11-15' }] }, checkAt('gone', '2026-10-28T09:00:00Z')).size, 0);
+check('a new report after a check hides it again while it waits',
+  [...meetings.hiddenFrom([{ link: deadRoom.link, what: 'nobody there', at: '2026-11-02T10:00:00Z' }, ...rep], at('2026-11-02T12:00:00Z'), roomData, checkAt('works', '2026-10-28T09:00:00Z')).keys()], [deadRoom.link]);
+meetings.setChecks([{ link: deadRoom.link, verdict: 'fixed', newLink: 'https://zoom.us/j/6100000099', passcode: '555', at: '2026-10-28T09:00:00Z' }]);
+const fixedRoom = meetings.load().meetings.find((m) => m.name === 'Dead Room ACA');
+check('checked with new details: offered with them', [fixedRoom.link, fixedRoom.passcode, fixedRoom.meetingId, meetings.listedLink(fixedRoom)],
+  ['https://zoom.us/j/6100000099', '555', '6100000099', deadRoom.link]);
+check('and not hidden', meetings.hiddenFrom(rep, at('2026-10-28T12:00:00Z')).size, 0);
+const fixedBlock = meetings.buildMeetingsBlock({ message: 'ACA meetings tomorrow?', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-26T16:00:00Z'), reported: meetings.hiddenFrom(rep, at('2026-10-28T12:00:00Z')) });
+check('the sponsor gives the new link and passcode, never the old link', [fixedBlock.includes('https://zoom.us/j/6100000099 | passcode 555'), fixedBlock.includes('https://zoom.us/j/6100000040')], [true, false]);
+check('reported again on its new link, it is recorded under its listing',
+  meetings.meetingProblemsIn('x [[meeting-problem: https://zoom.us/j/6100000099 | gone again]]').problems.map((p) => p.link), [deadRoom.link]);
+check('a meeting given with its old link is still known', meetings.alreadyGiven('Try https://zoom.us/j/6100000040', meetings.load()).map((m) => m.name), ['Dead Room ACA']);
+check('once the directory updates its listing, its copy wins again', (() => {
+  meetings._setData({ ...roomData, meetings: [{ ...deadRoom, sourceUpdated: '2026-11-15' }, liveRoom] });
+  return meetings.load().meetings[0].link;
+})(), deadRoom.link);
+meetings.setChecks([]);
+meetings._setData(roomData);
 
 group('the real list, as written');
 const real = JSON.parse(require('fs').readFileSync(path.resolve(__dirname, 'meetings-data.json'), 'utf8'));

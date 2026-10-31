@@ -306,6 +306,21 @@ async function init() {
     CREATE INDEX IF NOT EXISTS deletion_due_idx
       ON deletion_requests (scheduled_for) WHERE status = 'pending';
   `);
+  /* What a person decided after checking a meeting somebody said did not work
+     (see meeting-reviews.js). Keyed by the meeting's link on its listing; the
+     latest row for a link is the one that counts. Never anything about who
+     reported it. */
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS meeting_checks (
+      id         BIGSERIAL PRIMARY KEY,
+      link       TEXT NOT NULL,
+      verdict    TEXT NOT NULL,
+      new_link   TEXT,
+      passcode   TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS meeting_checks_link_idx ON meeting_checks (link, id DESC);
+  `);
   console.log('DB connected — users + activity_days tables ready.');
 }
 
@@ -1276,13 +1291,30 @@ async function getHistory(userId, limit = 40) {
 async function meetingReports(days = 60) {
   if (!enabled) return [];
   const r = await pool.query(
-    `SELECT detail->>'link' AS link, detail->>'what' AS what, created_at
+    `SELECT detail->>'link' AS link, detail->>'what' AS what, detail->>'fix' AS fix, created_at
        FROM account_events
       WHERE event = 'meeting_problem' AND created_at > now() - make_interval(days => $1::int)
       ORDER BY id DESC LIMIT 500`,
     [days]
   );
-  return r.rows.map((x) => ({ link: x.link, what: x.what, at: new Date(x.created_at).toISOString() }));
+  return r.rows.map((x) => ({ link: x.link, what: x.what, fix: x.fix || null, at: new Date(x.created_at).toISOString() }));
+}
+
+/* Every check a person has made on a reported meeting, newest first. */
+async function meetingChecks() {
+  if (!enabled) return [];
+  const r = await pool.query(
+    'SELECT link, verdict, new_link, passcode, created_at FROM meeting_checks ORDER BY id DESC LIMIT 2000'
+  );
+  return r.rows.map((x) => ({ link: x.link, verdict: x.verdict, newLink: x.new_link, passcode: x.passcode, at: new Date(x.created_at).toISOString() }));
+}
+
+async function addMeetingCheck({ link, verdict, newLink = null, passcode = null }) {
+  if (!enabled) return;
+  await pool.query(
+    'INSERT INTO meeting_checks (link, verdict, new_link, passcode) VALUES ($1, $2, $3, $4)',
+    [link, verdict, newLink, passcode]
+  );
 }
 
 /* The sponsor's own replies that went out as voice notes this past week,
@@ -2037,7 +2069,7 @@ async function getFullThread(person) {
 
 module.exports = {
   listConversations, getFullThread, getWeekOverWeek, getCollected, phonesByPerson,
-  getLastMessageAt, recentVoiceReplies, meetingReports, getWeeklyReviewStats,
+  getLastMessageAt, recentVoiceReplies, meetingReports, meetingChecks, addMeetingCheck, getWeeklyReviewStats,
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
   // Exported so the Slack alerts label a signup's source with the SAME rule the
   // dashboard groups on. Two implementations would eventually disagree.

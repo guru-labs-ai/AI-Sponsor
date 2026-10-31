@@ -59,16 +59,52 @@ const OTHERS = {
 const ASKS = /\b(meetings?|zoom|home ?group|online group)\b/i;
 
 let cache = null;
+let fixed = null;
 function load() {
-  if (cache) return cache;
-  try {
-    const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-    if (!Array.isArray(data.meetings) || !data.generatedAt) return null;
-    cache = data;
-    return cache;
-  } catch {
-    return null;
+  if (!cache) {
+    try {
+      const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+      if (!Array.isArray(data.meetings) || !data.generatedAt) return null;
+      cache = data;
+    } catch {
+      return null;
+    }
   }
+  if (![...checks.values()].some((c) => c.verdict === 'fixed')) return cache;
+  if (!fixed) fixed = { ...cache, meetings: cache.meetings.map(withFix) };
+  return fixed;
+}
+
+/* What a person decided after checking a reported meeting (Matt, 30 Oct: "flags
+   it for verification. Once confirmed, we correct or remove the listing").
+   Listing link -> the latest check: { verdict: 'works' | 'gone' | 'fixed',
+   newLink, passcode, at }. Set by server.js from the database. */
+let checks = new Map();
+function setChecks(rows) {
+  const latest = new Map();
+  for (const r of rows || []) {
+    if (!r.link) continue;
+    const had = latest.get(r.link);
+    if (!had || Date.parse(r.at) > Date.parse(had.at)) latest.set(r.link, r);
+  }
+  checks = latest;
+  fixed = null;
+}
+
+/* The listing link stays a meeting's name for reports and checks, whatever
+   link it is offered with now. */
+const listedLink = (m) => m.listed || m.link;
+
+/* New details a person confirmed, laid over the directory's copy so every
+   place that reads a meeting gets them. Once the directory updates its listing
+   after the check, its copy is the newer one and wins. */
+function withFix(m) {
+  const c = checks.get(m.link);
+  if (!c || c.verdict !== 'fixed') return m;
+  if (Date.parse(m.sourceUpdated || '') > Date.parse(c.at)) return m;
+  const link = c.newLink || m.link;
+  const zoomId = (link.match(/\/j\/(\d{9,11})/) || [])[1];
+  return { ...m, listed: m.link, link, meetingId: c.newLink ? zoomId || null : m.meetingId, passcode: c.passcode || m.passcode, fixedOn: c.at };
 }
 
 function asksAboutMeetings(text) {
@@ -707,7 +743,8 @@ function alreadyGiven(text, data) {
      took half of them, three meetings it had just given were not here, and the
      sponsor said it had given them "without them being in front of me". */
   const at = (m) => { const i = t.indexOf(m.link); return i >= 0 ? i : t.length; };
-  return data.meetings.filter((m) => t.includes(m.link) || (m.meetingId && digits.includes(m.meetingId)))
+  // A corrected meeting given before the correction was given with its old link.
+  return data.meetings.filter((m) => t.includes(m.link) || (m.listed && t.includes(m.listed)) || (m.meetingId && digits.includes(m.meetingId)))
     .sort((a, b) => at(a) - at(b)).slice(0, 14);
 }
 
@@ -715,36 +752,51 @@ function alreadyGiven(text, data) {
    so a group that stops meeting or changes its link without updating its
    listing leaves us offering a dead room. When somebody says one did not
    work, the sponsor ends its reply with
-     [[meeting-problem: <link> | <what happened>]]
-   which is taken out here before anyone sees it (Mariam, 27 Oct). */
-const PROBLEM_MARKER = /\[\[\s*meeting-problem\s*:\s*([^|\]]*?)\s*(?:\|\s*([^\]]*?))?\s*\]\]/gi;
+     [[meeting-problem: <link> | <what happened> | <the right details>]]
+   which is taken out here before anyone sees it (Mariam, 27 Oct). The third
+   part is only there when they told it the right link, passcode or time
+   (Matt, 30 Oct), and nobody is offered those until a person has checked them. */
+const PROBLEM_MARKER = /\[\[\s*meeting-problem\s*:\s*([^|\]]*?)\s*(?:\|\s*([^|\]]*?)\s*)?(?:\|\s*([^\]]*?))?\s*\]\]/gi;
 function meetingProblemsIn(reply, data = load()) {
   const problems = [];
-  const clean = String(reply || '').replace(PROBLEM_MARKER, (all, link, what) => {
-    const digits = String(link || '').replace(/\D/g, '');
-    const m = ((data && data.meetings) || []).find((x) => x.link === String(link).trim() || (x.meetingId && digits.includes(x.meetingId)));
-    if (m) problems.push({ link: m.link, name: cleanName(m.name), program: m.program, source: m.source || null, what: String(what || '').trim().slice(0, 200) });
+  const clean = String(reply || '').replace(PROBLEM_MARKER, (all, link, what, fix) => {
+    const given = String(link || '').trim();
+    const digits = given.replace(/\D/g, '');
+    const m = ((data && data.meetings) || []).find((x) => x.link === given || x.listed === given || (x.meetingId && digits.includes(x.meetingId)));
+    if (m) problems.push({ link: listedLink(m), name: cleanName(m.name), program: m.program, source: m.source || null, what: String(what || '').trim().slice(0, 200), fix: String(fix || '').trim().slice(0, 300) || null });
     return '';
   }).replace(/[ \t]+\n/g, '\n').trim();
   return { clean, problems };
 }
 
-/* Which links not to offer: reported in the last 60 days, and its listing not
-   updated in its directory since (the group may have fixed it). Link ->
-   { day, what }. */
+/* Which links not to offer, by listing link -> { day, what }:
+   - reported in the last 60 days and nobody has checked it since, while it
+     waits for a person to look
+   - checked and found to have stopped, for good
+   Either way only until its listing is updated in its directory (the group may
+   have fixed it). Checked and working, or checked with new details, it is
+   offered again. */
 const REPORT_DAYS = 60;
-function hiddenFrom(reports, now = Date.now(), data = load()) {
+function hiddenFrom(reports, now = Date.now(), data = load(), checked = checks) {
   const updated = new Map();
   for (const m of (data && data.meetings) || []) {
     const t = Date.parse(m.sourceUpdated || '');
-    if (!Number.isNaN(t)) updated.set(m.link, Math.max(updated.get(m.link) || 0, t));
+    if (!Number.isNaN(t)) updated.set(listedLink(m), Math.max(updated.get(listedLink(m)) || 0, t));
   }
+  const day = (at) => new Date(at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' });
   const out = new Map();
   for (const r of reports || []) {
     const at = Date.parse(r.at);
     if (!r.link || Number.isNaN(at) || now - at > REPORT_DAYS * 86400000) continue;
     if ((updated.get(r.link) || 0) > at) continue;
-    out.set(r.link, { day: new Date(at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' }), what: r.what || '' });
+    const c = checked.get(r.link);
+    if (c && Date.parse(c.at) >= at) continue;
+    out.set(r.link, { day: day(at), what: r.what || '' });
+  }
+  for (const [link, c] of checked) {
+    const at = Date.parse(c.at);
+    if (c.verdict !== 'gone' || out.has(link) || (updated.get(link) || 0) > at) continue;
+    out.set(link, { day: day(at), what: 'checked, it has stopped' });
   }
   return out;
 }
@@ -904,7 +956,7 @@ function buildMeetingsBlock({ message, programField, userZone, zoneTold = false,
       }
     }
     // Meetings somebody said did not work are not offered (see hiddenFrom).
-    const offerable = reported.size ? { ...data, meetings: data.meetings.filter((m) => !reported.has(m.link)) } : data;
+    const offerable = reported.size ? { ...data, meetings: data.meetings.filter((m) => !reported.has(listedLink(m))) } : data;
     const { lists, counts } = upcoming(fresh, now, offerable, userZone, ask);
     const held = (p) => data.meetings.filter((m) => m.program === p).length.toLocaleString('en-US');
     const lines = [];
@@ -926,7 +978,7 @@ function buildMeetingsBlock({ message, programField, userZone, zoneTold = false,
       .map((m) => ({ m, at: starts(m, now - 3 * 3600000).filter((t) => t <= now).pop() || nextStart(m, now) }))
       .filter(({ m, at }) => at && !listed.has(`${m.id}@${at}`));
     const givenLines = given.map(({ m, at }) => meetingLine(m, at, userZone, now, ask.zone)
-      + (reported.has(m.link) ? ` | someone told us on ${reported.get(m.link).day} it did not work: offer another` : ''));
+      + (reported.has(listedLink(m)) ? ` | someone told us on ${reported.get(listedLink(m)).day} it did not work: offer another` : ''));
     /* Asked for women's (or men's) meetings with none new in front of it, it
        said "a few more women's ACA" over meetings open to everyone (26 Oct
        replay). Whether any are women-only is a fact, so it is stated. */
@@ -990,8 +1042,10 @@ function buildMeetingsBlock({ message, programField, userZone, zoneTold = false,
       '- You hold every meeting in the count, and the picks here are only some of them. If they ask for all of them or for more, say how many there are, give the picks here, and offer more by narrowing the time (or the official finder). Never give none, and never say the picks are all you have, that you are not holding more, or that your list is only a working set.',
       '- If what they want is not here (another day, a later or earlier time, a women\'s or men\'s meeting) and no count above says none, never say there is none, that your list ends tomorrow, or that you hold nothing later, and never call the ones you give all you have: you hold meetings for every day of the coming week, and these are only a few. Say you\'ll look, and ask them for the day and time in one line (for example "Tell me the day and time, like Saturday after 8pm, and I\'ll look"). You can give the official finder as well.',
       '- Copy the name, time, link and passcode exactly as written here, and how soon it starts. Never change, shorten or make up a link, a time, a passcode or a meeting, and never offer one that is not on this list.',
+      // Matt, 30 Oct: people tell us about a dead meeting when they are asked to.
+      '- Whenever you give them meetings, end that reply with one short line asking them to tell you if one has ended, its link is broken or a detail is wrong, so it can be fixed (for example "If one has ended, the link is broken or a detail is wrong, just tell me here so we can fix it."). One line, in your own words, after the meetings.',
       '- Every time here already allows for clock changes. The date and UTC offset in each meeting\'s own zone, and any clock change, are written here: use them as written. Never work out a date, offset, clock change or time difference yourself, never name a clock-change date that is not written here, and never say a time may be an hour out because of a clock change. If they ask about a zone or date not written here, say you will check and ask which meeting or day they mean.',
-      '- If they tell you a meeting you gave them did not work (the link would not open, the passcode was wrong, nobody was there, it said the meeting does not exist or has ended), say sorry plainly, give them another one from here, and put [[meeting-problem: <that meeting\'s link exactly as written here> | <what happened, in a few words>]] at the very end of your reply. It is taken out before they see it, and it tells the team to check that listing. Only for a meeting you gave them, and only when they say it did not work.',
+      '- If they tell you a meeting you gave them did not work (the link would not open, the passcode was wrong, nobody was there, it said the meeting does not exist or has ended) or that a detail of it is wrong, say sorry plainly, give them another one from here if they still need one, and put [[meeting-problem: <that meeting\'s link exactly as written here> | <what happened, in a few words> | <the right link, passcode, day or time, copied exactly as they wrote it>]] at the very end of your reply. Leave out the last part unless they told you the right details. It is taken out before they see it, and it tells the team to check that listing. If they gave you the right details, thank them and say the team will check them and update the listing. Only for a meeting you gave them, and only when they say it did not work or is wrong.',
       '- Never take back or "correct" a meeting you gave earlier in this chat because it is not in front of you now: every one you gave came from these official listings. If they ask about one you cannot see here, say you will look it up and ask for its name or day.',
       '- A meeting\'s name can contain a day, time or time zone (for example "Daily 9:00 PM PST"). That is part of its name, in the meeting\'s own time zone, never its time for them.',
       `- If they question a meeting, do not take it back: every detail here was on its official listing when it was checked on ${checked}. Never say you cannot verify it, that it is unconfirmed, or that you should not have shared it. Give them its source link, its listed day and time, and that date. Not finding a detail on the listing does not make it wrong: listings often write a meeting ID with spaces (819 9042 4358), and some sources are a directory page where they search for the meeting by name, so tell them that. When a line gives a meeting # on its listing, that number is the directory's own reference for the meeting, and its source link opens that one meeting: give both when they ask where a meeting comes from. A Zoom meeting ID is Zoom's, never the directory's reference. Only if they say the listing now shows something different (another day, time, link or passcode) do you thank them, go with the listing, and point them to the official finder.`,
@@ -1013,7 +1067,7 @@ function buildMeetingsBlock({ message, programField, userZone, zoneTold = false,
 module.exports = {
   buildMeetingsBlock, asksAboutMeetings, programsOf, programsIn, nextStart, starts, describeWhen, instantFor,
   cleanName, weekdaysIn, alreadyGiven, startsIn, timeWindowIn, genderAsked, askIn, datesIn, namedIn, zoneIn,
-  meetingProblemsIn, hiddenFrom, REPORT_DAYS,
+  meetingProblemsIn, hiddenFrom, REPORT_DAYS, setChecks, load, listedLink,
   offsetMinutes, utcLabel, clockChanges, STALE_AFTER_DAYS, PROGRAMS, OTHERS, othersIn,
-  _setData(d) { cache = d; },
+  _setData(d) { cache = d; fixed = null; },
 };

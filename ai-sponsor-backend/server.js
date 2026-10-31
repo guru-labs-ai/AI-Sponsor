@@ -12,6 +12,7 @@ const metacapi = require('./metacapi'); // real payments → Meta Conversions AP
 const ga4 = require('./ga4');           // real payments → GA4 Measurement Protocol
 const viewer = require('./viewer'); // admin-only conversation viewer at /admin
 const status = require('./status'); // "is anything broken" page at /status
+const meetingReviews = require('./meeting-reviews'); // checking reported meetings at /meeting-reports
 const phonerules = require('./phonerules'); // is this a real number in that country
 const countries = require('./countries'); // phone prefix -> country and US state
 const trialnotice = require('./trialnotice'); // the "your trial ends" WhatsApp notice
@@ -95,6 +96,13 @@ app.use('/admin', viewer.router);
    set. The master prompt is handed over because status.js cannot require this
    file back without a cycle. */
 app.use('/status', status.router);
+
+/* Where a person checks a meeting somebody said did not work, and saves that
+   it works, has stopped, or has new details (see meeting-reviews.js). 404s
+   unless MEETING_REVIEW_KEY or VIEWER_KEY is set. */
+app.use(meetingReviews.PATH, meetingReviews.router);
+// A check saved there counts from the next reply, not in five minutes.
+meetingReviews.setOnChange(() => { meetingReportsCache.at = 0; return meetingReportsCached(); });
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -1773,7 +1781,10 @@ const meetingReportsCache = { at: 0, rows: [] };
 async function meetingReportsCached() {
   if (!db.enabled || Date.now() - meetingReportsCache.at < 5 * 60000) return meetingReportsCache.rows;
   try {
-    meetingReportsCache.rows = await db.meetingReports(meetings.REPORT_DAYS);
+    const [rows, checked] = await Promise.all([db.meetingReports(meetings.REPORT_DAYS), db.meetingChecks()]);
+    meetingReportsCache.rows = rows;
+    // What a person decided after checking one (see meeting-reviews.js).
+    meetings.setChecks(checked);
     meetingReportsCache.at = Date.now();
   } catch (e) {
     console.warn('[meetings] reports not read:', e.message);
@@ -2069,9 +2080,10 @@ async function getSponsorReply(userId, message, context) {
   rawReply = reportedNow.clean;
   for (const p of reportedNow.problems) {
     console.log(`[meetings] reported not working: ${p.program} "${p.name}"`);
-    db.recordEvent(userId, 'meeting_problem', { link: p.link, name: p.name, program: p.program, what: p.what }, context && context.channel)
+    db.recordEvent(userId, 'meeting_problem', { link: p.link, name: p.name, program: p.program, what: p.what, fix: p.fix }, context && context.channel)
       .then(() => { meetingReportsCache.at = 0; })
       .catch((e) => console.warn('[meetings] report not recorded:', e.message));
+    p.checkLink = meetingReviews.link();
     alerts.meetingProblem(p);
   }
 
