@@ -1,16 +1,16 @@
 {
- "generatedAt": "2026-10-26T19:59:18.013Z",
+ "generatedAt": "2026-11-02T13:40:15.164Z",
  "checked": {
-  "DA": "2026-10-26T19:59:18.013Z",
-  "BDA": "2026-10-26T19:59:18.013Z",
-  "NA": "2026-10-26T19:59:18.013Z",
-  "OA": "2026-10-26T19:59:18.013Z",
-  "SLAA": "2026-10-26T19:59:18.013Z",
-  "WA": "2026-10-26T19:59:18.013Z",
-  "AA": "2026-10-26T19:59:18.013Z",
-  "Al-Anon": "2026-10-26T19:59:18.013Z",
-  "ACA": "2026-10-26T19:59:18.013Z",
-  "UA": "2026-10-26T19:59:18.013Z"
+  "DA": "2026-11-02T13:40:15.164Z",
+  "BDA": "2026-11-02T13:40:15.164Z",
+  "NA": "2026-11-02T13:40:15.164Z",
+  "OA": "2026-11-02T13:40:15.164Z",
+  "SLAA": "2026-11-02T13:40:15.164Z",
+  "WA": "2026-11-02T13:40:15.164Z",
+  "AA": "2026-11-02T13:40:15.164Z",
+  "Al-Anon": "2026-11-02T13:40:15.164Z",
+  "ACA": "2026-11-02T13:40:15.164Z",
+  "UA": "2026-11-02T13:40:15.164Z"
  },
  "rules": "weekly, online with a direct Zoom link and a known passcode, English, no ask-for-access, not a service meeting, listing updated within 730 days (Al-Anon publishes no such date)",
  "meetings": [
@@ -680,63 +680,6 @@
    "sourceUpdated": "2024-11-19"
   },
   {
-   "id": "aa-123-spirit-of-the-universe-aa-11",
-   "program": "AA",
-   "name": "SPIRIT OF THE UNIVERSE A.A.",
-   "days": [
-    3
-   ],
-   "start": "22:00",
-   "end": null,
-   "zone": "America/New_York",
-   "link": "https://us02web.zoom.us/j/7725404263",
-   "meetingId": "7725404263",
-   "passcode": "123123",
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://aa-intergroup.org/meetings/123-spirit-of-the-universe-aa-11",
-   "sourceUpdated": "2024-10-28"
-  },
-  {
-   "id": "aa-123-spirit-of-the-universe-aa-15",
-   "program": "AA",
-   "name": "SPIRIT OF THE UNIVERSE A.A.",
-   "days": [
-    4
-   ],
-   "start": "22:00",
-   "end": null,
-   "zone": "America/New_York",
-   "link": "https://us02web.zoom.us/j/7725404263",
-   "meetingId": "7725404263",
-   "passcode": "123123",
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://aa-intergroup.org/meetings/123-spirit-of-the-universe-aa-15",
-   "sourceUpdated": "2024-10-28"
-  },
-  {
-   "id": "aa-123-spirit-of-the-universe-aa-19",
-   "program": "AA",
-   "name": "SPIRIT OF THE UNIVERSE A.A.",
-   "days": [
-    5
-   ],
-   "start": "22:00",
-   "end": null,
-   "zone": "America/New_York",
-   "link": "https://us02web.zoom.us/j/7725404263",
-   "meetingId": "7725404263",
-   "passcode": "123123",
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://aa-intergroup.org/meetings/123-spirit-of-the-universe-aa-19",
-   "sourceUpdated": "2024-10-28"
-  },
-  {
    "id": "aa-123-spirit-of-the-universe-aa-21",
    "program": "AA",
    "name": "SPIRIT OF THE UNIVERSE A.A.",
@@ -754,82 +697,6 @@
    "focus": "",
    "source": "https://aa-intergroup.org/meetings/123-spirit-of-the-universe-aa-21",
    "sourceUpdated": "2026-09-15"
-  },
-  {
-   "id": "aa-123-spirit-of-the-universe-aa-23",
-   "program": "AA",
-   "name": "SPIRIT OF THE UNIVERSE A.A.",
-   "days": [
-    6
-   ],
-   "start": "22:00",
-   "end": null,
-   "zone": "America/New_York",
-   "link": "https://us02web.zoom.us/j/7725404263",
-   "meetingId": "7725404263",
-   "passcode": "123123",
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://aa-intergroup.org/meetings/123-spirit-of-the-universe-aa-23",
-   "sourceUpdated": "2024-10-28"
-  },
-  {
-   "id": "aa-123-spirit-of-the-universe-aa-27",
-   "program": "AA",
-   "name": "SPIRIT OF THE UNIVERSE A.A.",
-   "days": [
-    0
-   ],
-   "start": "22:00",
-   "end": null,
-   "zone": "America/New_York",
-   "link": "https://us02web.zoom.us/j/7725404263",
-   "meetingId": "7725404263",
-   "passcode": "123123",
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://aa-intergroup.org/meetings/123-spirit-of-the-universe-aa-27",
-   "sourceUpdated": "2024-10-28"
-  },
-  {
-   "id": "aa-123-spirit-of-the-universe-aa-3",
-   "program": "AA",
-   "name": "SPIRIT OF THE UNIVERSE A.A.",
-   "days": [
-    1
-   ],
-   "start": "22:00",
-   "end": null,
-   "zone": "America/New_York",
-   "link": "https://us02web.zoom.us/j/7725404263",
-   "meetingId": "7725404263",
-   "passcode": "123123",
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://aa-intergroup.org/meetings/123-spirit-of-the-universe-aa-3",
-   "sourceUpdated": "2024-10-28"
-  },
-  {
-   "id": "aa-123-spirit-of-the-universe-aa-7",
-   "program": "AA",
-   "name": "SPIRIT OF THE UNIVERSE A.A.",
-   "days": [
-    2
-   ],
-   "start": "22:00",
-   "end": null,
-   "zone": "America/New_York",
-   "link": "https://us02web.zoom.us/j/7725404263",
-   "meetingId": "7725404263",
-   "passcode": "123123",
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://aa-intergroup.org/meetings/123-spirit-of-the-universe-aa-7",
-   "sourceUpdated": "2024-10-28"
   },
   {
    "id": "aa-1939-aa-big-book-study",
@@ -7178,6 +7045,139 @@
    "sourceUpdated": "2025-12-22"
   },
   {
+   "id": "aa-agnostics-for-all-aa-group",
+   "program": "AA",
+   "name": "AGNOSTICS FOR ALL AA GROUP",
+   "days": [
+    0
+   ],
+   "start": "22:00",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/89506974496?pwd=Tsy4rP9hSKjmsWXgJ8OcincDbofe8F.1",
+   "meetingId": "89506974496",
+   "passcode": null,
+   "access": "open",
+   "who": null,
+   "focus": "",
+   "source": "https://aa-intergroup.org/meetings/agnostics-for-all-aa-group",
+   "sourceUpdated": "2026-10-31"
+  },
+  {
+   "id": "aa-agnostics-for-all-aa-group-1",
+   "program": "AA",
+   "name": "AGNOSTICS FOR ALL AA GROUP",
+   "days": [
+    1
+   ],
+   "start": "22:00",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/89506974496?pwd=Tsy4rP9hSKjmsWXgJ8OcincDbofe8F.1",
+   "meetingId": "89506974496",
+   "passcode": null,
+   "access": "open",
+   "who": null,
+   "focus": "",
+   "source": "https://aa-intergroup.org/meetings/agnostics-for-all-aa-group-1",
+   "sourceUpdated": "2026-10-31"
+  },
+  {
+   "id": "aa-agnostics-for-all-aa-group-2",
+   "program": "AA",
+   "name": "AGNOSTICS FOR ALL AA GROUP",
+   "days": [
+    2
+   ],
+   "start": "22:00",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/89506974496?pwd=Tsy4rP9hSKjmsWXgJ8OcincDbofe8F.1",
+   "meetingId": "89506974496",
+   "passcode": null,
+   "access": "open",
+   "who": null,
+   "focus": "",
+   "source": "https://aa-intergroup.org/meetings/agnostics-for-all-aa-group-2",
+   "sourceUpdated": "2026-10-31"
+  },
+  {
+   "id": "aa-agnostics-for-all-aa-group-3",
+   "program": "AA",
+   "name": "AGNOSTICS FOR ALL AA GROUP",
+   "days": [
+    3
+   ],
+   "start": "22:00",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/89506974496?pwd=Tsy4rP9hSKjmsWXgJ8OcincDbofe8F.1",
+   "meetingId": "89506974496",
+   "passcode": null,
+   "access": "open",
+   "who": null,
+   "focus": "",
+   "source": "https://aa-intergroup.org/meetings/agnostics-for-all-aa-group-3",
+   "sourceUpdated": "2026-10-31"
+  },
+  {
+   "id": "aa-agnostics-for-all-aa-group-4",
+   "program": "AA",
+   "name": "AGNOSTICS FOR ALL AA GROUP",
+   "days": [
+    4
+   ],
+   "start": "22:00",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/89506974496?pwd=Tsy4rP9hSKjmsWXgJ8OcincDbofe8F.1",
+   "meetingId": "89506974496",
+   "passcode": null,
+   "access": "open",
+   "who": null,
+   "focus": "",
+   "source": "https://aa-intergroup.org/meetings/agnostics-for-all-aa-group-4",
+   "sourceUpdated": "2026-10-31"
+  },
+  {
+   "id": "aa-agnostics-for-all-aa-group-5",
+   "program": "AA",
+   "name": "AGNOSTICS FOR ALL AA GROUP",
+   "days": [
+    5
+   ],
+   "start": "22:00",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/89506974496?pwd=Tsy4rP9hSKjmsWXgJ8OcincDbofe8F.1",
+   "meetingId": "89506974496",
+   "passcode": null,
+   "access": "open",
+   "who": null,
+   "focus": "",
+   "source": "https://aa-intergroup.org/meetings/agnostics-for-all-aa-group-5",
+   "sourceUpdated": "2026-10-31"
+  },
+  {
+   "id": "aa-agnostics-for-all-aa-group-6",
+   "program": "AA",
+   "name": "AGNOSTICS FOR ALL AA GROUP",
+   "days": [
+    6
+   ],
+   "start": "22:00",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/89506974496?pwd=Tsy4rP9hSKjmsWXgJ8OcincDbofe8F.1",
+   "meetingId": "89506974496",
+   "passcode": null,
+   "access": "open",
+   "who": null,
+   "focus": "",
+   "source": "https://aa-intergroup.org/meetings/agnostics-for-all-aa-group-6",
+   "sourceUpdated": "2026-10-31"
+  },
+  {
    "id": "aa-agoura-morning-zone-1",
    "program": "AA",
    "name": "Agoura Morning Zone",
@@ -10482,6 +10482,25 @@
    "focus": "",
    "source": "https://aa-intergroup.org/meetings/depth-and-weight",
    "sourceUpdated": "2026-02-04"
+  },
+  {
+   "id": "aa-depth-weight-meeting-of-celebration-florida",
+   "program": "AA",
+   "name": "Depth & Weight Meeting of Celebration Florida",
+   "days": [
+    0
+   ],
+   "start": "16:00",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/5122332399",
+   "meetingId": "5122332399",
+   "passcode": "29375",
+   "access": "open",
+   "who": null,
+   "focus": "",
+   "source": "https://aa-intergroup.org/meetings/depth-weight-meeting-of-celebration-florida",
+   "sourceUpdated": "2026-10-28"
   },
   {
    "id": "aa-desert-island-recovery-9",
@@ -19211,7 +19230,7 @@
    "days": [
     0
    ],
-   "start": "20:00",
+   "start": "19:00",
    "end": null,
    "zone": "America/New_York",
    "link": "https://us06web.zoom.us/j/85084064244?pwd=XnFf1ZMViU9UbxK3iyQkClWZr15RZK.1",
@@ -19221,7 +19240,7 @@
    "who": null,
    "focus": "",
    "source": "https://aa-intergroup.org/meetings/new-beginnings-aa-group",
-   "sourceUpdated": "2026-08-19"
+   "sourceUpdated": "2026-10-27"
   },
   {
    "id": "aa-new-beginnings-aa-group-1",
@@ -19230,7 +19249,7 @@
    "days": [
     1
    ],
-   "start": "20:00",
+   "start": "19:00",
    "end": null,
    "zone": "America/New_York",
    "link": "https://us06web.zoom.us/j/85084064244?pwd=XnFf1ZMViU9UbxK3iyQkClWZr15RZK.1",
@@ -19240,7 +19259,7 @@
    "who": null,
    "focus": "",
    "source": "https://aa-intergroup.org/meetings/new-beginnings-aa-group-1",
-   "sourceUpdated": "2026-08-19"
+   "sourceUpdated": "2026-10-27"
   },
   {
    "id": "aa-new-beginnings-aa-group-2",
@@ -20915,25 +20934,6 @@
    "sourceUpdated": "2025-02-04"
   },
   {
-   "id": "aa-og-bad-brains",
-   "program": "AA",
-   "name": "OG Bad Brains",
-   "days": [
-    3
-   ],
-   "start": "20:00",
-   "end": null,
-   "zone": "America/New_York",
-   "link": "https://us02web.zoom.us/j/86520161767?pwd=S2hCaXM2bnlkSmxmVWpvWDZRcXhGQT09",
-   "meetingId": "86520161767",
-   "passcode": null,
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://aa-intergroup.org/meetings/og-bad-brains",
-   "sourceUpdated": "2024-10-31"
-  },
-  {
    "id": "aa-on-awakening-23",
    "program": "AA",
    "name": "On Awakening",
@@ -21257,25 +21257,6 @@
    "sourceUpdated": "2025-12-22"
   },
   {
-   "id": "aa-one-meeting-at-a-time-in-napa",
-   "program": "AA",
-   "name": "One Meeting at a Time in Napa",
-   "days": [
-    3
-   ],
-   "start": "20:00",
-   "end": null,
-   "zone": "America/Los_Angeles",
-   "link": "https://us02web.zoom.us/j/85094624288?pwd=bzFmRFlKYXJFcUs4N2QwUHoveXVadz09",
-   "meetingId": "85094624288",
-   "passcode": null,
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://aa-intergroup.org/meetings/one-meeting-at-a-time-in-napa",
-   "sourceUpdated": "2024-10-31"
-  },
-  {
    "id": "aa-one-step-beyond",
    "program": "AA",
    "name": "One Step Beyond",
@@ -21445,6 +21426,25 @@
    "focus": "",
    "source": "https://aa-intergroup.org/meetings/online-12-step-recovery-where-and-when-group-6",
    "sourceUpdated": "2026-10-05"
+  },
+  {
+   "id": "aa-online-dig",
+   "program": "AA",
+   "name": "Online DIG",
+   "days": [
+    2
+   ],
+   "start": "20:00",
+   "end": null,
+   "zone": "Europe/Berlin",
+   "link": "https://us02web.zoom.us/j/89160318549?pwd=ekxuOGYrcWxYY3kwME5QYll1OThJZz09",
+   "meetingId": "89160318549",
+   "passcode": null,
+   "access": "closed",
+   "who": null,
+   "focus": "",
+   "source": "https://aa-intergroup.org/meetings/online-dig",
+   "sourceUpdated": "2026-10-27"
   },
   {
    "id": "aa-online-only-requirement-beginner-meeting",
@@ -23423,6 +23423,139 @@
    "sourceUpdated": "2025-07-06"
   },
   {
+   "id": "aa-rise-and-recover",
+   "program": "AA",
+   "name": "Rise and Recover Women's Meeting",
+   "days": [
+    0
+   ],
+   "start": "08:30",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/85600522318?pwd=LAAfYN6mSiY5G7TOb0EQWMEl6F3wW1.1",
+   "meetingId": "85600522318",
+   "passcode": null,
+   "access": "open",
+   "who": "women",
+   "focus": "",
+   "source": "https://aa-intergroup.org/meetings/rise-and-recover",
+   "sourceUpdated": "2026-10-30"
+  },
+  {
+   "id": "aa-rise-and-recover-1",
+   "program": "AA",
+   "name": "Rise and Recover Women's Meeting",
+   "days": [
+    1
+   ],
+   "start": "08:30",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/85600522318?pwd=LAAfYN6mSiY5G7TOb0EQWMEl6F3wW1.1",
+   "meetingId": "85600522318",
+   "passcode": null,
+   "access": "open",
+   "who": "women",
+   "focus": "",
+   "source": "https://aa-intergroup.org/meetings/rise-and-recover-1",
+   "sourceUpdated": "2026-10-30"
+  },
+  {
+   "id": "aa-rise-and-recover-2",
+   "program": "AA",
+   "name": "Rise and Recover Women's Meeting",
+   "days": [
+    2
+   ],
+   "start": "08:30",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/85600522318?pwd=LAAfYN6mSiY5G7TOb0EQWMEl6F3wW1.1",
+   "meetingId": "85600522318",
+   "passcode": null,
+   "access": "open",
+   "who": "women",
+   "focus": "",
+   "source": "https://aa-intergroup.org/meetings/rise-and-recover-2",
+   "sourceUpdated": "2026-10-30"
+  },
+  {
+   "id": "aa-rise-and-recover-3",
+   "program": "AA",
+   "name": "Rise and Recover Women's Meeting",
+   "days": [
+    3
+   ],
+   "start": "08:30",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/85600522318?pwd=LAAfYN6mSiY5G7TOb0EQWMEl6F3wW1.1",
+   "meetingId": "85600522318",
+   "passcode": null,
+   "access": "open",
+   "who": "women",
+   "focus": "",
+   "source": "https://aa-intergroup.org/meetings/rise-and-recover-3",
+   "sourceUpdated": "2026-10-30"
+  },
+  {
+   "id": "aa-rise-and-recover-4",
+   "program": "AA",
+   "name": "Rise and Recover Women's Meeting",
+   "days": [
+    4
+   ],
+   "start": "08:30",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/85600522318?pwd=LAAfYN6mSiY5G7TOb0EQWMEl6F3wW1.1",
+   "meetingId": "85600522318",
+   "passcode": null,
+   "access": "open",
+   "who": "women",
+   "focus": "",
+   "source": "https://aa-intergroup.org/meetings/rise-and-recover-4",
+   "sourceUpdated": "2026-10-30"
+  },
+  {
+   "id": "aa-rise-and-recover-5",
+   "program": "AA",
+   "name": "Rise and Recover Women's Meeting",
+   "days": [
+    5
+   ],
+   "start": "08:30",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/85600522318?pwd=LAAfYN6mSiY5G7TOb0EQWMEl6F3wW1.1",
+   "meetingId": "85600522318",
+   "passcode": null,
+   "access": "open",
+   "who": "women",
+   "focus": "",
+   "source": "https://aa-intergroup.org/meetings/rise-and-recover-5",
+   "sourceUpdated": "2026-10-30"
+  },
+  {
+   "id": "aa-rise-and-recover-6",
+   "program": "AA",
+   "name": "Rise and Recover Women's Meeting",
+   "days": [
+    6
+   ],
+   "start": "08:30",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/85600522318?pwd=LAAfYN6mSiY5G7TOb0EQWMEl6F3wW1.1",
+   "meetingId": "85600522318",
+   "passcode": null,
+   "access": "open",
+   "who": "women",
+   "focus": "",
+   "source": "https://aa-intergroup.org/meetings/rise-and-recover-6",
+   "sourceUpdated": "2026-10-30"
+  },
+  {
    "id": "aa-roar-group-of-alcoholics-anonymous",
    "program": "AA",
    "name": "ROAR Group of Alcoholics Anonymous",
@@ -24143,6 +24276,25 @@
    "focus": "",
    "source": "https://aa-intergroup.org/meetings/serenity-on-sunday-womens-meeting",
    "sourceUpdated": "2024-11-24"
+  },
+  {
+   "id": "aa-serenity-sisters-1",
+   "program": "AA",
+   "name": "Serenity Sisters",
+   "days": [
+    0
+   ],
+   "start": "12:00",
+   "end": null,
+   "zone": "America/Halifax",
+   "link": "https://zoom.us/j/87384191757",
+   "meetingId": "87384191757",
+   "passcode": "261479",
+   "access": "closed",
+   "who": "women",
+   "focus": "",
+   "source": "https://aa-intergroup.org/meetings/serenity-sisters-1",
+   "sourceUpdated": "2026-10-31"
   },
   {
    "id": "aa-shantytown-underground",
@@ -25473,25 +25625,6 @@
    "focus": "",
    "source": "https://aa-intergroup.org/meetings/sober-collective-6",
    "sourceUpdated": "2026-05-29"
-  },
-  {
-   "id": "aa-sober-moms-aa-womens-group",
-   "program": "AA",
-   "name": "Sober Moms - A.A. Women's Group",
-   "days": [
-    0
-   ],
-   "start": "21:00",
-   "end": null,
-   "zone": "America/New_York",
-   "link": "https://us02web.zoom.us/j/83670450603?pwd=cnRpemI4SUl3RjhsMWN3dWVkblptQT09",
-   "meetingId": "83670450603",
-   "passcode": null,
-   "access": "open",
-   "who": "women",
-   "focus": "",
-   "source": "https://aa-intergroup.org/meetings/sober-moms-aa-womens-group",
-   "sourceUpdated": "2024-10-28"
   },
   {
    "id": "aa-sober-moms-aa-womens-group-1",
@@ -27014,139 +27147,6 @@
    "sourceUpdated": "2026-06-25"
   },
   {
-   "id": "aa-step-11-daily-meditation-and-prayer-meeting",
-   "program": "AA",
-   "name": "Step 11 Daily Meditation and Prayer Meeting",
-   "days": [
-    0
-   ],
-   "start": "05:30",
-   "end": null,
-   "zone": "Africa/Johannesburg",
-   "link": "https://us06web.zoom.us/j/85479503213?pwd=EEPLIFbu9ItAATLqrVpnxd0QePIiAr.1",
-   "meetingId": "85479503213",
-   "passcode": null,
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://aa-intergroup.org/meetings/step-11-daily-meditation-and-prayer-meeting",
-   "sourceUpdated": "2024-10-31"
-  },
-  {
-   "id": "aa-step-11-daily-meditation-and-prayer-meeting-1",
-   "program": "AA",
-   "name": "Step 11 Daily Meditation and Prayer Meeting",
-   "days": [
-    1
-   ],
-   "start": "05:30",
-   "end": null,
-   "zone": "Africa/Johannesburg",
-   "link": "https://us06web.zoom.us/j/85479503213?pwd=EEPLIFbu9ItAATLqrVpnxd0QePIiAr.1",
-   "meetingId": "85479503213",
-   "passcode": null,
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://aa-intergroup.org/meetings/step-11-daily-meditation-and-prayer-meeting-1",
-   "sourceUpdated": "2024-10-31"
-  },
-  {
-   "id": "aa-step-11-daily-meditation-and-prayer-meeting-2",
-   "program": "AA",
-   "name": "Step 11 Daily Meditation and Prayer Meeting",
-   "days": [
-    3
-   ],
-   "start": "05:30",
-   "end": null,
-   "zone": "Africa/Johannesburg",
-   "link": "https://us06web.zoom.us/j/85479503213?pwd=EEPLIFbu9ItAATLqrVpnxd0QePIiAr.1",
-   "meetingId": "85479503213",
-   "passcode": null,
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://aa-intergroup.org/meetings/step-11-daily-meditation-and-prayer-meeting-2",
-   "sourceUpdated": "2024-10-31"
-  },
-  {
-   "id": "aa-step-11-daily-meditation-and-prayer-meeting-3",
-   "program": "AA",
-   "name": "Step 11 Daily Meditation and Prayer Meeting",
-   "days": [
-    2
-   ],
-   "start": "05:30",
-   "end": null,
-   "zone": "Africa/Johannesburg",
-   "link": "https://us06web.zoom.us/j/85479503213?pwd=EEPLIFbu9ItAATLqrVpnxd0QePIiAr.1",
-   "meetingId": "85479503213",
-   "passcode": null,
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://aa-intergroup.org/meetings/step-11-daily-meditation-and-prayer-meeting-3",
-   "sourceUpdated": "2024-10-31"
-  },
-  {
-   "id": "aa-step-11-daily-meditation-and-prayer-meeting-4",
-   "program": "AA",
-   "name": "Step 11 Daily Meditation and Prayer Meeting",
-   "days": [
-    4
-   ],
-   "start": "05:30",
-   "end": null,
-   "zone": "Africa/Johannesburg",
-   "link": "https://us06web.zoom.us/j/85479503213?pwd=EEPLIFbu9ItAATLqrVpnxd0QePIiAr.1",
-   "meetingId": "85479503213",
-   "passcode": null,
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://aa-intergroup.org/meetings/step-11-daily-meditation-and-prayer-meeting-4",
-   "sourceUpdated": "2024-10-31"
-  },
-  {
-   "id": "aa-step-11-daily-meditation-and-prayer-meeting-5",
-   "program": "AA",
-   "name": "Step 11 Daily Meditation and Prayer Meeting",
-   "days": [
-    5
-   ],
-   "start": "05:30",
-   "end": null,
-   "zone": "Africa/Johannesburg",
-   "link": "https://us06web.zoom.us/j/85479503213?pwd=EEPLIFbu9ItAATLqrVpnxd0QePIiAr.1",
-   "meetingId": "85479503213",
-   "passcode": null,
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://aa-intergroup.org/meetings/step-11-daily-meditation-and-prayer-meeting-5",
-   "sourceUpdated": "2024-10-31"
-  },
-  {
-   "id": "aa-step-11-daily-meditation-and-prayer-meeting-6",
-   "program": "AA",
-   "name": "Step 11 Daily Meditation and Prayer Meeting",
-   "days": [
-    6
-   ],
-   "start": "05:30",
-   "end": null,
-   "zone": "Africa/Johannesburg",
-   "link": "https://us06web.zoom.us/j/85479503213?pwd=EEPLIFbu9ItAATLqrVpnxd0QePIiAr.1",
-   "meetingId": "85479503213",
-   "passcode": null,
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://aa-intergroup.org/meetings/step-11-daily-meditation-and-prayer-meeting-6",
-   "sourceUpdated": "2024-10-31"
-  },
-  {
    "id": "aa-step-sisters-10",
    "program": "AA",
    "name": "Step Sisters",
@@ -28597,7 +28597,7 @@
    "days": [
     1
    ],
-   "start": "20:30",
+   "start": "20:00",
    "end": null,
    "zone": "America/New_York",
    "link": "https://us02web.zoom.us/j/83413660985",
@@ -28607,7 +28607,7 @@
    "who": null,
    "focus": "",
    "source": "https://aa-intergroup.org/meetings/the-firing-line",
-   "sourceUpdated": "2026-01-31"
+   "sourceUpdated": "2026-10-27"
   },
   {
    "id": "aa-the-heal-room",
@@ -34379,7 +34379,7 @@
    "focus": "Discussion",
    "source": "https://adultchildren.org/meeting-search/?meeting=MI146",
    "listingNumber": "MI146",
-   "sourceUpdated": "2026-02-18"
+   "sourceUpdated": "2026-10-30"
   },
   {
    "id": "aca-2436-1-1830",
@@ -34702,26 +34702,6 @@
    "sourceUpdated": "2024-12-18"
   },
   {
-   "id": "aca-3253-6-1030",
-   "program": "ACA",
-   "name": "Saturday Morning Group",
-   "days": [
-    6
-   ],
-   "start": "10:30",
-   "end": null,
-   "zone": "America/Chicago",
-   "link": "https://zoom.us/j/89763352059",
-   "meetingId": "89763352059",
-   "passcode": "801628",
-   "access": "open",
-   "who": null,
-   "focus": "Discussion, Loving Parent Guidebook, Steps",
-   "source": "https://adultchildren.org/meeting-search/?meeting=SD002",
-   "listingNumber": "SD002",
-   "sourceUpdated": "2024-11-01"
-  },
-  {
    "id": "aca-3912-0-1900",
    "program": "ACA",
    "name": "Peace ACA",
@@ -34839,7 +34819,7 @@
    "focus": "Discussion, Fellowship Text (BRB), Loving Parent Guidebook, Steps, Strengthening My Recovery",
    "source": "https://adultchildren.org/meeting-search/?meeting=CA1181",
    "listingNumber": "CA1181",
-   "sourceUpdated": "2025-08-24"
+   "sourceUpdated": "2026-11-01"
   },
   {
    "id": "aca-4688-0-1700",
@@ -35022,26 +35002,6 @@
    "sourceUpdated": "2025-01-06"
   },
   {
-   "id": "aca-5189-2-1800",
-   "program": "ACA",
-   "name": "ACA Loving Parent Solution",
-   "days": [
-    2
-   ],
-   "start": "18:00",
-   "end": null,
-   "zone": "America/Denver",
-   "link": "https://us02web.zoom.us/j/88916578563?pwd=eVZlVFA5V2Y0NVdRMXZURkJxTCtDQT09",
-   "meetingId": "88916578563",
-   "passcode": null,
-   "access": "open",
-   "who": null,
-   "focus": "Discussion, Fellowship Text (BRB), Laundry Lists Workbook, Loving Parent Guidebook",
-   "source": "https://adultchildren.org/meeting-search/?meeting=CO0088",
-   "listingNumber": "CO0088",
-   "sourceUpdated": "2026-09-15"
-  },
-  {
    "id": "aca-5246-4-1400",
    "program": "ACA",
    "name": "As Tony Sees It",
@@ -35160,6 +35120,26 @@
    "source": "https://adultchildren.org/meeting-search/?meeting=WEB0096",
    "listingNumber": "WEB0096",
    "sourceUpdated": "2025-02-05"
+  },
+  {
+   "id": "aca-5469-5-1200",
+   "program": "ACA",
+   "name": "Freedom Friday ACA Meeting",
+   "days": [
+    5
+   ],
+   "start": "12:00",
+   "end": null,
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/8058881234",
+   "meetingId": "8058881234",
+   "passcode": "Healing",
+   "access": "open",
+   "who": null,
+   "focus": "Discussion, Strengthening My Recovery",
+   "source": "https://adultchildren.org/meeting-search/?meeting=CA1431",
+   "listingNumber": "CA1431",
+   "sourceUpdated": "2026-10-27"
   },
   {
    "id": "aca-5502-2-1730",
@@ -35762,6 +35742,26 @@
    "sourceUpdated": "2026-05-21"
   },
   {
+   "id": "aca-5960-4-1900",
+   "program": "ACA",
+   "name": "Chicago ACA New Hope",
+   "days": [
+    4
+   ],
+   "start": "19:00",
+   "end": null,
+   "zone": "America/Chicago",
+   "link": "https://us02web.zoom.us/j/89745392689",
+   "meetingId": "89745392689",
+   "passcode": "909",
+   "access": "open",
+   "who": null,
+   "focus": "A New Hope, Discussion",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0335",
+   "listingNumber": "WEB0335",
+   "sourceUpdated": "2026-10-31"
+  },
+  {
    "id": "aca-5976-6-1100",
    "program": "ACA",
    "name": "Healing Hearts ACOA Meeting",
@@ -35859,7 +35859,7 @@
    "focus": "Strengthening My Recovery",
    "source": "https://adultchildren.org/meeting-search/?meeting=WEB0394",
    "listingNumber": "WEB0394",
-   "sourceUpdated": "2026-06-25"
+   "sourceUpdated": "2026-11-01"
   },
   {
    "id": "aca-6034-1-0700",
@@ -35879,7 +35879,7 @@
    "focus": "Strengthening My Recovery",
    "source": "https://adultchildren.org/meeting-search/?meeting=WEB0394",
    "listingNumber": "WEB0394",
-   "sourceUpdated": "2026-06-25"
+   "sourceUpdated": "2026-11-01"
   },
   {
    "id": "aca-6034-2-0700",
@@ -35899,7 +35899,7 @@
    "focus": "Strengthening My Recovery",
    "source": "https://adultchildren.org/meeting-search/?meeting=WEB0394",
    "listingNumber": "WEB0394",
-   "sourceUpdated": "2026-06-25"
+   "sourceUpdated": "2026-11-01"
   },
   {
    "id": "aca-6034-3-0700",
@@ -35919,7 +35919,7 @@
    "focus": "Strengthening My Recovery",
    "source": "https://adultchildren.org/meeting-search/?meeting=WEB0394",
    "listingNumber": "WEB0394",
-   "sourceUpdated": "2026-06-25"
+   "sourceUpdated": "2026-11-01"
   },
   {
    "id": "aca-6034-4-0700",
@@ -35939,7 +35939,7 @@
    "focus": "Strengthening My Recovery",
    "source": "https://adultchildren.org/meeting-search/?meeting=WEB0394",
    "listingNumber": "WEB0394",
-   "sourceUpdated": "2026-06-25"
+   "sourceUpdated": "2026-11-01"
   },
   {
    "id": "aca-6034-5-0700",
@@ -35959,7 +35959,7 @@
    "focus": "Strengthening My Recovery",
    "source": "https://adultchildren.org/meeting-search/?meeting=WEB0394",
    "listingNumber": "WEB0394",
-   "sourceUpdated": "2026-06-25"
+   "sourceUpdated": "2026-11-01"
   },
   {
    "id": "aca-6034-6-0700",
@@ -35979,7 +35979,7 @@
    "focus": "Strengthening My Recovery",
    "source": "https://adultchildren.org/meeting-search/?meeting=WEB0394",
    "listingNumber": "WEB0394",
-   "sourceUpdated": "2026-06-25"
+   "sourceUpdated": "2026-11-01"
   },
   {
    "id": "aca-6040-1-1900",
@@ -36520,6 +36520,26 @@
    "source": "https://adultchildren.org/meeting-search/?meeting=WEB0757",
    "listingNumber": "WEB0757",
    "sourceUpdated": "2026-08-15"
+  },
+  {
+   "id": "aca-6754-5-0700",
+   "program": "ACA",
+   "name": "Closed BIPOC Rainbow",
+   "days": [
+    5
+   ],
+   "start": "07:00",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/8618149594?pwd=cWpNNWRZc2VpSVhtb0h5dEMyRVByUT09",
+   "meetingId": "8618149594",
+   "passcode": null,
+   "access": "closed",
+   "who": null,
+   "focus": "Discussion, Fellowship Text (BRB), Laundry Lists Workbook",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB0766",
+   "listingNumber": "WEB0766",
+   "sourceUpdated": "2026-07-31"
   },
   {
    "id": "aca-6789-5-0730",
@@ -37662,6 +37682,46 @@
    "sourceUpdated": "2025-02-09"
   },
   {
+   "id": "aca-7935-2-1915",
+   "program": "ACA",
+   "name": "Heal Your Feels",
+   "days": [
+    2
+   ],
+   "start": "19:15",
+   "end": null,
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/88602089973",
+   "meetingId": "88602089973",
+   "passcode": "907632",
+   "access": "open",
+   "who": null,
+   "focus": "Fellowship Text (BRB)",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1214",
+   "listingNumber": "WEB1214",
+   "sourceUpdated": "2026-10-15"
+  },
+  {
+   "id": "aca-7935-5-1800",
+   "program": "ACA",
+   "name": "Heal Your Feels",
+   "days": [
+    5
+   ],
+   "start": "18:00",
+   "end": null,
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/88602089973",
+   "meetingId": "88602089973",
+   "passcode": "907632",
+   "access": "open",
+   "who": null,
+   "focus": "Fellowship Text (BRB)",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1214",
+   "listingNumber": "WEB1214",
+   "sourceUpdated": "2026-10-15"
+  },
+  {
    "id": "aca-7993-0-1700",
    "program": "ACA",
    "name": "The Open Space",
@@ -38130,7 +38190,7 @@
    ],
    "start": "12:00",
    "end": null,
-   "zone": "America/Vancouver",
+   "zone": "America/Los_Angeles",
    "link": "https://zoom.us/j/82120561171",
    "meetingId": "82120561171",
    "passcode": "808678",
@@ -38139,7 +38199,7 @@
    "focus": "Discussion",
    "source": "https://adultchildren.org/meeting-search/?meeting=WEB1359",
    "listingNumber": "WEB1359",
-   "sourceUpdated": "2026-09-11"
+   "sourceUpdated": "2026-11-01"
   },
   {
    "id": "aca-8371-1-1900",
@@ -38220,6 +38280,26 @@
    "source": "https://adultchildren.org/meeting-search/?meeting=WEB1383",
    "listingNumber": "WEB1383",
    "sourceUpdated": "2024-11-18"
+  },
+  {
+   "id": "aca-8420-5-1900",
+   "program": "ACA",
+   "name": "ACA MABUHAY PHILIPPINES Drop-in Friday- Walang Sala",
+   "days": [
+    5
+   ],
+   "start": "19:00",
+   "end": null,
+   "zone": "Asia/Manila",
+   "link": "https://us02web.zoom.us/j/84096903784?pwd=UPpP7Zy4SIFNb3o4xtkfH7r1bPyjOx.1",
+   "meetingId": "84096903784",
+   "passcode": null,
+   "access": "closed",
+   "who": null,
+   "focus": "",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1385",
+   "listingNumber": "WEB1385",
+   "sourceUpdated": "2026-06-05"
   },
   {
    "id": "aca-8422-6-1400",
@@ -39062,26 +39142,6 @@
    "sourceUpdated": "2026-04-15"
   },
   {
-   "id": "aca-9270-4-1930",
-   "program": "ACA",
-   "name": "ACA in the workplace",
-   "days": [
-    4
-   ],
-   "start": "19:30",
-   "end": null,
-   "zone": "America/Chicago",
-   "link": "https://us02web.zoom.us/j/175502666?pwd=dXlIaXlYeGJYYm9VOXIzR1hwY2trUT09",
-   "meetingId": "175502666",
-   "passcode": null,
-   "access": "closed",
-   "who": "women",
-   "focus": "Discussion, Laundry Lists Workbook, Speaker, Steps, Workshop",
-   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1625",
-   "listingNumber": "WEB1625",
-   "sourceUpdated": "2026-09-28"
-  },
-  {
    "id": "aca-9304-1-0800",
    "program": "ACA",
    "name": "Reparenting Meeting",
@@ -39244,7 +39304,7 @@
   {
    "id": "aca-9354-4-0730",
    "program": "ACA",
-   "name": "Feeling Financially Secure",
+   "name": "Thursday Feeling Financially Secure",
    "days": [
     4
    ],
@@ -39480,6 +39540,66 @@
    "source": "https://adultchildren.org/meeting-search/?meeting=WEB1670",
    "listingNumber": "WEB1670",
    "sourceUpdated": "2026-10-14"
+  },
+  {
+   "id": "aca-9461-0-1930",
+   "program": "ACA",
+   "name": "Men's Bay Ridge ACA",
+   "days": [
+    0
+   ],
+   "start": "19:30",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/4135513832?pwd=CTrZ5lBXRAYgzKJt1qQf6gbfOPOaFb.1",
+   "meetingId": "4135513832",
+   "passcode": null,
+   "access": "closed",
+   "who": "men",
+   "focus": "12 Steps Yellow Workbook",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1675",
+   "listingNumber": "WEB1675",
+   "sourceUpdated": "2026-10-27"
+  },
+  {
+   "id": "aca-9461-3-1930",
+   "program": "ACA",
+   "name": "Men's Bay Ridge ACA",
+   "days": [
+    3
+   ],
+   "start": "19:30",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/4135513832?pwd=CTrZ5lBXRAYgzKJt1qQf6gbfOPOaFb.1",
+   "meetingId": "4135513832",
+   "passcode": null,
+   "access": "closed",
+   "who": "men",
+   "focus": "12 Steps Yellow Workbook",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1675",
+   "listingNumber": "WEB1675",
+   "sourceUpdated": "2026-10-27"
+  },
+  {
+   "id": "aca-9467-4-1900",
+   "program": "ACA",
+   "name": "ACAD Jyväskylä - From Surviving to Thriving",
+   "days": [
+    4
+   ],
+   "start": "19:00",
+   "end": null,
+   "zone": "Europe/Helsinki",
+   "link": "https://us02web.zoom.us/j/86104488772?pwd=XOsI1OabE4Nf5jy1X6isi5z8RdSF4U.1",
+   "meetingId": "86104488772",
+   "passcode": null,
+   "access": "open",
+   "who": null,
+   "focus": "Discussion, Fellowship Text (BRB), Strengthening My Recovery",
+   "source": "https://adultchildren.org/meeting-search/?meeting=WEB1678",
+   "listingNumber": "WEB1678",
+   "sourceUpdated": "2026-11-02"
   },
   {
    "id": "alanon-13489-2-2015",
@@ -41572,6 +41692,25 @@
    "sourceUpdated": null
   },
   {
+   "id": "alanon-30755711-4-1930",
+   "program": "Al-Anon",
+   "name": "Help and Hope AFG",
+   "days": [
+    4
+   ],
+   "start": "19:30",
+   "end": null,
+   "zone": "America/Chicago",
+   "link": "https://us02web.zoom.us/j/86970393373",
+   "meetingId": "86970393373",
+   "passcode": "HandH1951",
+   "access": "closed",
+   "who": null,
+   "focus": "",
+   "source": "https://al-anon.org/al-anon-meetings/electronic-meetings/",
+   "sourceUpdated": null
+  },
+  {
    "id": "alanon-30757749-5-1100",
    "program": "Al-Anon",
    "name": "Friday Focus on Freedom AFG",
@@ -42693,13 +42832,13 @@
    "sourceUpdated": null
   },
   {
-   "id": "alanon-30769925-5-1200",
+   "id": "alanon-30769925-5-1130",
    "program": "Al-Anon",
    "name": "AFG Friday International",
    "days": [
     5
    ],
-   "start": "12:00",
+   "start": "11:30",
    "end": null,
    "zone": "America/New_York",
    "link": "https://us06web.zoom.us/j/85271222786?pwd=jy6Y1tgi6NBboOx9btR7b4au239x8N.1",
@@ -43863,6 +44002,25 @@
    "zone": "America/New_York",
    "link": "https://us06web.zoom.us/j/82094123928?pwd=f74sYBalNZ6SVqjTvaaXP29DKLTgcN.1",
    "meetingId": "82094123928",
+   "passcode": null,
+   "access": "open",
+   "who": null,
+   "focus": "",
+   "source": "https://al-anon.org/al-anon-meetings/electronic-meetings/",
+   "sourceUpdated": null
+  },
+  {
+   "id": "alanon-30776787-3-1730",
+   "program": "Al-Anon",
+   "name": "Wednesday Wellness AFG",
+   "days": [
+    3
+   ],
+   "start": "17:30",
+   "end": null,
+   "zone": "America/Phoenix",
+   "link": "https://us02web.zoom.us/j/85088124510?pwd=UHlYNGgzS3FpM1I4b0hwNVZRbXhqZz09",
+   "meetingId": "85088124510",
    "passcode": null,
    "access": "open",
    "who": null,
@@ -48442,7 +48600,7 @@
    "zone": "America/New_York",
    "link": "https://us02web.zoom.us/j/86084994411",
    "meetingId": "86084994411",
-   "passcode": "233787",
+   "passcode": "233 787",
    "access": "open",
    "who": null,
    "focus": "",
@@ -49989,25 +50147,6 @@
    "sourceUpdated": null
   },
   {
-   "id": "alanon-45341-3-1900",
-   "program": "Al-Anon",
-   "name": "Pathway to Serenity AFG",
-   "days": [
-    3
-   ],
-   "start": "19:00",
-   "end": null,
-   "zone": "America/New_York",
-   "link": "https://us02web.zoom.us/j/2764552549",
-   "meetingId": "2764552549",
-   "passcode": "9MGhqv",
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://al-anon.org/al-anon-meetings/electronic-meetings/",
-   "sourceUpdated": null
-  },
-  {
    "id": "alanon-502727-1-1900",
    "program": "Al-Anon",
    "name": "Think AFG",
@@ -50092,7 +50231,7 @@
    ],
    "start": "12:00",
    "end": null,
-   "zone": "America/New_York",
+   "zone": "America/Chicago",
    "link": "https://us02web.zoom.us/j/6086869171",
    "meetingId": "6086869171",
    "passcode": "854200",
@@ -52125,7 +52264,7 @@
    "access": "open",
    "focus": "Literature Study, Tools, Other, Group works on paperwok individually off-screen for 20 minutes",
    "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3233",
-   "sourceUpdated": "2025-03-14"
+   "sourceUpdated": "2026-10-29"
   },
   {
    "id": "da-3234",
@@ -52506,6 +52645,30 @@
    "sourceUpdated": "2026-07-08"
   },
   {
+   "id": "da-3328",
+   "program": "DA",
+   "name": "Daily Prayer and Meditation",
+   "days": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "start": "06:30",
+   "end": "07:00",
+   "zone": "Europe/London",
+   "link": "https://us06web.zoom.us/j/9883803754",
+   "meetingId": "9883803754",
+   "passcode": "serenity",
+   "access": "closed",
+   "focus": "Other, Meditation (Step 11)",
+   "source": "https://www.debtorsanonymous.org/meeting-search-detail/?mid=3328",
+   "sourceUpdated": "2026-10-31"
+  },
+  {
    "id": "da-3337",
    "program": "DA",
    "name": "Dallas TX Hope Group",
@@ -52822,7 +52985,7 @@
    ],
    "start": "19:00",
    "end": "20:00",
-   "zone": "Australia/Brisbane",
+   "zone": "Australia/Sydney",
    "link": "https://zoom.us/j/3913658575",
    "meetingId": "3913658575",
    "passcode": "0000",
@@ -61046,6 +61209,25 @@
    "sourceUpdated": null
   },
   {
+   "id": "na-152790",
+   "program": "NA",
+   "name": "Roses and Thorns",
+   "days": [
+    4
+   ],
+   "start": "19:00",
+   "end": null,
+   "zone": "America/Los_Angeles",
+   "link": "https://us05web.zoom.us/j/87024110867?pwd=mYm6tDHCZfIkQ3lMxjaUPiZeW5vaqH.1",
+   "meetingId": "87024110867",
+   "passcode": null,
+   "access": null,
+   "who": "women",
+   "focus": "",
+   "source": "https://www.na.org/meetingsearch/",
+   "sourceUpdated": null
+  },
+  {
    "id": "na-152827",
    "program": "NA",
    "name": "The Hope Group",
@@ -61495,25 +61677,6 @@
    "link": "https://zoom.us/j/88388471692",
    "meetingId": "88388471692",
    "passcode": "474747",
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://www.na.org/meetingsearch/",
-   "sourceUpdated": null
-  },
-  {
-   "id": "na-153670",
-   "program": "NA",
-   "name": "Into Action",
-   "days": [
-    2
-   ],
-   "start": "19:00",
-   "end": null,
-   "zone": "America/Los_Angeles",
-   "link": "https://zoom.us/j/8323104937",
-   "meetingId": "8323104937",
-   "passcode": "action",
    "access": "open",
    "who": null,
    "focus": "",
@@ -68323,25 +68486,6 @@
    "sourceUpdated": null
   },
   {
-   "id": "na-165982",
-   "program": "NA",
-   "name": "Candle In The Window Group",
-   "days": [
-    3
-   ],
-   "start": "19:30",
-   "end": null,
-   "zone": "America/Vancouver",
-   "link": "https://us02web.zoom.us/j/566460273?pwd=bFJkdmpQN1JTUHhsSk5UUW5EQ3ZHdz09",
-   "meetingId": "566460273",
-   "passcode": null,
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://www.na.org/meetingsearch/",
-   "sourceUpdated": null
-  },
-  {
    "id": "na-166032",
    "program": "NA",
    "name": "Five O'Clock Wind Down",
@@ -71876,25 +72020,6 @@
    "sourceUpdated": null
   },
   {
-   "id": "na-170493",
-   "program": "NA",
-   "name": "NA Online Australia - Midnight Blues",
-   "days": [
-    6
-   ],
-   "start": "23:00",
-   "end": null,
-   "zone": "Australia/Sydney",
-   "link": "https://us06web.zoom.us/j/86441728391?pwd=b04CJGWwRdvaQp5NeJD4a0xj986pgy.1",
-   "meetingId": "86441728391",
-   "passcode": null,
-   "access": null,
-   "who": null,
-   "focus": "",
-   "source": "https://www.na.org/meetingsearch/",
-   "sourceUpdated": null
-  },
-  {
    "id": "na-170506",
    "program": "NA",
    "name": "N.U.T.S. (Now Using the Steps)",
@@ -73246,7 +73371,7 @@
   {
    "id": "na-173599",
    "program": "NA",
-   "name": "Sligo Womens Hybrid Meeting",
+   "name": "Sligo Womens Online Meeting",
    "days": [
     3
    ],
@@ -77329,6 +77454,25 @@
    "sourceUpdated": null
   },
   {
+   "id": "na-228748",
+   "program": "NA",
+   "name": "Word that Work (Virtual Literature Study) Group",
+   "days": [
+    2
+   ],
+   "start": "13:00",
+   "end": null,
+   "zone": "Asia/Kolkata",
+   "link": "https://us06web.zoom.us/j/3897902633?pwd=SXVhRUpsa29lZVArMmd3b1QvMDFWUT09",
+   "meetingId": "3897902633",
+   "passcode": null,
+   "access": null,
+   "who": null,
+   "focus": "",
+   "source": "https://www.na.org/meetingsearch/",
+   "sourceUpdated": null
+  },
+  {
    "id": "na-228782",
    "program": "NA",
    "name": "Virtually Hopeful",
@@ -77779,6 +77923,25 @@
    "meetingId": "82941454464",
    "passcode": null,
    "access": "open",
+   "who": null,
+   "focus": "",
+   "source": "https://www.na.org/meetingsearch/",
+   "sourceUpdated": null
+  },
+  {
+   "id": "na-229316",
+   "program": "NA",
+   "name": "Living Clean",
+   "days": [
+    6
+   ],
+   "start": "10:00",
+   "end": null,
+   "zone": "America/Los_Angeles",
+   "link": "https://zoom.us/j/82552476105",
+   "meetingId": "82552476105",
+   "passcode": "6fZHEe",
+   "access": null,
    "who": null,
    "focus": "",
    "source": "https://www.na.org/meetingsearch/",
@@ -78900,6 +79063,44 @@
    "meetingId": "89398770471",
    "passcode": "998753",
    "access": "closed",
+   "who": null,
+   "focus": "",
+   "source": "https://www.na.org/meetingsearch/",
+   "sourceUpdated": null
+  },
+  {
+   "id": "na-231041",
+   "program": "NA",
+   "name": "Words That Work",
+   "days": [
+    0
+   ],
+   "start": "09:30",
+   "end": null,
+   "zone": "Asia/Kolkata",
+   "link": "https://us06web.zoom.us/j/3897902633?pwd=SXVhRUpsa29lZVArMmd3b1QvMDFWUT09",
+   "meetingId": "3897902633",
+   "passcode": null,
+   "access": null,
+   "who": null,
+   "focus": "",
+   "source": "https://www.na.org/meetingsearch/",
+   "sourceUpdated": null
+  },
+  {
+   "id": "na-231042",
+   "program": "NA",
+   "name": "Dose of Recovery - Online",
+   "days": [
+    3
+   ],
+   "start": "19:30",
+   "end": null,
+   "zone": "America/Los_Angeles",
+   "link": "https://us02web.zoom.us/j/7967151434",
+   "meetingId": "7967151434",
+   "passcode": "dose",
+   "access": "open",
    "who": null,
    "focus": "",
    "source": "https://www.na.org/meetingsearch/",
@@ -80432,9 +80633,9 @@
    "days": [
     0
    ],
-   "start": "12:00",
+   "start": "10:00",
    "end": null,
-   "zone": "America/Vancouver",
+   "zone": "America/Los_Angeles",
    "link": "https://us02web.zoom.us/j/88027069550?pwd=UkxZUlZKODMyYU1xNEc2VmE1N05zUT09",
    "meetingId": "88027069550",
    "passcode": null,
@@ -83181,25 +83382,6 @@
    "sourceUpdated": null
   },
   {
-   "id": "na-5826",
-   "program": "NA",
-   "name": "Island of Misfit Toys Group",
-   "days": [
-    4
-   ],
-   "start": "18:00",
-   "end": null,
-   "zone": "America/New_York",
-   "link": "https://us02web.zoom.us/j/88532736318?pwd=NzhXWCtlbyt5MFVaSG43bHd5Z282UT09",
-   "meetingId": "88532736318",
-   "passcode": null,
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://www.na.org/meetingsearch/",
-   "sourceUpdated": null
-  },
-  {
    "id": "na-58363",
    "program": "NA",
    "name": "Ray of Hope",
@@ -84447,25 +84629,6 @@
    "link": "https://zoom.us/j/6856198461",
    "meetingId": "6856198461",
    "passcode": "770506",
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://www.na.org/meetingsearch/",
-   "sourceUpdated": null
-  },
-  {
-   "id": "na-59424",
-   "program": "NA",
-   "name": "Never Alone Never Again Group",
-   "days": [
-    6
-   ],
-   "start": "18:00",
-   "end": null,
-   "zone": "America/New_York",
-   "link": "https://us04web.zoom.us/j/640448504",
-   "meetingId": "640448504",
-   "passcode": "311415",
    "access": "open",
    "who": null,
    "focus": "",
@@ -86082,6 +86245,25 @@
    "meetingId": "94214009693",
    "passcode": "1953",
    "access": null,
+   "who": null,
+   "focus": "",
+   "source": "https://www.na.org/meetingsearch/",
+   "sourceUpdated": null
+  },
+  {
+   "id": "na-64145",
+   "program": "NA",
+   "name": "Morning Wake Up",
+   "days": [
+    6
+   ],
+   "start": "09:30",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/88415102500",
+   "meetingId": "88415102500",
+   "passcode": "WakeUp",
+   "access": "closed",
    "who": null,
    "focus": "",
    "source": "https://www.na.org/meetingsearch/",
@@ -88400,25 +88582,6 @@
    "meetingId": "88179124134",
    "passcode": "JFT2021",
    "access": null,
-   "who": null,
-   "focus": "",
-   "source": "https://www.na.org/meetingsearch/",
-   "sourceUpdated": null
-  },
-  {
-   "id": "na-7036",
-   "program": "NA",
-   "name": "Dose of Recovery (No meeting 12/24 online only 12/31)",
-   "days": [
-    3
-   ],
-   "start": "19:30",
-   "end": null,
-   "zone": "America/Los_Angeles",
-   "link": "https://us02web.zoom.us/j/7967151434",
-   "meetingId": "7967151434",
-   "passcode": "dose",
-   "access": "open",
    "who": null,
    "focus": "",
    "source": "https://www.na.org/meetingsearch/",
@@ -92237,25 +92400,6 @@
    "link": "https://zoom.us/j/4165373780",
    "meetingId": "4165373780",
    "passcode": "456014",
-   "access": "open",
-   "who": null,
-   "focus": "",
-   "source": "https://www.na.org/meetingsearch/",
-   "sourceUpdated": null
-  },
-  {
-   "id": "na-86686",
-   "program": "NA",
-   "name": "Clean Air Act Group",
-   "days": [
-    3
-   ],
-   "start": "20:00",
-   "end": null,
-   "zone": "America/New_York",
-   "link": "https://zoom.us/j/85670182762",
-   "meetingId": "85670182762",
-   "passcode": "recovery",
    "access": "open",
    "who": null,
    "focus": "",
@@ -96880,25 +97024,6 @@
    "sourceUpdated": null
   },
   {
-   "id": "na-96387",
-   "program": "NA",
-   "name": "Steps Into the Hugs",
-   "days": [
-    0
-   ],
-   "start": "11:30",
-   "end": null,
-   "zone": "America/New_York",
-   "link": "https://us02web.zoom.us/j/248135147?pwd=cVp3cGtobGlQcUhMK3htNUViZE5MUT09",
-   "meetingId": "248135147",
-   "passcode": null,
-   "access": "closed",
-   "who": null,
-   "focus": "",
-   "source": "https://www.na.org/meetingsearch/",
-   "sourceUpdated": null
-  },
-  {
    "id": "na-96641",
    "program": "NA",
    "name": "Together We Can (Women's Meeting)",
@@ -97845,6 +97970,25 @@
    "focus": "OA Steps and/or Traditions Study",
    "source": "https://oa.org/meetings/801974/",
    "sourceUpdated": "2025-09-15"
+  },
+  {
+   "id": "oa-10299",
+   "program": "OA",
+   "name": "Compassionate Recovery",
+   "days": [
+    1
+   ],
+   "start": "16:00",
+   "end": null,
+   "zone": "America/Los_Angeles",
+   "link": "https://us06web.zoom.us/j/81383259463?pwd=KhGpSzbZfQlRElJTe0PRlBbiBMcsl0.1",
+   "meetingId": "81383259463",
+   "passcode": null,
+   "access": "closed",
+   "who": null,
+   "focus": "Recovery from Relapse",
+   "source": "https://oa.org/meetings/801972/",
+   "sourceUpdated": "2026-08-06"
   },
   {
    "id": "oa-10307",
@@ -99930,31 +100074,6 @@
    "sourceUpdated": "2026-05-06"
   },
   {
-   "id": "oa-12807",
-   "program": "OA",
-   "name": "The Bridge",
-   "days": [
-    0,
-    1,
-    2,
-    3,
-    4,
-    5,
-    6
-   ],
-   "start": "13:00",
-   "end": null,
-   "zone": "America/New_York",
-   "link": "https://us02web.zoom.us/j/89237500498?pwd=T2JXM243SVVHeWpkUG01cTdqN05zUT09",
-   "meetingId": "89237500498",
-   "passcode": null,
-   "access": "open",
-   "who": null,
-   "focus": "Tools",
-   "source": "https://oa.org/meetings/800873/",
-   "sourceUpdated": "2026-07-15"
-  },
-  {
    "id": "oa-12853",
    "program": "OA",
    "name": "OA meeting #800857 (Meditation, Topics vary)",
@@ -100702,6 +100821,25 @@
    "sourceUpdated": "2025-11-06"
   },
   {
+   "id": "oa-14372",
+   "program": "OA",
+   "name": "Sunday Victoria OA Meeting",
+   "days": [
+    0
+   ],
+   "start": "14:00",
+   "end": null,
+   "zone": "Europe/London",
+   "link": "https://us02web.zoom.us/j/9841038031?pwd=UUx0R2NhaUFqdDROUi9VazU1eElmdz09",
+   "meetingId": "9841038031",
+   "passcode": null,
+   "access": "open",
+   "who": null,
+   "focus": "Literature, Speaker",
+   "source": "https://oa.org/meetings/800379/",
+   "sourceUpdated": "2026-10-26"
+  },
+  {
    "id": "oa-14395",
    "program": "OA",
    "name": "OA meeting #800372 (Topics vary)",
@@ -100761,7 +100899,7 @@
   {
    "id": "oa-14474",
    "program": "OA",
-   "name": "Hello seeker. You can start your journey here.",
+   "name": "Hello newcomer. You can start your journey here.",
    "days": [
     3
    ],
@@ -100775,7 +100913,7 @@
    "who": null,
    "focus": "Newcomer, Speaker",
    "source": "https://oa.org/meetings/800350/",
-   "sourceUpdated": "2026-06-01"
+   "sourceUpdated": "2026-10-30"
   },
   {
    "id": "oa-14623",
@@ -101642,9 +101780,9 @@
     5,
     6
    ],
-   "start": "06:00",
+   "start": "05:00",
    "end": null,
-   "zone": "America/New_York",
+   "zone": "America/Chicago",
    "link": "https://zoom.us/j/99334646706",
    "meetingId": "99334646706",
    "passcode": "1212",
@@ -101731,6 +101869,25 @@
    "sourceUpdated": "2026-06-17"
   },
   {
+   "id": "oa-17775",
+   "program": "OA",
+   "name": "OA Kent Sunday",
+   "days": [
+    0
+   ],
+   "start": "20:00",
+   "end": null,
+   "zone": "Europe/London",
+   "link": "https://us02web.zoom.us/j/81800392261?pwd=b2xVWnNqY0lZaE85RVF3ZVZEejgydz09",
+   "meetingId": "81800392261",
+   "passcode": null,
+   "access": "open",
+   "who": null,
+   "focus": "Newcomer",
+   "source": "https://oa.org/meetings/89533/",
+   "sourceUpdated": "2026-10-28"
+  },
+  {
    "id": "oa-17790",
    "program": "OA",
    "name": "OA Chronic Illness, Pain, & Sensitivities",
@@ -101766,7 +101923,7 @@
    "who": null,
    "focus": "OA Steps and/or Traditions Study",
    "source": "https://oa.org/meetings/89508/",
-   "sourceUpdated": "2026-10-26"
+   "sourceUpdated": "2026-10-28"
   },
   {
    "id": "oa-17893",
@@ -103112,7 +103269,7 @@
    "who": null,
    "focus": "OA Steps and/or Traditions Study",
    "source": "https://oa.org/meetings/56798/",
-   "sourceUpdated": "2026-10-16"
+   "sourceUpdated": "2026-10-28"
   },
   {
    "id": "oa-26624",
@@ -103549,7 +103706,26 @@
    "who": null,
    "focus": "OA HOW",
    "source": "https://oa.org/meetings/47908/",
-   "sourceUpdated": "2026-10-21"
+   "sourceUpdated": "2026-10-28"
+  },
+  {
+   "id": "oa-34799",
+   "program": "OA",
+   "name": "OA meeting #47755 (Literature)",
+   "days": [
+    2
+   ],
+   "start": "17:30",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us06web.zoom.us/j/2359555905",
+   "meetingId": "2359555905",
+   "passcode": "Mountain52",
+   "access": "open",
+   "who": null,
+   "focus": "Literature",
+   "source": "https://oa.org/meetings/47755/",
+   "sourceUpdated": "2026-10-28"
   },
   {
    "id": "oa-34824",
@@ -103721,6 +103897,25 @@
    "focus": "Literature, Topics vary",
    "source": "https://oa.org/meetings/45171/",
    "sourceUpdated": "2026-07-28"
+  },
+  {
+   "id": "oa-36244",
+   "program": "OA",
+   "name": "Roswell Hybrid | The Trudge Club",
+   "days": [
+    4
+   ],
+   "start": "19:30",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://us02web.zoom.us/j/86917947296?pwd=dXFrbCsrRWMrQ3dmWDA1UjFiOURPZz09",
+   "meetingId": "86917947296",
+   "passcode": null,
+   "access": "open",
+   "who": null,
+   "focus": "OA Steps and/or Traditions Study, Topics vary, Writing",
+   "source": "https://oa.org/meetings/45056/",
+   "sourceUpdated": "2026-10-29"
   },
   {
    "id": "oa-36299",
@@ -104010,7 +104205,7 @@
   {
    "id": "oa-37896",
    "program": "OA",
-   "name": "OA meeting #36141",
+   "name": "OA meeting #36141 (Recovery from Relapse)",
    "days": [
     0
    ],
@@ -104022,9 +104217,9 @@
    "passcode": null,
    "access": "open",
    "who": null,
-   "focus": "",
+   "focus": "Recovery from Relapse",
    "source": "https://oa.org/meetings/36141/",
-   "sourceUpdated": "2025-11-14"
+   "sourceUpdated": "2026-10-26"
   },
   {
    "id": "oa-38101",
@@ -104499,7 +104694,7 @@
    "who": null,
    "focus": "Literature, OA Steps and/or Traditions Study",
    "source": "https://oa.org/meetings/00893/",
-   "sourceUpdated": "2026-09-14"
+   "sourceUpdated": "2026-10-27"
   },
   {
    "id": "oa-42838",
@@ -105131,7 +105326,7 @@
    "who": null,
    "focus": "Literature",
    "source": "https://oa.org/meetings/802196/",
-   "sourceUpdated": "2026-06-05"
+   "sourceUpdated": "2026-10-29"
   },
   {
    "id": "oa-52577",
@@ -105835,6 +106030,44 @@
    "sourceUpdated": "2026-10-19"
   },
   {
+   "id": "oa-66303",
+   "program": "OA",
+   "name": "Foodies in Substance Recovery",
+   "days": [
+    3
+   ],
+   "start": "18:00",
+   "end": null,
+   "zone": "Europe/London",
+   "link": "https://zoom.us/j/82937318823?pwd=F8jq6kUXZWeQ1YeSZ6ELk2bvwnjCE3.1",
+   "meetingId": "82937318823",
+   "passcode": null,
+   "access": "closed",
+   "who": null,
+   "focus": "Speaker",
+   "source": "https://oa.org/meetings/802398/",
+   "sourceUpdated": "2026-10-28"
+  },
+  {
+   "id": "oa-66310",
+   "program": "OA",
+   "name": "Night Owls – Secular Meeting",
+   "days": [
+    2
+   ],
+   "start": "22:00",
+   "end": null,
+   "zone": "America/New_York",
+   "link": "https://zoom.us/j/98842499977?pwd=ODduTjk1cGYwVENPWXJyOTdTQ0NVZz09",
+   "meetingId": "98842499977",
+   "passcode": null,
+   "access": "closed",
+   "who": null,
+   "focus": "Topics vary",
+   "source": "https://oa.org/meetings/802397/",
+   "sourceUpdated": "2026-10-28"
+  },
+  {
    "id": "slaa-24821266",
    "program": "SLAA",
    "name": "SLAA San Francisco Wednesday Night Men's Meeting",
@@ -106425,7 +106658,7 @@
    "who": null,
    "focus": "Men and Women Welcome (MW)",
    "source": "https://slaafws.org/onlinemeetings/",
-   "sourceUpdated": "2026-02-02"
+   "sourceUpdated": "2026-10-26"
   },
   {
    "id": "slaa-40041386",
