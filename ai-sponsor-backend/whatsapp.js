@@ -45,6 +45,7 @@ const voices = require('./voices'); // the shared voice allow-list + TTS
 const language = require('./language'); // what language a message is in, and what it asks for
 const timezones = require('./timezones'); // where they live, when they tell us
 const metacloud = require('./metacloud'); // voice notes straight to Meta; inert unless configured
+const { maskPhone } = require('./logsafe'); // phone numbers in logs: last four digits only
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -125,7 +126,7 @@ async function captureWhatsAppUser(userId, phone) {
       access: isNew ? 'Beta' : '',
       ghlContactId: contactId,
     });
-    console.log(`[WhatsApp→GHL] captured ${userId} → contact ${contactId} (newContact=${isNew})`);
+    console.log(`[WhatsApp→GHL] captured ${maskPhone(userId)} → contact ${contactId} (newContact=${isNew})`);
   } catch (e) {
     capturedNumbers.delete(userId); // let the next message try again
     console.error('[WhatsApp→GHL] capture failed:', e.message);
@@ -175,7 +176,7 @@ async function bindLinkCode(text, waUserIdValue, realPhone) {
     await db.upsertUser({ userId: regUserId, phone: realPhone });
     db.recordEvent(regUserId, 'phone_verified',
       { phone: realPhone, boundTo: waUserIdValue }, 'whatsapp-link-code').catch(() => {});
-    console.log(`[WhatsApp] link code claimed: ${regUserId} verified as ${realPhone}`);
+    console.log(`[WhatsApp] link code claimed: ${maskPhone(regUserId)} verified as ${maskPhone(realPhone)}`);
   } catch (e) {
     console.error('[WhatsApp] link code binding failed:', e.message);
   }
@@ -1041,7 +1042,7 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
          larger ask, deliberately not smuggled in here. */
       if (isReaction) {
         console.log(
-          `[WhatsApp] reaction ${incomingEmoji || '(removed)'} from ${fromPhone} — recorded, not answered`);
+          `[WhatsApp] reaction ${incomingEmoji || '(removed)'} from ${maskPhone(fromPhone)} — recorded, not answered`);
         db.recordEvent(waUserId(fromPhone), 'reaction_received', {
           emoji: incomingEmoji || null,
           removed: !incomingEmoji,
@@ -1052,7 +1053,7 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
       }
 
       if (isAudio && (mediaUrl || mediaId)) {
-        console.log(`[WhatsApp] Voice note from ${fromPhone} — transcribing...`);
+        console.log(`[WhatsApp] Voice note from ${maskPhone(fromPhone)} — transcribing...`);
 
         /* Two carriers, two ways to get the bytes, one file path out. Whisper
            wants something on disk, so the Meta branch writes what it fetched to
@@ -1070,12 +1071,12 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
 
         const heardIn = await language.languageOf(db, waUserId(fromPhone)).catch(() => 'en');
         userMessageText = await transcribeAudio(audioPath, heardIn);
-        console.log(`[WhatsApp] Transcribed: "${userMessageText}"`);
+        console.log(`[WhatsApp] Transcribed voice note from ${maskPhone(fromPhone)}: ${String(userMessageText || '').length} chars`);
       } else if (isText) {
         userMessageText = messageBody;
-        console.log(`[WhatsApp] Text from ${fromPhone}: "${userMessageText}"`);
+        console.log(`[WhatsApp] Text from ${maskPhone(fromPhone)}: ${String(userMessageText || '').length} chars`);
       } else {
-        console.log(`[WhatsApp] Unsupported message type from ${fromPhone} — skipping`);
+        console.log(`[WhatsApp] Unsupported message type from ${maskPhone(fromPhone)} — skipping`);
         await sendTextReply(fromPhone, "I can receive text and voice messages. Please try sending one of those!");
         return;
       }
@@ -1089,7 +1090,7 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
         text: userMessageText, wamid: messageSid, isAudio,
       });
       if (!settled) {
-        console.log(`[WhatsApp] ${fromPhone} is still typing — letting the later message answer`);
+        console.log(`[WhatsApp] ${maskPhone(fromPhone)} is still typing — letting the later message answer`);
         return;
       }
       /* Every leaving message ends with "reply to this message and we will
@@ -1136,7 +1137,7 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
       const replyToId = settled.wamid;
       const cameByVoice = settled.anyAudio;
       if (settled.messageCount > 1) {
-        console.log(`[WhatsApp] answering ${settled.messageCount} messages from ${fromPhone} together`);
+        console.log(`[WhatsApp] answering ${settled.messageCount} messages from ${maskPhone(fromPhone)} together`);
       }
 
       /* A heart on the message itself, when somebody says they are doing
@@ -1153,10 +1154,10 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
         const holdBack = reactionHeldBack(waUserId(fromPhone));
         noteReaction(waUserId(fromPhone), !holdBack);
         if (holdBack) {
-          console.log(`[WhatsApp] reaction held back for ${fromPhone}: not two in a row`);
+          console.log(`[WhatsApp] reaction held back for ${maskPhone(fromPhone)}: not two in a row`);
         } else {
           const emoji = reactionEmoji(userMessageText);
-          console.log(`[WhatsApp] reacting ${emoji || 'default'} to ${fromPhone}: "${String(userMessageText).slice(0, 60)}"`);
+          console.log(`[WhatsApp] reacting ${emoji || 'default'} to ${maskPhone(fromPhone)}`);
           metacloud.sendReaction(fromPhone, replyToId, emoji)
             .catch((e) => console.error('[WhatsApp] reaction failed:', e.message));
         }
@@ -1221,7 +1222,7 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
       const askedForVoice = !cameByVoice &&
         (asksForVoice(userMessageText) ||
          (!!read && read.asksForVoice && !NOT_A_VOICE_REQUEST.test(userMessageText)));
-      if (askedForVoice) console.log(`[WhatsApp] ${fromPhone} asked for a voice note in text`);
+      if (askedForVoice) console.log(`[WhatsApp] ${maskPhone(fromPhone)} asked for a voice note in text`);
 
       /* "Just text me". Written down the moment they say it, and cleared the
          moment they ask to hear the sponsor again, so it is reversible in one
@@ -1251,7 +1252,7 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
         db.findAllIdentities(userId)
           .then((ids) => Promise.all(ids.map((id) => db.saveProfile(id, { textOnly: true }))))
           .catch((e) => console.warn('[WhatsApp] could not save text-only preference:', e.message));
-        console.log(`[WhatsApp] ${fromPhone} asked for text only, saved`);
+        console.log(`[WhatsApp] ${maskPhone(fromPhone)} asked for text only, saved`);
       } else if (askedForVoice && textOnly) {
         textOnly = false;
         /* saveProfile drops empty values, so false has to be written as a
@@ -1260,7 +1261,7 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
         db.findAllIdentities(userId)
           .then((ids) => Promise.all(ids.map((id) => db.clearProfileField(id, 'textOnly'))))
           .catch((e) => console.warn('[WhatsApp] could not clear text-only preference:', e.message));
-        console.log(`[WhatsApp] ${fromPhone} asked for voice again, text-only cleared`);
+        console.log(`[WhatsApp] ${maskPhone(fromPhone)} asked for voice again, text-only cleared`);
       }
 
       const requestedVoice = (cameByVoice || askedForVoice) && !(textOnly && !askedForVoice);
@@ -1277,7 +1278,7 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
         db.findAllIdentities(userId)
           .then((ids) => Promise.all(ids.map((id) => db.saveProfile(id, { zone: livesIn }))))
           .catch((e) => console.warn('[WhatsApp] could not save where they live:', e.message));
-        console.log(`[WhatsApp] ${fromPhone} lives in ${livesIn} now, saved`);
+        console.log(`[WhatsApp] ${maskPhone(fromPhone)} lives in ${livesIn} now, saved`);
       }
 
       /* Passed in and read back out afterwards: getSponsorReply sets
@@ -1291,7 +1292,7 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
         zone: livesIn || timezones.validZone(profile && profile.zone),
       };
       const replyText = await getSponsorReply(userId, userMessageText, ctx);
-      console.log(`[WhatsApp] Claude reply to ${fromPhone}: "${replyText.substring(0, 80)}..."`);
+      console.log(`[WhatsApp] Claude reply to ${maskPhone(fromPhone)}: ${String(replyText || '').length} chars`);
 
       /* Quote their message when the reply would otherwise land under an old
          conversation, or when they sent a voice note and it should be obvious
@@ -1300,7 +1301,7 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
       const quoteId = (metacloud.outbound && replyToId &&
                        shouldQuote({ messageCount: settled.messageCount }))
         ? replyToId : null;
-      if (quoteId) console.log(`[WhatsApp] quoting their message in the reply to ${fromPhone}`);
+      if (quoteId) console.log(`[WhatsApp] quoting their message in the reply to ${maskPhone(fromPhone)}`);
 
       /* Work out what medium this actually goes in, in the order that matters:
          the safety guard wins over everyone, then what they asked for, then
@@ -1309,20 +1310,20 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
       const blocked = textOnlyReason(replyText);
       if (blocked) {
         replyAsVoice = false;
-        console.log(`[WhatsApp] forcing text to ${fromPhone}: ${blocked}`);
+        console.log(`[WhatsApp] forcing text to ${maskPhone(fromPhone)}: ${blocked}`);
       } else if (textOnly && !askedForVoice) {
         /* They asked for text, so the sponsor does not get to overrule it by
            deciding this one is worth speaking. Only they can lift it. */
         replyAsVoice = false;
-        console.log(`[WhatsApp] text only for ${fromPhone}, as they asked`);
+        console.log(`[WhatsApp] text only for ${maskPhone(fromPhone)}, as they asked`);
       } else if (requestedVoice) {
         replyAsVoice = true;
       } else if (ctx.modelWantsVoice && lastReplyWasUnpromptedVoice.get(userId)) {
         replyAsVoice = false;
-        console.log(`[WhatsApp] sponsor chose voice for ${fromPhone}, held back: not twice in a row`);
+        console.log(`[WhatsApp] sponsor chose voice for ${maskPhone(fromPhone)}, held back: not twice in a row`);
       } else if (ctx.modelWantsVoice) {
         replyAsVoice = true;
-        console.log(`[WhatsApp] sponsor chose to speak to ${fromPhone}`);
+        console.log(`[WhatsApp] sponsor chose to speak to ${maskPhone(fromPhone)}`);
       } else {
         replyAsVoice = false;
       }
@@ -1332,7 +1333,7 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
          goes as text without a word about it: they never asked to hear it. */
       if (replyAsVoice && !requestedVoice && !(await voices.canSpeak(replyText))) {
         replyAsVoice = false;
-        console.log(`[WhatsApp] forcing text to ${fromPhone}: reply is in a language voice notes cannot speak`);
+        console.log(`[WhatsApp] forcing text to ${maskPhone(fromPhone)}: reply is in a language voice notes cannot speak`);
       }
 
       // Only an UNPROMPTED voice note arms the not-twice-in-a-row rule.
