@@ -2059,13 +2059,14 @@ async function getSponsorReply(userId, message, context) {
   /* The window is sliding once there is more history than fits in it, which is
      the moment caching the conversation stops paying. See withCachedHistory. */
   const windowSliding = updatedHistory.length > RECENT_TURNS;
+  // recent window; older turns live in the digest + DB
+  const requestMessages = withLanguageNote(withCachedHistory(updatedHistory.slice(-RECENT_TURNS), windowSliding), replyLanguage);
   const response = await client.messages.create({
     model: 'claude-opus-4-8',
     // A list of meetings with links runs long: on 26 Oct nine of them stopped mid-sentence at 1024.
     max_tokens: offersMeetings ? 2048 : 1024,
     system: systemBlocks,
-    // recent window; older turns live in the digest + DB
-    messages: withLanguageNote(withCachedHistory(updatedHistory.slice(-RECENT_TURNS), windowSliding), replyLanguage),
+    messages: requestMessages,
   });
 
   let rawReply = response.content
@@ -2087,6 +2088,50 @@ async function getSponsorReply(userId, message, context) {
     alerts.meetingProblem(p);
   }
 
+  /* A link, or the name of a meeting it was given: on 26 Oct an answer naming
+     four meetings with their dates, offsets and sums (no links) was cut to
+     four bare times, dropping what Bilal had asked for. */
+  const namesGiven = offersMeetings ? [...meetingsBlock.matchAll(/\| "([^"]{4,})" \|/g)].map((m) => m[1]) : [];
+  const meetingsListedIn = (t) => offersMeetings && (/zoom\.us\/j\//.test(t) || namesGiven.some((n) => t.includes(n)));
+
+  /* "Which program?" when it already knew. Bilal, 3 Nov: Al-Anon searches,
+     a question about a presentation, then "Anymore meetings tomorrow?". The
+     block named Al-Anon and said asking was wrong; the reply asked anyway,
+     live and in 6 of 13 replays of that moment. So the reply is read, and
+     written once more with the meetings. The second draft is only taken if
+     it really gives meetings; otherwise the first goes out as it was. */
+  const carriedOn = offersMeetings && /They are asking for more (.+?) meetings, carrying on their earlier search/.exec(meetingsBlock);
+  if (carriedOn && !reportedNow.problems.length && meetings.asksForMoreMeetings(message)
+      && !meetingsListedIn(rawReply) && meetings.asksForProgram(rawReply)) {
+    const theirTomorrow = /so their tomorrow is ([^.]+)\./.exec(meetingsBlock);
+    try {
+      const again = await client.messages.create({
+        model: 'claude-opus-4-8',
+        max_tokens: 2048,
+        system: [...systemBlocks, { type: 'text', text: [
+          '## YOUR FIRST DRAFT ASKED WHICH PROGRAM, AND THAT IS WRONG HERE',
+          'Your first draft of this reply was:',
+          `"""${rawReply}"""`,
+          `It asks which program they want. You already know: they are carrying on their ${carriedOn[1]} search.`,
+          `Write the reply again. Give them ${carriedOn[1]} meetings from RECOVERY MEETINGS YOU CAN OFFER, each with its day, time, name, link and passcode. Do not ask which program, in any words, and do not ask them to confirm it. Say plainly that these are ${carriedOn[1]} meetings, carrying on from before; if they meant another program, they will say.`,
+          /* Rewritten drafts said "Tomorrow's Tuesday 3 November" on a
+             Tuesday in 3 of 6 replays, so the day is handed over again. */
+          ...(theirTomorrow ? [`Their tomorrow is ${theirTomorrow[1]}. Name days exactly as the meetings section writes them.`] : []),
+        ].join('\n') }],
+        messages: requestMessages,
+      });
+      const second = meetings.meetingProblemsIn(again.content.filter((b) => b.type === 'text').map((b) => b.text).join('')).clean;
+      if (meetingsListedIn(second)) {
+        console.log(`[meetings] asked which program though it was ${carriedOn[1]}; written again with the meetings`);
+        rawReply = second;
+      } else {
+        console.log(`[meetings] asked which program though it was ${carriedOn[1]}; the second draft gave no meetings either, sending the first`);
+      }
+    } catch (e) {
+      console.warn('[meetings] could not write the program question again, sending it as written:', e.message);
+    }
+  }
+
   /* Did it make the check-in offer? Read before the length rewrite below,
      which would happily cut the question or the marker, and that rewrite is
      skipped for this one reply: an offer that loses its question is an offer
@@ -2102,11 +2147,7 @@ async function getSponsorReply(userId, message, context) {
      only once. It costs a second call on the messages that earn it. Falls back
      to the original on any failure: a long reply is worse than a short one, and
      both are far better than no reply at all. */
-  /* A link, or the name of a meeting it was given: on 26 Oct an answer naming
-     four meetings with their dates, offsets and sums (no links) was cut to
-     four bare times, dropping what Bilal had asked for. */
-  const namesGiven = offersMeetings ? [...meetingsBlock.matchAll(/\| "([^"]{4,})" \|/g)].map((m) => m[1]) : [];
-  const listsMeetings = offersMeetings && (/zoom\.us\/j\//.test(rawReply) || namesGiven.some((n) => rawReply.includes(n)));
+  const listsMeetings = meetingsListedIn(rawReply);
   if (listsMeetings && budget.ceiling && words(rawReply) > budget.ceiling) console.log(`[sponsor] long reply kept: it lists meetings (${words(rawReply)} words)`);
   if (budget.ceiling && !madeCheckinOffer && !listsMeetings && words(rawReply) > budget.ceiling) {
     const before = words(rawReply);
@@ -2142,6 +2183,15 @@ async function getSponsorReply(userId, message, context) {
     }
   }
   lastReplyAskedSomething.set(userId, ENDS_ON_QUESTION.test(String(rawReply).trim()));
+
+  /* A clock-change date that is not the real one becomes the real one (see
+     meetings.fixClockDates). Before the reply splits into its spoken and read
+     copies, so a voice note cannot say the wrong date either. */
+  const clockFix = meetings.fixClockDates(rawReply);
+  if (clockFix.fixed.length) {
+    console.log(`[sponsor] clock-change date corrected: ${clockFix.fixed.map((f) => `"${f.said}" -> "${f.now}"`).join(', ')}`);
+    rawReply = clockFix.text;
+  }
 
   /* Pull the sponsor's request to be spoken off the front of the reply, and
      report it back through the context object the caller passed in. Done this

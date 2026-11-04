@@ -173,7 +173,8 @@ check('a "meeting did not work" note is taken out before the length rewrite can 
 });
 
 check('the meetings exception covers only a reply that lists meetings it was given', () => {
-  assert.ok(src.includes("const listsMeetings = offersMeetings && (/zoom\\.us\\/j\\//.test(rawReply) || namesGiven.some((n) => rawReply.includes(n)));"),
+  assert.ok(src.includes("const meetingsListedIn = (t) => offersMeetings && (/zoom\\.us\\/j\\//.test(t) || namesGiven.some((n) => t.includes(n)));")
+    && src.includes('const listsMeetings = meetingsListedIn(rawReply);'),
     'any reply in a meetings conversation escapes the length rewrite');
   assert.ok(src.includes('const namesGiven = offersMeetings ? [...meetingsBlock.matchAll('),
     'the names it may list are not the ones in the block');

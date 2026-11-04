@@ -550,7 +550,7 @@ const range = meetings.buildMeetingsBlock({ message: 'Find online Al Anon meetin
 check('every day of the range is in front of the sponsor',
   ['Wednesday 28 October', 'Friday 30 October', 'Saturday 31 October', 'Sunday 1 November'].map((d) => range.includes(`- ${d} at`)), [true, true, true, true]);
 check('with a count per day checked against everything held, and a real none',
-  range.includes('at a sensible hour for them (7am to 10pm), by day: Wednesday 28 October: 1 fit, 1 of them shown below; Thursday 29 October: none; Friday 30 October: 1 fit, 1 of them shown below; Saturday 31 October: 3 fit, 3 of them shown below; Sunday 1 November: 2 fit, 2 of them shown below.'), true);
+  range.includes('at a sensible hour for them (7am to 10pm, Asia/Karachi time; meetings starting between 10pm and 7am are not in it), by day: Wednesday 28 October: 1 fit, 1 of them shown below; Thursday 29 October: none; Friday 30 October: 1 fit, 1 of them shown below; Saturday 31 October: 3 fit, 3 of them shown below; Sunday 1 November: 2 fit, 2 of them shown below.'), true);
 check('and told a counted none is a real none', range.includes('A day it gives as none really has none'), true);
 check('nothing outside the range', /^- (today|tomorrow), /m.test(range), false);
 const namedThree = meetings.buildMeetingsBlock({ message: 'Find online Al Anon meetings for Saturday, 31 October 2026, at any time in Pakistan time. Do you have “Legacy Study AFG,” “First Things First AFG,” or “Just for Today AFG” on that date?', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-26T16:58:00Z') });
@@ -750,6 +750,66 @@ check('every meeting has a day, time and real zone',
   real.meetings.filter((m) => !m.days.length || m.days.some((d) => d < 0 || d > 6) || !/^\d{2}:\d{2}$/.test(m.start) || !realZone(m.zone)).length, 0);
 check('no teen meetings', real.meetings.filter((m) => /\bteens?\b|alateen/i.test(m.name)).length, 0);
 check('no backslashes or markup left in names', real.meetings.filter((m) => /[\\<>]|&amp;|&quot;|&#\d/.test(m.name)).length, 0);
+
+group('Bilal\'s retest, 3 Nov: a count says what it covers');
+check('the window count names its hours and zone', nyAsk.includes('fit what they asked, counting only those starting after 10am and before 3pm, America/New_York time, by day: Tuesday 27 October: 2 fit, 2 of them shown below.'), true);
+check('and it is told a count it gave is never a slip from another day', nyAsk.includes('never call it a slip or a mistake, and never say it came from another day'), true);
+check('windows in words', [
+  meetings.windowWords(meetings.timeWindowIn('strictly after 9am and strictly before noon New York time')),
+  meetings.windowWords(meetings.timeWindowIn('until 3pm')),
+  meetings.windowWords(meetings.timeWindowIn('anything from 10am')),
+  meetings.windowWords(meetings.timeWindowIn('at any time')),
+], ['after 9am and before 12pm', 'from 6am and up to and including 3pm', 'from 10am and until midnight', 'at any hour']);
+
+group('Bilal\'s retest, 3 Nov: "which program?" when it already knew');
+check('the questions it asked are caught', [
+  "Tomorrow's Wednesday 4 November for you, Bilal. Which program, AA, ACA, DA, BDA, UA or Al-Anon? Tell me which and I'll pull what's on for that day.",
+  "Tomorrow's Wednesday 4 November for you, Bilal. Which program this time, Al-Anon again or another?",
+  "Tomorrow's Wednesday 4 November, Bilal. Al-Anon again, or a different program this time?",
+  "Tomorrow's Wednesday 4 November for you, Bilal. Which program this time? Al-Anon, like we've been doing, or something else?",
+  "Tomorrow's Wednesday 4 November, Bilal, and you were searching women's ACA before we got sidetracked. Want me to stay with ACA, or switch?",
+  'Want me to pull some Al-Anon meetings for tomorrow?',
+].map(meetings.asksForProgram), [true, true, true, true, true, true]);
+check('a question about something else is not', [
+  "One tip, Bilal: open with your main point first. What's the presentation on?",
+  'Here are three Al-Anon meetings for Wednesday. If one has ended or a detail is wrong, just tell me here so we can fix it.',
+  'Your program sounds like it is really helping. How are you sleeping?',
+].map(meetings.asksForProgram), [false, false, false]);
+
+check('only an ask for more meetings gets a "which program?" reply written again', [
+  'Anymore meetings tomorrow?', 'Any more meetings tomorrow?', 'any more meetings', 'more meetings please',
+  'I went to another meeting today', 'I went to the AA meeting last night', 'The meeting was great, thanks again',
+].map(meetings.asksForMoreMeetings), [true, true, true, true, false, false, false]);
+
+group('Bilal\'s retest, 3 Nov: a clock-change date that is not the real one');
+const nov3 = at('2026-11-03T14:33:00Z');
+const fixClock = (t, now = nov3) => meetings.fixClockDates(t, now).text;
+check('his live reply: US "on 2 November" becomes 1 November, London and Dublin on 25 October are left alone',
+  fixClock('Note the clocks: US fell back to standard time on 2 November, so LA is UTC-8 and New York UTC-5 here. London and Dublin shift on 25 October, so both are at UTC+0 by this date.'),
+  'Note the clocks: US fell back to standard time on 1 November, so LA is UTC-8 and New York UTC-5 here. London and Dublin shift on 25 October, so both are at UTC+0 by this date.');
+check('replays: the weekday is put right too, and the meeting date after it is left alone', [
+  fixClock("One note on the US clocks: they fall back on Sunday 2 November, so by 7 November the US-listed times are already on standard time, which I've used above."),
+  fixClock('Note on the US clocks: they fall back 2am Sunday 2 November, so by the 7th the US is on standard time.'),
+  fixClock('US clocks changed on November 2nd.'),
+], [
+  "One note on the US clocks: they fall back on Sunday 1 November, so by 7 November the US-listed times are already on standard time, which I've used above.",
+  'Note on the US clocks: they fall back 2am Sunday 1 November, so by the 7th the US is on standard time.',
+  'US clocks changed on November 1.',
+]);
+check('a right date, a date not about clocks, and one far from any change are left as written', [
+  fixClock('Note on the clocks: US fell back 1 November, so the 7th is on standard time, UK and Ireland already shifted 25 October.'),
+  fixClock('Your sponsor changed on 2 November, and the clocks here are fine.'),
+  fixClock('Your home group changed on 2 November.'),
+  fixClock('Clocks change on 20 July there.'),
+], [
+  'Note on the clocks: US fell back 1 November, so the 7th is on standard time, UK and Ireland already shifted 25 October.',
+  'Your sponsor changed on 2 November, and the clocks here are fine.',
+  'Your home group changed on 2 November.',
+  'Clocks change on 20 July there.',
+]);
+check('spring too: US clocks in 2027 go forward on Sunday 14 March, not the 7th',
+  fixClock('US clocks spring forward on Sunday 7 March.', at('2027-03-01T12:00:00Z')), 'US clocks spring forward on Sunday 14 March.');
+check('and it says what it changed', meetings.fixClockDates('US fell back to standard time on 2 November.', nov3).fixed, [{ said: '2 November', now: '1 November' }]);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

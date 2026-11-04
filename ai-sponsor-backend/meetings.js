@@ -526,6 +526,138 @@ const CLOCK_TALK = /\b(daylight|dst|clocks?|fall(s|ing)? back|fall-back|spring(s
 const monthIndex = (s) => ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'].indexOf(s.slice(0, 3).toLowerCase());
 const dayKey = ({ y, mo, d }) => `${y}-${mo}-${d}`;
 
+/* ── Checks on the reply once it is written ─────────────────────────────────
+   Bilal's retest, 3 Nov. Each of these was already a line in the meetings
+   block, and the reply went against it anyway. A prompt line is a preference
+   the model weighs, so these read what it actually wrote. */
+
+// "9am", "12pm", "7:30pm", from minutes after midnight.
+function clockWords(mins) {
+  const h = Math.floor(mins / 60) % 24;
+  const m = mins % 60;
+  return `${h % 12 || 12}${m ? `:${String(m).padStart(2, '0')}` : ''}${h < 12 ? 'am' : 'pm'}`;
+}
+
+/* A window from timeWindowIn, in words: "after 9am and before 12pm".
+   timeWindowIn stores "after" and "until" a minute out, so that minute says
+   which word they used. */
+function windowWords({ from, to }) {
+  if (from <= 0 && to >= 24 * 60) return 'at any hour';
+  const start = from % 60 === 1 ? `after ${clockWords(from - 1)}` : `from ${clockWords(from)}`;
+  const end = to >= 24 * 60 ? 'until midnight' : to % 60 === 1 ? `up to and including ${clockWords(to - 1)}` : `before ${clockWords(to)}`;
+  return `${start} and ${end}`;
+}
+
+/* Did the reply ask which program? Only its questions count. Seen 3 Nov:
+   "Which program, AA, ACA, DA, BDA, UA or Al-Anon?", "Al-Anon again, or a
+   different program this time?", "Which program this time? Al-Anon, like
+   we've been doing, or something else?", "Want me to stay with ACA, or ...?"
+   A question naming a program counts too: it is only read on a reply that
+   gave no meetings, where any such question is asking instead of answering. */
+const PROGRAM_NAMED = new RegExp(`\\b(${[...Object.keys(PROGRAMS), ...Object.keys(OTHERS)].map((k) => k.replace('-', '-?')).join('|')})\\b`);
+function asksForProgram(text) {
+  return String(text || '').split(/(?<=[.!?])\s+|\n+/)
+    .filter((s) => s.trim().endsWith('?'))
+    .some((s) => /\b(programs?|programmes?|fellowships?)\b|\bagain,?\s+or\b|\bor\s+(something|anything|another|a different)\b/i.test(s)
+      || PROGRAM_NAMED.test(s) || /\bal-?anon\b|\bnar-?anon\b/i.test(s));
+}
+
+/* Asking for more meetings ("Anymore meetings tomorrow?", "any more
+   meetings"), not telling the sponsor about one ("I went to another meeting
+   today"). Only then is a "which program?" reply written again: asked how
+   the AA meeting went, a question about AA is the right reply. */
+const REQUEST = /\b(any|show|find|give|send|list|need|want|looking|search|pull|got|please)\b/i;
+function asksForMoreMeetings(message) {
+  const t = String(message || '').trim();
+  return asksAboutMeetings(t) && CONTINUES.test(t) && (/\?$/.test(t) || REQUEST.test(t));
+}
+
+/* A clock-change date that is not the real one. On 3 Nov the block said
+   "clocks went back an hour at 2am on Sunday 1 November" for New York,
+   Denver and Los Angeles, and the reply said US clocks fell back "on 2
+   November". It did the same on 26 Oct, and in 2 of 4 replays. Nobody had
+   asked about clocks; it volunteered the note.
+
+   Only a date that follows a change word ("fell back on", "shift on",
+   "changed on") in a sentence about clocks is read, so "so by 7 November the
+   US is on standard time" is left alone. It is checked against the real
+   changes in the places the sentence names (all of them if it names none),
+   from the same time zone rules as the block. A date within a week of a real
+   change becomes that change's date; anything else is left as written,
+   because we cannot tell what it meant. */
+const CLOCK_WORDS = /\b(daylight|dst|clocks?|standard time|summer time|winter time|time change)\b|\b(fall|falls|fell|spring|springs|sprang)\s+(back|forward)\b/i;
+const LEAD_CLOCK = /\b(back|forward|clocks?|dst|daylight|standard time|summer time|winter time|time change)\b/i;
+const CHANGE_VERB = /\b(fall|falls|fell|falling|go|goes|went|going|turn|turns|turned|spring|springs|sprang|move|moves|moved|shift|shifts|shifted|change|changes|changed|changing|end|ends|ended|start|starts|started|begin|begins|began|switch|switches|switched)\b/i;
+const CLOCK_DATE = new RegExp(`\\b(?:(${WEEKDAY_WORD}),?\\s+)?(?:${DAYNUM}\\s+(?:of\\s+)?${MONTH}|${MONTH}\\s+${DAYNUM}\\b)`, 'gi');
+const CLOCK_REGIONS = [
+  { caps: /\b(US|U\.S|USA|NYC?|LA)\b/, words: /\b(america|american|united states|canada|canadian|new york|los angeles|chicago|denver|eastern|central|mountain|pacific)\b/i, zones: ['America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles'] },
+  { caps: /\b(UK|EU)\b/, words: /\b(britain|british|england|london|ireland|irish|dublin|europe|european|germany|berlin|france|paris|spain|madrid|italy|rome|netherlands|amsterdam)\b/i, zones: ['Europe/London', 'Europe/Dublin', 'Europe/Berlin'] },
+  { caps: /\bAU\b/, words: /\b(australia|australian|sydney|melbourne|adelaide|canberra)\b/i, zones: ['Australia/Sydney', 'Australia/Adelaide'] },
+  { caps: /\bNZ\b/, words: /\b(new zealand|auckland|wellington)\b/i, zones: ['Pacific/Auckland'] },
+  { caps: null, words: /\b(israel|israeli|jerusalem|tel aviv)\b/i, zones: ['Asia/Jerusalem'] },
+];
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const DAY_WORDS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+// Every real change in those places within 200 days either side, worked out once a day.
+let realChanges = { day: null, list: [] };
+function realChangesAround(now) {
+  const day = Math.floor(now / 86400000);
+  if (realChanges.day !== day) {
+    const zones = [...new Set(CLOCK_REGIONS.flatMap((r) => r.zones))];
+    realChanges = {
+      day,
+      list: clockChanges(zones, now - 200 * 86400000, now + 200 * 86400000).map((c) => {
+        const { y, mo, d } = dateIn(c.zone, c.at - 60000); // the date on their wall clock as it changed
+        return { zone: c.zone, mo, d, weekday: new Date(Date.UTC(y, mo, d)).getUTCDay(), day: Date.UTC(y, mo, d) / 86400000 };
+      }),
+    };
+  }
+  return realChanges.list;
+}
+
+function fixClockDates(text, now = Date.now()) {
+  const src = String(text || '');
+  const fixed = [];
+  if (!CLOCK_WORDS.test(src)) return { text: src, fixed };
+  const out = src.replace(/[^.!?\n]+[.!?]*/g, (sentence) => {
+    if (!CLOCK_WORDS.test(sentence)) return sentence;
+    const named = CLOCK_REGIONS.filter((r) => (r.caps && r.caps.test(sentence)) || r.words.test(sentence));
+    const zones = new Set((named.length ? named : CLOCK_REGIONS).flatMap((r) => r.zones));
+    let real = null;
+    let prevEnd = 0;
+    return sentence.replace(CLOCK_DATE, (whole, wd, d1, m1, m2, d2, offset) => {
+      const lead = sentence.slice(Math.max(prevEnd, offset - 40), offset);
+      prevEnd = offset + whole.length;
+      // "fell back on", "clocks changed on", "DST ends": a change word, and the clocks, just before it.
+      if (!CHANGE_VERB.test(lead) || !LEAD_CLOCK.test(lead)) return whole;
+      const d = Number(d1 || d2);
+      const mo = monthIndex(m1 || m2);
+      if (d < 1 || d > 31 || mo < 0) return whole;
+      // The year that puts the date they wrote nearest to now.
+      const today = Math.floor(now / 86400000);
+      const thisYear = new Date(now).getUTCFullYear();
+      const said = [thisYear - 1, thisYear, thisYear + 1].map((y) => Date.UTC(y, mo, d) / 86400000)
+        .sort((a, b) => Math.abs(a - today) - Math.abs(b - today))[0];
+      real = real || realChangesAround(now).filter((c) => zones.has(c.zone));
+      if (real.some((c) => c.day === said)) return whole;
+      const near = real.filter((c) => Math.abs(c.day - said) <= 7).sort((a, b) => Math.abs(a.day - said) - Math.abs(b.day - said));
+      if (!near.length) return whole;
+      const c = near[0];
+      // Two places changing on different days, equally near: we cannot tell which it meant.
+      if (near.some((x) => x.day !== c.day && Math.abs(x.day - said) === Math.abs(c.day - said))) return whole;
+      // A day-first month can carry the sentence's full stop ("on 7 March."): it stays at the end.
+      const stop = d1 && /\.$/.test(whole) ? '.' : '';
+      const month = c.mo === mo ? (m1 || m2).replace(/\.$/, '') : MONTH_NAMES[c.mo];
+      const date = d1 ? `${c.d} ${month}` : `${month} ${c.d}`;
+      const corrected = wd ? `${DAY_WORDS[c.weekday]}${(/^[a-z]+(,?\s+)/i.exec(whole) || ['', ' '])[1]}${date}` : date;
+      fixed.push({ said: whole.replace(/\.$/, ''), now: corrected });
+      return corrected + stop;
+    });
+  });
+  return { text: out, fixed };
+}
+
 function datesIn(text, zone, now) {
   /* A date they mention is not always a day they want meetings for: "US
      clocks fall back on November 1, not November 2", "November 2 is Monday"
@@ -959,6 +1091,14 @@ function buildMeetingsBlock({ message, programField, userZone, zoneTold = false,
     const offerable = reported.size ? { ...data, meetings: data.meetings.filter((m) => !reported.has(listedLink(m))) } : data;
     const { lists, counts } = upcoming(fresh, now, offerable, userZone, ask);
     const held = (p) => data.meetings.filter((m) => m.program === p).length.toLocaleString('en-US');
+    /* What a count covers, said with the count. On 3 Nov "32 fit" was right
+       for 9am to noon New York time, the sponsor called it "32 overall", and
+       when Bilal asked how 32 squared with the 53 for the whole day, it called
+       its own right number a slip from another day. */
+    const frame = ask.zone || userZone;
+    const basis = ask.window
+      ? `, counting only those starting ${windowWords(ask.window)}, ${frame} time`
+      : `, at a sensible hour for them (7am to 10pm, ${userZone} time${frame !== userZone ? `, on each day as it falls in ${frame}` : ''}; meetings starting between 10pm and 7am are not in it)`;
     const lines = [];
     const shown = [];
     for (const p of fresh) {
@@ -966,7 +1106,7 @@ function buildMeetingsBlock({ message, programField, userZone, zoneTold = false,
       if (!lists[p].length && !count) continue;
       shown.push(p);
       lines.push(`${PROGRAMS[p].label}: a few picks from the ${held(p)} you hold, which meet on every day of the week:`);
-      if (count) lines.push(`How many of the ${held(p)} fit what they asked${ask.window ? '' : ', at a sensible hour for them (7am to 10pm)'}, by day: ${count.map(({ label, n, shown: s }) => `${label}: ${n ? `${n} fit, ${s} of them shown below` : 'none'}`).join('; ')}. You hold every one that fits; only the ones below are in front of you.`);
+      if (count) lines.push(`How many of the ${held(p)} fit what they asked${basis}, by day: ${count.map(({ label, n, shown: s }) => `${label}: ${n ? `${n} fit, ${s} of them shown below` : 'none'}`).join('; ')}. You hold every one that fits; only the ones below are in front of you.`);
       for (const { m, at } of lists[p]) lines.push(meetingLine(m, at, userZone, now, ask.zone));
     }
     /* Ones it gave them earlier in the chat and not listed above, shown at the
@@ -1039,6 +1179,7 @@ function buildMeetingsBlock({ message, programField, userZone, zoneTold = false,
         ? '- They asked for all of them. Answer like this: say how many fit in all (the count), say here are some spread across the day, then list every pick below in full (day and time, name, link, passcode), then offer more if they give a narrower time. Listing none, or only ones you gave before, is wrong.'
         : '- Offer one to three that fit what they asked for, never the whole list.',
       ...(Object.keys(counts).length ? ['- The count by day was checked against every meeting you hold. A day it gives as none really has none that fit what they asked: say so plainly, then offer the nearest other time or day, or the official finder. A day with a number has that many, so never say it has none.'] : []),
+      ...(Object.keys(counts).length ? ['- When you give a count, say what it covers, as the count line says: the day, the hours and the time zone (for example "32 start between 9am and noon New York time that Saturday", or "53 between 7am and 10pm your time"). A count for some of the hours, whether a time they asked for or 7am to 10pm, is never "the whole day", "any hour" or "overall". If they question a count you gave earlier, say what each count covered and why they differ. Every count you gave came from a count line like this one and was right for what it covered, so never call it a slip or a mistake, and never say it came from another day.'] : []),
       '- You hold every meeting in the count, and the picks here are only some of them. If they ask for all of them or for more, say how many there are, give the picks here, and offer more by narrowing the time (or the official finder). Never give none, and never say the picks are all you have, that you are not holding more, or that your list is only a working set.',
       '- If what they want is not here (another day, a later or earlier time, a women\'s or men\'s meeting) and no count above says none, never say there is none, that your list ends tomorrow, or that you hold nothing later, and never call the ones you give all you have: you hold meetings for every day of the coming week, and these are only a few. Say you\'ll look, and ask them for the day and time in one line (for example "Tell me the day and time, like Saturday after 8pm, and I\'ll look"). You can give the official finder as well.',
       '- Copy the name, time, link and passcode exactly as written here, and how soon it starts. Never change, shorten or make up a link, a time, a passcode or a meeting, and never offer one that is not on this list.',
@@ -1069,5 +1210,6 @@ module.exports = {
   cleanName, weekdaysIn, alreadyGiven, startsIn, timeWindowIn, genderAsked, askIn, datesIn, namedIn, zoneIn,
   meetingProblemsIn, hiddenFrom, REPORT_DAYS, setChecks, load, listedLink,
   offsetMinutes, utcLabel, clockChanges, STALE_AFTER_DAYS, PROGRAMS, OTHERS, othersIn,
+  asksForProgram, asksForMoreMeetings, fixClockDates, windowWords,
   _setData(d) { cache = d; fixed = null; },
 };
