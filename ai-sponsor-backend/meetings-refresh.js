@@ -455,6 +455,17 @@ async function fromDa(now, rejected) {
   }
   return kept;
 }
+/* No passcode listed is no longer a reason to leave a meeting out, in any
+   program (Mariam: DA on 30 Oct, every program on 5 Nov). Plenty of rooms
+   need none, and where one does, the listing says who to ask. Such a meeting
+   carries passcodeListed: false, and the sponsor and the page both say so. */
+function markNoPasscode(m) {
+  if (m.phone || /[?&]pwd=/.test(m.link || '')) return m;
+  if (m.passcode && String(m.passcode).trim()) return m;
+  m.passcode = null;
+  m.passcodeListed = false;
+  return m;
+}
 const DA_CRAWL_DELAY_MS = 5000;
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -765,7 +776,6 @@ function aaProblem(m, now) {
   if (!m.slug) return 'no listing id';
   const zoom = zoomFrom(m.conference_url || '', { allowId: false });
   if (!zoom) return 'no direct Zoom link';
-  if (!/pwd=/.test(zoom.link) && !passcodeFrom(aaNotes(m))) return 'no passcode in the link or the listing';
   if (!types.includes('EN')) return 'not marked English';
   const day = Number(m.day);
   if (!Number.isInteger(day) || day < 0 || day > 6 || !/^\d{2}:\d{2}$/.test(m.time || '')) return 'no fixed day and time';
@@ -821,7 +831,6 @@ function alAnonProblem(m) {
   if (m.is_24_7) return 'runs around the clock, no fixed time';
   const zoom = zoomFrom(m.url || '', { allowId: false });
   if (!zoom) return 'no direct Zoom link';
-  if (!/pwd=/.test(zoom.link) && !String(m.meeting_password || '').trim()) return 'no passcode in the link or the listing';
   if (!/\bEnglish\b/i.test(m.languages || '')) return `language is ${m.languages || 'not stated'}`;
   if (!alAnonWhen(m.times)) return 'no fixed day and time';
   if (!knownZone(m.timezone)) return `unknown time zone ${m.timezone || '(none)'}`;
@@ -908,7 +917,6 @@ function acaProblem(m, now) {
   if (!knownZone(m.Timezone)) return `unknown time zone ${m.Timezone || '(none)'}`;
   const zoom = zoomFrom(text);
   if (!zoom) return 'no direct Zoom link';
-  if (!/pwd=/.test(zoom.link) && !passcodeFrom(text)) return 'no passcode in the link or the listing';
   const why = textProblem(m.MeetName, clean(text));
   if (why) return why;
   const updated = new Date(String(m.LastUpdate || '').slice(0, 10) + 'T00:00:00Z');
@@ -1022,7 +1030,6 @@ function uaProblem(e, now) {
   if (SHIFTS_WITH_DST.test(text)) return 'listing says its time moves with daylight saving';
   const zoom = zoomFrom(text);
   if (!zoom) return 'no direct Zoom link';
-  if (!/pwd=/.test(zoom.link) && !passcodeFrom(text)) return 'no passcode in the link or the listing';
   const why = textProblem(name, clean(text));
   if (why) return why;
   const mod = /^(\d{4})(\d{2})(\d{2})T/.exec(((e['LAST-MODIFIED'] || e.DTSTAMP) || {}).value || '');
@@ -1108,7 +1115,6 @@ function naProblem(m) {
   if (!String(m.meeting_name || '').trim()) return 'no meeting name';
   const zoom = zoomFrom(text);
   if (!zoom) return 'no direct Zoom link';
-  if (!/pwd=/.test(zoom.link) && !passcodeFrom(text)) return 'no passcode in the link or the listing';
   return textProblem(m.meeting_name, clean(text));
 }
 
@@ -1240,7 +1246,6 @@ function oaProblem(d) {
   if (/ask the meeting contact|contact .{0,40}for (the )?(login|link|password|passcode)/i.test(d.onlineText)) return 'listing says to ask someone for the link or password';
   const zoom = zoomFrom(d.onlineRaw);
   if (!zoom) return 'no direct Zoom link';
-  if (!/pwd=/.test(zoom.link) && !passcodeFrom(d.onlineText)) return 'no passcode in the link or the listing';
   return textProblem(d.heading, `${d.onlineText} ${d.notes}`);
 }
 
@@ -1391,7 +1396,6 @@ function slaaProblem(d, now) {
   if (namedDays.length && (namedDays.length !== d.days.length || namedDays.some((x) => !d.days.includes(x)))) return 'name and schedule disagree';
   const zoom = zoomFrom(d.raw);
   if (!zoom) return 'no direct Zoom link';
-  if (!/pwd=/.test(zoom.link) && !passcodeFrom(d.raw)) return 'no passcode in the link or the listing';
   const why = textProblem(d.name, d.notes);
   if (why) return why;
   if (!d.updated) return 'listing has no last-updated date';
@@ -1481,6 +1485,7 @@ async function main() {
     try { return { programs: s.programs, found: await s.run(now, rejected) }; } catch (e) { return { programs: s.programs, error: e.message }; }
   }));
   const { meetings, checked, problems } = assemble(results, previous, now);
+  meetings.forEach(markNoPasscode);
   const freshlyChecked = Object.values(checked).filter((iso) => iso === now.toISOString()).length;
   if (!freshlyChecked) {
     console.error(`Not writing: no directory answered properly.\n  ${problems.join('\n  ')}`);
@@ -1518,5 +1523,5 @@ module.exports = {
   zoomFrom, passcodeFrom, whoFrom, aaProblem, alAnonProblem, alAnonWhen, acaProblem, acaMeeting,
   parseIcs, uaProblem, uaMeeting, assemble, FLOOR, naProblem, naMeeting,
   oaIndexProblem, parseOaPage, oaProblem, oaMeeting, parseSlaaCell, slaaProblem, slaaMeeting, textProblem, clean,
-  zoomPageShowsRoom, keepOldIfRoomExists, SCHEDULED_ROOM, daUkMeetings, daCanadaMeetings, notAlreadyListed, daOrBda, ONLY_OLD,
+  zoomPageShowsRoom, keepOldIfRoomExists, SCHEDULED_ROOM, markNoPasscode, daUkMeetings, daCanadaMeetings, notAlreadyListed, daOrBda, ONLY_OLD,
 };

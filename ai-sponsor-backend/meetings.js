@@ -338,6 +338,39 @@ function starts(meeting, now, ahead = 7) {
   return out.sort((a, b) => a - b);
 }
 
+/* How many there are beyond the few picks: still to start today, tomorrow,
+   and over the next seven days, at any hour, in their own time. The same
+   meetings the page shows for that program. Mariam, 5 Nov: show people there
+   are plenty, today, tomorrow and the week, rather than only answering the
+   one thing they asked. */
+function plentyCounts(list, zone, now) {
+  const today = dateIn(zone, now);
+  const t = new Date(Date.UTC(today.y, today.mo, today.d + 1));
+  const todayKey = dayKey(today);
+  const tomorrowKey = dayKey({ y: t.getUTCFullYear(), mo: t.getUTCMonth(), d: t.getUTCDate() });
+  const end = now + 7 * 86400000;
+  const out = { today: 0, tomorrow: 0, week: 0 };
+  for (const m of list) {
+    for (const at of starts(m, now, 7)) {
+      if (at < now || at >= end) continue;
+      out.week++;
+      const k = dayKey(dateIn(zone, at));
+      if (k === todayKey) out.today++;
+      else if (k === tomorrowKey) out.tomorrow++;
+    }
+  }
+  return out;
+}
+
+// "There are 6 DA meetings still to come today, 14 tomorrow and 95 over the next 7 days"
+function plentyExample({ p, today, tomorrow, week }) {
+  const parts = [];
+  if (today) parts.push(`${today} ${p} meetings still to come today`);
+  if (tomorrow) parts.push(parts.length ? `${tomorrow} tomorrow` : `${tomorrow} ${p} meetings tomorrow`);
+  parts.push(parts.length ? `${week} over the next 7 days` : `${week} ${p} meetings over the next 7 days`);
+  return `There are ${parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0]}`;
+}
+
 // The next time this meeting starts, as an instant, or null.
 function nextStart(meeting, now) {
   const all = starts(meeting, now);
@@ -1204,6 +1237,20 @@ function buildMeetingsBlock({ message, programField, userZone, zoneTold = false,
       ? `Clock changes near these days, from the IANA time zone database (the rules phones and computers use; name it if they ask for a source), already in every time here: ${changes.map((c) => clockChangeLine(c, now)).join('; ')}.`
       : null;
 
+    /* The page link, with how many there are today, tomorrow and this week
+       (Mariam, 5 Nov: show them there are plenty). Counted at any hour from the
+       same meetings the page shows, reported ones left out. */
+    const plenty = userZone
+      ? shown.map((p) => ({ p, ...plentyCounts(offerable.meetings.filter((m) => m.program === p), userZone, now) }))
+      : [];
+    const first = plenty.find((x) => x.week) || null;
+    const pageLine = `Every ${shown.map((p) => PROGRAMS[p].label).join(' and ')} meeting this week is on this page, in the time zone of the phone that opens it: ${allMeetingsLink(shown)}.`
+      + (first
+        ? ` How many you hold, at any hour, ${userZone} time, counting the picks above: ${plenty.map(({ p, today, tomorrow, week }) => `${PROGRAMS[p].label}: ${today} still to start today, ${tomorrow} tomorrow (${tomorrowFor(userZone, now)}), ${week} over the next 7 days`).join('; ')}.`
+          + ` After the meetings you pick, show them there are plenty in one short line with this link, using these numbers as written (for example "${plentyExample(first)}, all here in your own time: ${allMeetingsLink(shown)}"), then offer to send some for tomorrow or any day they like. Leave out a number that is 0. These counts are at any hour, so never call them meetings at a sensible hour.`
+        : ` After the meetings you pick, put it in your reply in one short line (for example "All the rest of this week's ${shown.join(' and ')} meetings are here, in your own time: ${allMeetingsLink(shown)}").`)
+      + ' Copy the link exactly.';
+
     return [
       '## RECOVERY MEETINGS YOU CAN OFFER',
       ...(carriedOver ? [`They are asking for more ${shown.map((p) => PROGRAMS[p].label).join(' and ')} meetings, carrying on their earlier search. You already know the program: give them meetings from below in this reply. Asking "which program?" here is wrong.`] : []),
@@ -1218,7 +1265,7 @@ function buildMeetingsBlock({ message, programField, userZone, zoneTold = false,
       ...(carriedOver ? [`They did not name a program this time: they are carrying on with their earlier search, so these are ${shown.map((p) => PROGRAMS[p].label).join(' and ')} meetings${ask.want === 'women' || ask.want === 'men' ? `, ${ask.want}'s first, as before` : ''}. Answer with them, and do not ask which program; if they meant another one, they will say.`] : []),
       ...(changesLine ? [changesLine] : []),
       ...lines,
-      ...(shown.length ? [`Every ${shown.map((p) => PROGRAMS[p].label).join(' and ')} meeting this week is on this page, in the time zone of the phone that opens it: ${allMeetingsLink(shown)}. After the meetings you pick, put it in your reply in one short line (for example "All the rest of this week's ${shown.join(' and ')} meetings are here, in your own time: ${allMeetingsLink(shown)}"). Copy the link exactly.`] : []),
+      ...(shown.length ? [pageLine] : []),
       ...givenSection,
       ...namedSection,
       ...(staleLine ? [staleLine] : []),
@@ -1235,6 +1282,7 @@ function buildMeetingsBlock({ message, programField, userZone, zoneTold = false,
       ...(Object.keys(counts).length ? ['- When you give a count, say what it covers, as the count line says: the day, the hours and the time zone (for example "32 start between 9am and noon New York time that Saturday", or "53 between 7am and 10pm your time"). A count for some of the hours, whether a time they asked for or 7am to 10pm, is never "the whole day", "any hour" or "overall". If they question a count you gave earlier, say what each count covered and why they differ. Every count you gave came from a count line like this one and was right for what it covered, so never call it a slip or a mistake, and never say it came from another day.'] : []),
       '- You hold every meeting in the count, and the picks here are only some of them. If they ask for all of them or for more, say how many there are, give the picks here, and offer more by narrowing the time (or the official finder). Never give none, and never say the picks are all you have, that you are not holding more, or that your list is only a working set.',
       '- If what they want is not here (another day, a later or earlier time, a women\'s or men\'s meeting) and no count above says none, never say there is none, that your list ends tomorrow, or that you hold nothing later, and never call the ones you give all you have: you hold meetings for every day of the coming week, and these are only a few. Say you\'ll look, and ask them for the day and time in one line (for example "Tell me the day and time, like Saturday after 8pm, and I\'ll look"). You can give the official finder as well.',
+      '- When the line for a meeting says no passcode listed, say so with that meeting in a few words (for example "no passcode is listed for this one; if it asks for one, the listing says who to ask"). When two fit them equally, give the one with a passcode first.',
       '- Copy the name, time, link and passcode (or, for a phone meeting, the number and access code) exactly as written here, and how soon it starts. Never change, shorten or make up a link, a number, a time, a passcode or a meeting, and never offer one that is not on this list.',
       // Matt, 30 Oct: people tell us about a dead meeting when they are asked to.
       '- Whenever you give them meetings, end that reply with one short line asking them to tell you if one has ended, its link is broken or a detail is wrong, so it can be fixed (for example "If one has ended, the link is broken or a detail is wrong, just tell me here so we can fix it."). One line, in your own words, after the meetings.',
@@ -1259,6 +1307,7 @@ function buildMeetingsBlock({ message, programField, userZone, zoneTold = false,
 }
 
 module.exports = {
+  plentyCounts, plentyExample,
   buildMeetingsBlock, asksAboutMeetings, programsOf, programsIn, nextStart, starts, describeWhen, instantFor,
   cleanName, weekdaysIn, alreadyGiven, startsIn, timeWindowIn, genderAsked, askIn, datesIn, namedIn, zoneIn,
   meetingProblemsIn, hiddenFrom, REPORT_DAYS, setChecks, listedLink, asksWhichProgram, asksWhereTheyAre, zoneName, allMeetingsLink, ALL_MEETINGS_PAGE, load,

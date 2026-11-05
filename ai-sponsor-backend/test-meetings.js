@@ -853,6 +853,32 @@ const notDup = refresh.notAlreadyListed([
 check('the same room at the same moment is one meeting; the same room at another time is another', [notDup.map((m) => m.id), dupRej.map((r) => r[1])],
   [['dauk-b', 'dauk-c'], ['dauk-a']]);
 
+group('no passcode listed, in every program (5 Nov)');
+const npAA = refresh.markNoPasscode({ program: 'AA', link: 'https://zoom.us/j/81111111111', passcode: null });
+const npAlAnon = refresh.markNoPasscode({ program: 'Al-Anon', link: 'https://zoom.us/j/82222222222', passcode: '' });
+check('a Zoom meeting with no passcode anywhere is kept and says so', [npAA.passcodeListed, npAlAnon.passcodeListed, npAlAnon.passcode], [false, false, null]);
+check('one with a pwd in its link, a passcode, or a phone line is left as it is', [
+  refresh.markNoPasscode({ link: 'https://zoom.us/j/83333333333?pwd=abc', passcode: null }).passcodeListed,
+  refresh.markNoPasscode({ link: 'https://zoom.us/j/84444444444', passcode: '1234' }).passcodeListed,
+  refresh.markNoPasscode({ link: 'tel:+16055550100,,123#', phone: { number: '+1 605-555-0100', code: '123#' } }).passcodeListed,
+], [undefined, undefined, undefined]);
+
+group('show them there are plenty: today, tomorrow, the week (5 Nov)');
+const plentyNow = at('2026-11-05T17:00:00Z'); // Thursday noon in New York
+const pl = meetings.plentyCounts([
+  { start: '18:00', days: [0, 1, 2, 3, 4, 5, 6], zone: 'America/New_York' }, // every evening
+  { start: '09:00', days: [5], zone: 'America/New_York' },                   // Friday morning
+  { start: '08:00', days: [4], zone: 'America/New_York' },                   // Thursday morning, gone for today
+], 'America/New_York', plentyNow);
+check('counted in their own time: still to start today, tomorrow, next 7 days', [pl.today, pl.tomorrow, pl.week], [1, 2, 9]);
+check('the example line leaves out a zero and names the program once', [
+  meetings.plentyExample({ p: 'DA', today: 6, tomorrow: 14, week: 95 }),
+  meetings.plentyExample({ p: 'DA', today: 0, tomorrow: 14, week: 95 }),
+  meetings.plentyExample({ p: 'BDA', today: 0, tomorrow: 0, week: 12 }),
+], ['There are 6 DA meetings still to come today, 14 tomorrow and 95 over the next 7 days',
+  'There are 14 DA meetings tomorrow and 95 over the next 7 days',
+  'There are 12 BDA meetings over the next 7 days']);
+
 group('the real list, as written');
 const real = JSON.parse(require('fs').readFileSync(path.resolve(__dirname, 'meetings-data.json'), 'utf8'));
 const ids = new Set(real.meetings.map((m) => m.id));
@@ -865,8 +891,10 @@ const isZoom = (l) => /^https:\/\/([a-z0-9]+\.)?zoom\.us\/j\/\d{9,11}(\?pwd=[A-Z
 check('every meeting has one way in: a Zoom link, another platform\'s link, or a phone number and code',
   real.meetings.filter((m) => !(m.phone ? /^\+\d/.test(m.phone.number) && /^tel:\+\d+,,/.test(m.link)
     : m.platform ? /^https:\/\//.test(m.link) : isZoom(m.link))).length, 0);
-check('only DA and BDA have phone meetings, other platforms or no passcode listed',
-  real.meetings.filter((m) => (m.phone || m.platform || m.passcodeListed === false) && !['DA', 'BDA'].includes(m.program)).length, 0);
+check('only DA and BDA have phone meetings or other platforms',
+  real.meetings.filter((m) => (m.phone || m.platform) && !['DA', 'BDA'].includes(m.program)).length, 0);
+check('a meeting says no passcode is listed only when it really has none',
+  real.meetings.filter((m) => m.passcodeListed === false && (m.passcode || /[?&]pwd=/.test(m.link) || m.phone)).length, 0);
 check('every video meeting can be opened, or says no passcode is listed',
   real.meetings.filter((m) => !m.phone && !/pwd=/.test(m.link) && !m.passcode && m.passcodeListed !== false).length, 0);
 const realZone = (z) => { try { new Intl.DateTimeFormat('en', { timeZone: z }); return true; } catch { return false; } };
