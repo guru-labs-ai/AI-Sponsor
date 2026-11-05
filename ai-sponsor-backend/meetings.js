@@ -176,8 +176,28 @@ const ALL_FINDERS = [
 const ASK_FIRST_LINE = 'This reply has no meetings in it, and you cannot send another message after it: the meetings come with your next reply, once they answer. So this reply must ask that question, even if your last message asked something too. Never say you are searching, pulling or finding meetings right now, and never "give me a sec".';
 const asksWhichProgram = (block) => String(block || '').includes(ASK_FIRST_LINE);
 
+/* Mariam, 5 Nov: asked "how many meetings across programs do you see?", it
+   could only say it saw "big numbers in each one". The total, so it can say. */
+function totalsLine(now = Date.now()) {
+  const data = load();
+  if (!data || !Array.isArray(data.meetings)) return null;
+  const fresh = (p) => {
+    const c = (data.checked && data.checked[p]) || data.generatedAt;
+    return c && (now - Date.parse(c)) / 86400000 <= STALE_AFTER_DAYS;
+  };
+  const per = {};
+  for (const m of data.meetings) if (fresh(m.program)) per[m.program] = (per[m.program] || 0) + m.days.length;
+  const programs = Object.keys(per).sort((a, b) => per[b] - per[a]);
+  if (!programs.length) return null;
+  const n = (x) => x.toLocaleString('en-US');
+  const total = programs.reduce((a, p) => a + per[p], 0);
+  return `In all you hold ${n(total)} online meetings a week across ${programs.length} programs (${programs.map((p) => `${PROGRAMS[p] ? PROGRAMS[p].label : p} ${n(per[p])}`).join(', ')}), each from its program's official directory. If they ask how many meetings you have in all or across programs, give these numbers as written.`;
+}
+
 function standingLines() {
+  const totals = totalsLine();
   return [
+    ...(totals ? [totals] : []),
     `You can search real online meetings for: ${ALL_LABELS}. Never say you cannot look up meetings or schedules: you can. If earlier in this chat you said you could not, that has changed, so do not repeat it.`,
     /* The example names no program. It said "Just say UA and I'll search", and
        on 30 Oct the sponsor asked Matt "Which program, Matt? Say UA and I'll
@@ -827,19 +847,27 @@ const fits = (want) => (x) => (want === 'all' ? !x.m.who : want ? !x.m.who || x.
 const rank = (want) => (x) => (want && want !== 'all' ? (x.m.who === want ? 0 : 1) : (x.m.who ? 1 : 0));
 
 // With the whole week shown, three a day (morning, afternoon, evening) keeps it readable.
-const WEEK_PARTS = [[7, 12], [12, 17], [17, 22]];
+/* Two a day for a week (Mariam, 5 Nov): fourteen meetings fit one WhatsApp
+   message (Meta caps one at 4,096 characters); the page holds the rest. */
+const WEEK_PARTS = [[7, 15], [15, 22]];
 
 /* One day's picks. Within a part of the day an open meeting comes before a
    women- or men-only one, which the sponsor may only offer when it fits them. */
-function spreadDay(list, want = null, week = false) {
+function spreadDay(list, want = null, week = false, used = null) {
   const ok = list.filter(fits(want));
   const better = rank(want);
+  /* Over a week, a meeting already picked for another day gives way to one
+     that was not (5 Nov replay: one daily 3pm phone meeting filled Monday to
+     Thursday). It is only used again when a part of the day has nothing else. */
+  const unused = (x) => !used || !used.has(x.m.id);
   const picked = [];
   for (const [from, to] of week ? WEEK_PARTS : DAY_PARTS) {
     const inPart = ok.filter((x) => x.h >= from && x.h < to);
-    const first = inPart.find((x) => better(x) === 0) || inPart[0];
+    const first = inPart.find((x) => better(x) === 0 && unused(x)) || inPart.find(unused)
+      || inPart.find((x) => better(x) === 0) || inPart[0];
     if (first) picked.push(first);
   }
+  if (used) for (const x of picked) used.add(x.m.id);
   for (const x of ok) {
     if (picked.length >= (week ? WEEK_PARTS.length : PER_DAY)) break;
     if (picked.every((p) => Math.abs(p.at - x.at) >= MIN_GAP_MINUTES * 60000)) picked.push(x);
@@ -853,7 +881,7 @@ const PER_WINDOW = 5;
 function windowDay(list, want = null, week = false, win = null, most = null) {
   const ok = list.filter(fits(want));
   const better = rank(want);
-  const max = most || (week ? 3 : PER_WINDOW);
+  const max = most || (week ? WEEK_PARTS.length : PER_WINDOW);
   const picked = [];
   /* A wide window ("at any time", "evening") is cut into parts so the picks
      spread across it, not the first few after it opens. */
@@ -930,11 +958,12 @@ function upcoming(programs, now, data, userZone, ask = {}) {
       if (soonest.every((s) => Math.abs(s.at - x.at) >= 30 * 60000)) soonest.push(x);
     }
     soonest.sort((a, b) => a.at - b.at);
+    const usedThisWeek = perDayFew ? new Set() : null;
     const picks = new Map([...days.entries()]
       .filter(([, day], i) => wanted || ask.week || i < DAYS_SHOWN || askedDays.includes(day.weekday))
       .map(([key, day]) => [key, ask.all && !perDayFew
         ? windowDay(day.list, ask.want, false, win || { from: WAKING.from * 60, to: WAKING.to * 60 }, PER_ALL)
-        : win ? windowDay(day.list, ask.want, perDayFew, win) : spreadDay(day.list, ask.want, perDayFew)]));
+        : win ? windowDay(day.list, ask.want, perDayFew, win) : spreadDay(day.list, ask.want, perDayFew, usedThisWeek)]));
     out[p] = [...soonest, ...[...picks.values()].flat()];
     // Per day: how many fit, and how many of those are shown, so it never takes the few for all.
     if (wanted) {
@@ -1262,7 +1291,12 @@ function buildMeetingsBlock({ message, programField, userZone, zoneTold = false,
       ? shown.map((p) => ({ p, ...plentyCounts(offerable.meetings.filter((m) => m.program === p), userZone, now) }))
       : [];
     const first = plenty.find((x) => x.week) || null;
-    const pageLine = `Every ${shown.map((p) => PROGRAMS[p].label).join(' and ')} meeting this week is on this page, in the time zone of the phone that opens it: ${allMeetingsLink(shown)}.`
+    const allLine = first
+      ? `All ${plenty.filter((x) => x.week).map((x) => `${x.week} ${x.p}`).join(' and ')} meetings for the next 7 days are here, in your own time: ${allMeetingsLink(shown)}`
+      : null;
+    const pageLine = ask.all && allLine
+      ? `They asked for all of them, and the page is the whole list. Open your reply with this line, word for word: "${allLine}". Then say the next few are, and give the picks below, soonest first. Copy the link exactly.`
+      : `Every ${shown.map((p) => PROGRAMS[p].label).join(' and ')} meeting this week is on this page, in the time zone of the phone that opens it: ${allMeetingsLink(shown)}.`
       + (first
         ? ` How many you hold, at any hour, ${userZone} time, counting the picks above: ${plenty.map(({ p, today, tomorrow, week }) => `${PROGRAMS[p].label}: ${today} still to start today, ${tomorrow} tomorrow (${tomorrowFor(userZone, now)}), ${week} over the next 7 days`).join('; ')}.`
           + ` After the meetings you pick, put this line in your reply exactly as written, word for word, numbers and link included: "${plenty.filter((x) => x.week).map(plentyExample).join('. ')}, all here in your own time: ${allMeetingsLink(shown)}". Do not shorten it or drop a number: it shows them there are plenty. After it you can offer to send some for tomorrow or any day they like.`
@@ -1291,7 +1325,9 @@ function buildMeetingsBlock({ message, programField, userZone, zoneTold = false,
       ...standingLines(),
       'How to use it:',
       ask.all
-        ? '- They asked for all of them. Answer like this: say how many fit in all (the count), say here are some spread across the day, then list every pick below in full (day and time, name, link, passcode), then offer more if they give a narrower time. Listing none, or only ones you gave before, is wrong.'
+        ? '- They asked for all of them. The page line comes first (see above), then the picks below in full (day and time, name, link, passcode), then offer more for any day or time they like. Listing none, or only ones you gave before, is wrong.'
+        : ask.week || (ask.dates || []).length > 2
+        ? '- They asked about several days. Answer day by day, in date order: for each day that has picks below, one short line with that day and date, then its picks (two at most). Then the count line and the link. Never stop after two or three days when more days have picks here.'
         /* Was "one to three". On 30 Oct Matt wrote "Da", was handed five Friday
            meetings (one starting in an hour and a half), and got one, with
            "Nothing left tonight". */
@@ -1301,6 +1337,7 @@ function buildMeetingsBlock({ message, programField, userZone, zoneTold = false,
       '- You hold every meeting in the count, and the picks here are only some of them. If they ask for all of them or for more, say how many there are, give the picks here, and offer more by narrowing the time (or the official finder). Never give none, and never say the picks are all you have, that you are not holding more, or that your list is only a working set.',
       '- If what they want is not here (another day, a later or earlier time, a women\'s or men\'s meeting) and no count above says none, never say there is none, that your list ends tomorrow, or that you hold nothing later, and never call the ones you give all you have: you hold meetings for every day of the coming week, and these are only a few. Say you\'ll look, and ask them for the day and time in one line (for example "Tell me the day and time, like Saturday after 8pm, and I\'ll look"). You can give the official finder as well.',
       '- When the line for a meeting says no passcode listed, say so with that meeting in a few words (for example "no passcode is listed for this one; if it asks for one, the listing says who to ask"). When two fit them equally, give the one with a passcode first.',
+      '- Write the reply once, from the lines here. Never correct yourself inside it ("wait", "actually that is", "let me give you clean ones"): every day, date and time here is already right, so check before you write, not after.',
       '- Copy the name, time, link and passcode (or, for a phone meeting, the number and access code) exactly as written here, and how soon it starts. Never change, shorten or make up a link, a number, a time, a passcode or a meeting, and never offer one that is not on this list.',
       // Matt, 30 Oct: people tell us about a dead meeting when they are asked to.
       /* Mariam, 5 Nov: the old "...so we can fix it" read as something for us,

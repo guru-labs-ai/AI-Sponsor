@@ -572,7 +572,7 @@ const range = meetings.buildMeetingsBlock({ message: 'Find online Al Anon meetin
 check('every day of the range is in front of the sponsor',
   ['Wednesday 28 October', 'Friday 30 October', 'Saturday 31 October', 'Sunday 1 November'].map((d) => range.includes(`- ${d} at`)), [true, true, true, true]);
 check('with a count per day checked against everything held, and a real none',
-  range.includes('at a sensible hour for them (7am to 10pm, Asia/Karachi time; meetings starting between 10pm and 7am are not in it), by day: Wednesday 28 October: 1 fit, 1 of them shown below; Thursday 29 October: none; Friday 30 October: 1 fit, 1 of them shown below; Saturday 31 October: 3 fit, 3 of them shown below; Sunday 1 November: 2 fit, 2 of them shown below.'), true);
+  range.includes('at a sensible hour for them (7am to 10pm, Asia/Karachi time; meetings starting between 10pm and 7am are not in it), by day: Wednesday 28 October: 1 fit, 1 of them shown below; Thursday 29 October: none; Friday 30 October: 1 fit, 1 of them shown below; Saturday 31 October: 3 fit, 2 of them shown below; Sunday 1 November: 2 fit, 2 of them shown below.'), true);
 check('and told a counted none is a real none', range.includes('A day it gives as none really has none'), true);
 check('nothing outside the range', /^- (today|tomorrow), /m.test(range), false);
 const namedThree = meetings.buildMeetingsBlock({ message: 'Find online Al Anon meetings for Saturday, 31 October 2026, at any time in Pakistan time. Do you have “Legacy Study AFG,” “First Things First AFG,” or “Just for Today AFG” on that date?', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-26T16:58:00Z') });
@@ -617,7 +617,8 @@ check('"show all" and "all matches" are asks for all, "all genders" is not',
 const allAsk = meetings.buildMeetingsBlock({ message: 'Show all online AA meetings available in your list for Tuesday, 27 October 2026, in Pakistan time, with no time or gender filter.', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-26T15:58:00Z') });
 check('asked for all with no time filter, every Tuesday one is given (26 Oct: none given); 3pm New York is Wednesday in Pakistan',
   ['"Tuesday AA 1"', '"Tuesday AA 2"', '"Tuesday AA 3"', '"Tuesday AA 4"', '"Tuesday AA 5"'].map((n) => allAsk.includes(n)), [true, true, true, false, true]);
-check('and told to give every pick, not one to three', [allAsk.includes('They asked for all of them. Answer like this'), allAsk.includes('Offer two or three')], [true, false]);
+check('and told to give every pick, not one to three', [allAsk.includes('They asked for all of them. The page line comes first'), allAsk.includes('Offer two or three')], [true, false]);
+check('asked for all, the page link opens the reply (Mariam, 5 Nov: the page is the whole list)', /Open your reply with this line, word for word: "All \d+ AA meetings for the next 7 days are here, in your own time: https:\/\/getaisponsor\.com\/meetings\?p=AA"/.test(allAsk), true);
 check('and it may never say it is not holding more', allAsk.includes('never say the picks are all you have, that you are not holding more'), true);
 
 group('asked for more after another question (Bilal\'s re-test, 26 Oct: "Anymore meetings tomorrow?" got "which program?")');
@@ -882,6 +883,12 @@ check('one meeting reads as one', [
   meetings.plentyExample({ p: 'BDA', today: 1, tomorrow: 3, week: 9 }),
   meetings.plentyExample({ p: 'WA', today: 0, tomorrow: 0, week: 1 }),
 ], ['There is 1 BDA meeting still to come today, 3 tomorrow and 9 over the next 7 days', 'There is 1 WA meeting over the next 7 days']);
+
+group('several days, two a day, and the total across programs (5 Nov)');
+const weekAsk = meetings.buildMeetingsBlock({ message: 'Give me the DA meetings for next week', programField: 'DA', userZone: 'Europe/Berlin', now: Date.parse(require('fs').existsSync(path.resolve(__dirname, 'meetings-data.json')) ? JSON.parse(require('fs').readFileSync(path.resolve(__dirname, 'meetings-data.json'), 'utf8')).generatedAt : '2026-11-05T19:00:00Z') });
+check('a week ask is answered day by day, never stopping after two or three days', weekAsk.includes('They asked about several days. Answer day by day'), true);
+check('and it never corrects itself inside a reply', weekAsk.includes('Never correct yourself inside it ("wait"'), true);
+check('every meetings block carries the total across programs', /In all you hold [\d,]+ online meetings a week across \d+ programs \(/.test(weekAsk), true);
 
 group('the real list, as written');
 const real = JSON.parse(require('fs').readFileSync(path.resolve(__dirname, 'meetings-data.json'), 'utf8'));
