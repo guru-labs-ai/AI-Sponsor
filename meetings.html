@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Every meeting the sponsor holds for a program, this week, in the time zone
+     of the phone that opens it. The sponsor gives two or three in the chat and
+     links here for the rest, in the same message (Mariam, 30 Oct). The phone's
+     own zone, not the one guessed from a phone number: that guess put Matt's
+     meetings three hours out on 30 Oct. -->
+<script src="i18n.js?v=899dede5d8"></script>
+<title>AI Sponsor — Meetings this week</title>
+<meta name="robots" content="noindex, nofollow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AI Sponsor">
+<meta property="og:title" content="Meetings this week">
+<meta property="og:description" content="Online recovery meetings, in your own time.">
+<meta property="og:image" content="https://getaisponsor.com/og-logo.png">
+<meta property="og:image:width" content="630">
+<meta property="og:image:height" content="630">
+<link rel="icon" type="image/png" href="favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --blue:#0066B3;--blue-light:#0080D4;--bg:#F4F6F9;--card:#FFFFFF;
+  --text:#212529;--sub:#6C757D;--border:#CED4DA;--soft:#EAF2FA;
+  --success:#1A7A4A;--warn:#8A5A00;--warn-bg:#FFF6E0;
+  --shadow:0 2px 16px rgba(0,0,0,0.08)
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);min-height:100vh;
+  padding:20px 16px 40px;color:var(--text);-webkit-text-size-adjust:100%}
+a{color:var(--blue)}
+button{font:inherit;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.container{width:100%;max-width:640px;margin:0 auto}
+.brand{text-align:center;margin:4px 0 18px}
+.brand-mark{display:block;width:44px;height:44px;margin:0 auto 8px;border-radius:50%}
+.brand-logo{font-size:18px;font-weight:700;color:var(--blue);letter-spacing:.04em}
+h1{font-size:24px;font-weight:700;line-height:1.25;margin-bottom:6px}
+.zone{font-size:14px;color:var(--sub);line-height:1.5;margin-bottom:16px}
+.zone strong{color:var(--text);font-weight:600}
+
+/* Programs, when the link names more than one. */
+.progs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.prog{border:1.5px solid var(--border);background:var(--card);color:var(--text);
+  border-radius:999px;padding:7px 14px;font-size:14px;font-weight:600;cursor:pointer}
+.prog[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
+
+/* Days: a row that scrolls sideways on a phone rather than wrapping into a wall. */
+.days{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;margin:0 -16px 6px;
+  padding-left:16px;padding-right:16px;scrollbar-width:none}
+.days::-webkit-scrollbar{display:none}
+.day{flex:0 0 auto;border:1.5px solid var(--border);background:var(--card);color:var(--text);
+  border-radius:12px;padding:8px 12px;font-size:13.5px;font-weight:600;cursor:pointer;text-align:center;min-width:72px}
+.day small{display:block;font-weight:500;color:var(--sub);font-size:12px;margin-top:2px}
+.day[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
+.day[aria-pressed="true"] small{color:#DCEBFA}
+.count{font-size:13.5px;color:var(--sub);margin:4px 0 12px}
+
+.list{display:flex;flex-direction:column;gap:12px}
+.mtg{background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:14px 16px}
+.mtg-top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.mtg-time{font-size:18px;font-weight:700}
+.mtg-soon{font-size:13px;font-weight:600;color:var(--success)}
+.mtg-name{font-size:15.5px;font-weight:600;line-height:1.35;margin:4px 0 8px;overflow-wrap:anywhere}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.tag{font-size:12px;font-weight:600;border-radius:999px;padding:3px 9px;background:var(--soft);color:var(--blue)}
+.tag.who{background:#F3ECFB;color:#6A3EA1}
+.join{display:block;text-align:center;text-decoration:none;font-weight:700;font-size:15px;
+  color:#fff;background:var(--blue);border-radius:10px;padding:11px 12px}
+.join.phone{background:var(--success)}
+.detail{font-size:14px;margin-top:8px;line-height:1.5;overflow-wrap:anywhere}
+.detail.note{color:var(--warn);background:var(--warn-bg);border-radius:8px;padding:8px 10px}
+.source{display:inline-block;font-size:13px;margin-top:8px;color:var(--sub)}
+
+.empty,.msg{background:var(--card);border-radius:14px;padding:16px;font-size:15px;line-height:1.6;box-shadow:var(--shadow)}
+.foot{font-size:13.5px;color:var(--sub);line-height:1.6;margin-top:22px}
+.foot p+p{margin-top:8px}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="brand">
+    <img class="brand-mark" src="logo-navy.png" alt="" width="44" height="44">
+    <div class="brand-logo">AI SPONSOR</div>
+  </div>
+
+  <h1 id="title">Meetings this week</h1>
+  <p class="zone" id="zone"></p>
+
+  <div class="progs hidden" id="progs"></div>
+  <div class="days" id="days" role="group" aria-label="Day"></div>
+  <p class="count" id="count"></p>
+  <div class="list" id="list"><div class="msg">Loading…</div></div>
+
+  <div class="foot" id="foot"></div>
+</div>
+
+<script>
+// Opened from a local copy of the site, it reads a local backend, so a change can be seen before it ships.
+const BACKEND_URL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? 'http://127.0.0.1:3001' : 'https://ai-sponsor-f7de.onrender.com';
+const T = (s) => (window.AIS_T ? window.AIS_T(s) : s);
+const LOCALE = ({ es: 'es-ES', fr: 'fr-FR', de: 'de-DE' })[window.AIS_LANG] || 'en-US';
+const ZONE = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (e) { return 'UTC'; } })();
+const DAY_MS = 86400000;
+
+/* ── Time, the same arithmetic as meetings.js on the server ──────────────────
+   A meeting is a weekday and a clock time in its own zone. Each start is turned
+   into a real instant there, clock changes included, and only then shown in
+   this phone's zone. */
+const formatters = new Map();
+function fmt(zone, options, locale = 'en-US') {
+  const key = `${locale}|${zone}|${JSON.stringify(options)}`;
+  if (!formatters.has(key)) formatters.set(key, new Intl.DateTimeFormat(locale, { timeZone: zone, ...options }));
+  return formatters.get(key);
+}
+function offsetMinutes(zone, instant) {
+  const name = fmt(zone, { timeZoneName: 'longOffset' }).formatToParts(new Date(instant)).find((p) => p.type === 'timeZoneName').value;
+  const m = /GMT([+-])(\d{2}):(\d{2})/.exec(name);
+  return m ? (m[1] === '-' ? -1 : 1) * (parseInt(m[2], 10) * 60 + parseInt(m[3], 10)) : 0;
+}
+function instantFor(zone, y, mo, d, hh, mm) {
+  const guess = Date.UTC(y, mo, d, hh, mm);
+  let t = guess - offsetMinutes(zone, guess) * 60000;
+  return guess - offsetMinutes(zone, t) * 60000;
+}
+function dateIn(zone, instant) {
+  const p = Object.fromEntries(fmt(zone, { year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(new Date(instant)).map((x) => [x.type, x.value]));
+  return { y: Number(p.year), mo: Number(p.month) - 1, d: Number(p.day) };
+}
+const dayKey = ({ y, mo, d }) => `${y}-${mo}-${d}`;
+// Every start in the coming week; one that began up to ten minutes ago still counts.
+function starts(m, now) {
+  const [hh, mm] = String(m.start || '').split(':').map(Number);
+  if (Number.isNaN(hh)) return [];
+  const today = dateIn(m.zone, now);
+  const out = [];
+  for (let k = -1; k <= 7; k++) {
+    const day = new Date(Date.UTC(today.y, today.mo, today.d + k));
+    if (!(m.days || []).includes(day.getUTCDay())) continue;
+    const t = instantFor(m.zone, day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), hh, mm);
+    if (t >= now - 10 * 60000 && t < now + 7 * DAY_MS) out.push(t);
+  }
+  return out;
+}
+const clock = (t) => fmt(ZONE, { hour: 'numeric', minute: '2-digit' }, LOCALE).format(new Date(t));
+function soonText(t, now) {
+  const mins = Math.round((t - now) / 60000);
+  if (mins <= 0) return T('Started a few minutes ago');
+  if (mins < 60) return T('Starts in {n} min').replace('{n}', mins);
+  if (mins < 180) return T('Starts in {h} h {n} min').replace('{h}', Math.floor(mins / 60)).replace('{n}', mins % 60);
+  return '';
+}
+
+/* ── What the link asked for ─────────────────────────────────────────────── */
+const params = new URLSearchParams(location.search);
+const asked = [...new Set((params.get('p') || '').split(',').map((s) => s.trim()).filter(Boolean))];
+let data = null;
+let program = null;
+let selectedDay = null;
+
+function zoneLine() {
+  let name = ZONE;
+  try { name = fmt(ZONE, { timeZoneName: 'longGeneric' }, LOCALE).formatToParts(new Date()).find((p) => p.type === 'timeZoneName').value; } catch (e) {}
+  const el = document.getElementById('zone');
+  el.textContent = '';
+  el.append(T('Times are in this phone\'s time zone:') + ' ');
+  const b = document.createElement('strong');
+  b.textContent = name;
+  el.append(b, '.');
+}
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+/* One meeting, as a card: when, what, who may come, and how to get in. */
+function card(m, t, now) {
+  const c = el('div', 'mtg');
+  const top = el('div', 'mtg-top');
+  top.append(el('span', 'mtg-time', clock(t)));
+  const soon = soonText(t, now);
+  if (soon) top.append(el('span', 'mtg-soon', soon));
+  c.append(top, el('div', 'mtg-name', m.name));
+
+  const tags = el('div', 'tags');
+  if (data.programs.length > 1) tags.append(el('span', 'tag', m.program));
+  if (m.access) tags.append(el('span', 'tag', T(m.access === 'closed' ? 'Closed (members)' : 'Open to all')));
+  if (m.who) tags.append(el('span', 'tag who', T(m.who === 'women' ? 'Women only' : 'Men only')));
+  if (m.phone) tags.append(el('span', 'tag', T('By phone')));
+  else if (m.platform) tags.append(el('span', 'tag', m.platform));
+  if (tags.children.length) c.append(tags);
+
+  if (m.phone) {
+    const a = el('a', 'join phone', `${T('Call')} ${m.phone.number}`);
+    // Dials straight through to the room on most phones: pause, then the code.
+    a.href = `tel:${m.phone.number.replace(/[^\d+]/g, '')}${m.phone.code ? `,,${encodeURIComponent(m.phone.code)}` : ''}`;
+    c.append(a);
+    if (m.phone.code) c.append(el('div', 'detail', `${T('Access code')}: ${m.phone.code}`));
+  } else if (m.link) {
+    const a = el('a', 'join', m.platform ? T('Join the meeting') : T('Join on Zoom'));
+    a.href = m.link;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    c.append(a);
+    if (m.passcode) c.append(el('div', 'detail', `${T('Passcode')}: ${m.passcode}`));
+    else if (!m.passcodeListed) c.append(el('div', 'detail note', T('No passcode is listed. If it asks for one, the official listing shows who to contact.')));
+  }
+  if (m.source) {
+    const s = el('a', 'source', T('Official listing'));
+    s.href = m.source;
+    s.target = '_blank';
+    s.rel = 'noopener';
+    c.append(s);
+  }
+  return c;
+}
+
+function render() {
+  const now = Date.now();
+  const p = data.programs.find((x) => x.key === program) || data.programs[0];
+  const several = data.programs.length > 1;
+  document.getElementById('title').textContent = several ? T('Your meetings this week') : T('{program} meetings this week').replace('{program}', p.key);
+
+  // Programs.
+  const progs = document.getElementById('progs');
+  progs.classList.toggle('hidden', !several);
+  progs.textContent = '';
+  for (const x of data.programs) {
+    const b = el('button', 'prog', x.key);
+    b.setAttribute('aria-pressed', String(x.key === p.key));
+    b.onclick = () => { program = x.key; render(); };
+    progs.append(b);
+  }
+
+  const list = document.getElementById('list');
+  list.textContent = '';
+  const foot = document.getElementById('foot');
+  foot.textContent = '';
+  const finderLine = () => {
+    const f = el('p', '', T('Every meeting, in person too, is on the official finder:') + ' ');
+    const a = el('a', '', p.finder);
+    a.href = p.finder; a.target = '_blank'; a.rel = 'noopener';
+    f.append(a);
+    return f;
+  };
+
+  if (p.stale || !p.meetings.length) {
+    document.getElementById('days').textContent = '';
+    document.getElementById('count').textContent = '';
+    const box = el('div', 'msg', T('Our list for this program is being checked right now. Every meeting is on the official finder:') + ' ');
+    const a = el('a', '', p.finder);
+    a.href = p.finder; a.target = '_blank'; a.rel = 'noopener';
+    box.append(a);
+    list.append(box);
+    return;
+  }
+
+  // Every start this week, grouped by this phone's calendar day.
+  const byDay = new Map();
+  for (const m of p.meetings) {
+    for (const t of starts(m, now)) {
+      const key = dayKey(dateIn(ZONE, t));
+      if (!byDay.has(key)) byDay.set(key, []);
+      byDay.get(key).push({ m: { ...m, program: p.key }, t });
+    }
+  }
+  const keys = [];
+  const todayParts = dateIn(ZONE, now);
+  for (let k = 0; k < 7; k++) {
+    const d = new Date(Date.UTC(todayParts.y, todayParts.mo, todayParts.d + k));
+    keys.push({ key: dayKey({ y: d.getUTCFullYear(), mo: d.getUTCMonth(), d: d.getUTCDate() }), k, at: instantFor(ZONE, d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12, 0) });
+  }
+  if (!selectedDay || !keys.some((x) => x.key === selectedDay)) selectedDay = keys[0].key;
+
+  const days = document.getElementById('days');
+  days.textContent = '';
+  for (const x of keys) {
+    const label = x.k === 0 ? T('Today') : x.k === 1 ? T('Tomorrow') : fmt(ZONE, { weekday: 'short' }, LOCALE).format(new Date(x.at));
+    const b = el('button', 'day', label);
+    b.append(el('small', '', fmt(ZONE, { day: 'numeric', month: 'short' }, LOCALE).format(new Date(x.at))));
+    b.setAttribute('aria-pressed', String(x.key === selectedDay));
+    b.onclick = () => { selectedDay = x.key; render(); };
+    days.append(b);
+  }
+
+  const todays = (byDay.get(selectedDay) || []).sort((a, b) => a.t - b.t);
+  document.getElementById('count').textContent = todays.length === 1
+    ? T('1 meeting')
+    : T('{n} meetings').replace('{n}', todays.length);
+  if (!todays.length) list.append(el('div', 'empty', T('No more meetings on our list for this day. Try another day above.')));
+  for (const { m, t } of todays) list.append(card(m, t, now));
+
+  const checked = new Date(p.checked).toLocaleDateString(LOCALE, { day: 'numeric', month: 'long', timeZone: 'UTC' });
+  foot.append(el('p', '', T('From {program}\'s own directory, checked {date}.').replace('{program}', p.label).replace('{date}', checked)));
+  foot.append(el('p', '', T('A meeting did not work? Tell your sponsor on WhatsApp and we will check it.')));
+  foot.append(finderLine());
+}
+
+async function load() {
+  zoneLine();
+  const list = document.getElementById('list');
+  if (!asked.length) {
+    list.textContent = '';
+    list.append(el('div', 'msg', T('Ask your sponsor for a meeting on WhatsApp and it will send you the link to this page.')));
+    return;
+  }
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/meetings?p=${encodeURIComponent(asked.join(','))}`);
+    if (!res.ok) throw new Error(String(res.status));
+    data = await res.json();
+    if (!data.programs || !data.programs.length) throw new Error('no programs');
+    program = data.programs[0].key;
+    render();
+  } catch (e) {
+    list.textContent = '';
+    list.append(el('div', 'msg', T('We could not load the meetings just now. Please try again in a minute.')));
+  }
+}
+load();
+// The "starts in" labels and today's list move with the clock.
+setInterval(() => { if (data) render(); }, 60000);
+</script>
+</body>
+</html>
