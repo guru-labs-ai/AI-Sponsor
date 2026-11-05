@@ -796,6 +796,7 @@ check('only an old listing can be kept by its room', [
   refresh.ONLY_OLD.test('listing last updated 2023-04-01'), refresh.ONLY_OLD.test('listing has no last-updated date'),
   refresh.ONLY_OLD.test('listing says to ask someone for the link or password'), refresh.ONLY_OLD.test('language is Spanish'),
 ], [true, true, false, false]);
+check('only the 11-digit room of a scheduled meeting can vouch for an old listing', ['81786159844', '5823259345', '937785265', ''].map((x) => refresh.SCHEDULED_ROOM.test(x)), [true, false, false, false]);
 check('DA or BDA from an intergroup title', [
   'BDA Kenya Express Group (Online)', 'Business Debtors Anonymous: Dublin', '12 x 12 DA/BDA', 'Daily Morning Prayer and Meditation',
   'Spiritual and Profitable B.D.A.', 'Hope for Prosperity D.A. Ottawa', 'Debtors Anonymous: Frome (Online)',

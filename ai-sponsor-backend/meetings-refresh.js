@@ -413,7 +413,7 @@ async function fromDa(now, rejected) {
        exists, it is kept: Zoom drops a recurring room a year after it was last
        started, so a room that is still there has met within the year (5 Nov). */
     let roomSeen = null;
-    if (why && ONLY_OLD.test(why) && !d.phone && d.meetingId && /zoom\.us\//.test(d.link || '')) {
+    if (why && ONLY_OLD.test(why) && !d.phone && SCHEDULED_ROOM.test(d.meetingId || '') && /zoom\.us\//.test(d.link || '')) {
       roomSeen = await zoomRoomExists(d.meetingId) ? now.toISOString().slice(0, 10) : null;
       await pause(ZOOM_CHECK_DELAY_MS);
     }
@@ -464,8 +464,13 @@ const pause = (ms) => new Promise((r) => setTimeout(r, ms));
    ("+19292056099,81786159844#"); for an id Zoom does not know, it carries
    none. Checked 5 Nov: 11 of 12 listed rooms and 0 of 4 made-up ids. A room
    whose host turned dial-in off reads as gone, so this can only keep a
-   meeting in, never take one out. */
+   meeting in, never take one out.
+   Only an 11-digit id says anything about the meeting: that is a scheduled
+   meeting, which Zoom deletes a year after it was last started. A 9 or 10
+   digit id is usually someone's personal room, which never expires, so its
+   being there proves nothing. Those stay out for a person to check. */
 const ONLY_OLD = /^listing (last updated|has no last-updated date)/;
+const SCHEDULED_ROOM = /^\d{11}$/;
 const ZOOM_CHECK_DELAY_MS = 2000;
 async function zoomRoomExists(meetingId) {
   try {
@@ -485,6 +490,7 @@ async function keepOldIfRoomExists(found, now, rejected) {
   const out = [];
   for (const { old, ...m } of found) {
     if (!old) { out.push(m); continue; }
+    if (!SCHEDULED_ROOM.test(m.meetingId || '')) { rejected.push([m.program, m.id, `${old}, on a personal Zoom room`]); continue; }
     if (await zoomRoomExists(m.meetingId)) out.push({ ...m, roomSeen: now.toISOString().slice(0, 10) });
     else rejected.push([m.program, m.id, old]);
     await pause(ZOOM_CHECK_DELAY_MS);
@@ -1512,5 +1518,5 @@ module.exports = {
   zoomFrom, passcodeFrom, whoFrom, aaProblem, alAnonProblem, alAnonWhen, acaProblem, acaMeeting,
   parseIcs, uaProblem, uaMeeting, assemble, FLOOR, naProblem, naMeeting,
   oaIndexProblem, parseOaPage, oaProblem, oaMeeting, parseSlaaCell, slaaProblem, slaaMeeting, textProblem, clean,
-  zoomPageShowsRoom, keepOldIfRoomExists, daUkMeetings, daCanadaMeetings, notAlreadyListed, daOrBda, ONLY_OLD,
+  zoomPageShowsRoom, keepOldIfRoomExists, SCHEDULED_ROOM, daUkMeetings, daCanadaMeetings, notAlreadyListed, daOrBda, ONLY_OLD,
 };
