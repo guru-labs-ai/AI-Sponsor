@@ -878,6 +878,10 @@ check('the example line leaves out a zero and names the program once', [
 ], ['There are 6 DA meetings still to come today, 14 tomorrow and 95 over the next 7 days',
   'There are 14 DA meetings tomorrow and 95 over the next 7 days',
   'There are 12 BDA meetings over the next 7 days']);
+check('one meeting reads as one', [
+  meetings.plentyExample({ p: 'BDA', today: 1, tomorrow: 3, week: 9 }),
+  meetings.plentyExample({ p: 'WA', today: 0, tomorrow: 0, week: 1 }),
+], ['There is 1 BDA meeting still to come today, 3 tomorrow and 9 over the next 7 days', 'There is 1 WA meeting over the next 7 days']);
 
 group('the real list, as written');
 const real = JSON.parse(require('fs').readFileSync(path.resolve(__dirname, 'meetings-data.json'), 'utf8'));

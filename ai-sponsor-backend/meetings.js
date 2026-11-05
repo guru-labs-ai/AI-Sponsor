@@ -364,11 +364,14 @@ function plentyCounts(list, zone, now) {
 
 // "There are 6 DA meetings still to come today, 14 tomorrow and 95 over the next 7 days"
 function plentyExample({ p, today, tomorrow, week }) {
+  // The first number carries the noun, so "There is 1 BDA meeting", "There are 6 DA meetings".
+  const noun = (n) => `${n} ${p} meeting${n === 1 ? '' : 's'}`;
   const parts = [];
-  if (today) parts.push(`${today} ${p} meetings still to come today`);
-  if (tomorrow) parts.push(parts.length ? `${tomorrow} tomorrow` : `${tomorrow} ${p} meetings tomorrow`);
-  parts.push(parts.length ? `${week} over the next 7 days` : `${week} ${p} meetings over the next 7 days`);
-  return `There are ${parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0]}`;
+  if (today) parts.push(`${noun(today)} still to come today`);
+  if (tomorrow) parts.push(parts.length ? `${tomorrow} tomorrow` : `${noun(tomorrow)} tomorrow`);
+  parts.push(parts.length ? `${week} over the next 7 days` : `${noun(week)} over the next 7 days`);
+  const firstN = today || tomorrow || week;
+  return `There ${firstN === 1 ? 'is' : 'are'} ${parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0]}`;
 }
 
 // The next time this meeting starts, as an instant, or null.
@@ -1247,7 +1250,7 @@ function buildMeetingsBlock({ message, programField, userZone, zoneTold = false,
     const pageLine = `Every ${shown.map((p) => PROGRAMS[p].label).join(' and ')} meeting this week is on this page, in the time zone of the phone that opens it: ${allMeetingsLink(shown)}.`
       + (first
         ? ` How many you hold, at any hour, ${userZone} time, counting the picks above: ${plenty.map(({ p, today, tomorrow, week }) => `${PROGRAMS[p].label}: ${today} still to start today, ${tomorrow} tomorrow (${tomorrowFor(userZone, now)}), ${week} over the next 7 days`).join('; ')}.`
-          + ` After the meetings you pick, show them there are plenty in one short line with this link, using these numbers as written (for example "${plentyExample(first)}, all here in your own time: ${allMeetingsLink(shown)}"), then offer to send some for tomorrow or any day they like. Leave out a number that is 0. These counts are at any hour, so never call them meetings at a sensible hour.`
+          + ` After the meetings you pick, put this line in your reply exactly as written, word for word, numbers and link included: "${plenty.filter((x) => x.week).map(plentyExample).join('. ')}, all here in your own time: ${allMeetingsLink(shown)}". Do not shorten it or drop a number: it shows them there are plenty. After it you can offer to send some for tomorrow or any day they like.`
         : ` After the meetings you pick, put it in your reply in one short line (for example "All the rest of this week's ${shown.join(' and ')} meetings are here, in your own time: ${allMeetingsLink(shown)}").`)
       + ' Copy the link exactly.';
 
