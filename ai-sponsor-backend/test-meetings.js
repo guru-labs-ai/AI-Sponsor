@@ -784,6 +784,74 @@ check('naming the access code later finds the phone meeting', meetings.alreadyGi
 check('"null" in a message matches no meeting', meetings.alreadyGiven('null', { meetings: [{ ...NY_TUESDAY, link: null, meetingId: null }] }).length, 0);
 check('the example asking for a program names none', /Just say UA/.test(guessed), false);
 
+group('DA intergroup lists and rooms that still exist (5 Nov)');
+const launchPage = (bytes) => `<script>window.launchBase64 = "${Buffer.from(bytes).toString('base64')}";</script>`;
+check('a Zoom page with the room\'s own dial-in line shows the room', refresh.zoomPageShowsRoom(launchPage('\x08zoom.us+19292056099,81786159844#B'), '81786159844'), true);
+check('one without it, or with another room\'s, does not', [
+  refresh.zoomPageShowsRoom(launchPage('\x08zoom.us https://app.zoom.us/wc?mn=11111111111'), '11111111111'),
+  refresh.zoomPageShowsRoom(launchPage('+19292056099,81786159844#B'), '81786159845'),
+  refresh.zoomPageShowsRoom('<html>no launch data</html>', '81786159844'),
+], [false, false, false]);
+check('only an old listing can be kept by its room', [
+  refresh.ONLY_OLD.test('listing last updated 2023-04-01'), refresh.ONLY_OLD.test('listing has no last-updated date'),
+  refresh.ONLY_OLD.test('listing says to ask someone for the link or password'), refresh.ONLY_OLD.test('language is Spanish'),
+], [true, true, false, false]);
+check('DA or BDA from an intergroup title', [
+  'BDA Kenya Express Group (Online)', 'Business Debtors Anonymous: Dublin', '12 x 12 DA/BDA', 'Daily Morning Prayer and Meditation',
+  'Spiritual and Profitable B.D.A.', 'Hope for Prosperity D.A. Ottawa', 'Debtors Anonymous: Frome (Online)',
+].map(refresh.daOrBda), ['BDA', 'BDA', 'DA', 'DA', 'BDA', 'DA', 'DA']);
+
+const NOV5 = new Date('2026-11-05T17:00:00Z');
+const ukEvent = (id, date, extra = {}) => ({
+  id, title: 'Debtors Anonymous: Frome (Online)', start_date: `${date} 18:00:00`, end_date: `${date} 19:00:00`,
+  timezone: 'Europe/London', modified: '2026-09-01 10:00:00', url: `https://debtorsanonymous.org.uk/meeting/frome/${date}/`,
+  categories: [{ name: 'Online Meetings' }],
+  description: '<p><a href="https://us02web.zoom.us/j/83716885804?pwd=abcDEF123">JOIN ZOOM MEETING</a></p>', ...extra,
+});
+const ukRej = [];
+const uk = refresh.daUkMeetings([
+  ukEvent(1, '2026-11-05'), ukEvent(2, '2026-11-12'),
+  ukEvent(3, '2026-11-06', { title: 'Once Only DA (Online)', description: '<a href="https://zoom.us/j/9999999999">Zoom</a> Passcode: 123456' }),
+  ukEvent(4, '2026-11-07', { title: 'Public Information (PI) Meeting', categories: [{ name: 'Service Meetings' }, { name: 'Online Meetings' }] }),
+  ukEvent(5, '2026-11-08', { title: 'BDA Dublin', description: 'JOIN ZOOM https://zoom.us/j/361318544 Please email debtorsanonymousireland@gmail.com for the password' }),
+  ukEvent(6, '2026-11-09', { title: 'Brighton DA in person meeting', categories: [{ name: 'Meetings outside London' }] }),
+  ukEvent(7, '2026-11-10', { title: 'Old Room DA (Online)', modified: '2019-03-01 10:00:00', description: 'https://zoom.us/j/84444444444?pwd=x1' }),
+  ukEvent(8, '2026-11-17', { title: 'Old Room DA (Online)', modified: '2019-03-01 10:00:00', description: 'https://zoom.us/j/84444444444?pwd=x1' }),
+], NOV5, ukRej);
+const frome = uk.find((m) => m.meetingId === '83716885804');
+check('a UK online meeting seen on the same weekday both weeks is kept, in its own zone',
+  frome && [frome.program, frome.name, frome.days, frome.start, frome.end, frome.zone, frome.link, frome.passcode, frome.source],
+  ['DA', 'Debtors Anonymous: Frome', [4], '18:00', '19:00', 'Europe/London', 'https://us02web.zoom.us/j/83716885804?pwd=abcDEF123', null,
+    'https://debtorsanonymous.org.uk/meeting/frome/']);
+check('one seen once is not weekly; service, email-for-password and in-person ones are left out',
+  [uk.some((m) => /Once Only/.test(m.name)), ukRej.map((r) => r[2]).sort()],
+  [false, ['listing says to ask someone for the link or password', 'not weekly', 'service meeting']]);
+const oldRoom = uk.find((m) => m.meetingId === '84444444444');
+check('an old UK listing is kept only for the room check', oldRoom && oldRoom.old, 'listing last updated 2019-03-01');
+
+const caRej = [];
+const ca = refresh.daCanadaMeetings([
+  { id: 1, name: 'Oakville D.A. (#12516)', day: 4, time: '19:30', end_time: '21:00', timezone: 'America/Toronto', types: ['CDA', 'EN', 'ONL'],
+    conference_url: 'https://zoom.us/j/85081807697', conference_url_notes: 'Meeting ID: 850 8180 7697 Passkey: 919458', updated: '2026-03-01 10:00:00', url: 'https://www.debtorsanonymous.ca/meetings/oakville/' },
+  { id: 2, name: 'Nouveau Départ D.A. Montréal', day: 2, time: '19:30', timezone: 'America/Toronto', types: ['CDA', 'FR', 'ONL'],
+    conference_url: 'https://zoom.us/j/9088075201', updated: '2026-07-10 10:00:00' },
+  { id: 3, name: 'Sunday Morning (in person)', day: 0, time: '11:30', timezone: 'America/Toronto', types: ['CDA', 'EN'], updated: '2026-03-17 10:00:00' },
+], NOV5, caRej);
+check('a Canadian English online meeting is kept, its passkey read as the passcode',
+  ca.map((m) => [m.program, m.name, m.days, m.start, m.zone, m.passcode, m.meetingId]),
+  [['DA', 'Oakville D.A.', [4], '19:30', 'America/Toronto', '919458', '85081807697']]);
+check('a French one is left out, an in-person one is not ours to hold', caRej.map((r) => r[2]), ['language is French']);
+
+const listedRoom = { id: 'da-1', program: 'DA', meetingId: '9132027299', days: [2], start: '13:00', zone: 'Africa/Nairobi' };
+const dupRej = [];
+const notDup = refresh.notAlreadyListed([
+  { id: 'dauk-a', program: 'DA', meetingId: '9132027299', days: [2], start: '10:00', zone: 'Europe/London' }, // 13:00 Nairobi = 10:00 London in November
+  { id: 'dauk-b', program: 'BDA', meetingId: '9132027299', days: [5], start: '07:30', zone: 'Europe/London' }, // same room, another meeting
+  { id: 'dauk-c', program: 'DA', meetingId: '5823259345', days: [6], start: '11:00', zone: 'Europe/London' },
+], [listedRoom], NOV5, dupRej);
+check('the same room at the same moment is one meeting; the same room at another time is another', [notDup.map((m) => m.id), dupRej.map((r) => r[1])],
+  [['dauk-b', 'dauk-c'], ['dauk-a']]);
+
 group('the real list, as written');
 const real = JSON.parse(require('fs').readFileSync(path.resolve(__dirname, 'meetings-data.json'), 'utf8'));
 const ids = new Set(real.meetings.map((m) => m.id));

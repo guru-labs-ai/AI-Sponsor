@@ -408,7 +408,16 @@ async function fromDa(now, rejected) {
     }
     await pause(DA_CRAWL_DELAY_MS);
     const why = daProblem(d, now);
-    if (why) { rejected.push([r.kind, r.mid, why]); continue; }
+    /* A listing nobody has touched in two years is often still a weekly
+       meeting. When age is the only thing wrong and its Zoom room still
+       exists, it is kept: Zoom drops a recurring room a year after it was last
+       started, so a room that is still there has met within the year (5 Nov). */
+    let roomSeen = null;
+    if (why && ONLY_OLD.test(why) && !d.phone && d.meetingId && /zoom\.us\//.test(d.link || '')) {
+      roomSeen = await zoomRoomExists(d.meetingId) ? now.toISOString().slice(0, 10) : null;
+      await pause(ZOOM_CHECK_DELAY_MS);
+    }
+    if (why && !roomSeen) { rejected.push([r.kind, r.mid, why]); continue; }
     const inLink = !!(d.link && /pwd=/.test(d.link));
     kept.push({
       id: `da-${r.mid}`,
@@ -430,13 +439,231 @@ async function fromDa(now, rejected) {
       access: d.access,
       focus: d.focus,
       source: DA_DETAIL(r.mid),
-      sourceUpdated: d.updated.toISOString().slice(0, 10),
+      sourceUpdated: d.updated && !Number.isNaN(d.updated.getTime()) ? d.updated.toISOString().slice(0, 10) : null,
+      ...(roomSeen ? { roomSeen } : {}),
     });
+  }
+  /* DA's UK and Canadian intergroups keep lists of their own, with online
+     meetings that are in no directory above (5 Nov: 16 UK, 5 Canadian). A
+     failure in either never costs the world directory's meetings. */
+  for (const [name, read] of [['DA UK', fromDaUk], ['DA Canada', fromDaCanada]]) {
+    try {
+      kept.push(...await keepOldIfRoomExists(notAlreadyListed(await read(now, rejected), kept, now, rejected), now, rejected));
+    } catch (e) {
+      console.log(`::warning::${name}: ${e.message}`);
+    }
   }
   return kept;
 }
 const DA_CRAWL_DELAY_MS = 5000;
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/* ── Is a Zoom room still there? ───────────────────────────────────────────
+   zoom.us/j/<id> is the page anyone opening a meeting link gets. For a room
+   that exists, its launch data carries the room's own dial-in lines
+   ("+19292056099,81786159844#"); for an id Zoom does not know, it carries
+   none. Checked 5 Nov: 11 of 12 listed rooms and 0 of 4 made-up ids. A room
+   whose host turned dial-in off reads as gone, so this can only keep a
+   meeting in, never take one out. */
+const ONLY_OLD = /^listing (last updated|has no last-updated date)/;
+const ZOOM_CHECK_DELAY_MS = 2000;
+async function zoomRoomExists(meetingId) {
+  try {
+    return zoomPageShowsRoom(await get(`https://zoom.us/j/${meetingId}`), meetingId);
+  } catch {
+    return false;
+  }
+}
+function zoomPageShowsRoom(html, meetingId) {
+  const b64 = (/launchBase64\s*=\s*"([A-Za-z0-9+/=]+)"/.exec(String(html || '')) || [])[1];
+  if (!b64) return false;
+  return Buffer.from(b64, 'base64').includes(Buffer.from(`,${meetingId}#`));
+}
+/* The intergroup lists' version of the same rule: a meeting marked `old`
+   (listing untouched for two years) stays only if its room still exists. */
+async function keepOldIfRoomExists(found, now, rejected) {
+  const out = [];
+  for (const { old, ...m } of found) {
+    if (!old) { out.push(m); continue; }
+    if (await zoomRoomExists(m.meetingId)) out.push({ ...m, roomSeen: now.toISOString().slice(0, 10) });
+    else rejected.push([m.program, m.id, old]);
+    await pause(ZOOM_CHECK_DELAY_MS);
+  }
+  return out;
+}
+
+/* The same room in two lists is one meeting: kept once, from the world
+   directory. Matched on the Zoom id and a start within an hour of each
+   other in UTC, because one room often hosts several different meetings
+   (5 Nov: "God is in the Numbers" and a BDA step meeting share one). */
+function utcMinutesOfWeek(m, now) {
+  let offset = 0;
+  try {
+    const name = new Intl.DateTimeFormat('en', { timeZone: m.zone, timeZoneName: 'longOffset' })
+      .formatToParts(now).find((p) => p.type === 'timeZoneName').value;
+    const o = /GMT([+-])(\d{2}):(\d{2})/.exec(name);
+    offset = o ? (o[1] === '-' ? -1 : 1) * (+o[2] * 60 + +o[3]) : 0;
+  } catch { /* unknown zone: treated as UTC, and such a meeting is never kept anyway */ }
+  const [h, min] = m.start.split(':').map(Number);
+  return m.days.map((d) => (((d * 1440 + h * 60 + min - offset) % 10080) + 10080) % 10080);
+}
+function notAlreadyListed(found, listed, now, rejected) {
+  const byRoom = new Map();
+  for (const m of listed) {
+    if (!m.meetingId) continue;
+    byRoom.set(m.meetingId, [...(byRoom.get(m.meetingId) || []), ...utcMinutesOfWeek(m, now)]);
+  }
+  const near = (a, b) => Math.min(Math.abs(a - b), 10080 - Math.abs(a - b)) <= 60;
+  return found.filter((m) => {
+    const there = byRoom.get(m.meetingId) || [];
+    const dup = utcMinutesOfWeek(m, now).some((t) => there.some((u) => near(t, u)));
+    if (dup) rejected.push([m.program, m.id, 'already in the world directory']);
+    else byRoom.set(m.meetingId, [...there, ...utcMinutesOfWeek(m, now)]);
+    return !dup;
+  });
+}
+
+/* Which program a DA intergroup's meeting is: "BDA Kenya Express" is BDA,
+   "12 x 12 DA/BDA" and "Daily Morning Prayer and Meditation" are DA. */
+function daOrBda(title) {
+  const t = String(title || '');
+  const bda = /(^|[^A-Za-z])B\.?D\.?A\b|Business Debtors/i.test(t);
+  const da = /(^|[^A-Za-z.])D\.?A\b|Debtors Anonymous/i.test(t.replace(/Business Debtors Anonymous/gi, ''));
+  return bda && !da ? 'BDA' : 'DA';
+}
+
+/* ── DA UK ───────────────────────────────────────────────────────────────────
+   debtorsanonymous.org.uk runs The Events Calendar, whose public JSON gives
+   every dated meeting with its own IANA zone (robots.txt allows all). Online
+   meetings carry the category "Online Meetings". Each meeting is one event
+   per week, so two weeks are read and only a weekday and time seen in both
+   weeks counts as weekly. Their groups are in the UK, Ireland and Kenya. */
+const DA_UK_EVENTS = (from, to, page) => `https://debtorsanonymous.org.uk/wp-json/tribe/events/v1/events?per_page=50&page=${page}&start_date=${from}&end_date=${to}`;
+async function fromDaUk(now, rejected) {
+  const day = (n) => new Date(now.getTime() + n * 86400000).toISOString().slice(0, 10);
+  const events = [];
+  for (let page = 1; page <= 10; page++) {
+    const r = await get(DA_UK_EVENTS(day(0), day(14), page), 'json');
+    events.push(...(r.events || []));
+    if (page >= (r.total_pages || 1)) break;
+    await pause(1000);
+  }
+  return daUkMeetings(events, now, rejected);
+}
+function daUkMeetings(events, now, rejected) {
+  const groups = new Map();
+  for (const e of events) {
+    const id = `uk-${e.id}`;
+    const title = clean(e.title);
+    const cats = (e.categories || []).map((c) => c.name);
+    if (!cats.includes('Online Meetings')) continue; // in-person meetings: not something we hold yet
+    if (cats.includes('Service Meetings')) { rejected.push(['DA', id, 'service meeting']); continue; }
+    const text = `${e.description || ''} | ${e.website || ''}`;
+    const why = textProblem(title, `${title} | ${text}`);
+    if (why) { rejected.push([daOrBda(title), id, why]); continue; }
+    const zoom = zoomFrom(text);
+    if (!zoom) { rejected.push([daOrBda(title), id, 'no direct Zoom link']); continue; }
+    if (!knownZone(e.timezone)) { rejected.push([daOrBda(title), id, `time zone not mapped exactly (${e.timezone || 'blank'})`]); continue; }
+    const updated = new Date(`${String(e.modified || '').replace(' ', 'T')}Z`);
+    if (Number.isNaN(updated.getTime())) { rejected.push([daOrBda(title), id, 'listing has no last-updated date']); continue; }
+    // start_date is the meeting's own local time in e.timezone.
+    const [date, clock] = String(e.start_date || '').split(' ');
+    const endClock = String(e.end_date || '').split(' ')[1];
+    if (!date || !clock) continue;
+    const key = `${zoom.meetingId}|${title}`;
+    const g = groups.get(key) || { id: e.id, title, text, zoom, zone: e.timezone, updated, source: e.url, slots: new Map() };
+    const slot = `${new Date(`${date}T00:00:00Z`).getUTCDay()}|${clock.slice(0, 5)}|${endClock ? endClock.slice(0, 5) : ''}`;
+    g.slots.set(slot, (g.slots.get(slot) || new Set()).add(date));
+    if (updated > g.updated) g.updated = updated;
+    groups.set(key, g);
+  }
+  const kept = [];
+  for (const g of groups.values()) {
+    const weekly = [...g.slots].filter(([, dates]) => dates.size >= 2).map(([slot]) => slot.split('|'));
+    if (!weekly.length) { rejected.push([daOrBda(g.title), `uk-${g.id}`, 'not weekly']); continue; }
+    const byTime = new Map();
+    for (const [d, start, end] of weekly) byTime.set(`${start}|${end}`, [...(byTime.get(`${start}|${end}`) || []), Number(d)]);
+    const passcode = /pwd=/.test(g.zoom.link) ? null : passcodeFrom(g.text);
+    // On this week's calendar but not edited in two years: kept only if its Zoom room is still there.
+    const old = ageDays(g.updated, now) > MAX_LISTING_AGE_DAYS ? `listing last updated ${g.updated.toISOString().slice(0, 10)}` : null;
+    for (const [time, days] of byTime) {
+      const [start, end] = time.split('|');
+      kept.push({
+        id: `dauk-${g.zoom.meetingId}${byTime.size > 1 ? `-${start.replace(':', '')}` : ''}`,
+        program: daOrBda(g.title),
+        name: g.title.replace(/\s*\((online|online meeting|in person)\)\s*$/i, '').trim(),
+        days: [...new Set(days)].sort(),
+        start,
+        end: end || null,
+        zone: g.zone,
+        link: g.zoom.link,
+        meetingId: g.zoom.meetingId,
+        passcode,
+        ...(!/pwd=/.test(g.zoom.link) && !passcode ? { passcodeListed: false } : {}),
+        access: null,
+        who: /\bwomen'?s?\b/i.test(g.title) ? 'women' : /\bmen'?s?\b/i.test(g.title) ? 'men' : null,
+        focus: '',
+        // The meeting's own page, not one dated occurrence of it.
+        source: String(g.source || '').replace(/\d{4}-\d{2}-\d{2}\/?$/, ''),
+        sourceUpdated: g.updated.toISOString().slice(0, 10),
+        ...(old ? { old } : {}),
+      });
+    }
+  }
+  return kept;
+}
+
+/* ── DA Canada ───────────────────────────────────────────────────────────────
+   debtorsanonymous.ca runs the 12 Step Meeting List plugin: one row per
+   meeting, day 0 = Sunday, time in the row's own IANA timezone, types carry
+   the language (EN / FR) and ONL for online. Hybrid groups count when they
+   give a Zoom link. */
+const DA_CANADA = 'https://www.debtorsanonymous.ca/wp-admin/admin-ajax.php?action=meetings';
+async function fromDaCanada(now, rejected) {
+  return daCanadaMeetings(await get(DA_CANADA, 'json'), now, rejected);
+}
+function daCanadaMeetings(rows, now, rejected) {
+  const kept = [];
+  for (const m of rows || []) {
+    const id = `ca-${m.id}`;
+    const title = clean(m.name);
+    const types = m.types || [];
+    const text = `${m.conference_url || ''} | ${m.conference_url_notes || ''} | ${m.notes || ''}`;
+    if (!types.includes('ONL') && !m.conference_url) continue; // in person only
+    if (!types.includes('EN')) { rejected.push([daOrBda(title), id, `language is ${types.includes('FR') ? 'French' : 'not stated'}`]); continue; }
+    const why = textProblem(title, text);
+    if (why) { rejected.push([daOrBda(title), id, why]); continue; }
+    const zoom = zoomFrom(text);
+    if (!zoom) { rejected.push([daOrBda(title), id, 'no direct Zoom link']); continue; }
+    if (!knownZone(m.timezone) || !/^\d{2}:\d{2}$/.test(String(m.time || '')) || !(m.day >= 0 && m.day <= 6)) {
+      rejected.push([daOrBda(title), id, 'no fixed day, time and zone']); continue;
+    }
+    const updated = new Date(`${String(m.updated || '').replace(' ', 'T')}Z`);
+    if (Number.isNaN(updated.getTime())) { rejected.push([daOrBda(title), id, 'listing has no last-updated date']); continue; }
+    const old = ageDays(updated, now) > MAX_LISTING_AGE_DAYS ? `listing last updated ${updated.toISOString().slice(0, 10)}` : null;
+    const passcode = /pwd=/.test(zoom.link) ? null : passcodeFrom(text.replace(/passkey/gi, 'passcode'));
+    kept.push({
+      id: `daca-${m.id}`,
+      program: types.includes('BDA') ? 'BDA' : daOrBda(title),
+      name: title.replace(/\s*\(#\d+\)\s*$/, '').trim(),
+      days: [Number(m.day)],
+      start: m.time,
+      end: /^\d{2}:\d{2}$/.test(String(m.end_time || '')) ? m.end_time : null,
+      zone: m.timezone,
+      link: zoom.link,
+      meetingId: zoom.meetingId,
+      passcode,
+      ...(!/pwd=/.test(zoom.link) && !passcode ? { passcodeListed: false } : {}),
+      access: types.includes('C') ? 'closed' : types.includes('O') ? 'open' : null,
+      who: whoFrom({ types, text: title }),
+      focus: '',
+      source: m.url,
+      sourceUpdated: updated.toISOString().slice(0, 10),
+      ...(old ? { old } : {}),
+    });
+  }
+  return kept;
+}
 
 function daProblem(d, now) {
   if (!d) return 'detail page had no meeting on it';
@@ -1285,4 +1512,5 @@ module.exports = {
   zoomFrom, passcodeFrom, whoFrom, aaProblem, alAnonProblem, alAnonWhen, acaProblem, acaMeeting,
   parseIcs, uaProblem, uaMeeting, assemble, FLOOR, naProblem, naMeeting,
   oaIndexProblem, parseOaPage, oaProblem, oaMeeting, parseSlaaCell, slaaProblem, slaaMeeting, textProblem, clean,
+  zoomPageShowsRoom, keepOldIfRoomExists, daUkMeetings, daCanadaMeetings, notAlreadyListed, daOrBda, ONLY_OLD,
 };
