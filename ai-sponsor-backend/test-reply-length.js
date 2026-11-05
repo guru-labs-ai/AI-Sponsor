@@ -195,7 +195,7 @@ check('the question rule is enforced on the way out, not just requested', () => 
 check('news in their life lets the question through, and only that', () => {
   assert.ok(src.includes('const sharedNews = !!(context && context.sharesNews);'),
     'the reply never hears that they shared news');
-  assert.ok(src.includes('const holdQuestion = askedLastTime && !sharedNews;'),
+  assert.ok(src.includes('const holdQuestion = askedLastTime && !sharedNews && !asksForProgram;'),
     'news does not lift the question rule');
   assert.ok(/if \(holdQuestion\) \{\s*const trimmed = dropTrailingQuestion\(rawReply\)/.test(src),
     'the question is still cut on the way out when they shared news');
@@ -205,6 +205,23 @@ check('news in their life lets the question through, and only that', () => {
     'nothing tells it to answer the news itself');
   assert.ok(/sharesNews: !!\(read && read\.sharesNews\)/.test(fs.readFileSync(require.resolve('./whatsapp.js'), 'utf8')),
     'WhatsApp never passes the read on');
+});
+
+/* 29 Oct: "Want me to pull some DA meetings?", "yeah let's find some", four
+   programs on file. The block said ask which program, this rule cut it, and
+   "Give me a sec, searching the DA finder" went out with nothing after it. */
+check('"which program?" before meetings is never cut', () => {
+  assert.ok(src.includes('const asksForProgram = meetings.asksWhichProgram(meetingsBlock);'),
+    'the question rule never hears that the meetings are waiting on a question');
+  const m = require('./meetings');
+  m._setData({ generatedAt: new Date().toISOString(), meetings: [] });
+  const block = m.buildMeetingsBlock({ message: "yeah let's find some meetings", programField: 'DA, BDA, UA, Al-Anon', userZone: 'America/New_York' });
+  assert.ok(m.asksWhichProgram(block), 'several programs on file is not seen as asking first');
+  const none = m.buildMeetingsBlock({ message: 'can you find me a meeting', programField: '', userZone: 'America/New_York' });
+  assert.ok(m.asksWhichProgram(none), 'nothing on file is not seen as asking first');
+  assert.ok(block.includes('never "give me a sec"'), 'nothing stops it promising a search it cannot do');
+  const one = m.buildMeetingsBlock({ message: 'can you find me a meeting', programField: 'DA', userZone: 'America/New_York' });
+  assert.ok(!m.asksWhichProgram(one), 'one program on file should go straight to meetings, not a question');
 });
 
 check('when it cannot ask, it still answers what they told it', () => {

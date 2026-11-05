@@ -19,6 +19,8 @@ const trialnotice = require('./trialnotice'); // the "your trial ends" WhatsApp 
 const notices = require('./notices');       // account notices (cancelled, changed, deletion)
 const meetings = require('./meetings');     // real online meetings, from the official directories
 const timezones = require('./timezones');
+// How long before the sponsor checks again where someone is (meetings.js ZONE_CHECK_LINE).
+const ZONE_ASK_EVERY_MS = 30 * 86400000;
 
 // WhatsApp (Twilio) module is loaded ONLY when Twilio is configured. Its SDK
 // clients (Twilio + OpenAI) throw at construction when their keys are missing,
@@ -1900,6 +1902,10 @@ async function getSponsorReply(userId, message, context) {
     programField: profile && profile.program,
     userZone,
     zoneTold: !!toldZone,
+    /* Asked where they are at most once a month while their zone is only a
+       guess from their number (meetings.js ZONE_CHECK_LINE). Noted below once
+       a reply that lists meetings has carried the question. */
+    zoneCheckDue: !toldZone && !(profile && profile.zoneAskedAt && Date.now() - Date.parse(profile.zoneAskedAt) < ZONE_ASK_EVERY_MS),
     // So "AA" answering "which program?", or "any more tomorrow?", still
     // brings the meetings, for the program they were just asking about.
     recentMessages: (history || []).slice(-2).map((m) => (typeof m.content === 'string' ? m.content : '')).join('\n'),
@@ -2009,7 +2015,10 @@ async function getSponsorReply(userId, message, context) {
      are with it. Decided by the message read (language.js sharesNews), which
      is kept to real events so this does not turn back into an interview. */
   const sharedNews = !!(context && context.sharesNews);
-  const holdQuestion = askedLastTime && !sharedNews;
+  /* And "which program?" before meetings: without it no meetings can come at
+     all. See meetings.js ASK_FIRST_LINE (29 Oct, 0 of 5 replies had any). */
+  const asksForProgram = meetings.asksWhichProgram(meetingsBlock);
+  const holdQuestion = askedLastTime && !sharedNews && !asksForProgram;
 
   if (budget.target) {
     systemBlocks.push({ type: 'text', text: [
@@ -2149,6 +2158,14 @@ async function getSponsorReply(userId, message, context) {
      both are far better than no reply at all. */
   const listsMeetings = meetingsListedIn(rawReply);
   if (listsMeetings && budget.ceiling && words(rawReply) > budget.ceiling) console.log(`[sponsor] long reply kept: it lists meetings (${words(rawReply)} words)`);
+  /* It asked where they are (see zoneCheckDue above): not again for a month.
+     Only when the words are really in the reply, or a reply that left the line
+     out would silence the question for thirty days. */
+  if (listsMeetings && meetings.asksWhereTheyAre(meetingsBlock) && /somewhere else|tell me where|where you are/i.test(rawReply)) {
+    const zoneAskedAt = new Date().toISOString();
+    if (profile) profile.zoneAskedAt = zoneAskedAt;
+    db.saveProfile(userId, { zoneAskedAt }).catch((e) => console.warn('[sponsor] could not note the zone question:', e.message));
+  }
   if (budget.ceiling && !madeCheckinOffer && !listsMeetings && words(rawReply) > budget.ceiling) {
     const before = words(rawReply);
     try {
@@ -2617,6 +2634,51 @@ app.post('/api/session', (req, res) => {
    memory after that. The long cache header matters more than usual here: this
    backend sleeps on Render's free tier, and a cold start would otherwise make
    every preview feel broken. */
+/* Every meeting the sponsor holds for a program, for getaisponsor.com/meetings,
+   the page it links to after giving two or three in the chat (Mariam, 30 Oct).
+   Public on purpose: these are the directories' own public listings, and the
+   page needs no login. The same two guards as the chat: a list past its
+   21-day freshness is not shown, and a meeting someone reported as not working
+   is left out until its listing is updated. Times stay in each meeting's own
+   zone; the page works them out in the zone of the phone that opens it. */
+app.get('/api/meetings', async (req, res) => {
+  const wanted = [...new Set(String(req.query.p || '').split(',').map((s) => s.trim()))]
+    .filter((p) => meetings.PROGRAMS[p]).slice(0, 10);
+  const data = meetings.load();
+  if (!data) return res.status(503).json({ error: 'meeting list not loaded' });
+  const hidden = meetings.hiddenFrom(await meetingReportsCached());
+  const checked = (p) => (data.checked && data.checked[p]) || data.generatedAt;
+  const fresh = (p) => (Date.now() - Date.parse(checked(p))) / 86400000 <= meetings.STALE_AFTER_DAYS;
+  res.set('Cache-Control', 'public, max-age=600');
+  res.json({
+    programs: wanted.map((p) => ({
+      key: p,
+      label: meetings.PROGRAMS[p].label,
+      finder: meetings.PROGRAMS[p].finder,
+      checked: checked(p),
+      stale: !fresh(p),
+      meetings: !fresh(p) ? [] : data.meetings
+        .filter((m) => m.program === p && !hidden.has(meetings.listedLink(m)))
+        .map((m) => ({
+          id: m.id,
+          name: meetings.cleanName(m.name),
+          days: m.days,
+          start: m.start,
+          end: m.end || null,
+          zone: m.zone,
+          link: m.phone ? null : m.link,
+          platform: m.platform || null,
+          passcode: m.passcode || null,
+          passcodeListed: m.passcodeListed !== false,
+          phone: m.phone || null,
+          access: m.access || null,
+          who: m.who || null,
+          source: m.source || null,
+        })),
+    })),
+  });
+});
+
 app.get('/api/voice/preview', async (req, res) => {
   const voice = String(req.query.voice || '');
   if (!voices.VOICES.includes(voice)) {

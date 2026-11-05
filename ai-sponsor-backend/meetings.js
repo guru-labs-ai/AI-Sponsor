@@ -166,10 +166,23 @@ const ALL_FINDERS = [
   ...Object.values(PROGRAMS).map((p) => `${p.label} ${p.finder}`),
   ...Object.values(OTHERS).filter((o) => o.finder).map((o) => `${o.label} ${o.finder}`),
 ].join('; ');
+/* 29 Oct: the sponsor offered "Want me to pull some DA meetings for you?", the
+   person said yes, and with four programs on file the block said ask which one
+   first. The not-two-questions-in-a-row rule then cut that question, so what
+   went out was "Give me a sec, searching the DA finder", and nothing ever came:
+   the sponsor cannot send a second message. Replayed on the live code, 0 of 5
+   replies had meetings. server.js looks for this line to let the question
+   through (asksWhichProgram), and it tells the sponsor why it must ask. */
+const ASK_FIRST_LINE = 'This reply has no meetings in it, and you cannot send another message after it: the meetings come with your next reply, once they answer. So this reply must ask that question, even if your last message asked something too. Never say you are searching, pulling or finding meetings right now, and never "give me a sec".';
+const asksWhichProgram = (block) => String(block || '').includes(ASK_FIRST_LINE);
+
 function standingLines() {
   return [
     `You can search real online meetings for: ${ALL_LABELS}. Never say you cannot look up meetings or schedules: you can. If earlier in this chat you said you could not, that has changed, so do not repeat it.`,
-    'If they ask about one of these programs and its meetings are not listed here, never say you have no list for it: say you will look and ask them to name it once more (for example "Want UA meetings too? Just say UA and I\'ll search.").',
+    /* The example names no program. It said "Just say UA and I'll search", and
+       on 30 Oct the sponsor asked Matt "Which program, Matt? Say UA and I'll
+       search." when nothing was on file: it copied the example word for word. */
+    'If they ask about one of these programs and its meetings are not listed here, never say you have no list for it: say you will look and ask them to name it once more (for example "Name the program once more and I\'ll search.").',
     `Never make up a website. The official meeting finders are: ${ALL_FINDERS}.`,
   ];
 }
@@ -192,6 +205,30 @@ function fmt(kind, zone, options) {
   if (!f) { f = new Intl.DateTimeFormat(kind.startsWith('gb') ? 'en-GB' : 'en-US', { timeZone: zone, ...options }); formatters.set(key, f); }
   return f;
 }
+
+/* "Pacific Time", "Central European Time": the zone as a person says it. */
+function zoneName(zone) {
+  try {
+    return fmt('generic', zone, { timeZoneName: 'longGeneric' })
+      .formatToParts(new Date()).find((p) => p.type === 'timeZoneName').value;
+  } catch (e) {
+    return zone;
+  }
+}
+
+/* The page with every meeting for a program, in the time zone of whatever
+   phone opens it (meetings.html). The sponsor gives two or three and this for
+   the rest, in the same message: Mariam, 30 Oct. */
+const ALL_MEETINGS_PAGE = 'https://getaisponsor.com/meetings';
+const allMeetingsLink = (programs) => `${ALL_MEETINGS_PAGE}?p=${programs.map(encodeURIComponent).join(',')}`;
+
+/* Their zone came only from their phone number, and that is wrong for anyone
+   abroad or travelling: Matt has a 619 number, was in UTC-4, and on 30 Oct got
+   every time in Los Angeles time. The sponsor names the zone with the times, and
+   once in a while asks where they are. server.js looks for this line to note
+   that it asked (asksWhereTheyAre), so it is not asked on every reply. */
+const ZONE_CHECK_LINE = 'Their time zone is only a guess from their phone number.';
+const asksWhereTheyAre = (block) => String(block || '').includes(`${ZONE_CHECK_LINE} Once`);
 
 /* Minutes east of UTC for a zone at a given instant, from real DST rules.
    longOffset prints "GMT+01:00", or plain "GMT" at zero. */
@@ -874,9 +911,9 @@ function alreadyGiven(text, data) {
      was the first six in file order: on 26 Oct one room with three listings
      took half of them, three meetings it had just given were not here, and the
      sponsor said it had given them "without them being in front of me". */
-  const at = (m) => { const i = t.indexOf(m.link); return i >= 0 ? i : t.length; };
+  const at = (m) => { const i = m.link ? t.indexOf(m.link) : -1; return i >= 0 ? i : t.length; };
   // A corrected meeting given before the correction was given with its old link.
-  return data.meetings.filter((m) => t.includes(m.link) || (m.listed && t.includes(m.listed)) || (m.meetingId && digits.includes(m.meetingId)))
+  return data.meetings.filter((m) => (m.link && t.includes(m.link)) || (m.listed && t.includes(m.listed)) || (m.meetingId && digits.includes(m.meetingId)))
     .sort((a, b) => at(a) - at(b)).slice(0, 14);
 }
 
@@ -949,8 +986,17 @@ function meetingLine(m, at, userZone, now, askZone = null) {
      "LGBTQ only" from its name, then "open to everyone" from nothing. */
   fields.push(m.access || 'open or closed not stated on its listing');
   if (m.who) fields.push(`${m.who} only`);
-  fields.push(m.link);
-  if (m.passcode) fields.push(`passcode ${m.passcode}`);
+  /* Phone meetings have no link to show: their link is a tel: URI kept only so
+     every link-keyed check here (already given, reported) works the same. */
+  if (m.phone) {
+    fields.push(`by phone: call ${m.phone.number}${m.phone.code ? `, access code ${m.phone.code}` : ''}`);
+  } else {
+    fields.push(m.platform ? `on ${m.platform}: ${m.link}` : m.link);
+    if (m.passcode) fields.push(`passcode ${m.passcode}`);
+    /* Kept since 30 Oct. Some rooms need no passcode; others will ask, and the
+       listing is where the group says who to contact. */
+    else if (m.passcodeListed === false) fields.push('no passcode listed: if it asks for one, its source listing shows who to contact');
+  }
   if (m.source) fields.push(`source ${m.source}`);
   if (m.listingNumber) fields.push(`meeting # ${m.listingNumber} on its listing`);
   return `- ${fields.join(' | ')}`;
@@ -959,7 +1005,7 @@ function meetingLine(m, at, userZone, now, askZone = null) {
 /* The system block, or '' when there is nothing to add. userZone is where they
    are (from their phone number); without it, times are given in each meeting's
    own zone and labelled as such, never silently converted to a guess. */
-function buildMeetingsBlock({ message, programField, userZone, zoneTold = false, now = Date.now(), recentMessages = '', lastUserMessage = '', earlierChat = '', earlierAsks = [], reported = new Map() }) {
+function buildMeetingsBlock({ message, programField, userZone, zoneTold = false, zoneCheckDue = false, now = Date.now(), recentMessages = '', lastUserMessage = '', earlierChat = '', earlierAsks = [], reported = new Map() }) {
   try {
     const meetingTalk = asksAboutMeetings(message) || asksAboutMeetings(recentMessages);
     const named = programsIn(message, { loose: meetingTalk });
@@ -1024,6 +1070,7 @@ function buildMeetingsBlock({ message, programField, userZone, zoneTold = false,
           onFile.length
             ? `They signed up with several programs (${onFile.join(', ')}). Before naming any meeting, ask which program, or programs, they are looking for, in one short, warm question (for example "Which program, or programs, are you looking for?"). Once they say, you will have the meetings.`
             : 'They have not said which program, and none is on file. Before naming any meeting, ask what program, or programs, they are looking for today and say you will search, in one short, warm line (for example "What programs are you looking for today? I\'ll search for you."). Once they say, you will have the meetings.',
+          ASK_FIRST_LINE,
           ...standingLines(),
           'Never name a meeting, time, link or passcode that you were not given here.',
         ].join('\n');
@@ -1165,10 +1212,13 @@ function buildMeetingsBlock({ message, programField, userZone, zoneTold = false,
       userZone
         ? `Where they are (${userZone}, ${zoneTold ? 'where they told you they live' : 'from their phone number'}) it is now ${describeWhen(now, userZone, now, { relative: false }).replace(' at ', ', ')} (${utcLabel(offsetMinutes(userZone, now))}), so their tomorrow is ${tomorrowFor(userZone, now)}. A "today" or "tomorrow" in older messages in this chat meant another day. Each line starts with the meeting's day, date and time for them, already worked out, and how soon it starts. ${ask.window ? 'Only ones inside the time they asked for are listed.' : inWaking(localHourAt(userZone, now)) || (askedKeys.size && !askedKeys.has(dayKey(dateIn(ask.zone || userZone, now)))) ? 'Only ones at a sensible hour for them are listed.' : 'They are up late, so the first ones are the next meetings starting within two hours, whatever the hour, in case they need one now; the rest are at a sensible hour.'} Use that day and date exactly as written; never work out a day yourself from "today" or "tomorrow". "Listed as" is the day and time the directory gives, in the meeting's own time zone, with its date there and the UTC offset there at that moment.${ask.zone ? ` They asked about days and times in ${ask.zone}: those were matched in ${ask.zone}, and each line gives the time there as well, already worked out. Use both as written; never convert a time yourself.` : ''}`
         : 'We do not know where they are, so each time is in the meeting\'s own time zone, as labelled.',
+      ...(userZone && !zoneTold ? [`${ZONE_CHECK_LINE} Write each time in your reply with its zone, ${zoneName(userZone)} (for example "7:30am ${zoneName(userZone)}"), so a wrong guess is easy for them to spot.`] : []),
+      ...(userZone && !zoneTold && zoneCheckDue ? [`${ZONE_CHECK_LINE} Once, at the very end of this reply, add one line, as a statement and not a question: these times are ${zoneName(userZone)}, going by their number, and if they are somewhere else right now they can tell you where and you will redo them (for example "These are ${zoneName(userZone)}, going by your number. If you're somewhere else right now, tell me where and I'll redo the times.").`] : []),
       ...(noneNewFor ? [`None of the meetings below is ${onlyFor}-only, apart from any you already gave them. Open with that plainly (for example "No more ${onlyFor}'s meetings that day, but these are open to everyone"), then offer them as open to everyone.`] : []),
       ...(carriedOver ? [`They did not name a program this time: they are carrying on with their earlier search, so these are ${shown.map((p) => PROGRAMS[p].label).join(' and ')} meetings${ask.want === 'women' || ask.want === 'men' ? `, ${ask.want}'s first, as before` : ''}. Answer with them, and do not ask which program; if they meant another one, they will say.`] : []),
       ...(changesLine ? [changesLine] : []),
       ...lines,
+      ...(shown.length ? [`Every ${shown.map((p) => PROGRAMS[p].label).join(' and ')} meeting this week is on this page, in the time zone of the phone that opens it: ${allMeetingsLink(shown)}. After the meetings you pick, put it in your reply in one short line (for example "All the rest of this week's ${shown.join(' and ')} meetings are here, in your own time: ${allMeetingsLink(shown)}"). Copy the link exactly.`] : []),
       ...givenSection,
       ...namedSection,
       ...(staleLine ? [staleLine] : []),
@@ -1177,16 +1227,19 @@ function buildMeetingsBlock({ message, programField, userZone, zoneTold = false,
       'How to use it:',
       ask.all
         ? '- They asked for all of them. Answer like this: say how many fit in all (the count), say here are some spread across the day, then list every pick below in full (day and time, name, link, passcode), then offer more if they give a narrower time. Listing none, or only ones you gave before, is wrong.'
-        : '- Offer one to three that fit what they asked for, never the whole list.',
+        /* Was "one to three". On 30 Oct Matt wrote "Da", was handed five Friday
+           meetings (one starting in an hour and a half), and got one, with
+           "Nothing left tonight". */
+        : '- Offer two or three that fit what they asked for (one only when just one fits), never the whole list, and always include the soonest one here that fits them. Never say there is nothing left tonight, today or soon when a line here starts then: offer it.',
       ...(Object.keys(counts).length ? ['- The count by day was checked against every meeting you hold. A day it gives as none really has none that fit what they asked: say so plainly, then offer the nearest other time or day, or the official finder. A day with a number has that many, so never say it has none.'] : []),
       ...(Object.keys(counts).length ? ['- When you give a count, say what it covers, as the count line says: the day, the hours and the time zone (for example "32 start between 9am and noon New York time that Saturday", or "53 between 7am and 10pm your time"). A count for some of the hours, whether a time they asked for or 7am to 10pm, is never "the whole day", "any hour" or "overall". If they question a count you gave earlier, say what each count covered and why they differ. Every count you gave came from a count line like this one and was right for what it covered, so never call it a slip or a mistake, and never say it came from another day.'] : []),
       '- You hold every meeting in the count, and the picks here are only some of them. If they ask for all of them or for more, say how many there are, give the picks here, and offer more by narrowing the time (or the official finder). Never give none, and never say the picks are all you have, that you are not holding more, or that your list is only a working set.',
       '- If what they want is not here (another day, a later or earlier time, a women\'s or men\'s meeting) and no count above says none, never say there is none, that your list ends tomorrow, or that you hold nothing later, and never call the ones you give all you have: you hold meetings for every day of the coming week, and these are only a few. Say you\'ll look, and ask them for the day and time in one line (for example "Tell me the day and time, like Saturday after 8pm, and I\'ll look"). You can give the official finder as well.',
-      '- Copy the name, time, link and passcode exactly as written here, and how soon it starts. Never change, shorten or make up a link, a time, a passcode or a meeting, and never offer one that is not on this list.',
+      '- Copy the name, time, link and passcode (or, for a phone meeting, the number and access code) exactly as written here, and how soon it starts. Never change, shorten or make up a link, a number, a time, a passcode or a meeting, and never offer one that is not on this list.',
       // Matt, 30 Oct: people tell us about a dead meeting when they are asked to.
       '- Whenever you give them meetings, end that reply with one short line asking them to tell you if one has ended, its link is broken or a detail is wrong, so it can be fixed (for example "If one has ended, the link is broken or a detail is wrong, just tell me here so we can fix it."). One line, in your own words, after the meetings.',
       '- Every time here already allows for clock changes. The date and UTC offset in each meeting\'s own zone, and any clock change, are written here: use them as written. Never work out a date, offset, clock change or time difference yourself, never name a clock-change date that is not written here, and never say a time may be an hour out because of a clock change. If they ask about a zone or date not written here, say you will check and ask which meeting or day they mean.',
-      '- If they tell you a meeting you gave them did not work (the link would not open, the passcode was wrong, nobody was there, it said the meeting does not exist or has ended) or that a detail of it is wrong, say sorry plainly, give them another one from here if they still need one, and put [[meeting-problem: <that meeting\'s link exactly as written here> | <what happened, in a few words> | <the right link, passcode, day or time, copied exactly as they wrote it>]] at the very end of your reply. Leave out the last part unless they told you the right details. It is taken out before they see it, and it tells the team to check that listing. If they gave you the right details, thank them and say the team will check them and update the listing. Only for a meeting you gave them, and only when they say it did not work or is wrong.',
+      '- If they tell you a meeting you gave them did not work (the link would not open, the passcode was wrong, nobody was there, it said the meeting does not exist or has ended) or that a detail of it is wrong, say sorry plainly, give them another one from here if they still need one, and put [[meeting-problem: <that meeting\'s link, or for a phone meeting its number and access code, exactly as written here> | <what happened, in a few words> | <the right link, passcode, day or time, copied exactly as they wrote it>]] at the very end of your reply. Leave out the last part unless they told you the right details. It is taken out before they see it, and it tells the team to check that listing. If they gave you the right details, thank them and say the team will check them and update the listing. Only for a meeting you gave them, and only when they say it did not work or is wrong.',
       '- Never take back or "correct" a meeting you gave earlier in this chat because it is not in front of you now: every one you gave came from these official listings. If they ask about one you cannot see here, say you will look it up and ask for its name or day.',
       '- A meeting\'s name can contain a day, time or time zone (for example "Daily 9:00 PM PST"). That is part of its name, in the meeting\'s own time zone, never its time for them.',
       `- If they question a meeting, do not take it back: every detail here was on its official listing when it was checked on ${checked}. Never say you cannot verify it, that it is unconfirmed, or that you should not have shared it. Give them its source link, its listed day and time, and that date. Not finding a detail on the listing does not make it wrong: listings often write a meeting ID with spaces (819 9042 4358), and some sources are a directory page where they search for the meeting by name, so tell them that. When a line gives a meeting # on its listing, that number is the directory's own reference for the meeting, and its source link opens that one meeting: give both when they ask where a meeting comes from. A Zoom meeting ID is Zoom's, never the directory's reference. Only if they say the listing now shows something different (another day, time, link or passcode) do you thank them, go with the listing, and point them to the official finder.`,
@@ -1208,7 +1261,7 @@ function buildMeetingsBlock({ message, programField, userZone, zoneTold = false,
 module.exports = {
   buildMeetingsBlock, asksAboutMeetings, programsOf, programsIn, nextStart, starts, describeWhen, instantFor,
   cleanName, weekdaysIn, alreadyGiven, startsIn, timeWindowIn, genderAsked, askIn, datesIn, namedIn, zoneIn,
-  meetingProblemsIn, hiddenFrom, REPORT_DAYS, setChecks, load, listedLink,
+  meetingProblemsIn, hiddenFrom, REPORT_DAYS, setChecks, listedLink, asksWhichProgram, asksWhereTheyAre, zoneName, allMeetingsLink, ALL_MEETINGS_PAGE, load,
   offsetMinutes, utcLabel, clockChanges, STALE_AFTER_DAYS, PROGRAMS, OTHERS, othersIn,
   asksForProgram, asksForMoreMeetings, fixClockDates, windowWords,
   _setData(d) { cache = d; fixed = null; },

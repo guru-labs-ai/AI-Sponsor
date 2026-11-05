@@ -121,6 +121,7 @@ const COUNTRIES = {
   593: ['Ecuador', 'America/Guayaquil', [9]],
   595: ['Paraguay', 'America/Asuncion', [9]],
   598: ['Uruguay', 'America/Montevideo', [8]],
+  852: ['Hong Kong', 'Asia/Hong_Kong', null],   // 29 Oct: a +852 person was held from every weekly review
   880: ['Bangladesh', 'Asia/Dhaka', [10]],
   960: ['Maldives', 'Indian/Maldives', null],
   961: ['Lebanon', 'Asia/Beirut', null],

@@ -167,6 +167,12 @@ const ASK_FOR_ACCESS = new RegExp([
   '(password|passcode|links?)[^.|]{0,40}(by|via|on|upon) (e-?mail|request)',
   '(password|passcode)\\s*[:#=-]?\\s*\\|?\\s*(e-?mail|contact|text|call|ask|request|dm|pm|message)\\b',
 ].join('|'), 'i');
+/* An email address is taken out first. Its dots ended the phrase early, so
+   "EMAIL someone@gmail.com FOR THE PASSWORD" read as no request at all: found
+   30 Oct on a DA listing that was only left out because it also had no
+   passcode, which stopped being a reason to leave a meeting out that day. */
+const EMAIL_ADDRESS = /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g;
+const asksForAccess = (text) => ASK_FOR_ACCESS.test(String(text || '').replace(EMAIL_ADDRESS, 'the address'));
 const NOT_WEEKLY = /\b(monthly|once a month|every other|bi-?weekly|fortnightly|(1st|2nd|3rd|4th|first|second|third|fourth|last) (\w+ )?(of (the|each|every) month))\b/i;
 // NA's list carries its service bodies' own meetings too ("Policy Review
 // Subcommittee", area and regional service committees, H&I, PR).
@@ -272,7 +278,7 @@ function textProblem(name, raw) {
   const text = String(raw || '').replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, 'ADDR').replace(URLS, 'URL.');
   if (TEEN.test(name)) return 'teen meeting';
   if (SERVICE.test(name)) return 'service meeting';
-  if (ASK_FOR_ACCESS.test(text)) return 'listing says to ask someone for the link or password';
+  if (asksForAccess(text)) return 'listing says to ask someone for the link or password';
   if (NOT_WEEKLY.test(text)) return 'not weekly';
   if (DORMANT.test(text)) return 'listing says the meeting is paused or cancelled';
   return null;
@@ -316,6 +322,27 @@ function parseDaDetail(html) {
     : (meetingId && /^\d{9,11}$/.test(meetingId) ? `https://zoom.us/j/${meetingId}` : null);
   const header = /\| ([^|]+?) \| (Open|Closed) ([A-Za-z.]+|Intergroup) meeting #(\d+) \|/.exec(t);
   const updated = /Information last updated ([A-Za-z]+ \d{1,2} \d{4})/.exec(t);
+
+  /* Not Zoom (kept since 30 Oct): the listing names the platform and gives a
+     link to click. A Zoom "register" link is left out, because registering
+     means waiting for someone to send the login, which is asking for access. */
+  const platformName = ((/Video platform: \| ([^|]+?) \|/.exec(video) || [])[1] || '').trim();
+  const clickLink = ((/Link \(click to connect\): \| (https?:\/\/[^\s|]+)/i.exec(video) || [])[1] || '').trim();
+  const otherLink = !link && clickLink && !/zoom\.us/i.test(clickLink) && OTHER_PLATFORMS.find((p) => p.host.test(clickLink));
+  const registers = /zoom\.us\/(meeting|webinar)\/register/i.test(clickLink);
+
+  /* A phone meeting (kept since 30 Oct): dial a number, type the access code.
+     Only when there is no video way in, which comes first when both exist. */
+  const phoneBlock = t.includes('Telephone venue') ? t.slice(t.indexOf('Telephone venue')) : '';
+  const phoneWhen = /\| ((?:(?:Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day,?)+) \| \((\d{1,2}:\d{2} [ap]m) to (\d{1,2}:\d{2} [ap]m) local time\) \|/i.exec(phoneBlock);
+  const dial = ((/Dialup number: \| ([^|]+?) \|/.exec(phoneBlock) || [])[1] || '').trim();
+  const code = ((/Access code: \| ([^|]+?) \|/.exec(phoneBlock) || [])[1] || '').trim();
+  const useVideo = !!(when && (link || otherLink));
+  const usePhone = !useVideo && !!(phoneWhen && /\d{6,}/.test(dial.replace(/\D/g, '')));
+  const chosen = useVideo ? when : usePhone ? phoneWhen : when;
+  // "Password: #" is how a listing says there is none.
+  const password = ((/Password: \| ([^|]+?) \|/.exec(video) || [])[1] || '').trim();
+
   return {
     text: t,
     name: header ? header[1].trim() : null,
@@ -323,75 +350,108 @@ function parseDaDetail(html) {
     group: header ? header[4] : null,
     language: ((/Primary language: \| ([^|]+) \|/.exec(t) || [])[1] || '').trim(),
     focus: ((/Meeting focus: \| ([^|]+) \|/.exec(t) || [])[1] || '').trim(),
-    days: when ? when[1].split(',').filter(Boolean).map((d) => DAYS.indexOf(d)).filter((d) => d >= 0) : [],
-    start: when ? to24(when[2]) : null,
-    end: when ? to24(when[3]) : null,
-    link,
+    days: chosen ? chosen[1].split(',').filter(Boolean).map((d) => DAYS.indexOf(d)).filter((d) => d >= 0) : [],
+    start: chosen ? to24(chosen[2]) : null,
+    end: chosen ? to24(chosen[3]) : null,
+    link: useVideo ? (link || clickLink) : null,
+    platform: useVideo && !link && otherLink ? otherLink.name : null,
+    registers,
+    platformName,
+    phone: usePhone ? { number: phoneNumber(dial), code: code.replace(/\s+/g, '') || null } : null,
     meetingId,
-    passcode: ((/Password: \| ([^|]+?) \|/.exec(video) || [])[1] || '').trim() || null,
+    passcode: password && !/^#+$/.test(password) ? password : null,
     updated: updated ? new Date(`${updated[1]} UTC`) : null,
   };
 }
+
+/* "(+1) 605-468-8726" -> "+1 605-468-8726": the country code written the way
+   a phone dials it. */
+function phoneNumber(raw) {
+  return String(raw || '').replace(/^\(?(\+\d{1,3})\)?\s*/, '$1 ').replace(/\s+/g, ' ').trim();
+}
+
+/* Platforms other than Zoom that a listing can link to directly. The name is
+   what the sponsor and the meetings page call it. */
+const OTHER_PLATFORMS = [
+  { name: 'FreeConferenceCall', host: /^https?:\/\/(join\.)?freeconferencecall\.com\//i },
+  { name: 'Google Meet', host: /^https?:\/\/meet\.google\.com\/[a-z]{3}-[a-z]{4}-[a-z]{3}/i },
+  { name: 'Microsoft Teams', host: /^https?:\/\/teams\.(microsoft|live)\.com\//i },
+  { name: 'Webex', host: /^https?:\/\/[\w-]+\.webex\.com\//i },
+  { name: 'GoTo Meeting', host: /^https?:\/\/(global\.|meet\.)?goto(meeting)?\.com\//i },
+  { name: 'Jitsi', host: /^https?:\/\/meet\.jit\.si\//i },
+  { name: 'UberConference', host: /^https?:\/\/(www\.)?uberconference\.com\//i },
+];
 
 async function fromDa(now, rejected) {
   const list = parseDaList(await get(DA_LIST));
   const kept = [];
   const candidates = list.filter((r) => {
     if (!['DA', 'BDA'].includes(r.kind)) { rejected.push(['DA', r.mid, `service meeting (${r.kind || 'unknown type'})`]); return false; }
-    if (!/video/i.test(r.venue)) { rejected.push(['DA', r.mid, `not on video (${r.venue || 'blank'})`]); return false; }
+    // Phone meetings count since 30 Oct; email and chat ones are not meetings anyone can join by voice.
+    if (!/video|phone/i.test(r.venue)) { rejected.push(['DA', r.mid, `not on video or phone (${r.venue || 'blank'})`]); return false; }
     if (!DA_ZONES[r.zoneLabel]) { rejected.push(['DA', r.mid, `time zone not mapped exactly (${r.zoneLabel || 'blank'})`]); return false; }
     return true;
   });
 
-  // Polite: four at a time, the way a person clicking around would never be
-  // faster than anyway.
-  let i = 0;
-  async function worker() {
-    while (i < candidates.length) {
-      const r = candidates[i++];
-      let d;
-      try {
-        d = parseDaDetail(await get(DA_DETAIL(r.mid)));
-      } catch (e) {
-        rejected.push(['DA', r.mid, `detail page failed: ${e.message}`]);
-        continue;
-      }
-      const why = daProblem(d, now);
-      if (why) { rejected.push([r.kind, r.mid, why]); continue; }
-      kept.push({
-        id: `da-${r.mid}`,
-        program: r.kind,
-        name: d.name,
-        days: d.days,
-        start: d.start,
-        end: d.end,
-        zone: DA_ZONES[r.zoneLabel],
-        link: d.link,
-        meetingId: d.meetingId,
-        passcode: /pwd=/.test(d.link) ? null : d.passcode,
-        access: d.access,
-        focus: d.focus,
-        source: DA_DETAIL(r.mid),
-        sourceUpdated: d.updated.toISOString().slice(0, 10),
-      });
+  /* One page at a time, DA_CRAWL_DELAY_MS apart: debtorsanonymous.org's
+     robots.txt asks for Crawl-Delay: 5, and this used to fetch four at once
+     with no pause (found 30 Oct). About 35 minutes for the whole directory,
+     which a weekly job can afford. */
+  for (const r of candidates) {
+    let d;
+    try {
+      d = parseDaDetail(await get(DA_DETAIL(r.mid)));
+    } catch (e) {
+      rejected.push(['DA', r.mid, `detail page failed: ${e.message}`]);
+      await pause(DA_CRAWL_DELAY_MS);
+      continue;
     }
+    await pause(DA_CRAWL_DELAY_MS);
+    const why = daProblem(d, now);
+    if (why) { rejected.push([r.kind, r.mid, why]); continue; }
+    const inLink = !!(d.link && /pwd=/.test(d.link));
+    kept.push({
+      id: `da-${r.mid}`,
+      program: r.kind,
+      name: d.name,
+      days: d.days,
+      start: d.start,
+      end: d.end,
+      zone: DA_ZONES[r.zoneLabel],
+      /* A phone meeting's link is a tel: URI the sponsor never shows: it keeps
+         every check keyed on the link (already given, reported) working, and
+         the access code is its meeting id, so naming the code finds it. */
+      link: d.phone ? `tel:${d.phone.number.replace(/[^\d+]/g, '')},,${d.phone.code || ''}` : d.link,
+      meetingId: d.phone ? (d.phone.code || '').replace(/\D/g, '') || null : d.meetingId,
+      passcode: d.phone || inLink ? null : d.passcode,
+      ...(d.phone ? { phone: d.phone } : {}),
+      ...(d.platform ? { platform: d.platform } : {}),
+      ...(!d.phone && !inLink && !d.passcode ? { passcodeListed: false } : {}),
+      access: d.access,
+      focus: d.focus,
+      source: DA_DETAIL(r.mid),
+      sourceUpdated: d.updated.toISOString().slice(0, 10),
+    });
   }
-  await Promise.all([worker(), worker(), worker(), worker()]);
   return kept;
 }
+const DA_CRAWL_DELAY_MS = 5000;
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function daProblem(d, now) {
   if (!d) return 'detail page had no meeting on it';
   if (!d.name || !d.access) return 'no name or open/closed on the page';
   if (SERVICE.test(d.name) || SERVICE.test(d.focus)) return 'service meeting';
   if (!/^english/i.test(d.language)) return `language is ${d.language || 'not stated'}`;
-  if (!d.days.length || !d.start || !d.end) return 'no fixed day and time for the video meeting';
-  if (!d.link) return 'no direct Zoom link';
-  /* Some rooms need no passcode, but from the listing we cannot tell those from
-     ones that left it off, and a link that stops at a passcode prompt is a
-     dead end for the person holding it. */
-  if (!/pwd=/.test(d.link) && !d.passcode) return 'no passcode in the link or the listing';
-  if (ASK_FOR_ACCESS.test(d.text)) return 'listing says to ask someone for the link or password';
+  // Before anything about links: a listing that says to email for the password
+  // is not one to hand out, whatever else it carries.
+  if (asksForAccess(d.text)) return 'listing says to ask someone for the link or password';
+  if (d.registers && !d.phone) return 'link asks them to register first';
+  if (!d.link && !d.phone) return 'no direct link and no phone number';
+  if (!d.days.length || !d.start || !d.end) return 'no fixed day and time for the meeting';
+  /* No passcode is no longer a reason to leave a meeting out (Mariam, 30 Oct):
+     some rooms need none, and where one asks, the listing says who to contact.
+     The sponsor and the page both say so (passcodeListed). */
   if (NOT_WEEKLY.test(d.text)) return 'not weekly';
   if (DORMANT.test(d.text)) return 'listing says the meeting is paused or cancelled';
   if (!d.updated || Number.isNaN(d.updated.getTime())) return 'listing has no last-updated date';
@@ -446,7 +506,7 @@ function waProblem(m, now) {
   if (!Number.isInteger(Number(m.day)) || !/^\d{2}:\d{2}$/.test(m.time || '')) return 'no fixed day and time';
   try { new Intl.DateTimeFormat('en', { timeZone: m.timezone }); } catch { return `unknown time zone ${m.timezone}`; }
   if (SERVICE.test(m.name)) return 'service meeting';
-  if (ASK_FOR_ACCESS.test(notes)) return 'listing says to ask someone for the link or password';
+  if (asksForAccess(notes)) return 'listing says to ask someone for the link or password';
   if (DORMANT.test(notes)) return 'listing says the meeting is paused or cancelled';
   const updated = new Date(String(m.updated).replace(' ', 'T') + 'Z');
   if (Number.isNaN(updated.getTime())) return 'listing has no last-updated date';

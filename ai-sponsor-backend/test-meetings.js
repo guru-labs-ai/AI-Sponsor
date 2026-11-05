@@ -144,8 +144,30 @@ check('http and a doubled slash are normalised',
   refresh.parseDaDetail(page(goodVideo.replace('https://us06web.zoom.us/j/', 'http://us06web.zoom.us//j/'))).link, 'https://us06web.zoom.us/j/81647734312');
 check('id only: link built from the listed id',
   refresh.parseDaDetail(page(goodVideo.replace('https://us06web.zoom.us/j/81647734312 |', ''))).link, 'https://zoom.us/j/81647734312');
-check('no passcode anywhere is left out',
-  refresh.daProblem(refresh.parseDaDetail(page(goodVideo.replace('| Password: | 512788 |', '|'))), now), 'no passcode in the link or the listing');
+// Since 30 Oct (Mariam): kept, and said to have no passcode listed.
+const noPass = refresh.parseDaDetail(page(goodVideo.replace('| Password: | 512788 |', '|')));
+check('no passcode anywhere is kept now', [refresh.daProblem(noPass, now), noPass.passcode], [null, null]);
+check('"Password: #" means none is listed',
+  refresh.parseDaDetail(page(goodVideo.replace('| Password: | 512788 |', '| Password: | # |'))).passcode, null);
+check('"EMAIL someone@gmail.com FOR THE PASSWORD" is left out (the dots used to hide it)',
+  refresh.daProblem(refresh.parseDaDetail(page(goodVideo.replace('| Password: | 512788 |', '|'), 'THIS IS A SAFE SPACE. EMAIL dao.group@gmail.com FOR THE PASSWORD. PLEASE JOIN US!')), now),
+  'listing says to ask someone for the link or password');
+check('a Zoom register link is left out',
+  refresh.daProblem(refresh.parseDaDetail(page('Video venue | Saturday | 09:00 am to 10:15 am | (local time) | Video platform: | ZOOM | Link (click to connect): | https://zoom.us/meeting/register/tJ0kcemsrjw | Meeting ID: | Email for information: | x@y.org |')), now),
+  'link asks them to register first');
+check('no link and no id is left out',
+  refresh.daProblem(refresh.parseDaDetail(page('Video venue | Sunday | 09:30 am to 10:30 am | (local time) | Video platform: | ZOOM | Link (click to connect): | Meeting ID: |')), now),
+  'no direct link and no phone number');
+const phoneOnly = 'Telephone venue | Telephone originates in New York | Saturday | (10:30 am to 11:30 am local time) | Eastern Time (US/CAN) timezone | Click for a timezone converter | Dialup number: | (+1) 605-468-8726 | Access code: | 1760444# |';
+const ph = refresh.parseDaDetail(page(phoneOnly));
+check('a phone meeting is kept, with its number and code',
+  [refresh.daProblem(ph, now), ph.phone, ph.days, ph.start, ph.end, ph.link],
+  [null, { number: '+1 605-468-8726', code: '1760444#' }, [6], '10:30', '11:30', null]);
+check('with video and phone both, video is the way in',
+  refresh.parseDaDetail(page(`${goodVideo} ${phoneOnly}`)).phone, null);
+const fcc = refresh.parseDaDetail(page('Video venue | Friday | 12:00 pm to 01:00 pm | (local time) | Video platform: | FREECONF | Link (click to connect): | https://join.freeconferencecall.com/group1240 | Meeting ID: | group1240 | Password: | # |'));
+check('another platform with a direct link is kept, named',
+  [refresh.daProblem(fcc, now), fcc.platform, fcc.link], [null, 'FreeConferenceCall', 'https://join.freeconferencecall.com/group1240']);
 check('"email for the password" is left out',
   refresh.daProblem(refresh.parseDaDetail(page(goodVideo, 'Please email us to receive the password.')), now), 'listing says to ask someone for the link or password');
 check('monthly is left out',
@@ -595,7 +617,7 @@ check('"show all" and "all matches" are asks for all, "all genders" is not',
 const allAsk = meetings.buildMeetingsBlock({ message: 'Show all online AA meetings available in your list for Tuesday, 27 October 2026, in Pakistan time, with no time or gender filter.', programField: '', userZone: 'Asia/Karachi', now: at('2026-10-26T15:58:00Z') });
 check('asked for all with no time filter, every Tuesday one is given (26 Oct: none given); 3pm New York is Wednesday in Pakistan',
   ['"Tuesday AA 1"', '"Tuesday AA 2"', '"Tuesday AA 3"', '"Tuesday AA 4"', '"Tuesday AA 5"'].map((n) => allAsk.includes(n)), [true, true, true, false, true]);
-check('and told to give every pick, not one to three', [allAsk.includes('They asked for all of them. Answer like this'), allAsk.includes('Offer one to three')], [true, false]);
+check('and told to give every pick, not one to three', [allAsk.includes('They asked for all of them. Answer like this'), allAsk.includes('Offer two or three')], [true, false]);
 check('and it may never say it is not holding more', allAsk.includes('never say the picks are all you have, that you are not holding more'), true);
 
 group('asked for more after another question (Bilal\'s re-test, 26 Oct: "Anymore meetings tomorrow?" got "which program?")');
@@ -704,7 +726,7 @@ const askedAbout = meetings.buildMeetingsBlock({ message: 'did that one work for
   recentMessages: 'ACA meetings tomorrow?\nTry "Dead Room ACA" https://zoom.us/j/6100000040', lastUserMessage: 'ACA meetings tomorrow?',
   reported: meetings.hiddenFrom(rep, at('2026-10-27T12:00:00Z'), roomData) });
 check('asked about after it was reported, the sponsor sees that and offers another', askedAbout.includes('"Dead Room ACA"') && askedAbout.includes('it did not work: offer another'), true);
-check('and it is told how to report one', hiddenBlock.includes('[[meeting-problem: <that meeting\'s link exactly as written here> | <what happened, in a few words> | <the right link, passcode, day or time, copied exactly as they wrote it>]]'), true);
+check('and it is told how to report one', hiddenBlock.includes('[[meeting-problem: <that meeting\'s link, or for a phone meeting its number and access code, exactly as written here> | <what happened, in a few words> | <the right link, passcode, day or time, copied exactly as they wrote it>]]'), true);
 
 group('a person checks a reported meeting, and people are asked to tell us (Matt, 30 Oct)');
 check('every reply with meetings ends by asking them to tell us about a dead one', hiddenBlock.includes('- Whenever you give them meetings, end that reply with one short line asking them to tell you if one has ended, its link is broken or a detail is wrong'), true);
@@ -737,14 +759,47 @@ check('once the directory updates its listing, its copy wins again', (() => {
 meetings.setChecks([]);
 meetings._setData(roomData);
 
+group('30 Oct: where they are, the page with the rest, phone meetings');
+const PHONE_SAT = {
+  id: 'da-934', program: 'DA', name: 'Currency of Hope', days: [2], start: '22:00', end: '23:00', zone: 'America/New_York',
+  link: 'tel:+16054688726,,1760444#', meetingId: '1760444', passcode: null, access: 'closed',
+  phone: { number: '+1 605-468-8726', code: '1760444#' }, source: 'https://www.debtorsanonymous.org/meeting-search-detail/?mid=3140',
+};
+const NO_PASS = { ...NY_TUESDAY, id: 'da-9', name: 'Morning Clarity', start: '13:00', link: 'https://zoom.us/j/85732880109', passcode: null, passcodeListed: false };
+meetings._setData({ generatedAt: '2026-10-19T05:00:00Z', meetings: [NY_TUESDAY, PHONE_SAT, NO_PASS] });
+const guessed = meetings.buildMeetingsBlock({ message: 'Any DA meetings?', programField: 'DA', userZone: 'America/Los_Angeles', zoneCheckDue: true, now: tueNoonUtc });
+check('a guessed zone is named for the times', guessed.includes('Write each time in your reply with its zone, Pacific Time'), true);
+check('and, when due, it asks where they are, as a statement', [meetings.asksWhereTheyAre(guessed), guessed.includes('as a statement and not a question')], [true, true]);
+check('not due: the zone is still named, but nothing is asked',
+  meetings.asksWhereTheyAre(meetings.buildMeetingsBlock({ message: 'Any DA meetings?', programField: 'DA', userZone: 'America/Los_Angeles', zoneCheckDue: false, now: tueNoonUtc })), false);
+const toldBlock = meetings.buildMeetingsBlock({ message: 'Any DA meetings?', programField: 'DA', userZone: 'America/New_York', zoneTold: true, zoneCheckDue: true, now: tueNoonUtc });
+check('a zone they told us: neither line', [toldBlock.includes('only a guess'), meetings.asksWhereTheyAre(toldBlock)], [false, false]);
+check('the page with every meeting, for the programs shown', guessed.includes('https://getaisponsor.com/meetings?p=DA'), true);
+check('two or three, the soonest included, never "nothing left tonight"',
+  [guessed.includes('Offer two or three'), guessed.includes('always include the soonest one here that fits them'), guessed.includes('Never say there is nothing left tonight')], [true, true, true]);
+check('a phone meeting is a number and a code, never its tel: link',
+  [guessed.includes('by phone: call +1 605-468-8726, access code 1760444#'), guessed.includes('tel:+1605')], [true, false]);
+check('no passcode listed is said, with who to ask', guessed.includes('no passcode listed: if it asks for one, its source listing shows who to contact'), true);
+check('naming the access code later finds the phone meeting', meetings.alreadyGiven('the one with code 1760444#', { meetings: [PHONE_SAT] }).map((m) => m.id), ['da-934']);
+check('"null" in a message matches no meeting', meetings.alreadyGiven('null', { meetings: [{ ...NY_TUESDAY, link: null, meetingId: null }] }).length, 0);
+check('the example asking for a program names none', /Just say UA/.test(guessed), false);
+
 group('the real list, as written');
 const real = JSON.parse(require('fs').readFileSync(path.resolve(__dirname, 'meetings-data.json'), 'utf8'));
 const ids = new Set(real.meetings.map((m) => m.id));
 check('every meeting id is unique', ids.size, real.meetings.length);
-check('every meeting has a direct Zoom link',
-  real.meetings.filter((m) => !/^https:\/\/([a-z0-9]+\.)?zoom\.us\/j\/\d{9,11}(\?pwd=[A-Za-z0-9._-]+)?$/.test(m.link)).length, 0);
-check('every meeting can be opened: pwd in the link or a passcode',
-  real.meetings.filter((m) => !/pwd=/.test(m.link) && !m.passcode).length, 0);
+/* Since 30 Oct a DA or BDA meeting can be a phone meeting, on another
+   platform, or have no passcode listed (Mariam's call). Each kind still has
+   one plain way in, and the other programs are unchanged: Zoom only, with a
+   passcode or a pwd in the link. */
+const isZoom = (l) => /^https:\/\/([a-z0-9]+\.)?zoom\.us\/j\/\d{9,11}(\?pwd=[A-Za-z0-9._-]+)?$/.test(l);
+check('every meeting has one way in: a Zoom link, another platform\'s link, or a phone number and code',
+  real.meetings.filter((m) => !(m.phone ? /^\+\d/.test(m.phone.number) && /^tel:\+\d+,,/.test(m.link)
+    : m.platform ? /^https:\/\//.test(m.link) : isZoom(m.link))).length, 0);
+check('only DA and BDA have phone meetings, other platforms or no passcode listed',
+  real.meetings.filter((m) => (m.phone || m.platform || m.passcodeListed === false) && !['DA', 'BDA'].includes(m.program)).length, 0);
+check('every video meeting can be opened, or says no passcode is listed',
+  real.meetings.filter((m) => !m.phone && !/pwd=/.test(m.link) && !m.passcode && m.passcodeListed !== false).length, 0);
 const realZone = (z) => { try { new Intl.DateTimeFormat('en', { timeZone: z }); return true; } catch { return false; } };
 check('every meeting has a day, time and real zone',
   real.meetings.filter((m) => !m.days.length || m.days.some((d) => d < 0 || d > 6) || !/^\d{2}:\d{2}$/.test(m.start) || !realZone(m.zone)).length, 0);

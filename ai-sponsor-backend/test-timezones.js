@@ -112,6 +112,9 @@ const inWindow = (phone, now) => {
   check('a fixed offset is wrong half the year, so refused', tz.validZone('Etc/GMT-1'), null);
   check('a made-up region is refused', tz.validZone('Europe/Atlantis'), null);
 
+  /* 29 Oct: the weekly sweep logged "CANNOT PLACE wa-+852..." on every run. */
+  check('Hong Kong is placed', tz.zoneForPhone('+85291234562'), 'Asia/Hong_Kong');
+
   console.log(`\n${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);
 })();
