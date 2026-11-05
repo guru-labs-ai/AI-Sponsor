@@ -18,11 +18,14 @@
 //   1. an external scheduler hitting POST /api/cron/weekly-summaries
 //   2. the person opening their own dashboard  (lazy, per-user)
 //   3. anybody at all talking to the sponsor    (throttled sweep, piggybacked)
-//   4. an in-process interval, while the instance happens to be awake
+//   4. an in-process interval: every 15 minutes while it is Sunday somewhere
 //
-// None of them is load-bearing. If the cron never fires for three days, the
-// summary is still correct when it eventually gets written, because the window
-// it describes closed days ago and cannot change. Late is not wrong here.
+// None of them is load-bearing for the summary itself: if the cron never fires
+// for three days, it is still correct when it eventually gets written, because
+// the window it describes closed days ago and cannot change. The WhatsApp nudge
+// is different: it only goes out 9 to noon on their Sunday, so a sweep has to
+// run inside that window, which is why 4 now runs every 15 minutes on Sundays
+// (5 Nov, see startInterval).
 //
 // Double-firing is handled by the database, not by coordination: a UNIQUE
 // (user_id, week_start) with ON CONFLICT DO NOTHING means two triggers racing
@@ -766,15 +769,34 @@ function maybeSweep(whatsapp) {
   runSweep({ limit: 10, whatsapp }).catch((e) => console.error('[weekly] piggyback sweep failed:', e.message));
 }
 
-/* Trigger 4: while we happen to be awake. Genuinely best-effort — on the free
-   tier this fires only during the minutes somebody else is already using the
-   product, which is precisely why it is the last line of defence and not the
-   design. unref() so it can never hold the process open. */
+/* Trigger 4: the server's own clock, now the one that carries Sunday.
+   Since 29 Oct the service is on a paid plan and never sleeps (Mubashir), so
+   it can do what the free tier could not: look every 15 minutes while it is
+   Sunday morning somewhere, which is Saturday 18:00 UTC (Sunday 9am in the
+   Pacific islands) to the end of Sunday UTC, the same span the GitHub schedule
+   asks for. The GitHub schedule stays as a backup, but on its own it is not
+   enough. On 1 Nov GitHub skipped its runs from 05:52 to 13:05 and from 13:11
+   to 18:24 UTC, so Europe's and the US East Coast's 9 to noon passed with no
+   sweep at all: 10 reviews written against 42 the Sunday before. A missed
+   window is a missed week, because the next run sees the week after.
+   One sweep at a time: a slow one (each review is a model call) must not
+   overlap the next. unref() so it can never hold the process open. */
+const SWEEP_EVERY_MS = 15 * 60 * 1000;
+
+function sundaySomewhere(now = new Date()) {
+  return now.getUTCDay() === 0 || (now.getUTCDay() === 6 && now.getUTCHours() >= 18);
+}
+
+let sweeping = false;
 function startInterval(whatsapp) {
   if (!db.enabled) return null;
   const t = setInterval(() => {
-    runSweep({ limit: 10, whatsapp }).catch((e) => console.error('[weekly] interval sweep failed:', e.message));
-  }, 6 * 60 * 60 * 1000);
+    if (sweeping || !sundaySomewhere()) return;
+    sweeping = true;
+    runSweep({ limit: 10, whatsapp })
+      .catch((e) => console.error('[weekly] interval sweep failed:', e.message))
+      .finally(() => { sweeping = false; });
+  }, SWEEP_EVERY_MS);
   if (t.unref) t.unref();
   return t;
 }
@@ -786,7 +808,7 @@ module.exports = {
   // Exported for test-weekly.js. These are where a bad model response turns
   // into something the page renders, so they are the parts worth pinning down.
   _parseModelJSON: parseModelJSON, _coerce: coerce, _quietWeekCard: quietWeekCard,
-  _planWeek: planWeek, _insideTheirWindow: insideTheirWindow,
+  _planWeek: planWeek, _insideTheirWindow: insideTheirWindow, _sundaySomewhere: sundaySomewhere,
   _SYSTEM_PROMPT: SYSTEM_PROMPT, _WEEKLY_MODEL: WEEKLY_MODEL,
   WEEKLY_TEMPLATES, WEEKLY_READY_TEMPLATE, WEEKLY_READY_EN,
 };

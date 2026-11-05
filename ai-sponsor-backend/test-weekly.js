@@ -253,5 +253,26 @@ check('the quiet card only mentions score to disclaim it',
     /const saved = await savedZone\(userId\);\s*if \(!ignoreWindow && !insideTheirWindow\(phone, new Date\(\), saved\)\)/.test(src), true);
 }
 
+{
+  /* 5 Nov: on 1 Nov GitHub skipped its Sunday runs for hours and only 10
+     reviews went out (42 the week before). The server now sweeps every 15
+     minutes itself, from Saturday 18:00 UTC to the end of Sunday UTC. */
+  const at = (iso) => new Date(iso);
+  check('sweeps from Saturday 18:00 UTC through Sunday UTC', [
+    '2026-11-07T17:59:00Z', '2026-11-07T18:00:00Z', '2026-11-08T00:00:00Z', '2026-11-08T14:30:00Z',
+    '2026-11-08T23:59:00Z', '2026-11-09T00:00:00Z', '2026-11-04T10:00:00Z',
+  ].map((t) => w._sundaySomewhere(at(t))), [false, true, true, true, true, false, false]);
+  const both = (phone, iso, zone) => w._insideTheirWindow(phone, at(iso), zone) && w._sundaySomewhere(at(iso));
+  check('it covers 9am to noon on Sunday from Kiribati (UTC+14) to Hawaii (UTC-10)', [
+    both('+68670000000', '2026-11-07T19:30:00Z', 'Pacific/Kiritimati'),
+    both('+18085550100', '2026-11-08T20:30:00Z', 'Pacific/Honolulu'),
+    both('+12125550100', '2026-11-08T15:00:00Z', 'America/New_York'),
+    both('+447700900000', '2026-11-08T10:00:00Z', 'Europe/London'),
+  ], [true, true, true, true]);
+  const src = require('fs').readFileSync(require('path').resolve(__dirname, 'weekly.js'), 'utf8');
+  check('the in-server sweep runs every 15 minutes, one at a time, only when it is Sunday somewhere',
+    [/SWEEP_EVERY_MS = 15 \* 60 \* 1000/.test(src), /if \(sweeping \|\| !sundaySomewhere\(\)\) return;/.test(src)], [true, true]);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
