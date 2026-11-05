@@ -729,7 +729,7 @@ check('asked about after it was reported, the sponsor sees that and offers anoth
 check('and it is told how to report one', hiddenBlock.includes('[[meeting-problem: <that meeting\'s link, or for a phone meeting its number and access code, exactly as written here> | <what happened, in a few words> | <the right link, passcode, day or time, copied exactly as they wrote it>]]'), true);
 
 group('a person checks a reported meeting, and people are asked to tell us (Matt, 30 Oct)');
-check('every reply with meetings ends by asking them to tell us about a dead one', hiddenBlock.includes('- Whenever you give them meetings, end that reply with one short line asking them to tell you if one has ended, its link is broken or a detail is wrong'), true);
+check('every reply with meetings ends by asking them to tell us about a dead one', hiddenBlock.includes(`- Whenever you give them meetings, end that reply with this line, word for word: "If a link doesn't work, tell me and I'll find you another one."`), true);
 const withFix = meetings.meetingProblemsIn('Thank you. [[meeting-problem: https://zoom.us/j/6100000040 | moved to a new room | https://zoom.us/j/6100000099 passcode 555]]', roomData);
 check('the right details they gave are kept, and the note taken out', [withFix.clean, withFix.problems.map((p) => [p.what, p.fix])],
   ['Thank you.', [['moved to a new room', 'https://zoom.us/j/6100000099 passcode 555']]]);

@@ -325,9 +325,23 @@ function startsIn(instant, now) {
 /* Every time this meeting starts in the coming week (or `ahead` days, when
    they ask about a later date), as instants. A meeting that began up to ten
    minutes ago still counts: most rooms let people in for a while. */
+/* The date in a zone at `now`, remembered: a reply asks it for thousands of
+   meetings that share a handful of zones (5 Nov, the speed test). */
+const todayCache = new Map();
+function todayIn(zone, now) {
+  const key = `${zone}|${now}`;
+  let d = todayCache.get(key);
+  if (!d) {
+    if (todayCache.size > 500) todayCache.clear();
+    d = dateIn(zone, now);
+    todayCache.set(key, d);
+  }
+  return d;
+}
+
 function starts(meeting, now, ahead = 7) {
   const [hh, mm] = meeting.start.split(':').map(Number);
-  const today = dateIn(meeting.zone, now);
+  const today = todayIn(meeting.zone, now);
   const out = [];
   for (let k = -1; k <= ahead; k++) {
     const day = new Date(Date.UTC(today.y, today.mo, today.d + k));
@@ -344,19 +358,20 @@ function starts(meeting, now, ahead = 7) {
    are plenty, today, tomorrow and the week, rather than only answering the
    one thing they asked. */
 function plentyCounts(list, zone, now) {
+  /* Cheap on purpose, it runs on every meeting reply (3,000 meetings in the
+     speed test). A weekly meeting starts exactly once in any 7 days, so the
+     week is a sum; only the next two days need real start times, and their
+     midnights are worked out once. */
   const today = dateIn(zone, now);
-  const t = new Date(Date.UTC(today.y, today.mo, today.d + 1));
-  const todayKey = dayKey(today);
-  const tomorrowKey = dayKey({ y: t.getUTCFullYear(), mo: t.getUTCMonth(), d: t.getUTCDate() });
-  const end = now + 7 * 86400000;
+  const tomorrowStarts = instantFor(zone, today.y, today.mo, today.d + 1, 0, 0);
+  const dayAfterStarts = instantFor(zone, today.y, today.mo, today.d + 2, 0, 0);
   const out = { today: 0, tomorrow: 0, week: 0 };
   for (const m of list) {
-    for (const at of starts(m, now, 7)) {
-      if (at < now || at >= end) continue;
-      out.week++;
-      const k = dayKey(dateIn(zone, at));
-      if (k === todayKey) out.today++;
-      else if (k === tomorrowKey) out.tomorrow++;
+    out.week += m.days.length;
+    for (const at of starts(m, now, 2)) {
+      if (at < now || at >= dayAfterStarts) continue;
+      if (at < tomorrowStarts) out.today++;
+      else out.tomorrow++;
     }
   }
   return out;
@@ -1288,7 +1303,10 @@ function buildMeetingsBlock({ message, programField, userZone, zoneTold = false,
       '- When the line for a meeting says no passcode listed, say so with that meeting in a few words (for example "no passcode is listed for this one; if it asks for one, the listing says who to ask"). When two fit them equally, give the one with a passcode first.',
       '- Copy the name, time, link and passcode (or, for a phone meeting, the number and access code) exactly as written here, and how soon it starts. Never change, shorten or make up a link, a number, a time, a passcode or a meeting, and never offer one that is not on this list.',
       // Matt, 30 Oct: people tell us about a dead meeting when they are asked to.
-      '- Whenever you give them meetings, end that reply with one short line asking them to tell you if one has ended, its link is broken or a detail is wrong, so it can be fixed (for example "If one has ended, the link is broken or a detail is wrong, just tell me here so we can fix it."). One line, in your own words, after the meetings.',
+      /* Mariam, 5 Nov: the old "...so we can fix it" read as something for us,
+         not for them. Same purpose, said for them: telling us a link failed is
+         still what reports it (the meeting-problem rule below). */
+      `- Whenever you give them meetings, end that reply with this line, word for word: "If a link doesn't work, tell me and I'll find you another one."`,
       '- Every time here already allows for clock changes. The date and UTC offset in each meeting\'s own zone, and any clock change, are written here: use them as written. Never work out a date, offset, clock change or time difference yourself, never name a clock-change date that is not written here, and never say a time may be an hour out because of a clock change. If they ask about a zone or date not written here, say you will check and ask which meeting or day they mean.',
       '- If they tell you a meeting you gave them did not work (the link would not open, the passcode was wrong, nobody was there, it said the meeting does not exist or has ended) or that a detail of it is wrong, say sorry plainly, give them another one from here if they still need one, and put [[meeting-problem: <that meeting\'s link, or for a phone meeting its number and access code, exactly as written here> | <what happened, in a few words> | <the right link, passcode, day or time, copied exactly as they wrote it>]] at the very end of your reply. Leave out the last part unless they told you the right details. It is taken out before they see it, and it tells the team to check that listing. If they gave you the right details, thank them and say the team will check them and update the listing. Only for a meeting you gave them, and only when they say it did not work or is wrong.',
       '- Never take back or "correct" a meeting you gave earlier in this chat because it is not in front of you now: every one you gave came from these official listings. If they ask about one you cannot see here, say you will look it up and ask for its name or day.',
