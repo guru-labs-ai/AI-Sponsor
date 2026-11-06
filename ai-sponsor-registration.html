@@ -1922,6 +1922,8 @@ async function registerUser(paymentStatus) {
     amendsInterest: !!D.amendsInterest,
     amendsWho:   D.amendsWho     || '',
     paymentStatus: paymentStatus || 'Unpaid',
+    // The code they unlocked free access with, if any. Only sent with Beta.
+    betaCode:    paymentStatus === 'Beta' ? (D.betaCode || '') : '',
     source:      'ai-sponsor-registration',
     /* The language they read this page in. The backend stores it on the
        profile so the automatic messages, the trial reminder, the weekly note
@@ -2525,6 +2527,9 @@ async function redeemCode(){
     });
     const data=await res.json().catch(()=>({}));
     if(data && data.valid){
+      /* Kept so the registration says which code it was (AAFOUNDER,
+         NAFOUNDER...). The server checks it again before recording it. */
+      D.betaCode = code;
       /* Somebody who already ticked the box on the way down the page has
          agreed, and asking twice for the same thing reads as a bug. */
       const box = document.getElementById('f-consent');

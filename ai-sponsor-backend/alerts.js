@@ -163,6 +163,7 @@ function safe(build) {
    cohort, who pay nothing and so produce no Stripe event whatsoever. */
 const registered = safe(({
   name, email, phone, access, sponsorName, delivery, contactId, returning, attribution,
+  code, codeDays,
 }) => (isQaTest(email) ? [
   ':test_tube: *QA Guru test sign-up, not a real person*',
   `*Who:* ${who({ name, email })}`,
@@ -175,6 +176,8 @@ const registered = safe(({
   `*Who:* ${who({ name, email })}`,
   phone ? `*Phone:* ${phone}` : null,
   `*Access:* ${access || 'Unpaid'}${access === 'Beta' ? ' (founding member, free)' : ''}`,
+  // Which group's code, so AA and NA sign-ups can be told apart at a glance.
+  code ? `*Code:* ${code}${codeDays ? ` (${codeDays} days free)` : ''}` : null,
   ...sourceLines(attribution),
   sponsorName ? `*Sponsor named:* ${sponsorName}` : null,
   delivery ? `*Talking on:* ${delivery}` : null,

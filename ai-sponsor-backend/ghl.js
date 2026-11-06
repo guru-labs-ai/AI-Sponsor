@@ -138,6 +138,11 @@ function buildContactBody(data) {
     if (paymentStatus === 'Beta') tags.push('ai-sponsor-beta');
     else if (paymentStatus === 'Paid') tags.push('ai-sponsor-paid');
     if (data.amendsInterest) tags.push('amends-tv');
+    /* The code they joined with, e.g. ai-sponsor-code-aafounder, so the AA and
+       NA groups can be filtered apart in GHL. Only set once /register has
+       checked it is a real code. */
+    const code = String(data.betaCode || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+    if (code) tags.push(`ai-sponsor-code-${code}`);
   }
 
   const customFields = [

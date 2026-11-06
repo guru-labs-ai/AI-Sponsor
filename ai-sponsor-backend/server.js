@@ -3394,6 +3394,19 @@ app.post('/register', async (req, res) => {
        written here: no user row, no profile, no WhatsApp identity, and the
        person's whole registration existed nowhere. Now a CRM failure costs the
        CRM row and nothing else. */
+    /* Which code they joined with, checked here against the codes table
+       rather than taken on the browser's word. AAFOUNDER and NAFOUNDER are
+       Matt's per-group codes (5 Nov), so AA and NA sign-ups can be tracked
+       apart; the code's own length (60 days) sets when free access ends.
+       An unknown code is simply not recorded. */
+    let codeInfo = null;
+    if (b.betaCode && b.paymentStatus === 'Beta') {
+      codeInfo = await db.getBetaCode(b.betaCode).catch(() => null);
+    }
+    const betaCode = codeInfo ? codeInfo.code : '';
+    const betaDays = codeInfo && Number.isInteger(codeInfo.days) ? codeInfo.days : null;
+    b.betaCode = betaCode || undefined; // GHL tags the code only once it is a real one
+
     let result = { contactId: null, isNew: false };
     let ghlError = null;
     try {
@@ -3422,6 +3435,7 @@ app.post('/register', async (req, res) => {
     // it, a second registration leaves nothing behind saying it was a second.
     db.recordEvent(userId, returning ? 're_registered' : 'registered', {
       access: b.paymentStatus || 'Unpaid',
+      code: betaCode || undefined,
       sponsorName: b.sponsorName || null,
       sponsorVoice: b.sponsorVoice || null,
       discardedId: returning ? b.chatUserId : undefined,
@@ -3461,6 +3475,7 @@ app.post('/register', async (req, res) => {
       attribution: b.attribution, // first touch, straight off the browser
       contactId: result.contactId,
       returning,
+      code: betaCode, codeDays: betaDays,
     });
 
     db.upsertUser({
@@ -3470,6 +3485,7 @@ app.post('/register', async (req, res) => {
       sponsorName: b.sponsorName, sponsorStyle: b.sponsorStyle,
       program: b.program, stage: b.stage,
       access: b.paymentStatus,
+      betaCode, betaDays,
       attribution: b.attribution, // how they found us (first touch, from the browser)
     }).catch((e) => console.error('[DB] upsertUser failed:', e.message));
 
@@ -3552,6 +3568,7 @@ app.post('/register', async (req, res) => {
         sponsorName: b.sponsorName, sponsorStyle: b.sponsorStyle,
         program: b.program, stage: b.stage,
         access: b.paymentStatus,
+        betaCode, betaDays,
         attribution: b.attribution,
       }).catch((e) => console.error('[DB] upsertUser (wa) failed:', e.message));
 

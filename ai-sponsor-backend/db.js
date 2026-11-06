@@ -119,6 +119,12 @@ async function init() {
       WHERE code = 'SPONSOR-7KX4Q9';
     INSERT INTO beta_codes (code, label) VALUES ('SPONSOR-BETA-USER', 'renamed shared beta code, Aug 2026')
       ON CONFLICT (code) DO NOTHING;
+    /* How many days of free access a code gives. Empty means the original six
+       months. AAFOUNDER and NAFOUNDER (Matt, 5 Nov: 60 days free, a separate
+       code per WhatsApp group so each can be tracked) are set to 60. */
+    ALTER TABLE beta_codes ADD COLUMN IF NOT EXISTS days INT;
+    -- Which code each person joined with, so AA and NA sign-ups can be told apart.
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS beta_code TEXT;
   `);
   // Every call to an admin-gated route (currently just /api/history/:userId,
   // which returns full decrypted conversation content) gets a row here —
@@ -359,8 +365,16 @@ async function upsertUser(u) {
   await pool.query(
     `INSERT INTO users (user_id, name, email, phone, ghl_contact_id, sponsor_name,
                         sponsor_style, program, stage, access,
-                        acquired_from, utm_source, utm_medium, utm_campaign, referrer)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+                        acquired_from, utm_source, utm_medium, utm_campaign, referrer,
+                        beta_code, beta_expires_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,
+             NULLIF($16, ''),
+             /* Stamped on the very first write too. Until 6 Nov only the
+                ON CONFLICT branch stamped it, so somebody whose first
+                registration was already Beta never got an end date at all
+                (19 people). The code's own length wins, then six months. */
+             CASE WHEN $10 = 'Beta'
+                  THEN now() + COALESCE(make_interval(days => $17::int), interval '6 months') END)
      ON CONFLICT (user_id) DO UPDATE SET
        acquired_from = COALESCE(users.acquired_from, EXCLUDED.acquired_from),
        utm_source    = COALESCE(NULLIF(users.utm_source, ''), EXCLUDED.utm_source),
@@ -376,13 +390,14 @@ async function upsertUser(u) {
        program = COALESCE(NULLIF(EXCLUDED.program, ''), users.program),
        stage = COALESCE(NULLIF(EXCLUDED.stage, ''), users.stage),
        access = COALESCE(NULLIF(EXCLUDED.access, ''), users.access),
-       /* Six months from the first moment they became Beta. COALESCE means a
-          repeat registration cannot reset the clock, and the CASE means a
-          non-Beta write never stamps one. */
-       beta_expires_at = COALESCE(
-         users.beta_expires_at,
-         CASE WHEN EXCLUDED.access = 'Beta' THEN now() + interval '6 months' END
-       )`,
+       /* The code they joined with (AAFOUNDER, NAFOUNDER...). First one wins,
+          so the group that brought somebody in is never overwritten. */
+       beta_code = COALESCE(users.beta_code, EXCLUDED.beta_code),
+       /* From the first moment they became Beta: the code's length (60 days
+          for the founding-member codes), otherwise six months. COALESCE means
+          a repeat registration cannot reset the clock, and EXCLUDED is only
+          set for a Beta write, so a non-Beta write never stamps one. */
+       beta_expires_at = COALESCE(users.beta_expires_at, EXCLUDED.beta_expires_at)`,
     [u.userId, u.name || '', u.email || '', u.phone || '', u.ghlContactId || null,
      u.sponsorName || '', u.sponsorStyle || '', u.program || '', u.stage || '',
      u.access || '',
@@ -390,7 +405,9 @@ async function upsertUser(u) {
      // and the COALESCE above never lets a later write overwrite it.
      a ? resolveSource(a) : null,
      (a && a.utmSource) || '', (a && a.utmMedium) || '',
-     (a && a.utmCampaign) || '', (a && a.referrer) || '']
+     (a && a.utmCampaign) || '', (a && a.referrer) || '',
+     u.betaCode || '',
+     Number.isInteger(u.betaDays) && u.betaDays > 0 ? u.betaDays : null]
   );
 }
 
@@ -1646,6 +1663,17 @@ async function getBreakdowns() {
   };
 }
 
+// Look a code up without counting a redemption: what /register uses to record
+// which code somebody joined with and how long it gives. null if unknown.
+async function getBetaCode(code) {
+  if (!enabled || !code) return null;
+  const r = await pool.query(
+    'SELECT code, active, days FROM beta_codes WHERE code = $1',
+    [String(code).trim().toUpperCase()]
+  );
+  return r.rows[0] || null;
+}
+
 // Validate a beta code and count the redemption. Returns true only if the code
 // exists and is active. Unknown/killed codes return false.
 async function redeemBetaCode(code) {
@@ -2088,7 +2116,7 @@ module.exports = {
   getOrCreateSettingsToken, resolveSettingsToken,
   recordOutbound, applyMessageStatus, noteSettingsOpen,
   linkSubscription, findByStripeCustomer, getUser, setAccess,
-  getMemory, saveMemory, renameInMemory, getAgedOutMessages, redeemBetaCode, logAdminAccess,
+  getMemory, saveMemory, renameInMemory, getAgedOutMessages, redeemBetaCode, getBetaCode, logAdminAccess,
   getWeekMessages, getWeekActivity, saveWeeklySummary, getWeeklySummary,
   listWeeklySummaries, markWeeklyDelivered, usersDueForWeekly, usersQuietForWeekly,
 };
