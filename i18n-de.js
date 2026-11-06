@@ -372,7 +372,7 @@ window.AIS_I18N.de = Object.assign(window.AIS_I18N.de || {}, {
   "For every paid subscription, we gift someone who can't afford it full free access. Because everyone in recovery deserves a sponsor, no matter what's in their wallet.": "Für jedes bezahlte Abo schenken wir jemandem, der es sich nicht leisten kann, vollen Zugang. Weil jeder Mensch in Genesung einen Sponsor verdient, egal was im Geldbeutel ist.",
   "Can't afford $5/month?": "5 $ im Monat sind zu viel?",
   "Apply for a scholarship →": "Stipendium beantragen →",
-  "Are you a beta user with a code?": "Bist du Beta-Nutzer mit einem Code?",
+  "Have a code?": "Hast du einen Code?",
   "Enter it here for free access. You will not be asked for a card.": "Gib ihn hier ein für kostenlosen Zugang. Nach einer Karte wirst du nicht gefragt.",
   "ENTER CODE": "CODE EINGEBEN",
   "Unlock": "Freischalten",
