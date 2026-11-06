@@ -32,6 +32,7 @@
 ──────────────────────────────────────────────────────────────────────────── */
 
 const { resolveSource } = require('./db'); // one shared definition of "came from"
+const { isQaTest } = require('./qatest'); // QA Guru's test inbox is not a person
 
 const SLACK_POST_MESSAGE = 'https://slack.com/api/chat.postMessage';
 const DEFAULT_CHANNEL = 'C0BQYBMJPP0'; // #ai-sponsor-updates
@@ -162,7 +163,12 @@ function safe(build) {
    cohort, who pay nothing and so produce no Stripe event whatsoever. */
 const registered = safe(({
   name, email, phone, access, sponsorName, delivery, contactId, returning, attribution,
-}) => [
+}) => (isQaTest(email) ? [
+  ':test_tube: *QA Guru test sign-up, not a real person*',
+  `*Who:* ${who({ name, email })}`,
+  'This address is QA Guru\'s test inbox. Nothing to do.',
+  ghlLink(contactId),
+] : [
   returning
     ? ':arrows_counterclockwise: *Returning person re-registered*'
     : ':wave: *New AI Sponsor registration*',
@@ -176,7 +182,7 @@ const registered = safe(({
     ? 'Free code redeemed, so no money is involved and Stripe never sees this one.'
     : 'No money involved at registration.',
   ghlLink(contactId),
-]);
+]));
 
 /* Card accepted, trial open. This is the one the DRM zap gets wrong. */
 const trialStarted = safe(({ name, email, plan, firstChargeAt, attribution }) => [

@@ -22,6 +22,8 @@
 //   GHL_AMENDS_FIELD_ID — custom field id for "Amends - who" (optional; auto-
 //                         created on first boot if missing and a token is set)
 
+const { isQaTest, QA_TEST_TAG } = require('./qatest'); // QA Guru's test inbox is not a person
+
 const GHL_BASE = 'https://services.leadconnectorhq.com';
 const GHL_VERSION = '2021-07-28';
 const LOCATION_ID = process.env.GHL_LOCATION_ID || 'Mgfec8mT0vXxyhp9SizK';
@@ -129,9 +131,14 @@ function buildContactBody(data) {
   else if (rawStatus === 'paid') paymentStatus = 'Paid';
 
   const tags = ['ai-sponsor'];
-  if (paymentStatus === 'Beta') tags.push('ai-sponsor-beta');
-  else if (paymentStatus === 'Paid') tags.push('ai-sponsor-paid');
-  if (data.amendsInterest) tags.push('amends-tv');
+  if (isQaTest(data.email)) {
+    // A QA Guru test run: never an Amends candidate, never counted as a sign-up.
+    tags.push(QA_TEST_TAG);
+  } else {
+    if (paymentStatus === 'Beta') tags.push('ai-sponsor-beta');
+    else if (paymentStatus === 'Paid') tags.push('ai-sponsor-paid');
+    if (data.amendsInterest) tags.push('amends-tv');
+  }
 
   const customFields = [
     programs.length ? { id: FIELD_IDS.program, value: programs } : null,
@@ -330,7 +337,9 @@ async function submitSupport(data) {
     name: data.name || undefined,
     email: data.email,
     dndSettings: SILENCED_CHANNELS,
-    tags: ['ai-sponsor', 'ai-sponsor-support'],
+    tags: isQaTest(data.email)
+      ? ['ai-sponsor', 'ai-sponsor-support', QA_TEST_TAG]
+      : ['ai-sponsor', 'ai-sponsor-support'],
     source: data.source || 'ai-sponsor-support-form',
   };
   Object.keys(body).forEach((k) => body[k] === undefined && delete body[k]);

@@ -8,6 +8,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const stripeModule = require('./stripe');
 const ghl = require('./ghl');
 const alerts = require('./alerts'); // Slack alerts → #ai-sponsor-updates
+const qaTest = require('./qatest'); // QA Guru's test inbox, told apart from real people
 const metacapi = require('./metacapi'); // real payments → Meta Conversions API
 const ga4 = require('./ga4');           // real payments → GA4 Measurement Protocol
 const viewer = require('./viewer'); // admin-only conversation viewer at /admin
@@ -3689,9 +3690,13 @@ async function notifySupportSlack({ name, email, subject, message, contactId }) 
   const link = contactId
     ? `https://app.gohighlevel.com/v2/location/${loc}/contacts/detail/${contactId}`
     : '';
+  // QA Guru's test runs send tickets too. Say so, and ping nobody.
+  const testRun = qaTest.isQaTest(email);
   const text = [
-    ':envelope_with_arrow: *New AI Sponsor support ticket*',
-    SUPPORT_SLACK_MENTIONS,
+    testRun
+      ? ':test_tube: *QA Guru test ticket, not a real person. Nothing to reply to.*'
+      : ':envelope_with_arrow: *New AI Sponsor support ticket*',
+    testRun ? '' : SUPPORT_SLACK_MENTIONS,
     `*From:* ${name || '(no name)'} (${email || 'no email'})`,
     `*Subject:* ${subject || '(none)'}`,
     `*Message:* ${message || '(none)'}`,
