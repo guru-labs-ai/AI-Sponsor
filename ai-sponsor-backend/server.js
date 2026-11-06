@@ -3695,7 +3695,8 @@ app.post('/api/redeem-code', async (req, res) => {
 // Notify the support pool in Slack about a new ticket. Uses an Incoming Webhook
 // URL (SLACK_SUPPORT_WEBHOOK). If it's not set, this quietly no-ops so the
 // ticket still saves to GHL — the webhook can be added later.
-const SUPPORT_SLACK_MENTIONS = '<@U0B8NJSJYQH> <@U08V21E9Q8Z> <@U0B8HA1330V>'; // Mariam, Mubashir, Abdul
+// Mariam, Mubashir. Abdul taken off on Matt's ask, 6 Nov ("lets remove abdul from those tags").
+const SUPPORT_SLACK_MENTIONS = '<@U0B8NJSJYQH> <@U08V21E9Q8Z>';
 /* What the sweep reports back. Counts and outcomes only: no name, no phone, no
    reason, nothing they ever said. A completed deletion that then described the
    person in Slack would be a strange kind of deletion. */
