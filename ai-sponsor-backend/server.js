@@ -9,6 +9,8 @@ const stripeModule = require('./stripe');
 const ghl = require('./ghl');
 const alerts = require('./alerts'); // Slack alerts → #ai-sponsor-updates
 const qaTest = require('./qatest'); // QA Guru's test inbox, told apart from real people
+const metacloud = require('./metacloud'); // Meta's WhatsApp API; inert unless configured
+const signupMessage = require('./signupmessage'); // the first WhatsApp message after sign-up
 const metacapi = require('./metacapi'); // real payments → Meta Conversions API
 const ga4 = require('./ga4');           // real payments → GA4 Measurement Protocol
 const viewer = require('./viewer'); // admin-only conversation viewer at /admin
@@ -3577,6 +3579,16 @@ app.post('/register', async (req, res) => {
       userProfiles.delete(waId);
 
         console.log(`[register] mirrored ${userId} onto ${waId} for WhatsApp`);
+
+        /* The first WhatsApp message, so nobody sits waiting for a sponsor
+           that cannot write first. Only here, where the number is theirs.
+           Not awaited, and it never throws. See signupmessage.js. */
+        signupMessage.sendSignupMessage({
+          db, language, metacloud, waId,
+          phone: b.phone, name: b.name, email: b.email, delivery: b.delivery,
+          lang: language.SUPPORTED.includes(b.language) ? b.language : 'en',
+          returning, mirrored: true,
+        });
       }
     }
 
