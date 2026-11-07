@@ -15,6 +15,7 @@ const metacapi = require('./metacapi'); // real payments → Meta Conversions AP
 const ga4 = require('./ga4');           // real payments → GA4 Measurement Protocol
 const viewer = require('./viewer'); // admin-only conversation viewer at /admin
 const status = require('./status'); // "is anything broken" page at /status
+const newsletter = require('./newsletter'); // GHL newsletter totals for the North Star page
 const meetingReviews = require('./meeting-reviews'); // checking reported meetings at /meeting-reports
 const phonerules = require('./phonerules'); // is this a real number in that country
 const countries = require('./countries'); // phone prefix -> country and US state
@@ -2455,6 +2456,10 @@ app.get('/api/metrics/northstar', async (req, res) => {
       generatedAt: new Date().toISOString(),
       source: dbFirst ? 'db' : 'ghl',
       weeklyReview,
+      // Mariam, 6 Nov: the newsletter's opens, clicks and replies, per issue.
+      // Totals only, refreshed in the background every few hours (newsletter.js).
+      // null until the first refresh after a restart has finished.
+      newsletter: newsletter.getCached(),
       northStar: {
         cumulativeRecoveryDays: nsCumulative,
         activeUsers: nsUsers,
@@ -4408,3 +4413,7 @@ weekly.startInterval(whatsapp);
 
 // The status check, every 15 minutes, posting to Slack only if something is wrong (status.js).
 status.startInterval();
+
+// Count the newsletter once shortly after boot, so the North Star card has
+// numbers before anyone opens the page. Later refreshes ride on page loads.
+if (process.env.GHL_API_TOKEN) setTimeout(() => newsletter.refresh(), 30 * 1000).unref();
