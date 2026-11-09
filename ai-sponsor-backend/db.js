@@ -1891,7 +1891,10 @@ async function usersDueForWeekly(weekStart, weekEnd, limit = 25) {
      both silent notes, nobody answered them, and not replying is an answer.
      One reply, or a normal week, resets the count on its own because it puts a
      different row in between.
-   - Same internal/test exclusion the dashboard uses.
+   - NOT the internal/test exclusion the dashboard uses. Mariam, 9 Nov 2026:
+     "me and matt should get everything users get". EXCLUDED_PEOPLE and
+     EXCLUDED_NAMES keep people out of the numbers and the reader, never out of
+     anything a user receives.
 
    No LIMIT worth speaking of: most of these people are outside their own
    Sunday morning on any given run, and a small limit would fill up with the
@@ -1904,7 +1907,6 @@ async function usersQuietForWeekly(weekStart, weekEnd, limit = 100, stopAfter = 
        JOIN users u ON u.user_id = m.user_id
       WHERE m.role = 'user'
         AND (m.user_id LIKE 'wa-%' OR COALESCE(NULLIF(TRIM(u.phone), ''), '') <> '')
-        ${NOT_EXCLUDED_U}
       GROUP BY m.user_id
      HAVING MAX(m.created_at) < $1::date
         AND NOT EXISTS (SELECT 1 FROM weekly_summaries w

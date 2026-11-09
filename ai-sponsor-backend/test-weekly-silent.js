@@ -101,7 +101,8 @@ ok('query: at most one weekly row per five days', /w3\.created_at > now\(\) - in
 ok('query: not mid-deletion', /deletion_requests/.test(q) && /'pending','running'/.test(q));
 ok('query: not somebody who said stop checking in', /checkinOptIn'\) = 'false'/.test(q));
 ok('query: a phone to reach them on', /LIKE 'wa-%'/.test(q) && /NULLIF\(TRIM\(u\.phone\)/.test(q));
-ok('query: internal and test accounts excluded', /\$\{NOT_EXCLUDED_U\}/.test(q));
+// Mariam, 9 Nov: the team gets everything users get. The exclusion lists are for the numbers only.
+ok('query: the team is NOT left out of the note', !/NOT_EXCLUDED/.test(q.slice(0, q.indexOf('LIMIT $2::int'))));
 ok('query: two unanswered silent notes in a row means stop', /LIMIT \$3::int/.test(q) && /stats->>'silent' = 'true'/.test(q) && /\)\) < \$3::int/.test(q));
 ok('the stop is after two', /SILENT_STOP_AFTER = 2/.test(weekly));
 ok('query: only silent notes that arrived count toward the stop (14 Oct)',
