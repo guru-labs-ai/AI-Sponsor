@@ -708,10 +708,14 @@ async function checkAndAlert() {
      waking anyone, and a ping that is sometimes ignorable is a ping that gets
      muted, which would cost us the red one too. */
   const broken = data.overall === 'down';
+  /* Since 9 Nov this posts to #realtime-alerts, which the whole company reads,
+     so a red names the three people who can act (Matt, Mubashir, Mariam)
+     instead of pinging @channel. */
   const lines = [
     broken
-      ? '<!channel> 🔴 *AI Sponsor: something is broken*'
+      ? '<@U07212P3QNS> <@U08V21E9Q8Z> <@U0B8NJSJYQH> 🔴 *AI Sponsor: something is broken*'
       : '🟠 *AI Sponsor: something needs a look*',
+    alerts._internals.triage(broken ? 'Urgent' : 'Needs attention'),
     '',
     /* The same "what this means / what to do" the page shows. Somebody reading
        this on a phone at night should not have to open a link to find out
@@ -731,7 +735,7 @@ async function checkAndAlert() {
      and the next run would suppress it. That is the exact silent-failure shape
      this page exists to catch, and building it into the thing doing the
      catching would be embarrassing. */
-  const sent = await alerts._internals.send(lines);
+  const sent = await alerts._internals.sendCustomer(lines);
   /* send() returns {ok:false, skipped} rather than throwing when there is no
      SLACK_BOT_TOKEN, so "it did not throw" is NOT proof anybody was told. */
   if (!sent || sent.ok !== true) {

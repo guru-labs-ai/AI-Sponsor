@@ -206,28 +206,52 @@ function safe(build) {
    that channel (most likely the bot was never invited, which Slack reports as
    channel_not_found), the alert falls back to #ai-sponsor-updates with a note
    saying why, so a payment is never lost to a channel setting. */
+async function sendCustomer(lines) {
+  try {
+    return await send(lines, customerChannel());
+  } catch (e) {
+    if (customerChannel() === opsChannel()) throw e;
+    console.warn('[alerts] command center refused, falling back:', e.message);
+    return send([
+      ...lines,
+      `_Meant for #realtime-alerts, but Slack said: ${e.message}. Type /invite @AI Sponsor Metrics there._`,
+    ], opsChannel()).catch((e2) => {
+      throw new Error(`${e.message}; fallback also failed: ${e2.message}`);
+    });
+  }
+}
+
 function safeCustomer(build) {
   return (payload = {}) =>
     Promise.resolve()
-      .then(async () => {
-        const lines = build(payload);
-        try {
-          return await send(lines, customerChannel());
-        } catch (e) {
-          if (customerChannel() === opsChannel()) throw e;
-          console.warn('[alerts] command center refused, falling back:', e.message);
-          return send([
-            ...lines,
-            `_Meant for #realtime-alerts, but Slack said: ${e.message}. Type /invite @AI Sponsor Metrics there._`,
-          ], opsChannel()).catch((e2) => {
-            throw new Error(`${e.message}; fallback also failed: ${e2.message}`);
-          });
-        }
-      })
+      .then(() => sendCustomer(build(payload)))
       .catch((e) => {
         console.warn('[alerts] not delivered:', e.message);
         return { ok: false, error: e.message };
       });
+}
+
+/* A support ticket from the site's form. Moved to #realtime-alerts on 9 Nov
+   (Matt's list for that channel names "support tickets"). It pings the two
+   people who answer them. QA Guru's test tickets still post nothing (Mariam,
+   9 Nov); the ticket itself is saved in GHL either way. */
+const SUPPORT_MENTIONS = '<@U0B8NJSJYQH> <@U08V21E9Q8Z>'; // Mariam, Mubashir (Abdul off, Matt 6 Nov)
+const supportTicketAlert = safeCustomer(({ name, email, subject, message, contactId }) => [
+  ':envelope_with_arrow: *New AI Sponsor support ticket*',
+  SUPPORT_MENTIONS,
+  `*From:* ${name || '(no name)'} (${email || 'no email'})`,
+  `*Subject:* ${subject || '(none)'}`,
+  `*Message:* ${message || '(none)'}`,
+  triage('Needs attention'),
+  ghlLink(contactId),
+]);
+
+function supportTicket(payload = {}) {
+  if (isQaTest(payload.email)) {
+    console.log('[support] QA Guru test ticket: no Slack message');
+    return Promise.resolve({ ok: true, skipped: 'qa-test' });
+  }
+  return supportTicketAlert(payload);
 }
 
 /* Someone finished onboarding. The only alert that fires for the founding
@@ -382,6 +406,7 @@ module.exports = {
   meetingProblem,
   paymentFailed,
   cancelled,
-  // exported for the test harness
-  _internals: { fmtDate, fmtMoney, who, send, phoneLine, DEFAULT_CHANNEL, CUSTOMER_CHANNEL },
+  supportTicket,
+  // exported for the test harness (send, sendCustomer and triage also used by status.js)
+  _internals: { fmtDate, fmtMoney, who, send, sendCustomer, triage, phoneLine, DEFAULT_CHANNEL, CUSTOMER_CHANNEL },
 };

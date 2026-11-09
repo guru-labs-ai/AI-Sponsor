@@ -73,14 +73,18 @@ test('a test sign-up posts nothing to Slack (9 Nov)', async () => {
   assert.strictEqual(r.skipped, 'qa-test');
 });
 
-test('a test support ticket posts nothing to Slack (9 Nov), a real one still does', () => {
+test('a test support ticket posts nothing to Slack (9 Nov), a real one still does', async () => {
+  // Tickets go through alerts.supportTicket since 9 Nov (to #realtime-alerts).
   const src = require('fs').readFileSync(require('path').join(__dirname, 'server.js'), 'utf8');
-  const fn = src.slice(src.indexOf('async function notifySupportSlack'), src.indexOf("app.post('/support'"));
-  const guard = fn.indexOf('if (qaTest.isQaTest(email))');
-  assert.ok(guard > 0, 'the QA check is there');
-  assert.ok(guard < fn.indexOf('await fetch('), 'and it comes before anything is posted');
-  assert.ok(fn.slice(guard, guard + 200).includes('return;'), 'it returns');
-  assert.ok(fn.includes('New AI Sponsor support ticket') && fn.includes('SUPPORT_SLACK_MENTIONS'), 'real tickets unchanged');
+  const route = src.slice(src.indexOf("app.post('/support'"), src.indexOf("app.post('/support'") + 600);
+  assert.ok(route.includes('alerts.supportTicket('), 'the form uses the alerts path');
+  sent = [];
+  const r = await alerts.supportTicket({ name: 'Sarah M.', email: TEST_EMAIL, subject: 'x', message: 'y' });
+  assert.strictEqual(sent.length, 0, 'test ticket sends nothing');
+  assert.strictEqual(r.skipped, 'qa-test');
+  await alerts.supportTicket({ name: 'Jen', email: 'jen@example.com', subject: 'Help', message: 'Hi' });
+  assert.strictEqual(sent.length, 1, 'a real ticket is posted');
+  assert.ok(sent[0].body.text.includes('New AI Sponsor support ticket'));
 });
 
 test('a real sign-up alert is unchanged', async () => {

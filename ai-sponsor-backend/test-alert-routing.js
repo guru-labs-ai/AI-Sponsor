@@ -98,6 +98,39 @@ test('test-mode keys link to the test dashboard', async () => {
   assert.ok(sent[0].text.includes('https://dashboard.stripe.com/test/customers/cus_T'));
 });
 
+test('a real support ticket goes to #realtime-alerts, pings Mariam + Mubashir, needs attention', async () => {
+  await alerts.supportTicket({ name: 'Jen', email: 'jen@example.com', subject: 'Help', message: 'Cannot log in', contactId: 'abc123' });
+  assert.strictEqual(sent.length, 1);
+  assert.strictEqual(sent[0].channel, COMMAND_CENTER);
+  const t = sent[0].text;
+  assert.ok(t.includes('New AI Sponsor support ticket'));
+  assert.ok(t.includes('<@U0B8NJSJYQH> <@U08V21E9Q8Z>'), 'pings the two who answer');
+  assert.ok(t.includes('jen@example.com') && t.includes('Cannot log in'));
+  assert.ok(t.includes('*Severity:* Needs attention · *Owner:* Mariam'));
+  assert.ok(t.includes('contacts/detail/abc123'), 'links the GHL contact');
+});
+
+test('a QA Guru test ticket posts nothing', async () => {
+  await alerts.supportTicket({ email: 'qa-proj-ai-sponsor-9@reloulexei.resend.app', message: 'x' });
+  assert.strictEqual(sent.length, 0);
+});
+
+test('the status check posts to the command center and never pings @channel there', () => {
+  const src = require('fs').readFileSync(require('path').join(__dirname, 'status.js'), 'utf8');
+  const fn = src.slice(src.indexOf('async function checkAndAlert'), src.indexOf('function runAndAlert'));
+  assert.ok(fn.includes('alerts._internals.sendCustomer(lines)'), 'uses the command-center path with fallback');
+  assert.ok(!fn.includes('<!channel>'), 'no @channel in a company-wide channel');
+  assert.ok(fn.includes('<@U07212P3QNS> <@U08V21E9Q8Z> <@U0B8NJSJYQH>'), 'a red names Matt, Mubashir, Mariam');
+  assert.ok(fn.includes("triage(broken ? 'Urgent' : 'Needs attention')"), 'says severity and owner');
+});
+
+test('sendCustomer falls back and reports ok, so the status check records a delivered alert', async () => {
+  replies = [{ ok: false, error: 'channel_not_found' }, { ok: true }];
+  const r = await alerts._internals.sendCustomer(['x']);
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual(sent[1].channel, 'C_UPDATES');
+});
+
 test('no phone on record means no phone line, not an empty one', async () => {
   await alerts.paid({ name: 'A', email: 'a@example.com', amount: 500 });
   assert.ok(!sent[0].text.includes('*Phone:*'));

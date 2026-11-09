@@ -3753,8 +3753,9 @@ app.post('/support', async (req, res) => {
   const { name, email, subject, message } = req.body || {};
   try {
     const result = await ghl.submitSupport(req.body || {});
-    notifySupportSlack({ name, email, subject, message, contactId: result.contactId })
-      .catch((e) => console.warn('[support] Slack notify failed:', e.message));
+    // To #realtime-alerts since 9 Nov (alerts.supportTicket, QA tests skipped
+    // there). notifySupportSlack below is still used for deletion outcomes.
+    alerts.supportTicket({ name, email, subject, message, contactId: result.contactId });
     res.json({ success: true, contactId: result.contactId });
   } catch (err) {
     console.error('[support] failed:', err.message, err.detail || '');
