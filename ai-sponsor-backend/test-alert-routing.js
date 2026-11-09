@@ -59,6 +59,45 @@ for (const label of ['trial started', 'paid', 'trial ending', 'payment failed', 
   });
 }
 
+for (const label of Object.keys(customerAlerts)) {
+  test(`${label} says severity and owner (Matt, 20 Oct)`, async () => {
+    await customerAlerts[label]();
+    const want = ['payment failed', 'cancelled'].includes(label) ? 'Needs attention' : 'Info';
+    assert.ok(sent[0].text.includes(`*Severity:* ${want} · *Owner:* Mariam`), sent[0].text);
+  });
+}
+
+test('paid links to the invoice in Stripe', async () => {
+  await alerts.paid({ email: 'a@example.com', amount: 500, invoiceId: 'in_ABC1' });
+  assert.ok(sent[0].text.includes('<https://dashboard.stripe.com/invoices/in_ABC1|Open the invoice in Stripe>'), sent[0].text);
+});
+
+test('trial, trial ending and cancel link to the customer in Stripe', async () => {
+  await alerts.trialStarted({ email: 'a@example.com', plan: 'monthly', customerId: 'cus_T1' });
+  await alerts.trialEnding({ email: 'a@example.com', customerId: 'cus_T1' });
+  await alerts.cancelled({ email: 'a@example.com', customerId: 'cus_T1' });
+  for (const s of sent) assert.ok(s.text.includes('dashboard.stripe.com/customers/cus_T1|Open the customer in Stripe'), s.text);
+});
+
+test('failed payment links to the invoice, or the customer when there is none', async () => {
+  await alerts.paymentFailed({ email: 'a@example.com', invoiceId: 'in_F', customerId: 'cus_F' });
+  await alerts.paymentFailed({ email: 'a@example.com', customerId: 'cus_F' });
+  assert.ok(sent[0].text.includes('/invoices/in_F|'));
+  assert.ok(sent[1].text.includes('/customers/cus_F|'));
+});
+
+test('a malformed Stripe id never becomes a link', async () => {
+  await alerts.cancelled({ email: 'a@example.com', customerId: 'cus_x|<evil>' });
+  assert.ok(!sent[0].text.includes('dashboard.stripe.com'));
+});
+
+test('test-mode keys link to the test dashboard', async () => {
+  process.env.STRIPE_SECRET_KEY = 'sk_test_abc';
+  await alerts.cancelled({ email: 'a@example.com', customerId: 'cus_T' });
+  delete process.env.STRIPE_SECRET_KEY;
+  assert.ok(sent[0].text.includes('https://dashboard.stripe.com/test/customers/cus_T'));
+});
+
 test('no phone on record means no phone line, not an empty one', async () => {
   await alerts.paid({ name: 'A', email: 'a@example.com', amount: 500 });
   assert.ok(!sent[0].text.includes('*Phone:*'));

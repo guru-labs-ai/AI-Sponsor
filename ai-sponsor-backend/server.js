@@ -4079,6 +4079,7 @@ async function syncStripeToGhl(result) {
         plan: result.plan,
         firstChargeAt: result.firstChargeAt,
         attribution: result.attribution,
+        customerId: result.customerId,
       });
       return;
     }
@@ -4101,6 +4102,7 @@ async function syncStripeToGhl(result) {
       alerts.cancelled({
         name: user.name, email: user.email, phone: user.phone,
         keptAccess: isBeta ? 'Beta' : 'Unpaid', duringTrial: result.duringTrial,
+        customerId: result.customerId,
       });
       return;
     }
@@ -4115,7 +4117,10 @@ async function syncStripeToGhl(result) {
         await ghl.addTags(user.ghl_contact_id, ['ai-sponsor-trial-ending']);
       }
       console.log(`[Stripe→GHL] trial ending: ${user.email}`);
-      alerts.trialEnding({ name: user.name, email: user.email, phone: user.phone, trialEnd: result.trialEnd });
+      alerts.trialEnding({
+        name: user.name, email: user.email, phone: user.phone,
+        trialEnd: result.trialEnd, customerId: result.customerId,
+      });
       /* And this is the half the customer sees. Awaited rather than fired and
          forgotten, so a failure is recorded against the event that caused it
          and Stripe's retry gets a chance to deliver what we could not. */
@@ -4244,6 +4249,8 @@ async function syncStripeToGhl(result) {
         amount: result.amount,
         currency: result.currency,
         nextAttemptAt: result.nextAttemptAt,
+        invoiceId: result.invoiceId,
+        customerId: result.customerId,
       });
       return;
     }

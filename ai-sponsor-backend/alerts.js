@@ -84,6 +84,22 @@ function who({ name, email }) {
   return n || e || 'unknown person';
 }
 
+/* Matt, 20 Oct, for #realtime-alerts: every alert shows "severity, ... a
+   source link, and who or which agent owns the next action". AI Sponsor's
+   owner is Mariam. Severity is one of two words, so it reads at a glance:
+   "Info" (nothing to do) or "Needs attention" (someone should act). */
+const OWNER = 'Mariam';
+function triage(severity) {
+  return `*Severity:* ${severity} · *Owner:* ${OWNER}`;
+}
+
+function stripeLink(kind, id) {
+  if (!id || !/^(cus|in)_[A-Za-z0-9]+$/.test(String(id))) return null;
+  const test = /^(sk|rk)_test_/.test(process.env.STRIPE_SECRET_KEY || '') ? '/test' : '';
+  const label = kind === 'invoices' ? 'Open the invoice in Stripe' : 'Open the customer in Stripe';
+  return `<https://dashboard.stripe.com${test}/${kind}/${id}|${label}>`;
+}
+
 /* Matt, 31 Oct: he wants to message people himself when they start a trial,
    pay, fail a payment or cancel. The number opens a WhatsApp chat in one tap. */
 function phoneLine(phone) {
@@ -234,6 +250,7 @@ const registeredAlert = safeCustomer(({
   access === 'Beta'
     ? 'Free code redeemed, so no money is involved and Stripe never sees this one.'
     : 'No money involved at registration.',
+  triage('Info'),
   ghlLink(contactId),
 ]);
 
@@ -250,7 +267,9 @@ function registered(payload = {}) {
 }
 
 /* Card accepted, trial open. This is the one the DRM zap gets wrong. */
-const trialStarted = safeCustomer(({ name, email, phone, plan, firstChargeAt, attribution }) => [
+const trialStarted = safeCustomer(({
+  name, email, phone, plan, firstChargeAt, attribution, customerId,
+}) => [
   ':credit_card: *AI Sponsor · Trial started, card on file*',
   `*Who:* ${who({ name, email })}`,
   phoneLine(phone),
@@ -259,6 +278,8 @@ const trialStarted = safeCustomer(({ name, email, phone, plan, firstChargeAt, at
   firstChargeAt ? `*First charge:* ${fmtDate(firstChargeAt)}` : null,
   ...sourceLines(attribution),
   'Stripe validated the card before the trial opened, so it is real and chargeable.',
+  triage('Info'),
+  stripeLink('customers', customerId),
 ]);
 
 /* Real money, for the first time in the funnel. */
@@ -280,6 +301,8 @@ const paid = safeCustomer(({
     ? '*What this is:* a 30 day trial converting, or a renewal.'
     : `*What this is:* ${billingReason || 'unknown billing reason'}.`,
   invoiceId ? `*Invoice:* ${invoiceId}` : null,
+  triage('Info'),
+  stripeLink('invoices', invoiceId),
 ]);
 
 /* Somebody told the sponsor a meeting it gave them did not work. Our list is a
@@ -297,16 +320,18 @@ const meetingProblem = safe(({ name, program, what, fix, link, source, checkLink
 ]);
 
 /* Three days before we take the first $5. The window to save the customer. */
-const trialEnding = safeCustomer(({ name, email, phone, trialEnd }) => [
+const trialEnding = safeCustomer(({ name, email, phone, trialEnd, customerId }) => [
   ':hourglass_flowing_sand: *AI Sponsor · Trial ends in 3 days*',
   `*Who:* ${who({ name, email })}`,
   phoneLine(phone),
   trialEnd ? `*First charge:* ${fmtDate(trialEnd)}` : null,
   'They have not paid anything yet. Last chance to reach them before we do.',
+  triage('Info'),
+  stripeLink('customers', customerId),
 ]);
 
 const paymentFailed = safeCustomer(({
-  name, email, phone, attemptCount, amount, currency, nextAttemptAt,
+  name, email, phone, attemptCount, amount, currency, nextAttemptAt, invoiceId, customerId,
 }) => [
   ':warning: *AI Sponsor · Payment failed*',
   MENTIONS,
@@ -314,11 +339,13 @@ const paymentFailed = safeCustomer(({
   phoneLine(phone),
   amount ? `*Amount:* ${fmtMoney(amount, currency)}` : null,
   `*Attempt:* ${attemptCount || 1}. Stripe will retry automatically${fmtDate(nextAttemptAt) ? ` on ${fmtDate(nextAttemptAt)}` : ''}.`,
+  triage('Needs attention'),
+  stripeLink('invoices', invoiceId) || stripeLink('customers', customerId),
 ]);
 
 /* duringTrial answers the first thing Matt asked about a cancel (31 Oct): had
    they paid, or were they still on the free trial? Left out when unknown. */
-const cancelled = safeCustomer(({ name, email, phone, keptAccess, duringTrial }) => [
+const cancelled = safeCustomer(({ name, email, phone, keptAccess, duringTrial, customerId }) => [
   ':door: *AI Sponsor · Subscription cancelled*',
   `*Who:* ${who({ name, email })}`,
   phoneLine(phone),
@@ -327,6 +354,8 @@ const cancelled = safeCustomer(({ name, email, phone, keptAccess, duringTrial })
   keptAccess === 'Beta'
     ? 'Founding member, so their free access continues.'
     : 'Access set to Unpaid.',
+  triage('Needs attention'),
+  stripeLink('customers', customerId),
 ]);
 
 /* Somebody with a deletion counting down has written back. Every leaving
