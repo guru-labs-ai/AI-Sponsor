@@ -111,6 +111,20 @@ test('people who opened any issue are counted across issues without doubles', as
   assert.strictEqual(d.peopleWhoOpenedAny, 3);  // ann (both issues), bob, cat
 });
 
+test('who reads it: loyalty only among people sent more than one issue', async () => {
+  const d = await nl.compute(SENT + 86400e3);
+  const r = d.readers;
+  // Reached: ann (both), bob, cat (new issue), dan's old copy bounced so he was never reached.
+  assert.strictEqual(r.reached, 3);
+  assert.strictEqual(r.openedAny, 3);
+  assert.strictEqual(r.clickedAny, 1);       // ann
+  assert.strictEqual(r.repliedAny, 1);       // bob; dan replied but his copy bounced
+  assert.strictEqual(r.sentMoreThanOne, 1);  // only ann got both
+  assert.strictEqual(r.openedEvery, 1);
+  assert.strictEqual(r.openedSome, 0);
+  assert.strictEqual(r.openedNone, 0);
+});
+
 test('no names or email addresses leave the module', async () => {
   const d = await nl.compute(SENT + 86400e3);
   const text = JSON.stringify(d);

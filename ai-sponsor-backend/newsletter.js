@@ -151,12 +151,15 @@ const RANK = { clicked: 5, opened: 4, unsubscribed: 3, delivered: 2, sent: 1 };
 async function compute(now = Date.now()) {
   const excluded = new Set([...listFromEnv('EXCLUDED_PEOPLE'), ...listFromEnv('NEWSLETTER_EXCLUDED')]);
   const issues = await listIssues();
-  if (!issues.length) return { updatedAt: new Date(now).toISOString(), issues: [], peopleWhoOpenedAny: 0 };
+  if (!issues.length) return { updatedAt: new Date(now).toISOString(), issues: [], peopleWhoOpenedAny: 0, readers: null };
 
   const oldest = Math.min(...issues.map((i) => i.sentAt));
   const emails = await exportEmails(oldest - 5 * 60 * 1000, now);
 
   const openedAny = new Set();
+  // Per person, across every issue shown: how many reached them and how many
+  // they opened. Only counts leave this function, never who.
+  const perPerson = new Map();
   const out = [];
   for (const issue of issues) {
     const own = emails.filter((m) => m.direction === 'outbound' && m.source === 'campaign'
@@ -189,6 +192,12 @@ async function compute(now = Date.now()) {
       if (s === 'clicked') clicked++;
       if (DID_NOT_ARRIVE.has(s)) didNotArrive++;
       if (s === 'unsubscribed') unsubscribed++;
+      if (DID_NOT_ARRIVE.has(s)) return; // never reached them, so it is not theirs to open
+      const r = perPerson.get(people[i]) || { got: 0, opened: 0, clicked: false, replied: false };
+      r.got++;
+      if (OPENED.has(s)) r.opened++;
+      if (s === 'clicked') r.clicked = true;
+      perPerson.set(people[i], r);
     });
 
     const repliedBy = new Set();
@@ -199,6 +208,7 @@ async function compute(now = Date.now()) {
       const who = emailOf(m.from);
       if (!isLeftOut(who, excluded)) repliedBy.add(who);
     });
+    repliedBy.forEach((who) => { if (perPerson.has(who)) perPerson.get(who).replied = true; });
 
     out.push({
       sentAt: new Date(issue.sentAt).toISOString(),
@@ -212,10 +222,28 @@ async function compute(now = Date.now()) {
     });
   }
 
+  /* Who reads it, Mariam 9 Nov ("analyze stuff"). The loyalty split only looks
+     at people who were sent more than one issue: somebody who signed up after
+     the last send has had one chance, and calling them "opened every issue"
+     would flatter the number. */
+  const all = [...perPerson.values()];
+  const multi = all.filter((r) => r.got >= 2);
+  const readers = {
+    reached: all.length,
+    openedAny: all.filter((r) => r.opened > 0).length,
+    clickedAny: all.filter((r) => r.clicked).length,
+    repliedAny: all.filter((r) => r.replied).length,
+    sentMoreThanOne: multi.length,
+    openedEvery: multi.filter((r) => r.opened === r.got).length,
+    openedSome: multi.filter((r) => r.opened > 0 && r.opened < r.got).length,
+    openedNone: multi.filter((r) => r.opened === 0).length,
+  };
+
   return {
     updatedAt: new Date(now).toISOString(),
     issues: out,
     peopleWhoOpenedAny: openedAny.size,
+    readers,
   };
 }
 
