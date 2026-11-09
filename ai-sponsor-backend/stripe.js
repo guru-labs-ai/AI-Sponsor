@@ -213,10 +213,14 @@ async function handleWebhookEvent(event) {
 
     case 'customer.subscription.deleted': {
       const sub = event.data.object;
+      const endedAt = sub.canceled_at || sub.ended_at;
       return {
         type: 'subscription_cancelled',
         userId: sub.metadata?.userId,
         customerId: sub.customer,
+        // Ended before the trial did, so no charge was ever taken. Null when
+        // Stripe did not say, so the alert stays quiet rather than guessing.
+        duringTrial: sub.trial_end && endedAt ? endedAt < sub.trial_end : null,
       };
     }
 
@@ -226,6 +230,12 @@ async function handleWebhookEvent(event) {
         type: 'payment_failed',
         customerId: invoice.customer,
         attemptCount: invoice.attempt_count,
+        // What was owed and when Stripe tries again. The Slack alerts already
+        // asked for the amount; until now nothing passed it, so it was blank.
+        invoiceId: invoice.id,
+        amount: invoice.amount_due,
+        currency: invoice.currency,
+        nextAttemptAt: invoice.next_payment_attempt || null,
       };
     }
 

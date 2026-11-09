@@ -208,11 +208,19 @@ test('no token means no post at all, and no crash', async () => {
 });
 
 test('posts to the configured channel with the bot token', async () => {
-  await alerts.trialStarted({ email: 'l@example.com', plan: 'monthly' });
+  // Stripe and sign-up alerts moved to #realtime-alerts on 9 Nov (see
+  // test-alert-routing.js); team jobs like a meeting report still use
+  // SLACK_ALERTS_CHANNEL.
+  await alerts.meetingProblem({ name: 'Monday Night', what: 'link dead' });
   const s = sent[sent.length - 1];
   assert.strictEqual(s.body.channel, 'C_TEST');
   assert.strictEqual(s.headers.Authorization, 'Bearer xoxb-test-token');
   assert.strictEqual(s.body.unfurl_links, false);
+});
+
+test('trial alerts go to the command center, #realtime-alerts', async () => {
+  await alerts.trialStarted({ email: 'l@example.com', plan: 'monthly' });
+  assert.strictEqual(sent[sent.length - 1].body.channel, 'C0CANT8BT17');
 });
 
 /* ── The wiring: a real Stripe payload has to produce the right alert ────── */

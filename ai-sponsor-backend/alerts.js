@@ -1,4 +1,7 @@
-/* ─── AI Sponsor → Slack alerts (#ai-sponsor-updates) ────────────────────────
+/* ─── AI Sponsor → Slack alerts ───────────────────────────────────────────────
+   Sign-ups and Stripe events: #realtime-alerts (Matt's command center).
+   Meeting reports and deletion replies: #ai-sponsor-updates.
+
    The product-side twin of the Zapier "NEW CUSTOMER ALERT" zap that serves DRM
    from the shared Stripe account.
 
@@ -37,6 +40,15 @@ const { isQaTest } = require('./qatest'); // QA Guru's test inbox is not a perso
 const SLACK_POST_MESSAGE = 'https://slack.com/api/chat.postMessage';
 const DEFAULT_CHANNEL = 'C0BQYBMJPP0'; // #ai-sponsor-updates
 
+/* Sign-ups and every Stripe event go to Matt's company command center,
+   #realtime-alerts (his ask, 20 Oct 2026: "signups, trials, purchases,
+   cancellations, failed payments... for any/all products"). They MOVED there,
+   they are not copied: Mariam, 9 Nov, "reroute what we already have". The two
+   alerts that are jobs for the AI Sponsor team (a meeting that did not work,
+   a reply during a pending deletion) stay in #ai-sponsor-updates.
+   SLACK_CUSTOMER_CHANNEL overrides the command center channel. */
+const CUSTOMER_CHANNEL = 'C0CANT8BT17'; // #realtime-alerts
+
 // Mariam, Matt. Money and failures only, so the mention still means something.
 const MENTIONS = '<@U0B8NJSJYQH> <@U07212P3QNS>';
 
@@ -70,6 +82,13 @@ function who({ name, email }) {
   const e = (email || '').trim();
   if (n && e) return `${n} (${e})`;
   return n || e || 'unknown person';
+}
+
+/* Matt, 31 Oct: he wants to message people himself when they start a trial,
+   pay, fail a payment or cancel. The number opens a WhatsApp chat in one tap. */
+function phoneLine(phone) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  return digits.length >= 7 ? `*Phone:* <https://wa.me/${digits}|+${digits}> (tap to WhatsApp them)` : null;
 }
 
 /* Where this person came from, in as much detail as we actually hold.
@@ -125,9 +144,17 @@ function sourceLines(attribution) {
   ].filter(Boolean);
 }
 
-async function send(lines) {
+function opsChannel() {
+  return process.env.SLACK_ALERTS_CHANNEL || DEFAULT_CHANNEL;
+}
+
+function customerChannel() {
+  return process.env.SLACK_CUSTOMER_CHANNEL || CUSTOMER_CHANNEL;
+}
+
+async function send(lines, channelOverride) {
   const token = process.env.SLACK_BOT_TOKEN;
-  const channel = process.env.SLACK_ALERTS_CHANNEL || DEFAULT_CHANNEL;
+  const channel = channelOverride || opsChannel();
   if (!token) return { ok: false, skipped: 'no SLACK_BOT_TOKEN' };
 
   const text = lines.filter(Boolean).join('\n');
@@ -159,14 +186,42 @@ function safe(build) {
       });
 }
 
+/* The same, for alerts that belong in the command center. If Slack refuses
+   that channel (most likely the bot was never invited, which Slack reports as
+   channel_not_found), the alert falls back to #ai-sponsor-updates with a note
+   saying why, so a payment is never lost to a channel setting. */
+function safeCustomer(build) {
+  return (payload = {}) =>
+    Promise.resolve()
+      .then(async () => {
+        const lines = build(payload);
+        try {
+          return await send(lines, customerChannel());
+        } catch (e) {
+          if (customerChannel() === opsChannel()) throw e;
+          console.warn('[alerts] command center refused, falling back:', e.message);
+          return send([
+            ...lines,
+            `_Meant for #realtime-alerts, but Slack said: ${e.message}. Type /invite @AI Sponsor Metrics there._`,
+          ], opsChannel()).catch((e2) => {
+            throw new Error(`${e.message}; fallback also failed: ${e2.message}`);
+          });
+        }
+      })
+      .catch((e) => {
+        console.warn('[alerts] not delivered:', e.message);
+        return { ok: false, error: e.message };
+      });
+}
+
 /* Someone finished onboarding. The only alert that fires for the founding
    cohort, who pay nothing and so produce no Stripe event whatsoever. */
-const registeredAlert = safe(({
+const registeredAlert = safeCustomer(({
   name, email, phone, access, sponsorName, delivery, contactId, returning, attribution,
   code, codeDays,
 }) => [
   returning
-    ? ':arrows_counterclockwise: *Returning person re-registered*'
+    ? ':arrows_counterclockwise: *AI Sponsor · Returning person re-registered*'
     : ':wave: *New AI Sponsor registration*',
   `*Who:* ${who({ name, email })}`,
   phone ? `*Phone:* ${phone}` : null,
@@ -195,9 +250,10 @@ function registered(payload = {}) {
 }
 
 /* Card accepted, trial open. This is the one the DRM zap gets wrong. */
-const trialStarted = safe(({ name, email, plan, firstChargeAt, attribution }) => [
-  ':credit_card: *Trial started, card on file*',
+const trialStarted = safeCustomer(({ name, email, phone, plan, firstChargeAt, attribution }) => [
+  ':credit_card: *AI Sponsor · Trial started, card on file*',
   `*Who:* ${who({ name, email })}`,
+  phoneLine(phone),
   `*Plan:* ${plan === 'annual' ? '$49/year' : '$5/month'} after a 30 day free trial`,
   '*Charged today:* $0.00. This is not a sale yet.',
   firstChargeAt ? `*First charge:* ${fmtDate(firstChargeAt)}` : null,
@@ -206,12 +262,13 @@ const trialStarted = safe(({ name, email, plan, firstChargeAt, attribution }) =>
 ]);
 
 /* Real money, for the first time in the funnel. */
-const paid = safe(({
-  name, email, plan, amount, currency, billingReason, invoiceId, attribution,
+const paid = safeCustomer(({
+  name, email, phone, plan, amount, currency, billingReason, invoiceId, attribution,
 }) => [
-  ':moneybag: *PAID. Money actually moved.*',
+  ':moneybag: *AI Sponsor · PAID. Money actually moved.*',
   MENTIONS,
   `*Who:* ${who({ name, email })}`,
+  phoneLine(phone),
   `*Amount:* ${fmtMoney(amount, currency)}`,
   `*Plan:* ${plan || 'unknown'}`,
   /* The ad click that produced this customer, written at checkout 30 days ago
@@ -240,24 +297,33 @@ const meetingProblem = safe(({ name, program, what, fix, link, source, checkLink
 ]);
 
 /* Three days before we take the first $5. The window to save the customer. */
-const trialEnding = safe(({ name, email, trialEnd }) => [
-  ':hourglass_flowing_sand: *Trial ends in 3 days*',
+const trialEnding = safeCustomer(({ name, email, phone, trialEnd }) => [
+  ':hourglass_flowing_sand: *AI Sponsor · Trial ends in 3 days*',
   `*Who:* ${who({ name, email })}`,
+  phoneLine(phone),
   trialEnd ? `*First charge:* ${fmtDate(trialEnd)}` : null,
   'They have not paid anything yet. Last chance to reach them before we do.',
 ]);
 
-const paymentFailed = safe(({ name, email, attemptCount, amount, currency }) => [
-  ':warning: *Payment failed*',
+const paymentFailed = safeCustomer(({
+  name, email, phone, attemptCount, amount, currency, nextAttemptAt,
+}) => [
+  ':warning: *AI Sponsor · Payment failed*',
   MENTIONS,
   `*Who:* ${who({ name, email })}`,
+  phoneLine(phone),
   amount ? `*Amount:* ${fmtMoney(amount, currency)}` : null,
-  `*Attempt:* ${attemptCount || 1}. Stripe will retry automatically.`,
+  `*Attempt:* ${attemptCount || 1}. Stripe will retry automatically${fmtDate(nextAttemptAt) ? ` on ${fmtDate(nextAttemptAt)}` : ''}.`,
 ]);
 
-const cancelled = safe(({ name, email, keptAccess }) => [
-  ':door: *Subscription cancelled*',
+/* duringTrial answers the first thing Matt asked about a cancel (31 Oct): had
+   they paid, or were they still on the free trial? Left out when unknown. */
+const cancelled = safeCustomer(({ name, email, phone, keptAccess, duringTrial }) => [
+  ':door: *AI Sponsor · Subscription cancelled*',
   `*Who:* ${who({ name, email })}`,
+  phoneLine(phone),
+  duringTrial === true ? '*Paid so far:* nothing. They cancelled during the 30 day free trial.' : null,
+  duringTrial === false ? '*Paid so far:* they cancelled after the free trial ended.' : null,
   keptAccess === 'Beta'
     ? 'Founding member, so their free access continues.'
     : 'Access set to Unpaid.',
@@ -288,5 +354,5 @@ module.exports = {
   paymentFailed,
   cancelled,
   // exported for the test harness
-  _internals: { fmtDate, fmtMoney, who, send, DEFAULT_CHANNEL },
+  _internals: { fmtDate, fmtMoney, who, send, phoneLine, DEFAULT_CHANNEL, CUSTOMER_CHANNEL },
 };

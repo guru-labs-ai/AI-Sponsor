@@ -4071,9 +4071,11 @@ async function syncStripeToGhl(result) {
          Nothing has been paid at this point: they gave us a card. The alert
          says so in words, because reading this as a sale is exactly the
          mistake the DRM Zapier alert makes. */
+      const starter = await db.getUser(result.userId).catch(() => null);
       alerts.trialStarted({
-        name: (await db.getUser(result.userId).catch(() => null))?.name,
+        name: starter?.name,
         email: result.email,
+        phone: starter?.phone,
         plan: result.plan,
         firstChargeAt: result.firstChargeAt,
         attribution: result.attribution,
@@ -4096,7 +4098,10 @@ async function syncStripeToGhl(result) {
       await ghl.removeTags(user.ghl_contact_id, ['ai-sponsor-paid']);
       await db.setAccess(user.user_id, isBeta ? 'Beta' : 'Unpaid');
       console.log(`[Stripe→GHL] cancelled: ${user.email} → ${isBeta ? 'Beta' : 'Unpaid'}`);
-      alerts.cancelled({ name: user.name, email: user.email, keptAccess: isBeta ? 'Beta' : 'Unpaid' });
+      alerts.cancelled({
+        name: user.name, email: user.email, phone: user.phone,
+        keptAccess: isBeta ? 'Beta' : 'Unpaid', duringTrial: result.duringTrial,
+      });
       return;
     }
 
@@ -4110,7 +4115,7 @@ async function syncStripeToGhl(result) {
         await ghl.addTags(user.ghl_contact_id, ['ai-sponsor-trial-ending']);
       }
       console.log(`[Stripe→GHL] trial ending: ${user.email}`);
-      alerts.trialEnding({ name: user.name, email: user.email, trialEnd: result.trialEnd });
+      alerts.trialEnding({ name: user.name, email: user.email, phone: user.phone, trialEnd: result.trialEnd });
       /* And this is the half the customer sees. Awaited rather than fired and
          forgotten, so a failure is recorded against the event that caused it
          and Stripe's retry gets a chance to deliver what we could not. */
@@ -4154,9 +4159,11 @@ async function syncStripeToGhl(result) {
 
       const money = `${(result.amount / 100).toFixed(2)} ${String(result.currency || 'usd').toUpperCase()}`;
       console.log(`[Stripe→GHL] PAID ${money}: ${result.email || result.customerId} (${result.plan || 'plan unknown'}) invoice ${result.invoiceId}`);
+      const payer = await findUser(result).catch(() => null);
       alerts.paid({
-        name: (await findUser(result))?.name,
+        name: payer?.name,
         email: result.email,
+        phone: payer?.phone,
         plan: result.plan,
         amount: result.amount,
         currency: result.currency,
@@ -4232,9 +4239,11 @@ async function syncStripeToGhl(result) {
       alerts.paymentFailed({
         name: user.name,
         email: user.email,
+        phone: user.phone,
         attemptCount: result.attemptCount,
         amount: result.amount,
         currency: result.currency,
+        nextAttemptAt: result.nextAttemptAt,
       });
       return;
     }
