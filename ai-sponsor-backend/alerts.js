@@ -161,15 +161,10 @@ function safe(build) {
 
 /* Someone finished onboarding. The only alert that fires for the founding
    cohort, who pay nothing and so produce no Stripe event whatsoever. */
-const registered = safe(({
+const registeredAlert = safe(({
   name, email, phone, access, sponsorName, delivery, contactId, returning, attribution,
   code, codeDays,
-}) => (isQaTest(email) ? [
-  ':test_tube: *QA Guru test sign-up, not a real person*',
-  `*Who:* ${who({ name, email })}`,
-  'This address is QA Guru\'s test inbox. Nothing to do.',
-  ghlLink(contactId),
-] : [
+}) => [
   returning
     ? ':arrows_counterclockwise: *Returning person re-registered*'
     : ':wave: *New AI Sponsor registration*',
@@ -185,7 +180,19 @@ const registered = safe(({
     ? 'Free code redeemed, so no money is involved and Stripe never sees this one.'
     : 'No money involved at registration.',
   ghlLink(contactId),
-]));
+]);
+
+/* QA Guru's test sign-ups post nothing at all. Mariam, 9 Nov 2026: "can we
+   just stop getting these messages". The contact is still saved in GHL,
+   tagged qa-test, so the test can check its own run, and each one leaves a
+   line in the Render log. */
+function registered(payload = {}) {
+  if (isQaTest(payload.email)) {
+    console.log('[alerts] QA Guru test sign-up: no Slack alert');
+    return Promise.resolve({ ok: true, skipped: 'qa-test' });
+  }
+  return registeredAlert(payload);
+}
 
 /* Card accepted, trial open. This is the one the DRM zap gets wrong. */
 const trialStarted = safe(({ name, email, plan, firstChargeAt, attribution }) => [

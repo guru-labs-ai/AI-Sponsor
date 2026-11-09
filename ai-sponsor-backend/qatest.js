@@ -8,8 +8,9 @@
 
    Now an address on a test domain is still saved, so the test can check its
    own run, but it is tagged qa-test (the tag the older test contacts already
-   carry), never amends-tv, and its Slack alerts say plainly that it is a test
-   and mention nobody.
+   carry), never amends-tv. Its Slack alerts first said plainly that it was a
+   test and mentioned nobody; since 9 Nov they are not posted at all (Mariam:
+   "can we just stop getting these messages").
 ──────────────────────────────────────────────────────────────────────────── */
 
 const QA_TEST_DOMAINS = ['reloulexei.resend.app'];

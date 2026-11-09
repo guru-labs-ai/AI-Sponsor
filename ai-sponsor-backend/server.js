@@ -3725,13 +3725,16 @@ async function notifySupportSlack({ name, email, subject, message, contactId }) 
   const link = contactId
     ? `https://app.gohighlevel.com/v2/location/${loc}/contacts/detail/${contactId}`
     : '';
-  // QA Guru's test runs send tickets too. Say so, and ping nobody.
-  const testRun = qaTest.isQaTest(email);
+  /* QA Guru's test runs send tickets too. Mariam, 9 Nov 2026: "can we just
+     stop getting these messages". So they post nothing. The ticket is still
+     saved in GHL, tagged qa-test (ghl.submitSupport), and logged here. */
+  if (qaTest.isQaTest(email)) {
+    console.log('[support] QA Guru test ticket: no Slack message');
+    return;
+  }
   const text = [
-    testRun
-      ? ':test_tube: *QA Guru test ticket, not a real person. Nothing to reply to.*'
-      : ':envelope_with_arrow: *New AI Sponsor support ticket*',
-    testRun ? '' : SUPPORT_SLACK_MENTIONS,
+    ':envelope_with_arrow: *New AI Sponsor support ticket*',
+    SUPPORT_SLACK_MENTIONS,
     `*From:* ${name || '(no name)'} (${email || 'no email'})`,
     `*Subject:* ${subject || '(none)'}`,
     `*Message:* ${message || '(none)'}`,

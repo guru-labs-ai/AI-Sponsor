@@ -66,14 +66,21 @@ test('a test support ticket is saved with qa-test, a real one without', async ()
   assert.deepStrictEqual(realUpsert.body.tags, ['ai-sponsor', 'ai-sponsor-support']);
 });
 
-test('a test sign-up alert says it is a test and is not dressed up as a member', async () => {
+test('a test sign-up posts nothing to Slack (9 Nov)', async () => {
   sent = [];
-  await alerts.registered({ name: 'Alex Rivera', email: TEST_EMAIL, access: 'Unpaid', contactId: 'TMVO' });
-  const t = sent[0].body.text;
-  assert.ok(t.includes('QA Guru test sign-up, not a real person'), t);
-  assert.ok(!t.includes('New AI Sponsor registration'));
-  assert.ok(!t.includes('<@'), 'mentions nobody');
-  assert.ok(t.includes('contacts/detail/TMVO'), 'still links the GHL contact');
+  const r = await alerts.registered({ name: 'Alex Rivera', email: TEST_EMAIL, access: 'Unpaid', contactId: 'TMVO' });
+  assert.strictEqual(sent.length, 0, 'nothing sent: ' + JSON.stringify(sent));
+  assert.strictEqual(r.skipped, 'qa-test');
+});
+
+test('a test support ticket posts nothing to Slack (9 Nov), a real one still does', () => {
+  const src = require('fs').readFileSync(require('path').join(__dirname, 'server.js'), 'utf8');
+  const fn = src.slice(src.indexOf('async function notifySupportSlack'), src.indexOf("app.post('/support'"));
+  const guard = fn.indexOf('if (qaTest.isQaTest(email))');
+  assert.ok(guard > 0, 'the QA check is there');
+  assert.ok(guard < fn.indexOf('await fetch('), 'and it comes before anything is posted');
+  assert.ok(fn.slice(guard, guard + 200).includes('return;'), 'it returns');
+  assert.ok(fn.includes('New AI Sponsor support ticket') && fn.includes('SUPPORT_SLACK_MENTIONS'), 'real tickets unchanged');
 });
 
 test('a real sign-up alert is unchanged', async () => {
