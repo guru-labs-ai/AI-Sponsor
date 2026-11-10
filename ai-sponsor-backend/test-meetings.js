@@ -885,6 +885,11 @@ check('one meeting reads as one', [
 ], ['There is 1 BDA meeting still to come today, 3 tomorrow and 9 over the next 7 days', 'There is 1 WA meeting over the next 7 days']);
 
 group('several days, two a day, and the total across programs (5 Nov)');
+/* Run on the real list, not the sample left over from the tests above.
+   The sample is dated 19 Oct, so once the real list was 21 days newer the
+   sample counted as out of date, these three checks failed, and the Monday
+   9 Nov refresh never saved its new list. */
+meetings._setData(null);
 const weekAsk = meetings.buildMeetingsBlock({ message: 'Give me the DA meetings for next week', programField: 'DA', userZone: 'Europe/Berlin', now: Date.parse(require('fs').existsSync(path.resolve(__dirname, 'meetings-data.json')) ? JSON.parse(require('fs').readFileSync(path.resolve(__dirname, 'meetings-data.json'), 'utf8')).generatedAt : '2026-11-05T19:00:00Z') });
 check('a week ask is answered day by day, never stopping after two or three days', weekAsk.includes('They asked about several days. Answer day by day'), true);
 check('and it never corrects itself inside a reply', weekAsk.includes('Never correct yourself inside it ("wait"'), true);
