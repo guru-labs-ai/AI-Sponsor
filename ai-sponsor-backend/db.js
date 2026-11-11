@@ -327,6 +327,35 @@ async function init() {
     );
     CREATE INDEX IF NOT EXISTS meeting_checks_link_idx ON meeting_checks (link, id DESC);
   `);
+  /* Where somebody is in the Twelve Steps (Mariam, 11 Nov 2026), written by
+     the sponsor itself through the [[step: ...]] line, see steps.js. On the
+     users row like the memory digest, because it is the same kind of thing: what
+     the sponsor knows about this person. The programme and the step number are
+     plain so they can be counted; where they are in the step and the piece of
+     work are their own words about their own life, so they are encrypted like
+     the messages they came from.
+
+     step_events is one row each time somebody starts or finishes a step, which
+     is what the North Star page counts. It holds no words at all. */
+  await pool.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS step_program    TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS step_number     SMALLINT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS step_part       TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS step_work       TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS step_work_at    TIMESTAMPTZ;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS step_since      TIMESTAMPTZ;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS step_updated_at TIMESTAMPTZ;
+    CREATE TABLE IF NOT EXISTS step_events (
+      id      BIGSERIAL PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      program TEXT,
+      step    SMALLINT NOT NULL,
+      kind    TEXT NOT NULL,
+      at      TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS step_events_user_idx ON step_events (user_id);
+    CREATE INDEX IF NOT EXISTS step_events_at_idx ON step_events (at);
+  `);
   console.log('DB connected — users + activity_days tables ready.');
 }
 
@@ -495,8 +524,16 @@ async function clearConversation(userId) {
   if (!enabled || !userId) return 0;
   const r = await pool.query('DELETE FROM messages WHERE user_id = $1', [userId]);
   await pool.query('DELETE FROM weekly_summaries WHERE user_id = $1', [userId]);
+  /* The step record goes too. "Have you forget everything and begin again"
+     is one of the things a start-over is for, and a sponsor that wiped the
+     conversation but still knew they were halfway through step four would be
+     remembering exactly what they asked it to let go of. */
+  await pool.query('DELETE FROM step_events WHERE user_id = $1', [userId]);
   await pool.query(
-    `UPDATE users SET memory_digest = NULL, memory_digest_upto = 0 WHERE user_id = $1`,
+    `UPDATE users SET memory_digest = NULL, memory_digest_upto = 0,
+            step_program = NULL, step_number = NULL, step_part = NULL, step_work = NULL,
+            step_work_at = NULL, step_since = NULL, step_updated_at = NULL
+      WHERE user_id = $1`,
     [userId]
   );
   return r.rowCount || 0;
@@ -542,6 +579,7 @@ async function purgeUserData(userId) {
     await client.query('DELETE FROM account_events WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM outbound_messages WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM settings_opens WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM step_events WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM users WHERE user_id = $1', [userId]);
     await client.query('COMMIT');
   } catch (err) {
@@ -1269,6 +1307,108 @@ async function saveMemory(userId, digest, upto) {
     'UPDATE users SET memory_digest = $2, memory_digest_upto = $3 WHERE user_id = $1',
     [userId, fc.encrypt(digest), upto]
   );
+}
+
+/* ─── Where they are in the steps (see steps.js) ─────────────────────────── */
+
+async function getSteps(userId) {
+  if (!enabled || !userId) return null;
+  const r = await pool.query(
+    `SELECT step_program, step_number, step_part, step_work, step_work_at, step_since, step_updated_at
+       FROM users WHERE user_id = $1`,
+    [userId]
+  );
+  const row = r.rows[0];
+  if (!row || !row.step_number) return null;
+  // Unreadable words are dropped rather than failing the whole record: the
+  // step number alone is still worth knowing.
+  const dec = (v) => (v ? fc.decrypt(v) : null);
+  return {
+    program: row.step_program || null,
+    step: Number(row.step_number),
+    part: dec(row.step_part),
+    work: dec(row.step_work),
+    workAt: row.step_work_at ? new Date(row.step_work_at).toISOString() : null,
+    since: row.step_since ? new Date(row.step_since).toISOString() : null,
+    updatedAt: row.step_updated_at ? new Date(row.step_updated_at).toISOString() : null,
+  };
+}
+
+/* Writes what the sponsor just marked. Merges with what is saved rather than
+   replacing it, because the marker carries only what changed in that reply:
+   - a new step number starts that step: since moves, and the old piece of work
+     goes unless this reply gave a new one
+   - the same step keeps its since date, and keeps its piece of work unless a
+     new one was given
+   - one step up from the saved one also counts the saved one as finished
+   Returns what happened, for the log. */
+async function saveSteps(userId, next) {
+  if (!enabled || !userId || !next || !next.step) return null;
+  const cur = await getSteps(userId).catch(() => null);
+  const changedStep = !cur || cur.step !== next.step;
+  const now = new Date();
+  const program = next.program || (cur && cur.program) || null;
+  const part = next.part || (changedStep ? null : cur.part) || null;
+  let work, workAt;
+  if (next.work) {
+    const same = cur && !changedStep && cur.work === next.work;
+    work = next.work;
+    workAt = same ? cur.workAt : now;
+  } else if (changedStep) {
+    work = null; workAt = null;
+  } else {
+    work = cur.work; workAt = cur.workAt;
+  }
+  const since = changedStep ? now : (cur.since || now);
+  const r = await pool.query(
+    `UPDATE users SET step_program = $2, step_number = $3, step_part = $4, step_work = $5,
+            step_work_at = $6, step_since = $7, step_updated_at = now()
+      WHERE user_id = $1`,
+    [userId, program, next.step, part ? fc.encrypt(part) : null, work ? fc.encrypt(work) : null, workAt, since]
+  );
+  if (!r.rowCount) return { saved: false };
+  const events = [];
+  if (changedStep) {
+    if (cur && next.step === cur.step + 1) events.push(['finished', cur.step]);
+    events.push(['started', next.step]);
+  }
+  for (const [kind, step] of events) {
+    await pool.query(
+      'INSERT INTO step_events (user_id, program, step, kind) VALUES ($1, $2, $3, $4)',
+      [userId, program, step, kind]
+    );
+  }
+  return { saved: true, changedStep, from: cur ? cur.step : null, to: next.step, newWork: !!next.work && (!cur || cur.work !== next.work) };
+}
+
+/* For the North Star page: how many people have a saved step, which step, and
+   how many started or finished one in the last 7 days. Counts only, no words,
+   and the same exclusions as every other number there. */
+async function stepMetrics() {
+  if (!enabled) return null;
+  const [byStep, recent, first] = await Promise.all([
+    pool.query(`
+      SELECT step_number::int AS step, COUNT(DISTINCT ${PERSON_KEY})::int AS people
+        FROM users WHERE step_number IS NOT NULL${NOT_EXCLUDED}
+       GROUP BY step_number ORDER BY step_number`),
+    pool.query(`
+      SELECT e.kind, COUNT(*)::int AS n
+        FROM step_events e JOIN users u ON u.user_id = e.user_id
+       WHERE e.at > now() - interval '7 days'${NOT_EXCLUDED_U}
+       GROUP BY e.kind`),
+    pool.query('SELECT MIN(at) AS first FROM step_events'),
+  ]);
+  const per = {};
+  let people = 0;
+  for (const row of byStep.rows) { per[row.step] = row.people; people += row.people; }
+  const kinds = Object.fromEntries(recent.rows.map((x) => [x.kind, x.n]));
+  return {
+    peopleWithAStep: people,
+    byStep: per,
+    startedLast7d: kinds.started || 0,
+    finishedLast7d: kinds.finished || 0,
+    countingSince: first.rows[0] && first.rows[0].first ? new Date(first.rows[0].first).toISOString() : null,
+  };
 }
 
 /* Turns that have aged out of the recent window and haven't been summarized yet.
@@ -2100,6 +2240,7 @@ async function getFullThread(person) {
 module.exports = {
   listConversations, getFullThread, getWeekOverWeek, getCollected, phonesByPerson,
   getLastMessageAt, recentVoiceReplies, meetingReports, meetingChecks, addMeetingCheck, getWeeklyReviewStats,
+  getSteps, saveSteps, stepMetrics,
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
   // Exported so the Slack alerts label a signup's source with the SAME rule the
   // dashboard groups on. Two implementations would eventually disagree.

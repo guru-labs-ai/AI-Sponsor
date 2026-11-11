@@ -22,6 +22,7 @@ const countries = require('./countries'); // phone prefix -> country and US stat
 const trialnotice = require('./trialnotice'); // the "your trial ends" WhatsApp notice
 const notices = require('./notices');       // account notices (cancelled, changed, deletion)
 const meetings = require('./meetings');     // real online meetings, from the official directories
+const steps = require('./steps');           // where they are in the Twelve Steps, kept by the sponsor
 const timezones = require('./timezones');
 // How long before the sponsor checks again where someone is (meetings.js ZONE_CHECK_LINE).
 const ZONE_ASK_EVERY_MS = 30 * 86400000;
@@ -1817,6 +1818,11 @@ async function getSponsorReply(userId, message, context) {
   const userContext = buildUserContextBlock(profile);
   const memoryBlock = buildMemoryBlock(memory);
   const settingsBlock = await buildSettingsBlock(userId);
+  /* Their saved place in the steps. Never allowed to block a reply: without it
+     the sponsor goes back to the conversation and its notes, which is where it
+     was before the record existed. */
+  const savedSteps = await db.getSteps(userId).catch(() => null);
+  const stepsBlock = steps.buildStepsBlock(savedSteps);
   /* Read before persistExchange writes this turn, so it is the PREVIOUS
      contact. Never allowed to block a reply: if the database is unreachable the
      sponsor simply goes back to not knowing the date, which is where it was. */
@@ -1850,6 +1856,12 @@ async function getSponsorReply(userId, message, context) {
   if (userContext) systemBlocks.push({ type: 'text', text: userContext });
   if (memoryBlock) systemBlocks.push({ type: 'text', text: memoryBlock });
   if (settingsBlock) systemBlocks.push({ type: 'text', text: settingsBlock });
+  /* Stable between messages: the record only changes when the step work moves
+     on, so both sit above the cache marker. The rules for keeping it come
+     only on this path, because this is the one that takes the [[step: ...]]
+     line out before anything is sent. */
+  if (stepsBlock) systemBlocks.push({ type: 'text', text: stepsBlock });
+  if (db.enabled) systemBlocks.push({ type: 'text', text: steps.KEEPING_BLOCK });
 
   const gettingToKnowBlock = buildGettingToKnowBlock(profile, history.length);
   if (gettingToKnowBlock) systemBlocks.push({ type: 'text', text: gettingToKnowBlock });
@@ -2101,6 +2113,27 @@ async function getSponsorReply(userId, message, context) {
     alerts.meetingProblem(p);
   }
 
+  /* Where they are in the steps, if this reply moved it on. Taken out here for
+     the same reason as the meeting report: before any rewrite could cut it,
+     and before anything is spoken, sent or saved. Saving never holds up the
+     reply. */
+  const stepNow = steps.stepsIn(rawReply, profile && profile.program);
+  rawReply = stepNow.clean;
+  /* They said "I'm on step 6" and the reply did not save it: save the number
+     from their own words. Only when it differs from what is saved, so it can
+     never overwrite a richer record with a bare number. */
+  if (!stepNow.step && db.enabled) {
+    const told = steps.toldStep(message);
+    if (told && (!savedSteps || savedSteps.step !== told)) {
+      stepNow.step = { program: steps.firstProgram(profile && profile.program) || null, step: told, part: null, work: null };
+    }
+  }
+  if (stepNow.step) {
+    db.saveSteps(userId, stepNow.step)
+      .then((r) => { if (r) console.log(`[steps] ${r.saved ? 'saved' : 'NOT saved (no users row)'}: step ${stepNow.step.step}${r.changedStep ? ` (was ${r.from == null ? 'none' : r.from})` : ''}${r.newWork ? ', new piece of work' : ''}`); })
+      .catch((e) => console.warn('[steps] not saved:', e.message));
+  }
+
   /* A link, or the name of a meeting it was given: on 26 Oct an answer naming
      four meetings with their dates, offsets and sums (no links) was cut to
      four bare times, dropping what Bilal had asked for. */
@@ -2133,7 +2166,7 @@ async function getSponsorReply(userId, message, context) {
         ].join('\n') }],
         messages: requestMessages,
       });
-      const second = meetings.meetingProblemsIn(again.content.filter((b) => b.type === 'text').map((b) => b.text).join('')).clean;
+      const second = steps.stripAll(meetings.meetingProblemsIn(again.content.filter((b) => b.type === 'text').map((b) => b.text).join('')).clean);
       if (meetingsListedIn(second)) {
         console.log(`[meetings] asked which program though it was ${carriedOn[1]}; written again with the meetings`);
         rawReply = second;
@@ -2233,6 +2266,8 @@ async function getSponsorReply(userId, message, context) {
     console.log(`[checkin] offered check-ins to ${userId}`);
   }
 
+  // A rewrite above can, rarely, write the step line again. It must never be seen or heard.
+  rawReply = steps.stripAll(rawReply);
   const { wanted: modelWantsVoice, text: markerFree } = stripVoiceMarker(rawReply);
   if (context && modelWantsVoice) context.modelWantsVoice = true;
 
@@ -2363,7 +2398,7 @@ app.get('/api/metrics/northstar', async (req, res) => {
     return res.json(metricsCache.data);
   }
   try {
-    const [contacts, subs, usage, breakdowns, wow, collected, phones, weeklyReview] = await Promise.all([
+    const [contacts, subs, usage, breakdowns, wow, collected, phones, weeklyReview, stepCounts] = await Promise.all([
       ghl.listSponsorContacts(),
       stripeModule.listSponsorSubscriptions().catch((e) => {
         console.error('[Metrics] Stripe list failed:', e.message);
@@ -2392,6 +2427,11 @@ app.get('/api/metrics/northstar', async (req, res) => {
       // The Sunday review, week by week (Matt, 18 Oct): its own page on the dashboard.
       db.getWeeklyReviewStats(6).catch((e) => {
         console.error('[Metrics] DB weekly review failed:', e.message);
+        return null;
+      }),
+      // Working the steps (Mariam, 11 Nov): counts only, see steps.js.
+      db.stepMetrics().catch((e) => {
+        console.error('[Metrics] DB steps failed:', e.message);
         return null;
       }),
     ]);
@@ -2460,6 +2500,9 @@ app.get('/api/metrics/northstar', async (req, res) => {
       // Totals only, refreshed in the background every few hours (newsletter.js).
       // null until the first refresh after a restart has finished.
       newsletter: newsletter.getCached(),
+      // How many people have a saved step, which step, and moves in the last 7
+      // days. Counted only since the sponsor started saving steps (11 Nov).
+      steps: stepCounts,
       northStar: {
         cumulativeRecoveryDays: nsCumulative,
         activeUsers: nsUsers,
@@ -2780,6 +2823,7 @@ app.get('/api/sponsor-settings', async (req, res) => {
     weeks,
     deletion_,
     lang,
+    stepRecord,
   ] = await Promise.all([
     db.getProfile(userId).catch(() => null),
     db.getUser(userId).catch(() => null),
@@ -2788,6 +2832,7 @@ app.get('/api/sponsor-settings', async (req, res) => {
     db.listWeeklySummaries(userId).catch(() => []),
     db.getDeletionRequest(userId).catch(() => null),
     language.languageOf(db, userId).catch(() => null),
+    db.getSteps(userId).catch(() => null),
   ]);
 
   const profileData = profile || {};
@@ -2855,6 +2900,16 @@ app.get('/api/sponsor-settings', async (req, res) => {
     week: latestWeek,
     weeks,
     weekPending,
+    /* "Your steps": where they are, as their sponsor saved it. Their own words
+       about their own step work, shown only to them, on this page. */
+    steps: stepRecord ? {
+      program: stepRecord.program,
+      step: stepRecord.step,
+      part: stepRecord.part,
+      work: stepRecord.work,
+      workAt: stepRecord.workAt,
+      since: stepRecord.since,
+    } : null,
     /* So the Deactivate pane can show a real state instead of the button they
        already pressed. Null for almost everybody. */
     deletion: deletion_,
@@ -3880,6 +3935,11 @@ app.post('/api/chat', async (req, res) => {
   if (memoryBlock) {
     systemBlocks.push({ type: 'text', text: memoryBlock });
   }
+  /* Their saved place in the steps, read only. The rules for updating it are
+     deliberately NOT given here: this endpoint streams every word to the screen
+     as it is written, so a [[step: ...]] line could not be taken out first. */
+  const webStepsBlock = steps.buildStepsBlock(await db.getSteps(userId).catch(() => null));
+  if (webStepsBlock) systemBlocks.push({ type: 'text', text: webStepsBlock });
   /* After the memory, for the same reason as the WhatsApp path: this is what
      overrules a digest or a history still carrying the old name. This endpoint
      builds its own blocks, which is why the first fix reached WhatsApp and not

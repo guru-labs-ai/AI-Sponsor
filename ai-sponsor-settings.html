@@ -7,7 +7,7 @@
      person's sponsor talks to them in, which it only learns once their profile
      loads (see load()). A ?lang= on the link still wins, which is how the page
      reopens straight after they change it below. See i18n.js. -->
-<script src="i18n.js?v=974e542706" data-i18n-wait data-i18n-extra="settings"></script>
+<script src="i18n.js?v=4999419ef6" data-i18n-wait data-i18n-extra="settings"></script>
 <title>AI Sponsor — Your settings</title>
 <meta name="robots" content="noindex, nofollow">
 <!-- Link preview for when the sponsor sends this link in WhatsApp. Without an
@@ -229,6 +229,28 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
 .wk-chip.static:hover{border-color:transparent}
 .wk-empty{text-align:center;padding:22px 6px;color:var(--sub);font-size:14.5px;line-height:1.65}
 .wk-empty .big{font-size:32px;margin-bottom:12px}
+
+/* ── Your steps ────────────────────────────────────────────────────────────
+   Twelve marks, the ones behind them filled, the one they are on ringed. A
+   path, not a score: nothing here says how fast, and nothing is red. */
+.st-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.st-now{font-family:'Source Serif 4',Georgia,serif;font-size:24px;font-weight:700;color:var(--blue);line-height:1.2}
+.st-prog{font-size:13px;color:var(--sub)}
+.st-track{display:grid;grid-template-columns:repeat(12,minmax(0,36px));justify-content:space-between;gap:5px;margin-bottom:22px}
+.st-dot{aspect-ratio:1;border-radius:50%;border:1.5px solid var(--border);background:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--sub);min-width:0}
+.st-dot.done{background:#EAF2FA;border-color:#B9D3EA;color:var(--blue)}
+.st-dot.now{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 0 0 3px rgba(0,102,179,0.15)}
+.st-item{margin-bottom:18px}
+.st-item .v{font-family:'Source Serif 4',Georgia,serif;font-size:17px;line-height:1.55;color:var(--text);
+  border-left:3px solid var(--blue);padding:2px 0 2px 14px;white-space:pre-wrap}
+.st-item .when{font-size:12.5px;color:var(--sub);margin-top:6px;padding-left:17px}
+.st-foot{font-size:13px;color:var(--sub);line-height:1.6;margin-top:4px}
+@media(max-width:420px){
+  .st-track{gap:3px}
+  .st-dot{font-size:9.5px;border-width:1px}
+  .st-now{font-size:22px}
+}
 @media(max-width:420px){
   .wk-note{font-size:16px;padding-left:13px}
   .wk-day .dot{height:30px}
@@ -267,6 +289,7 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
     <nav class="nav" id="nav">
       <button class="on" data-pane="overview"><span class="ico">📊</span>Overview</button>
       <button data-pane="week"><span class="ico">🗓️</span>Your week</button>
+      <button data-pane="steps"><span class="ico">🪜</span>Your steps</button>
       <button data-pane="sponsor"><span class="ico">💬</span>Your sponsor</button>
       <!-- Its own place in the nav. Bilal, Sep 17: inside "Your sponsor" it was
            there, but nobody looking for it found it. -->
@@ -302,6 +325,15 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
         <div class="sec-label">Earlier weeks</div>
         <div class="wk-chips" id="weekChips"></div>
       </div>
+    </div>
+    </div>
+
+    <!-- Your steps (Mariam, 11 Nov): where they are, as their sponsor saved it. -->
+    <div class="pane" id="pane-steps">
+    <div class="card" id="stepsCard">
+      <h2>Your steps</h2>
+      <p class="sub" style="margin-bottom:18px">Where you are in the Twelve Steps with your sponsor.</p>
+      <div id="stepsBody"></div>
     </div>
     </div>
 
@@ -512,7 +544,7 @@ function show(id){ ['s-load','s-bad','s-dash'].forEach(s => $(s).style.display =
 /* Nav. The pane is in the URL hash so a reload, or a link someone sent
    themselves, comes back to the same place instead of the overview. */
 function openPane(name, push){
-  const panes = ['overview','week','sponsor','language','help','restart','plan','danger'];
+  const panes = ['overview','week','steps','sponsor','language','help','restart','plan','danger'];
   if (!panes.includes(name)) name = 'overview';
   panes.forEach(p => $('pane-' + p).classList.toggle('on', p === name));
   [...document.querySelectorAll('#nav button')].forEach(b => b.classList.toggle('on', b.dataset.pane === name));
@@ -610,6 +642,7 @@ async function load(){
     }
 
     renderWeek(data.week, data.weeks, data.weekPending);
+    renderSteps(data.steps);
     // An older week on screen while the latest is still unwritten: fetch the
     // latest anyway, or last week's note sits there as if it were this one.
     if(data.week && data.weekPending) fetchWeek();
@@ -622,6 +655,47 @@ async function load(){
        link. Say so rather than blaming their link. */
     fail('Could not reach your sponsor just now. Give it a moment and refresh.');
   }
+}
+
+/* ── Your steps ─────────────────────────────────────────────────────────────
+   The sponsor keeps this record itself (steps.js on the server). Where they
+   are in the step and the piece of work are its words about their own step
+   work, so they are escaped and kept out of the page translation, the same as
+   the weekly note. */
+function renderSteps(st){
+  const body = $('stepsBody');
+  if (!st || !st.step) {
+    const ask = (window.AIS_T ? window.AIS_T('Can we start working the steps?') : 'Can we start working the steps?');
+    body.innerHTML =
+      '<div class="wk-empty"><div class="big">🪜</div>' +
+      '<p style="margin:0 0 6px">You have not started the steps with your sponsor yet.</p>' +
+      '<p style="margin:0 0 18px">Whenever you are ready, tell your sponsor, and it will keep track here as you go.</p>' +
+      '<a class="btn" id="stepsStart" target="_blank" rel="noopener" style="display:block;text-decoration:none;box-sizing:border-box">Start the steps on WhatsApp</a>' +
+      '</div>';
+    $('stepsStart').href = 'https://wa.me/13073234467?text=' + encodeURIComponent(ask);
+    return;
+  }
+  const n = Math.max(1, Math.min(12, Number(st.step) || 1));
+  const day = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString(LOCALE(), { day: 'numeric', month: 'long' }); };
+  let html = '<div class="st-head"><div class="st-now">Step ' + n + ' of 12</div>' +
+    (st.program ? '<div class="st-prog" data-no-i18n>' + escHTML(st.program) + '</div>' : '') + '</div>';
+  html += '<div class="st-track" aria-hidden="true">';
+  for (let i = 1; i <= 12; i++) html += '<div class="st-dot' + (i < n ? ' done' : i === n ? ' now' : '') + '">' + i + '</div>';
+  html += '</div>';
+  if (st.part) {
+    html += '<div class="st-item"><div class="sec-label">Where you are</div><div class="v" data-no-i18n>' + escHTML(st.part) + '</div>' +
+      (st.since ? '<div class="when">On this step since ' + escHTML(day(st.since)) + '.</div>' : '') + '</div>';
+  } else if (st.since) {
+    html += '<p class="st-foot" style="margin-bottom:16px">On this step since ' + escHTML(day(st.since)) + '.</p>';
+  }
+  if (st.work) {
+    html += '<div class="st-item"><div class="sec-label">Your piece of work</div><div class="v" data-no-i18n>' + escHTML(st.work) + '</div>' +
+      (st.workAt ? '<div class="when">From your sponsor on ' + escHTML(day(st.workAt)) + '.</div>' : '') + '</div>';
+  } else {
+    html += '<p class="st-foot" style="margin-bottom:16px">No piece of work open right now.</p>';
+  }
+  html += '<p class="st-foot">Your sponsor keeps this up to date as you work the steps together. If anything here is wrong, just tell your sponsor.</p>';
+  body.innerHTML = html;
 }
 
 /* ── Your week ──────────────────────────────────────────────────────────────

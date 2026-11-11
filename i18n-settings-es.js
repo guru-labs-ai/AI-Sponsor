@@ -145,3 +145,21 @@ window.AIS_I18N_PATTERNS = (window.AIS_I18N_PATTERNS || []).concat([
   { re: /^Saved\. Your sponsor will talk to you in (.+) from now on\.$/,
     es: function (m) { return 'Guardado. A partir de ahora tu padrino te hablará en ' + m[1] + '.'; } }
 ]);
+/* Your steps (11 Nov 2026). */
+window.AIS_I18N.es = Object.assign(window.AIS_I18N.es || {}, {
+ "Your steps": "Tus pasos",
+ "Where you are in the Twelve Steps with your sponsor.": "Dónde estás en los Doce Pasos con tu padrino.",
+ "You have not started the steps with your sponsor yet.": "Todavía no has empezado los pasos con tu padrino.",
+ "Whenever you are ready, tell your sponsor, and it will keep track here as you go.": "Cuando estés listo, díselo a tu padrino, y aquí irá anotando cómo avanzas.",
+ "Start the steps on WhatsApp": "Empezar los pasos en WhatsApp",
+ "Can we start working the steps?": "¿Podemos empezar a trabajar los pasos?",
+ "Where you are": "Dónde estás",
+ "Your piece of work": "Tu tarea",
+ "No piece of work open right now.": "Ahora mismo no tienes ninguna tarea abierta.",
+ "Your sponsor keeps this up to date as you work the steps together. If anything here is wrong, just tell your sponsor.": "Tu padrino mantiene esto al día mientras trabajáis los pasos juntos. Si algo no es correcto, díselo a tu padrino."
+});
+window.AIS_I18N_PATTERNS = (window.AIS_I18N_PATTERNS || []).concat([
+  { re: /^Step (\d+) of 12$/, es: function (m) { return 'Paso ' + m[1] + ' de 12'; } },
+  { re: /^On this step since (.+)\.$/, es: function (m) { return 'En este paso desde el ' + m[1] + '.'; } },
+  { re: /^From your sponsor on (.+)\.$/, es: function (m) { return 'De tu padrino, el ' + m[1] + '.'; } }
+]);
