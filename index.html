@@ -10,12 +10,12 @@
        falls back to English rather than to a blank. English is the default;
        it only changes on a ?lang= link or when someone picks a language on
        the switcher. English visitors get the switcher and nothing else. -->
-  <script src="i18n.js?v=9a9bafd201"></script>
+  <script src="i18n.js?v=974e542706"></script>
 
   <!-- Cookie consent gate. GA4, the Meta pixel and Clarity (below) all load
        through this instead of firing on their own — nothing sets a cookie
        until somebody has actually accepted. See cookie-consent.js. -->
-  <script src="/cookie-consent.js?v=9a9bafd201"></script>
+  <script src="/cookie-consent.js?v=974e542706"></script>
   <script>AISCookieConsent.init({ clarity: true });</script>
 
   <!-- HYROS Universal Tracking Script -->
@@ -792,6 +792,10 @@
       .footer-nav { justify-content: center; }
       .nav-left { display: none; }
       .nav-right { flex: 0 0 auto; }
+      /* No room beside the CTA on a phone. The hero carries
+         "Already signed up? Log in" right under the main button. */
+      .nav-login { display: none; }
+      .hero-actions .btn-ghost { padding: 4px 8px; }
       .nav-logo { font-size: 26px; white-space: nowrap; }
       .amends-field-row { grid-template-columns: 1fr; }
       .amends-lp { padding: 48px 20px; }
@@ -846,6 +850,7 @@
   <a href="#" class="nav-logo">AI Sponsor</a>
   <div class="nav-right">
     <div data-lang-switcher="dark"></div>
+    <a href="ai-sponsor-settings.html" class="nav-link nav-login">Log in</a>
     <a href="ai-sponsor-registration.html" class="nav-cta">Get Started Free</a>
   </div>
 </nav>
@@ -857,6 +862,7 @@
   <p class="hero-sub">No waiting. No judgment. Available day or night for whatever program you're in.</p>
   <div class="hero-actions">
     <a href="ai-sponsor-registration.html" class="btn-primary">Start free for 30 days →</a>
+    <a href="ai-sponsor-settings.html" class="btn-ghost">Already signed up? Log in</a>
   </div>
   <div class="hero-stats">
     <div class="stat">
@@ -1392,6 +1398,7 @@
     <a href="/blog/" class="footer-nav-link">Blog</a>
     <a href="#amends" class="footer-nav-link">Amends</a>
     <a href="ai-sponsor-registration.html" class="footer-nav-link">Get Started</a>
+    <a href="ai-sponsor-settings.html" class="footer-nav-link">Log in</a>
     <!-- Standard place people look for these, and the place a Meta reviewer
          checks. Deletion deliberately does NOT get a footer link of its own:
          Mariam's call, the policies are where somebody looks for it. Both

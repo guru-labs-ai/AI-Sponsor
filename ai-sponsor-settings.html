@@ -7,7 +7,7 @@
      person's sponsor talks to them in, which it only learns once their profile
      loads (see load()). A ?lang= on the link still wins, which is how the page
      reopens straight after they change it below. See i18n.js. -->
-<script src="i18n.js?v=9a9bafd201" data-i18n-wait data-i18n-extra="settings"></script>
+<script src="i18n.js?v=974e542706" data-i18n-wait data-i18n-extra="settings"></script>
 <title>AI Sponsor — Your settings</title>
 <meta name="robots" content="noindex, nofollow">
 <!-- Link preview for when the sponsor sends this link in WhatsApp. Without an
@@ -245,12 +245,19 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,179,0.12)}
   <!-- Loading -->
   <div id="s-load" class="card"><div class="state"><p class="sub" style="margin:0">Loading…</p></div></div>
 
-  <!-- Bad or expired link -->
+  <!-- No link, or an expired one. Also where "Log in" on the homepage lands.
+       There is no password: the sponsor sends a private link, so the way in is
+       one tap that asks for it. A member who wanted to cancel (31 Oct) looked
+       for a login on the website, found none, and only got here by guessing
+       that the sponsor could help. -->
   <div id="s-bad" class="card" style="display:none">
     <div class="state">
       <div class="big">🔗</div>
-      <h1>This link has expired</h1>
-      <p class="sub" style="margin-bottom:0" id="badMsg">Message your sponsor on WhatsApp and ask for a new one.</p>
+      <h1 id="badTitle">This link has expired</h1>
+      <p class="sub" id="badMsg">Message your sponsor on WhatsApp and ask for a new one.</p>
+      <a class="btn" id="badWa" href="https://wa.me/13073234467?text=Hi%2C%20can%20you%20send%20me%20my%20settings%20link%3F" target="_blank" rel="noopener" style="display:block;text-decoration:none;box-sizing:border-box">Get my link on WhatsApp</a>
+      <p class="sub" style="margin:14px 0 0;font-size:13.5px">Tap the button and press send. Your link arrives in a few seconds.</p>
+      <p class="sub" style="margin:6px 0 0;font-size:13.5px">Use the web chat instead? Ask your sponsor there for your settings link.</p>
     </div>
   </div>
 
@@ -523,7 +530,8 @@ function clearFlash(...ids){ ids.forEach(i => $(i).classList.remove('show')); }
    in English that their link needs replacing, which is the one message they
    have to understand. */
 let knowsTheirLanguage = false;
-function fail(msg){
+function fail(msg, title){
+  $('badTitle').textContent = title || 'This link has expired';
   if(msg) $('badMsg').textContent = msg;
   if (!knowsTheirLanguage && window.AIS_USE_LANG && window.AIS_DEVICE_LANG) {
     window.AIS_USE_LANG(window.AIS_DEVICE_LANG);
@@ -542,7 +550,7 @@ async function api(path, body){
 }
 
 async function load(){
-  if(!TOKEN) return fail('This link is missing its code. Ask your sponsor on WhatsApp for a new one.');
+  if(!TOKEN) return fail('There is no password. Your sponsor sends you a private link to your settings, where you can change your plan or cancel.', 'Manage your account');
   try{
     const res = await fetch(BACKEND_URL + '/api/sponsor-settings?t=' + encodeURIComponent(TOKEN));
     if(!res.ok){

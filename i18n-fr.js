@@ -35,6 +35,8 @@ window.AIS_I18N.fr = Object.assign(window.AIS_I18N.fr || {}, {
   "Always Here": "Toujours là",
   "No waiting. No judgment. Available day or night for whatever program you're in.": "Sans attente. Sans jugement. Disponible jour et nuit, quel que soit votre programme.",
   "Start free for 30 days →": "30 jours gratuits →",
+  "Already signed up? Log in": "Déjà inscrit ? Se connecter",
+  "Log in": "Se connecter",
   "of people in recovery have a sponsor": "des personnes en rétablissement ont un parrain",
   "always available, no waiting": "toujours disponible, sans attente",
   "step recovery method": "étapes de la méthode de rétablissement",
