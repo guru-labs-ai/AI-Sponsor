@@ -20,6 +20,7 @@ const meetingReviews = require('./meeting-reviews'); // checking reported meetin
 const phonerules = require('./phonerules'); // is this a real number in that country
 const countries = require('./countries'); // phone prefix -> country and US state
 const trialnotice = require('./trialnotice'); // the "your trial ends" WhatsApp notice
+const paymentnotice = require('./paymentnotice'); // "your payment went through", after every real charge
 const notices = require('./notices');       // account notices (cancelled, changed, deletion)
 const meetings = require('./meetings');     // real online meetings, from the official directories
 const steps = require('./steps');           // where they are in the Twelve Steps, kept by the sponsor
@@ -4237,6 +4238,18 @@ async function syncStripeToGhl(result) {
         invoiceId: result.invoiceId,
         attribution: result.attribution, // the ad click, carried 30 days by Stripe
       });
+
+      /* And the half the customer sees (Mariam, 11 Nov): Stripe's own receipt
+         names Stand Up 8 LLC and points at the Guru inbox, so AI Sponsor tells
+         them itself what the charge was and how to change or cancel it. Never
+         allowed to fail the webhook: the payment is already recorded above. */
+      if (payer && result.amount > 0) {
+        const notice = await paymentnotice.notifyPayment({
+          user: payer, invoiceId: result.invoiceId, amount: result.amount, currency: result.currency,
+          plan: result.plan, db, whatsapp, siteUrl: SITE_URL,
+        }).catch((e) => ({ sent: false, reason: e.message }));
+        console.log(`[payment-notice] ${result.email || result.customerId}: ${notice.sent ? notice.via : notice.reason}`);
+      }
 
       /* Tell Meta the money landed. Until this existed the ad click captured at
          registration travelled 30 days through Stripe and then stopped at a
