@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Site language: shows this article in the language the visitor chose on the
+       homepage or sign-up (?lang= or their saved choice), English otherwise.
+       See i18n.js. -->
+  <script src="/i18n.js?v=c6215bfcb0" data-i18n-extra="blogpost"></script>
+
+  <!-- Cookie consent gate. GA4, the Meta pixel, the OpenAI ads pixel and Clarity
+       all load through this instead of firing on their own: nothing sets a
+       cookie until somebody has actually accepted. See /cookie-consent.js. -->
+  <script src="/cookie-consent.js?v=c6215bfcb0"></script>
+  <script>AISCookieConsent.init({ clarity: true });</script>
+
+  <!-- HYROS Universal Tracking Script -->
+  <script>
+    var head = document.head;
+    var script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = "https://215466.t.hyros.com/v1/lst/universal-script?ph=395a23f1c62bf26a497b91f272b6fc6b27906736d5a140cd7a9e220d722c2456&tag=!ai_sponsor&ref_url=" + encodeURI(document.URL);
+    head.appendChild(script);
+  </script>
+
+  <!-- Attribution: first touch wins. See /blog/index.html for the full note. -->
+  <script>
+  (function(){
+    try{
+      if (localStorage.getItem('ais_attr')) return;
+      var p = new URLSearchParams(location.search);
+      var refHost = '';
+      try {
+        if (document.referrer) refHost = new URL(document.referrer).hostname.replace(/^www\./,'');
+      } catch(e){}
+      if (refHost && refHost === location.hostname.replace(/^www\./,'')) refHost = '';
+      localStorage.setItem('ais_attr', JSON.stringify({
+        utmSource:   p.get('utm_source')   || '',
+        utmMedium:   p.get('utm_medium')   || '',
+        utmCampaign: p.get('utm_campaign') || '',
+        referrer:    refHost,
+        landing:     location.pathname,
+        at:          new Date().toISOString()
+      }));
+    }catch(e){}
+  })();
+  </script>
+  <title>AA Online: A Free Convention and the Big Book | AI Sponsor</title>
+  <meta name="description" content="AA's Online Intergroup holds a free international convention on 20-22 November 2026. Plus the Big Book, Living Sober and more, free on aa.org.">
+  <link rel="canonical" href="https://getaisponsor.com/blog/aa-online-convention-and-free-books/">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="AI Sponsor">
+  <meta property="og:title" content="Something to join, something to read: Alcoholics Anonymous">
+  <meta property="og:description" content="A free online AA convention on 20 to 22 November 2026, and the Big Book, the Twelve and Twelve and Living Sober to read, watch or listen to on aa.org.">
+  <meta property="og:url" content="https://getaisponsor.com/blog/aa-online-convention-and-free-books/">
+  <meta property="og:image" content="https://getaisponsor.com/og-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-11-11">
+  <meta property="article:modified_time" content="2026-11-11">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Something to join, something to read: Alcoholics Anonymous">
+  <meta name="twitter:description" content="A free online AA convention on 20 to 22 November 2026, and the Big Book, the Twelve and Twelve and Living Sober to read, watch or listen to on aa.org.">
+  <meta name="twitter:image" content="https://getaisponsor.com/og-card.png">
+
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/blog/blog.css?v=c6215bfcb0">
+
+  <!-- Like the DA and ACA posts: an event and a reading guide, not a program
+       explainer, so it carries its own card styles instead of the .answer box
+       and FAQ block. -->
+  <style>
+    .art { margin: 8px 0 28px; border-radius: 16px; overflow: hidden; background: var(--blue-pale); }
+    .art svg { display: block; width: 100%; height: auto; }
+    .art-small { max-width: 420px; margin-left: auto; margin-right: auto; }
+    .lede { font-size: 18px; line-height: 1.75; color: var(--text); }
+    .listen { list-style: none; padding: 0 !important; margin: 24px 0 8px !important; }
+    .listen li {
+      background: var(--white); border: 1px solid var(--border); border-radius: 14px;
+      padding: 18px 18px 16px; margin: 0 0 14px !important;
+    }
+    .listen .for {
+      display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--blue); background: var(--blue-pale);
+      border-radius: 999px; padding: 4px 10px; margin-bottom: 10px;
+    }
+    .listen h3 { margin: 0 0 6px !important; font-size: 18px; line-height: 1.35; }
+    .listen p { font-size: 15px !important; margin: 0 0 10px !important; color: var(--sub); }
+    .listen .play {
+      display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600;
+      text-decoration: none; color: var(--white) !important; background: var(--blue);
+      border-radius: 999px; padding: 8px 16px;
+    }
+    .listen .play:hover { background: var(--blue-light); }
+    .gather { border-left: 3px solid var(--gold); padding: 2px 0 2px 16px; margin: 22px 0; }
+    .gather .when { font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
+    .gather h3 { margin: 0 0 8px !important; }
+    .gather p { margin-bottom: 8px; }
+    .checked { font-size: 14px; color: var(--sub); font-style: italic; }
+    @media (min-width: 768px) {
+      .listen li { padding: 22px 24px 20px; }
+      .listen h3 { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav id="nav">
+  <a href="/" class="nav-logo">AI Sponsor</a>
+  <div class="nav-right">
+    <a href="/blog/" class="nav-link">Blog</a>
+    <a href="/#pricing" class="nav-link">Pricing</a>
+    <a href="/#faq" class="nav-link">FAQ</a>
+    <a href="/ai-sponsor-registration.html" class="nav-cta">Get Started Free</a>
+  </div>
+</nav>
+
+<main class="wrap">
+  <article class="article">
+
+    <div class="breadcrumb">
+      <a href="/">Home</a> &rsaquo; <a href="/blog/">Blog</a> &rsaquo; AA: a convention and free books
+    </div>
+
+    <h1>Something to join, something to read: Alcoholics Anonymous</h1>
+
+    <div class="byline">
+      <span>By the <strong>AI Sponsor team</strong></span>
+      <span class="sep">&bull;</span>
+      <span>Published <time datetime="2026-11-11">11 November 2026</time></span>
+      <span class="sep">&bull;</span>
+      <span>4 min read</span>
+    </div>
+
+    <!-- Illustration drawn for this post. No fellowship logos, book covers or event photos. -->
+    <div class="art" role="img" aria-label="Illustration of a globe with three highlighted regions beside a calendar weekend">
+      <svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="640" height="260" fill="#E8F4FD"/>
+        <circle cx="560" cy="40" r="70" fill="#D6EAF8"/>
+        <circle cx="60" cy="232" r="56" fill="#D6EAF8"/>
+        <g transform="translate(200 130)">
+          <circle r="86" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="3"/>
+          <ellipse rx="86" ry="32" fill="none" stroke="#CBD5E1" stroke-width="2"/>
+          <ellipse rx="40" ry="86" fill="none" stroke="#CBD5E1" stroke-width="2"/>
+          <line x1="-86" y1="0" x2="86" y2="0" stroke="#CBD5E1" stroke-width="2"/>
+          <circle cx="-38" cy="-30" r="11" fill="#0080D4"/>
+          <circle cx="30" cy="18" r="11" fill="#0066B3"/>
+          <circle cx="52" cy="-44" r="11" fill="#D97706"/>
+        </g>
+        <g transform="translate(360 70)">
+          <rect width="200" height="128" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+          <rect width="200" height="30" rx="14" fill="#0066B3"/>
+          <rect y="16" width="200" height="14" fill="#0066B3"/>
+          <g fill="#E2E8F0">
+            <rect x="18" y="48" width="44" height="30" rx="7"/>
+            <rect x="78" y="48" width="44" height="30" rx="7"/>
+            <rect x="138" y="48" width="44" height="30" rx="7"/>
+          </g>
+          <g fill="#0080D4">
+            <rect x="18" y="88" width="44" height="26" rx="7"/>
+            <rect x="78" y="88" width="44" height="26" rx="7"/>
+            <rect x="138" y="88" width="44" height="26" rx="7"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+
+    <p class="lede">The weeks around the holidays can be some of the hardest of the year. Alcoholics Anonymous has a lot to lean on that costs nothing, and nearly all of it sits on AA's own websites. Here is what is coming up, and where to find it.</p>
+
+    <h2>A free online convention, 20 to 22 November</h2>
+
+    <div class="gather">
+      <div class="when">Online &middot; Friday 20 to Sunday 22 November 2026</div>
+      <h3>OIAA2026 Online International Convention</h3>
+      <p>The Online Intergroup of Alcoholics Anonymous (OIAA) is the AA service body set up to help online AA groups carry the message. Its 2026 international convention is online, the weekend before Thanksgiving. The theme is "Recovery, Service and Unity", and each of the three days spotlights a different region of the world.</p>
+      <p>Attendance is free. OIAA welcomes contributions to keep the event self-supporting, in line with AA's Seventh Tradition. You register with an email address and get a confirmation by email. The schedule for all three days is out, some meetings are interpreted in ASL, and there are registration flyers in Spanish, French, Chinese, Persian and Portuguese.</p>
+      <p><a href="https://aa-intergroup.org/oiaa2026/" target="_blank" rel="noopener">See the schedule</a> &middot; <a href="https://aa-intergroup.org/oiaa2026-registration/" target="_blank" rel="noopener">Register</a></p>
+    </div>
+
+    <h2>Read, watch or listen: AA's own books, free on aa.org</h2>
+
+    <div class="art art-small" role="img" aria-label="Illustration of an open book with headphones beside it">
+      <svg viewBox="0 0 420 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="420" height="200" fill="#E8F4FD"/>
+        <g transform="translate(50 52)">
+          <path d="M0 14 q60 -24 120 0 v96 q-60 -24 -120 0 z" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+          <path d="M120 14 q60 -24 120 0 v96 q-60 -24 -120 0 z" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+          <g stroke="#CBD5E1" stroke-width="4" stroke-linecap="round">
+            <line x1="18" y1="40" x2="100" y2="34"/><line x1="18" y1="58" x2="100" y2="52"/><line x1="18" y1="76" x2="84" y2="71"/>
+            <line x1="140" y1="34" x2="222" y2="40"/><line x1="140" y1="52" x2="222" y2="58"/>
+          </g>
+        </g>
+        <path d="M318 118 v-14 a30 30 0 0 1 60 0 v14" fill="none" stroke="#0066B3" stroke-width="7" stroke-linecap="round"/>
+        <rect x="309" y="112" width="18" height="30" rx="7" fill="#0080D4"/>
+        <rect x="369" y="112" width="18" height="30" rx="7" fill="#D97706"/>
+      </svg>
+    </div>
+
+    <p>AA keeps several of its books on aa.org to read free, chapter by chapter. Some also have Watch and Listen options, including videos in American Sign Language. Which one to open depends on where you are right now.</p>
+
+    <ul class="listen">
+      <li>
+        <span class="for">If you are new</span>
+        <h3>Alcoholics Anonymous, the Big Book</h3>
+        <p>AA's basic text. It was first published in 1939 to show how the first hundred members got sober, and AA says it is now translated into more than 70 languages. The first two chapters are "Bill's Story" and "There Is a Solution".</p>
+        <a class="play" href="https://www.aa.org/the-big-book" target="_blank" rel="noopener">&#9654; Read it on aa.org</a>
+      </li>
+      <li>
+        <span class="for">If you are working the steps</span>
+        <h3>Twelve Steps and Twelve Traditions</h3>
+        <p>Known as the "Twelve and Twelve", it has a chapter for each Step and each Tradition. Open the chapter for the step you are on.</p>
+        <a class="play" href="https://www.aa.org/twelve-steps-twelve-traditions" target="_blank" rel="noopener">&#9654; Read it on aa.org</a>
+      </li>
+      <li>
+        <span class="for">If the holidays are hard</span>
+        <h3>Living Sober</h3>
+        <p>AA calls it a practical booklet about how members stay sober one day at a time. It has an audio version, chapter by chapter, with chapters like "Using the 24-hour plan" and "Changing old routines".</p>
+        <a class="play" href="https://www.aa.org/living-sober-book" target="_blank" rel="noopener">&#9654; Read or listen on aa.org</a>
+      </li>
+      <li>
+        <span class="for">If you want something each morning</span>
+        <h3>Daily Reflections</h3>
+        <p>A short reading for each day of the year, on aa.org.</p>
+        <a class="play" href="https://www.aa.org/daily-reflection" target="_blank" rel="noopener">&#9654; Read today's</a>
+      </li>
+    </ul>
+
+    <h2>Meetings on your phone</h2>
+
+    <p>AA's free Meeting Guide app, for iPhone and Android, lists more than 150,000 weekly meetings, in person and online. AA says the listings come from more than 500 local AA service offices and are refreshed twice a day, and the app shows a daily quote from Daily Reflections. <a href="https://www.aa.org/meeting-guide-app" target="_blank" rel="noopener">Get Meeting Guide</a>.</p>
+
+    <p>For online meetings only, OIAA keeps its own directory, including meetings happening right now. <a href="https://aa-intergroup.org/" target="_blank" rel="noopener">Find an online meeting</a>.</p>
+
+    <p class="checked">We took these dates and details from AA's and OIAA's own pages on 11 November 2026. Plans change, so check their pages before you plan around them.</p>
+
+    <h2>And the hours in between</h2>
+
+    <p>A convention is three days. A book is there when you open it. A lot of the hard moments happen somewhere else: at a family dinner, late at night, or the morning after a bad day.</p>
+
+    <p>That is where an AI sponsor fits. You can message it at any hour, talk through what is happening, and plan for a hard day before it comes. It can find you online AA meetings with the time where you are, and it keeps track of where you are in the steps. It is not a therapist and it does not replace a meeting or a human sponsor. It is not affiliated with AA, and under its Sixth Tradition AA does not endorse outside enterprises.</p>
+
+    <p>If you are in crisis, call or text 988, or text HOME to 741741.</p>
+
+    <p><em>Related: <a href="/blog/aca-convention-talks-and-study-groups/">Something to listen to, someone to work with: Adult Children of Alcoholics</a> and <a href="/blog/what-is-an-ai-sponsor/">What is an AI sponsor?</a></em></p>
+
+    <div class="article-cta">
+      <h3>Something for tonight, too.</h3>
+      <p>A private companion for AA, and for Al-Anon, NA, ACA, DA, UA and more. It knows your program, it remembers what you tell it, and it answers whenever you need it. For every subscription sold, we give one away to someone who cannot afford it.</p>
+      <a class="btn" href="/ai-sponsor-registration.html">Get your AI sponsor</a>
+    </div>
+
+  </article>
+</main>
+
+<footer>
+  <a href="/" class="footer-logo">AI Sponsor</a>
+  <nav class="footer-nav">
+    <a href="/#how" class="footer-nav-link">How It Works</a>
+    <a href="/#pricing" class="footer-nav-link">Pricing</a>
+    <a href="/#faq" class="footer-nav-link">FAQ</a>
+    <a href="/blog/" class="footer-nav-link">Blog</a>
+    <a href="/ai-sponsor-registration.html" class="footer-nav-link">Get Started</a>
+    <a href="/privacy" class="footer-nav-link">Privacy</a>
+    <a href="/terms" class="footer-nav-link">Terms</a>
+    <a href="#" class="footer-nav-link" onclick="AISCookieConsent.reset({clarity:true});return false;">Cookie preferences</a>
+  </nav>
+  <p class="footer-disclaimer">AI Sponsor is a private product and is not affiliated with, endorsed by, or connected to Alcoholics Anonymous, Narcotics Anonymous, Overeaters Anonymous, Underearners Anonymous, Debtors Anonymous, Adult Children of Alcoholics, or any 12-step program or organisation. If you are in crisis, please contact the Crisis Text Line (text HOME to 741741) or call 988.</p>
+</footer>
+<div style="background:#060E1A;text-align:center;padding:16px 24px;border-top:1px solid rgba(255,255,255,.06);">
+  <p style="font-size:12px;color:rgba(255,255,255,.25);">&copy; 2026 Conscious LLC. All rights reserved.</p>
+  <p style="font-size:12px;color:rgba(255,255,255,.25);">AI Sponsor is a service of Conscious LLC.</p>
+</div>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BlogPosting",
+      "@id": "https://getaisponsor.com/blog/aa-online-convention-and-free-books/#post",
+      "headline": "Something to join, something to read: Alcoholics Anonymous",
+      "description": "AA's Online Intergroup holds a free international convention on 20-22 November 2026. Plus the Big Book, Living Sober and more, free on aa.org.",
+      "url": "https://getaisponsor.com/blog/aa-online-convention-and-free-books/",
+      "datePublished": "2026-11-11",
+      "dateModified": "2026-11-11",
+      "inLanguage": "en",
+      "author": {
+        "@type": "Organization",
+        "@id": "https://getaisponsor.com/#org",
+        "name": "AI Sponsor",
+        "url": "https://getaisponsor.com/"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "@id": "https://getaisponsor.com/#org",
+        "name": "AI Sponsor",
+        "url": "https://getaisponsor.com/",
+        "logo": "https://getaisponsor.com/logo.png"
+      },
+      "isPartOf": {
+        "@id": "https://getaisponsor.com/blog/#blog",
+        "name": "AI Sponsor Blog",
+        "url": "https://getaisponsor.com/blog/"
+      },
+      "mainEntityOfPage": "https://getaisponsor.com/blog/aa-online-convention-and-free-books/",
+      "image": "https://getaisponsor.com/logo.png",
+      "about": [
+        {
+          "@type": "Organization",
+          "name": "Alcoholics Anonymous",
+          "sameAs": "https://www.aa.org/"
+        },
+        {
+          "@type": "Thing",
+          "name": "12-step recovery"
+        }
+      ]
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "AI Sponsor",
+          "item": "https://getaisponsor.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Blog",
+          "item": "https://getaisponsor.com/blog/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "AA: a convention and free books",
+          "item": "https://getaisponsor.com/blog/aa-online-convention-and-free-books/"
+        }
+      ]
+    }
+  ]
+}
+</script>
+
+</body>
+</html>
