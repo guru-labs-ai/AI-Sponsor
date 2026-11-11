@@ -35,7 +35,7 @@
   /* Stamped by scripts/stamp-cache-version.py. Also rides on dictFile()'s
      own URLs, so a changed dictionary is fetched fresh the same way a
      changed i18n.js is: see WHY THIS EXISTS at the top of that script. */
-  var BUILD_VERSION = '4999419ef6';
+  var BUILD_VERSION = 'c6215bfcb0';
   var SUPPORTED = ['en', 'es', 'fr', 'de'];
   var LABEL = { en: 'English', es: 'Español', fr: 'Français', de: 'Deutsch' };
   var STORE = 'ais_lang';

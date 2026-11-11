@@ -495,3 +495,7 @@ window.AIS_I18N.de = Object.assign(window.AIS_I18N.de || {}, {
   "Hi": "Hallo",
   ", it's {name}": ", hier ist {name}"
 });
+/* A group's sign-up link with the code already in it (11 Nov 2026). */
+window.AIS_I18N.de = Object.assign(window.AIS_I18N.de || {}, {
+ "Your code is already filled in. Tap Unlock for free access. You will not be asked for a card.": "Dein Code ist schon eingetragen. Tippe auf „Freischalten“ für kostenlosen Zugang. Du wirst nicht nach einer Karte gefragt."
+});

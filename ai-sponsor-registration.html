@@ -10,7 +10,7 @@
      get the switcher and nothing else. The
      language they read this in is sent to /register, so their sponsor's
      automatic messages arrive in it too. See i18n.js. -->
-<script src="i18n.js?v=4999419ef6"></script>
+<script src="i18n.js?v=c6215bfcb0"></script>
 <!-- Same first-touch attribution capture as the landing page — people can arrive
      here directly (an ad straight to signup), so this page has to record it too.
      First touch wins, so arriving via the landing page won't overwrite it. -->
@@ -19,15 +19,23 @@
   try{
     if (localStorage.getItem('ais_attr')) return;
     var p = new URLSearchParams(location.search);
+    /* A group's own sign-up link (Mariam, 11 Nov): ?code=AAFOUNDER fills the
+       code in for them. Untagged, it would arrive as "Direct", so the code
+       names where they came from: AAFOUNDER is the AA WhatsApp group. A real
+       utm_source on the link still wins. */
+    var linkCode = String(p.get('code') || '').trim().toUpperCase();
+    if (!/^[A-Z0-9-]{3,30}$/.test(linkCode)) linkCode = '';
+    var group = linkCode.match(/^([A-Z]{2,6})FOUNDER$/);
+    var codeSource = linkCode ? (group ? group[1] + ' WhatsApp group' : 'Code ' + linkCode) : '';
     var refHost = '';
     try {
       if (document.referrer) refHost = new URL(document.referrer).hostname.replace(/^www\./,'');
     } catch(e){}
     if (refHost && refHost === location.hostname.replace(/^www\./,'')) refHost = '';
     localStorage.setItem('ais_attr', JSON.stringify({
-      utmSource:   p.get('utm_source')   || '',
-      utmMedium:   p.get('utm_medium')   || '',
-      utmCampaign: p.get('utm_campaign') || '',
+      utmSource:   p.get('utm_source')   || codeSource,
+      utmMedium:   p.get('utm_medium')   || (codeSource ? 'whatsapp' : ''),
+      utmCampaign: p.get('utm_campaign') || (linkCode ? linkCode.toLowerCase() : ''),
       utmContent:  p.get('utm_content')  || '',
       utmTerm:     p.get('utm_term')     || '',
       // Ad-click ids. These only ever appear in the URL on the very first hit
@@ -51,7 +59,7 @@
      until somebody has actually accepted. See cookie-consent.js. The later
      fbq/gtag calls in handlePaymentReturn() are already wrapped in
      try/catch, so a decline there costs a conversion event, not a crash. -->
-<script src="/cookie-consent.js?v=4999419ef6"></script>
+<script src="/cookie-consent.js?v=c6215bfcb0"></script>
 <script>AISCookieConsent.init({ clarity: true });</script>
 
 <!-- HYROS Universal Tracking Script -->
@@ -1088,6 +1096,19 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
           <span class="err-msg" id="e-code">That code doesn't look right. Try again.</span>
         </div>
       </div>
+      <!-- The group's own link carries the code (?code=AAFOUNDER), so it is
+           already in the box when they get here and they only press Unlock. -->
+      <script>
+      (function(){
+        try{
+          var c = String(new URLSearchParams(location.search).get('code') || '').trim().toUpperCase();
+          if (!/^[A-Z0-9-]{3,30}$/.test(c)) return;
+          document.getElementById('f-code').value = c;
+          var hint = document.querySelector('#codeSection .beta-box p');
+          if (hint) hint.textContent = 'Your code is already filled in. Tap Unlock for free access. You will not be asked for a card.';
+        }catch(e){}
+      })();
+      </script>
 
       <div class="plan-divider" id="planDivider">No code? Choose a plan</div>
 
