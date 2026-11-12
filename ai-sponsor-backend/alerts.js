@@ -34,7 +34,9 @@
    happened. Name and email match what the DRM alerts already show.
 ──────────────────────────────────────────────────────────────────────────── */
 
-const { resolveSource } = require('./db'); // one shared definition of "came from"
+// One shared definition of "came from" and "which page", so an alert and the
+// dashboard can never tell different stories.
+const { sourcePhrase, pageLabel } = require('./db');
 const { isQaTest } = require('./qatest'); // QA Guru's test inbox is not a person
 
 const SLACK_POST_MESSAGE = 'https://slack.com/api/chat.postMessage';
@@ -107,40 +109,78 @@ function phoneLine(phone) {
   return digits.length >= 7 ? `*Phone:* <https://wa.me/${digits}|+${digits}> (tap to WhatsApp them)` : null;
 }
 
-/* Where this person came from, in as much detail as we actually hold.
+/* Where this person came from, in words, in as much detail as we hold.
 
-   The headline label is db.resolveSource(), the same rule the dashboard groups
-   on, so a signup and the chart can never tell different stories. Everything
-   under it is the raw first-touch record, printed only when it exists.
+   Rewritten 12 Nov 2026 after Matt read "Came from: Google / Referrer:
+   google.com / Landed on: / / First seen: 2026-10-01T08:15:42.120Z" and had to
+   ask what it meant. Every line now answers a question without a lookup:
+     Found us:          how and when they first arrived (first touch)
+     First page:        the page they saw first, by name
+     Came back through: what brought them back for the visit they signed up
+                        on, only when that was a different visit
 
-   Honesty rule, inherited from resolveSource: no browser data at all means
-   "Unknown", never "Direct". Direct is a claim that they typed us in. Unknown
-   is the truth when a WhatsApp arrival or an import reached us with no page
-   behind it, and quietly upgrading one to the other invents credit we did not
-   earn. Ad clicks matter most here: fbclid or gclid is the only proof a paid
-   click produced this person, and on a 30-day trial it is the only thing that
-   will still be around when the money finally lands. */
-function sourceLines(attribution) {
+   The source wording comes from db.sourcePhrase(), built on resolveSource(),
+   the same rule the dashboard groups on. Honesty rule, inherited from it: no
+   browser data at all means Unknown, never "no source given". The second is a
+   claim that a browser visited us; Unknown is the truth when a WhatsApp
+   arrival or an import reached us with no page behind it.
+
+   Ad clicks still get their own line when one exists: fbclid or gclid is the
+   only proof a paid click produced this person, and on a 30-day trial it is
+   the only thing still around when the money lands.
+
+   { relative: true } adds "(22 days ago)" to the first visit. Only for alerts
+   sent at sign-up: on the day-31 payment "ago" would be measured from the
+   wrong moment. */
+const SAME_VISIT_MS = 30 * 60 * 1000;
+
+function sourceLines(attribution, { relative = false } = {}) {
   const raw = attribution && typeof attribution === 'object' ? attribution : null;
   if (!raw || !Object.keys(raw).length) {
-    return ['*Came from:* Unknown (no browser data reached us)'];
+    return ['*Found us:* Unknown (no website visit reached us)'];
   }
 
   /* Two shapes reach this function and they are not the same. The browser posts
      camelCase to /register; Stripe hands back the subscription metadata, which
-     is snake_case because that is how it was written at checkout. Reading only
-     one shape would silently label every paying customer "Unknown", which is
-     the exact failure this alert exists to prevent. */
+     is snake_case and flat because that is how it was written at checkout.
+     Reading only one shape would silently label every paying customer
+     "Unknown", which is the exact failure this alert exists to prevent. */
   const a = {
     utmSource: raw.utmSource || raw.utm_source || '',
     utmMedium: raw.utmMedium || raw.utm_medium || '',
     utmCampaign: raw.utmCampaign || raw.utm_campaign || '',
     referrer: raw.referrer || '',
     landing: raw.landing || '',
-    firstSeen: raw.firstSeen || raw.first_seen || '',
+    title: raw.title || raw.landing_title || '',
+    firstSeen: raw.at || raw.firstSeen || raw.first_seen || '',
     fbclid: raw.fbclid || '',
     gclid: raw.gclid || '',
   };
+  const rv = raw.visit && typeof raw.visit === 'object' ? raw.visit : {};
+  const v = {
+    utmSource: rv.utmSource || raw.visit_utm_source || '',
+    utmMedium: rv.utmMedium || raw.visit_utm_medium || '',
+    utmCampaign: rv.utmCampaign || raw.visit_utm_campaign || '',
+    referrer: rv.referrer || raw.visit_referrer || '',
+    landing: rv.landing || raw.visit_landing || '',
+    title: rv.title || raw.visit_title || '',
+    at: rv.at || raw.visit_at || '',
+  };
+
+  const firstMs = Date.parse(a.firstSeen);
+  let when = '';
+  if (!Number.isNaN(firstMs)) {
+    when = `, ${fmtDate(new Date(firstMs))}`;
+    if (relative) {
+      const days = Math.floor((Date.now() - firstMs) / 86400000);
+      if (days >= 1) when += ` (${days} day${days === 1 ? '' : 's'} ago)`;
+    }
+  }
+
+  // The visit they signed up on, only when it is not the first one again.
+  const visitMs = Date.parse(v.at);
+  const cameBack = Boolean(v.landing) && !Number.isNaN(visitMs) && !Number.isNaN(firstMs)
+    && visitMs - firstMs > SAME_VISIT_MS;
 
   const utms = [
     a.utmSource ? `source ${a.utmSource}` : null,
@@ -149,14 +189,16 @@ function sourceLines(attribution) {
   ].filter(Boolean);
 
   const paidClick = a.fbclid ? 'Meta (fbclid)' : a.gclid ? 'Google (gclid)' : null;
+  const firstPage = pageLabel(a.landing, a.title);
 
   return [
-    `*Came from:* ${resolveSource(a)}`,
-    a.referrer ? `*Referrer:* ${a.referrer}` : null,
+    `*Found us:* ${sourcePhrase(a)}${when}`,
+    firstPage ? `*First page:* ${firstPage}` : null,
+    cameBack
+      ? `*Came back through:* ${sourcePhrase(v)}, ${fmtDate(new Date(visitMs))}, landing on ${pageLabel(v.landing, v.title)}`
+      : null,
     utms.length ? `*Campaign:* ${utms.join(', ')}` : null,
     paidClick ? `*Paid click:* ${paidClick}, so this one can be attributed to an ad` : null,
-    a.landing ? `*Landed on:* ${a.landing}` : null,
-    a.firstSeen ? `*First seen:* ${a.firstSeen}` : null,
   ].filter(Boolean);
 }
 
@@ -268,7 +310,7 @@ const registeredAlert = safeCustomer(({
   `*Access:* ${access || 'Unpaid'}${access === 'Beta' ? ' (founding member, free)' : ''}`,
   // Which group's code, so AA and NA sign-ups can be told apart at a glance.
   code ? `*Code:* ${code}${codeDays ? ` (${codeDays} days free)` : ''}` : null,
-  ...sourceLines(attribution),
+  ...sourceLines(attribution, { relative: true }),
   sponsorName ? `*Sponsor named:* ${sponsorName}` : null,
   delivery ? `*Talking on:* ${delivery}` : null,
   access === 'Beta'
@@ -291,20 +333,35 @@ function registered(payload = {}) {
 }
 
 /* Card accepted, trial open. This is the one the DRM zap gets wrong. */
+/* otherPlans: any OTHER live AI Sponsor plan on the same email. On 12 Nov 2026
+   a customer went through checkout twice eleven minutes apart and held two trials
+   on one card, so they would have paid $10 on 12 Dec for one account. Checkout
+   now refuses a second plan (server.js), so this line is the backstop for
+   whatever still gets through, such as a lookup that failed open. It turns
+   the alert into a job, because someone has to cancel one. */
 const trialStarted = safeCustomer(({
-  name, email, phone, plan, firstChargeAt, attribution, customerId,
-}) => [
-  ':credit_card: *AI Sponsor · Trial started, card on file*',
-  `*Who:* ${who({ name, email })}`,
-  phoneLine(phone),
-  `*Plan:* ${plan === 'annual' ? '$49/year' : '$5/month'} after a 30 day free trial`,
-  '*Charged today:* $0.00. This is not a sale yet.',
-  firstChargeAt ? `*First charge:* ${fmtDate(firstChargeAt)}` : null,
-  ...sourceLines(attribution),
-  'Stripe validated the card before the trial opened, so it is real and chargeable.',
-  triage('Info'),
-  stripeLink('customers', customerId),
-]);
+  name, email, phone, plan, firstChargeAt, attribution, customerId, otherPlans,
+}) => {
+  const others = Array.isArray(otherPlans) ? otherPlans.filter((o) => o && o.id) : [];
+  const listed = others
+    .map((o) => `${o.id} (${o.status}${o.created ? `, since ${fmtDate(o.created)}` : ''})`)
+    .join(', ');
+  return [
+    ':credit_card: *AI Sponsor · Trial started, card on file*',
+    `*Who:* ${who({ name, email })}`,
+    phoneLine(phone),
+    `*Plan:* ${plan === 'annual' ? '$49/year' : '$5/month'} after a 30 day free trial`,
+    '*Charged today:* $0.00. This is not a sale yet.',
+    firstChargeAt ? `*First charge:* ${fmtDate(firstChargeAt)}` : null,
+    others.length
+      ? `:warning: *This email already has ${others.length === 1 ? 'another live plan' : `${others.length} other live plans`}:* ${listed}. They will be charged twice unless one is cancelled in Stripe.`
+      : null,
+    ...sourceLines(attribution, { relative: true }),
+    'Stripe validated the card before the trial opened, so it is real and chargeable.',
+    triage(others.length ? 'Needs attention' : 'Info'),
+    stripeLink('customers', customerId),
+  ];
+});
 
 /* Real money, for the first time in the funnel. */
 const paid = safeCustomer(({

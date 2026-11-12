@@ -120,24 +120,24 @@ test('browser camelCase attribution is read (a paid Meta click)', async () => {
     },
   });
   const t = lastText();
-  assert.ok(t.includes('*Came from:* Facebook'), 'utm_source wins the label');
+  assert.ok(t.includes('*Found us:* Facebook (a link we tagged)'), 'utm_source wins the label');
   assert.ok(t.includes('source facebook, medium paid, campaign ais_launch'));
   assert.ok(t.includes('Paid click:* Meta (fbclid)'), 'names the ad click');
-  assert.ok(t.includes('/ai-sponsor-registration.html'));
+  assert.ok(t.includes('*First page:* Sign-up page'), 'the page by name, not its path');
 });
 
 test("Stripe's snake_case metadata produces the same label, not Unknown", async () => {
   const camel = { utmSource: 'facebook', referrer: 'facebook.com', landing: '/x' };
   const snake = { utm_source: 'facebook', referrer: 'facebook.com', landing: '/x' };
   await alerts.paid({ email: 'a@e.com', amount: 500, currency: 'usd', attribution: camel });
-  const fromCamel = lastText().split('\n').find((l) => l.startsWith('*Came from:*'));
+  const fromCamel = lastText().split('\n').find((l) => l.startsWith('*Found us:*'));
   await alerts.paid({ email: 'a@e.com', amount: 500, currency: 'usd', attribution: snake });
-  const fromSnake = lastText().split('\n').find((l) => l.startsWith('*Came from:*'));
+  const fromSnake = lastText().split('\n').find((l) => l.startsWith('*Found us:*'));
   assert.strictEqual(fromCamel, fromSnake, 'both shapes must agree');
   assert.ok(fromSnake.includes('Facebook'));
 });
 
-test("Lindsay's real 30 Aug metadata reads as Direct, not Unknown", async () => {
+test("Lindsay's real 30 Aug metadata reads as a browser visit with no source, not Unknown", async () => {
   await alerts.trialStarted({
     email: 'lsjacobi513@gmail.com', plan: 'monthly',
     attribution: {
@@ -148,15 +148,18 @@ test("Lindsay's real 30 Aug metadata reads as Direct, not Unknown", async () => 
     },
   });
   const t = lastText();
-  assert.ok(t.includes('*Came from:* Direct'), 'a real browser visit with no referrer is Direct');
-  assert.ok(t.includes('2026-08-30T03:43:20.300Z'), 'shows first seen');
+  assert.ok(t.includes('*Found us:* No source given: typed in, or a link opened from WhatsApp'),
+    'a real browser visit with no referrer says so in words');
+  assert.ok(t.includes('30 August 2026'), 'shows the first visit as a date');
+  assert.ok(!t.includes('2026-08-30T03:43'), 'never a raw timestamp');
+  assert.ok(!t.includes('Unknown'), 'a browser was there, so it is not Unknown');
   assert.ok(!t.includes('Paid click'), 'no ad click, so it must not claim one');
 });
 
-test('no attribution at all says Unknown, never Direct', async () => {
+test('no attribution at all says Unknown, never "no source given"', async () => {
   await alerts.registered({ email: 'wa@example.com', access: 'Beta' });
-  assert.ok(lastText().includes('Unknown (no browser data reached us)'));
-  assert.ok(!lastText().includes('Direct'), 'Direct would claim credit we did not earn');
+  assert.ok(lastText().includes('*Found us:* Unknown (no website visit reached us)'));
+  assert.ok(!lastText().includes('No source given'), 'that would claim a visit we never saw');
 });
 
 test('a founding member is flagged as invisible to Stripe', async () => {
@@ -176,7 +179,7 @@ test('checkout carries the session metadata through as attribution', async () =>
   const result = await stripeModule.handleWebhookEvent(event);
   assert.strictEqual(result.attribution.utm_source, 'facebook');
   await alerts.trialStarted({ email: result.email, plan: result.plan, attribution: result.attribution });
-  assert.ok(lastText().includes('*Came from:* Facebook'));
+  assert.ok(lastText().includes('*Found us:* Facebook'));
 });
 
 /* ── Failure behaviour: an alert must never break the caller ─────────────── */

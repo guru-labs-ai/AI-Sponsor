@@ -392,6 +392,7 @@ window.AIS_I18N.de = Object.assign(window.AIS_I18N.de || {}, {
   "You'll add your card on Stripe's secure checkout. Nothing is charged until day 31.": "Deine Karte gibst du auf der sicheren Stripe-Kasse ein. Bis Tag 31 wird nichts abgebucht.",
   "Taking you to checkout…": "Weiter zur Kasse…",
   "We couldn't open the payment page. Please try again — or use a beta code if you have one.": "Wir konnten die Bezahlseite nicht öffnen. Versuch es noch einmal, oder nutze einen Beta-Code, falls du einen hast.",
+  "You already have a plan with this email, so there's nothing more to pay. Your changes are saved.": "Du hast mit dieser E-Mail schon einen Plan, es gibt also nichts mehr zu bezahlen. Deine Änderungen sind gespeichert.",
   "No problem — nothing was charged. You can start whenever you're ready.": "Kein Problem, es wurde nichts abgebucht. Du kannst anfangen, wann du willst.",
   "🎁 Know someone who needs this?": "🎁 Kennst du jemanden, der das braucht?",
   "Soon you'll be able to gift a free scholarship code to someone you know who's struggling and can't afford it. Pass it on.": "Bald kannst du jemandem, dem es schlecht geht und der es sich nicht leisten kann, einen Stipendiencode schenken. Gib ihn weiter.",

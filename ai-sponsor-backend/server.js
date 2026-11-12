@@ -8,6 +8,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const stripeModule = require('./stripe');
 const ghl = require('./ghl');
 const alerts = require('./alerts'); // Slack alerts → #ai-sponsor-updates
+const gsc = require('./gsc'); // Search Console totals for the North Star (dark until its key is set)
 const qaTest = require('./qatest'); // QA Guru's test inbox, told apart from real people
 const metacloud = require('./metacloud'); // Meta's WhatsApp API; inert unless configured
 const signupMessage = require('./signupmessage'); // the first WhatsApp message after sign-up
@@ -2437,6 +2438,14 @@ app.get('/api/metrics/northstar', async (req, res) => {
       }),
     ]);
 
+    /* Which searches brought people to the site last week (Search Console).
+       Totals only, never per person. null until the key is set on Render,
+       and then the page shows nothing rather than a zero that means "off". */
+    const google = await gsc.weekly().catch((e) => {
+      console.error('[Metrics] Search Console failed:', e.message);
+      return null;
+    });
+
     /* Country and US state, worked out from the dialling code. Matt asked for
        both. The phone numbers themselves stay on the server; only the counts
        leave here.
@@ -2638,6 +2647,7 @@ app.get('/api/metrics/northstar', async (req, res) => {
             : null,
         };
       })(),
+      google,
       // Who they are / what they're doing. Aggregates only — no names, emails
       // or message content ever leave the DB.
       breakdowns: breakdowns
@@ -4038,6 +4048,29 @@ app.post('/api/stripe/create-checkout', async (req, res) => {
     return res.status(400).json({ error: 'plan and email are required' });
   }
 
+  /* One plan per email. 12 Nov 2026: somebody went back through sign-up to
+     change their programmes and voice, pressed the button again, and Stripe
+     opened a second trial on the same card. Somebody who already has a live
+     plan is sent straight through instead: the page saves their changes and
+     shows them they are in, and nothing new is charged.
+     Fails OPEN. If Stripe cannot be asked, checkout goes ahead as before:
+     a missed duplicate is caught by the trial alert and costs one cancel,
+     a blocked sign-up costs the person. */
+  const existing = await stripeModule.findLiveSubscriptions(email)
+    .catch((e) => {
+      console.warn('[checkout] could not check for an existing plan, carrying on:', e.message);
+      return [];
+    });
+  if (existing.length) {
+    const plan0 = existing[0];
+    console.log(`[checkout] already has a live plan (${plan0.id}, ${plan0.status}): no second checkout`);
+    return res.json({
+      alreadySubscribed: true,
+      plan: plan0.plan,
+      firstChargeAt: plan0.trialEnd,
+    });
+  }
+
   try {
     const { checkoutUrl, sessionId } = await stripeModule.createCheckoutSession({
       plan,
@@ -4134,6 +4167,15 @@ async function syncStripeToGhl(result) {
          says so in words, because reading this as a sale is exactly the
          mistake the DRM Zapier alert makes. */
       const starter = await db.getUser(result.userId).catch(() => null);
+      /* Any OTHER live plan on this email means a double charge is coming.
+         Checkout refuses a second plan now; this catches what still gets
+         through. A failed lookup just leaves the line out. */
+      const otherPlans = await stripeModule
+        .findLiveSubscriptions(result.email, { excludeId: result.subscriptionId })
+        .catch((e) => {
+          console.warn('[Stripe→GHL] duplicate-plan check failed:', e.message);
+          return [];
+        });
       alerts.trialStarted({
         name: starter?.name,
         email: result.email,
@@ -4142,6 +4184,7 @@ async function syncStripeToGhl(result) {
         firstChargeAt: result.firstChargeAt,
         attribution: result.attribution,
         customerId: result.customerId,
+        otherPlans,
       });
       return;
     }

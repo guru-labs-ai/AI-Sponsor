@@ -392,6 +392,7 @@ window.AIS_I18N.es = Object.assign(window.AIS_I18N.es || {}, {
   "You'll add your card on Stripe's secure checkout. Nothing is charged until day 31.": "Añadirás tu tarjeta en el pago seguro de Stripe. No se cobra nada hasta el día 31.",
   "Taking you to checkout…": "Te llevamos al pago…",
   "We couldn't open the payment page. Please try again — or use a beta code if you have one.": "No hemos podido abrir la página de pago. Inténtalo otra vez, o usa un código beta si tienes uno.",
+  "You already have a plan with this email, so there's nothing more to pay. Your changes are saved.": "Ya tienes un plan con este correo, así que no hay nada más que pagar. Tus cambios están guardados.",
   "No problem — nothing was charged. You can start whenever you're ready.": "Sin problema, no se ha cobrado nada. Puedes empezar cuando quieras.",
   "🎁 Know someone who needs this?": "🎁 ¿Conoces a alguien que lo necesite?",
   "Soon you'll be able to gift a free scholarship code to someone you know who's struggling and can't afford it. Pass it on.": "Pronto podrás regalar un código de beca a alguien que lo esté pasando mal y no pueda pagarlo. Pásalo.",

@@ -10,7 +10,7 @@
      get the switcher and nothing else. The
      language they read this in is sent to /register, so their sponsor's
      automatic messages arrive in it too. See i18n.js. -->
-<script src="i18n.js?v=c6215bfcb0"></script>
+<script src="i18n.js?v=3297685d5f"></script>
 <!-- Same first-touch attribution capture as the landing page — people can arrive
      here directly (an ad straight to signup), so this page has to record it too.
      First touch wins, so arriving via the landing page won't overwrite it. -->
@@ -50,6 +50,55 @@
   }catch(e){}
 })();
 </script>
+<!-- Attribution, THIS visit. ais_attr above is the first visit and never
+       changes. ais_visit is the visit that brought them this time: rewritten
+       whenever they arrive from outside the site, kept while they click
+       around, so a sign-up weeks after the first visit can say what brought
+       them back (Matt asked, 12 Nov 2026). Coming back from Stripe's checkout
+       is not a new visit. Also adds the first page's English title, read from
+       og:title because the language switcher translates <title> but not the
+       meta tag, so the team reads "Blog: What is Debtors Anonymous", not a
+       URL. The source, not the person: no PII. -->
+<script>
+(function(){
+    try{
+      var self = location.hostname.replace(/^www\./,'');
+      var refHost = '';
+      try { if (document.referrer) refHost = new URL(document.referrer).hostname.replace(/^www\./,''); } catch(e){}
+      var p = new URLSearchParams(location.search);
+      var fromStripe = /(^|\.)stripe\.com$/.test(refHost) || p.has('payment');
+      var visit = null;
+      if (refHost !== self && !fromStripe) {
+        var linkCode = String(p.get('code') || '').trim().toUpperCase();
+        if (!/^[A-Z0-9-]{3,30}$/.test(linkCode)) linkCode = '';
+        var group = linkCode.match(/^([A-Z]{2,6})FOUNDER$/);
+        var src = p.get('utm_source') || (linkCode ? (group ? group[1] + ' WhatsApp group' : 'Code ' + linkCode) : '');
+        visit = {
+          utmSource:   src,
+          utmMedium:   p.get('utm_medium')   || '',
+          utmCampaign: p.get('utm_campaign') || '',
+          referrer:    refHost,
+          landing:     location.pathname,
+          at:          new Date().toISOString()
+        };
+        localStorage.setItem('ais_visit', JSON.stringify(visit));
+      }
+      document.addEventListener('DOMContentLoaded', function(){
+        try {
+          var m = document.querySelector('meta[property="og:title"]');
+          var title = m ? String(m.getAttribute('content') || '').slice(0, 120) : '';
+          if (!title) return;
+          var a = JSON.parse(localStorage.getItem('ais_attr') || 'null');
+          if (a && !a.title && a.landing === location.pathname && Date.now() - Date.parse(a.at) < 600000) {
+            a.title = title;
+            localStorage.setItem('ais_attr', JSON.stringify(a));
+          }
+          if (visit) { visit.title = title; localStorage.setItem('ais_visit', JSON.stringify(visit)); }
+        } catch(e){}
+      });
+    }catch(e){}
+  })();
+</script>
 <title>AI Sponsor — Get Started | Sign Up for Your 24/7 Recovery Sponsor</title>
 <meta name="description" content="Sign up for AI Sponsor in a few minutes — pick your 12-step program (AA, NA, OA and more), name your sponsor, and start talking right away. 30-day free trial.">
 <link rel="canonical" href="https://getaisponsor.com/ai-sponsor-registration.html">
@@ -59,7 +108,7 @@
      until somebody has actually accepted. See cookie-consent.js. The later
      fbq/gtag calls in handlePaymentReturn() are already wrapped in
      try/catch, so a decline there costs a conversion event, not a crash. -->
-<script src="/cookie-consent.js?v=c6215bfcb0"></script>
+<script src="/cookie-consent.js?v=3297685d5f"></script>
 <script>AISCookieConsent.init({ clarity: true });</script>
 
 <!-- HYROS Universal Tracking Script -->
@@ -1192,7 +1241,7 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
              for a sponsor who cannot write first: Christine signed up twice on
              7 Oct and sent nothing for three weeks. Someone who picked WhatsApp is
              now told the first message is theirs. -->
-        <p>Your <span id="trialLen">access</span> starts now.<br><span id="startLine">I'll be here whenever you need me, day or night.</span></p>
+        <p><span id="accessLine">Your <span id="trialLen">access</span> starts now.</span><br><span id="startLine">I'll be here whenever you need me, day or night.</span></p>
         <p class="save-why" id="saveWhy">First, save me to your phone so I show up by name in WhatsApp.</p>
         <div class="save-qr" id="saveQr">
           <svg shape-rendering="crispEdges" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 49 49"><path stroke="#212529" d="M4 4.5h7m1 0h1m2 0h2m1 0h1m1 0h1m2 0h1m3 0h2m2 0h2m3 0h1m1 0h7m-41 1h1m5 0h1m1 0h1m1 0h2m1 0h5m3 0h3m1 0h2m1 0h3m3 0h1m5 0h1m-41 1h1m1 0h3m1 0h1m2 0h4m1 0h1m1 0h1m1 0h1m1 0h4m1 0h1m8 0h1m1 0h3m1 0h1m-41 1h1m1 0h3m1 0h1m1 0h1m1 0h2m1 0h2m1 0h1m1 0h1m1 0h4m2 0h1m1 0h5m1 0h1m1 0h3m1 0h1m-41 1h1m1 0h3m1 0h1m2 0h2m3 0h6m1 0h1m4 0h2m1 0h4m1 0h1m1 0h3m1 0h1m-41 1h1m5 0h1m3 0h1m1 0h2m5 0h3m4 0h1m4 0h1m2 0h1m5 0h1m-41 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-33 1h2m2 0h1m1 0h1m1 0h2m1 0h2m1 0h1m1 0h1m1 0h2m1 0h4m-33 1h1m1 0h2m1 0h3m2 0h2m4 0h1m2 0h2m2 0h1m1 0h3m2 0h2m2 0h1m2 0h1m1 0h2m-39 1h4m2 0h3m2 0h1m1 0h1m2 0h2m5 0h1m1 0h3m2 0h1m2 0h2m3 0h1m-41 1h1m2 0h1m1 0h6m2 0h1m2 0h2m2 0h2m1 0h4m6 0h4m-37 1h2m1 0h2m2 0h1m1 0h1m6 0h1m3 0h1m1 0h1m2 0h4m1 0h1m2 0h2m1 0h1m3 0h1m-41 1h1m4 0h8m3 0h2m1 0h1m1 0h4m3 0h1m4 0h1m-34 1h1m2 0h1m4 0h2m3 0h3m1 0h1m3 0h1m1 0h1m2 0h1m1 0h2m10 0h1m-39 1h2m2 0h4m7 0h1m3 0h2m7 0h2m1 0h1m1 0h6m-40 1h1m1 0h1m3 0h5m1 0h4m2 0h4m1 0h1m1 0h2m2 0h6m1 0h1m2 0h1m-39 1h3m1 0h2m2 0h1m2 0h1m2 0h1m2 0h1m1 0h1m1 0h2m3 0h4m3 0h1m1 0h2m-32 1h1m2 0h1m1 0h1m2 0h1m1 0h2m4 0h1m1 0h1m1 0h4m2 0h1m1 0h1m2 0h2m-40 1h1m5 0h1m1 0h1m7 0h2m3 0h1m2 0h1m1 0h5m3 0h6m-38 1h2m1 0h1m2 0h1m1 0h1m1 0h3m1 0h1m3 0h1m1 0h3m1 0h1m1 0h2m4 0h5m1 0h1m-37 1h1m1 0h2m3 0h3m2 0h1m1 0h3m1 0h2m1 0h1m4 0h1m1 0h3m3 0h2m-37 1h1m1 0h1m1 0h1m2 0h1m1 0h2m1 0h1m1 0h2m1 0h1m1 0h1m8 0h2m1 0h1m1 0h2m1 0h1m-38 1h3m1 0h3m1 0h6m1 0h2m1 0h4m4 0h1m4 0h1m2 0h1m1 0h2m-36 1h1m2 0h3m2 0h1m2 0h2m1 0h2m2 0h7m3 0h1m1 0h2m1 0h1m1 0h2m-41 1h4m1 0h2m4 0h2m1 0h1m1 0h1m1 0h1m5 0h1m1 0h1m4 0h1m4 0h4m-39 1h5m6 0h1m1 0h1m1 0h1m2 0h2m1 0h4m3 0h1m5 0h1m1 0h4m-41 1h2m2 0h1m1 0h5m2 0h8m1 0h1m1 0h3m4 0h1m3 0h1m4 0h1m-40 1h2m2 0h1m2 0h2m1 0h3m1 0h2m2 0h1m1 0h4m1 0h3m2 0h5m1 0h1m2 0h1m-39 1h2m1 0h2m3 0h2m1 0h2m3 0h1m3 0h2m2 0h2m1 0h2m1 0h2m1 0h2m1 0h1m-38 1h4m3 0h2m1 0h1m1 0h1m1 0h2m2 0h1m2 0h1m2 0h1m3 0h1m1 0h2m1 0h2m1 0h1m1 0h1m-40 1h1m1 0h1m3 0h1m2 0h3m1 0h1m1 0h1m1 0h2m1 0h2m2 0h1m1 0h3m1 0h1m1 0h3m1 0h3m-37 1h3m2 0h1m1 0h2m3 0h4m2 0h1m1 0h1m4 0h1m1 0h2m3 0h2m1 0h2m1 0h1m-40 1h6m1 0h2m1 0h2m1 0h4m1 0h5m1 0h2m1 0h1m1 0h7m1 0h2m-32 1h4m1 0h1m1 0h2m2 0h1m2 0h1m2 0h1m1 0h2m3 0h1m3 0h1m2 0h1m-40 1h7m1 0h1m2 0h4m1 0h2m3 0h3m6 0h1m1 0h1m1 0h1m1 0h1m2 0h1m-40 1h1m5 0h1m1 0h2m1 0h1m1 0h4m1 0h1m2 0h2m1 0h3m1 0h1m3 0h1m3 0h2m-38 1h1m1 0h3m1 0h1m4 0h1m1 0h1m4 0h1m2 0h4m2 0h2m3 0h5m2 0h2m-41 1h1m1 0h3m1 0h1m1 0h1m3 0h1m2 0h1m2 0h4m1 0h2m1 0h2m1 0h1m1 0h3m1 0h1m1 0h2m1 0h1m-41 1h1m1 0h3m1 0h1m1 0h1m1 0h1m2 0h1m2 0h7m7 0h1m2 0h3m1 0h4m-41 1h1m5 0h1m2 0h2m2 0h1m1 0h1m2 0h1m2 0h1m1 0h2m2 0h1m2 0h1m1 0h2m1 0h1m3 0h1m-40 1h7m1 0h1m1 0h7m1 0h2m1 0h1m2 0h1m2 0h1m1 0h1m1 0h4m2 0h1m1 0h1"/></svg>
@@ -1955,8 +2004,14 @@ async function registerUser(paymentStatus) {
     consent:     consentPayload(),
     chatUserId:  chatUserId, // bridges this GHL contact to their backend chat sessions
     // How they found us, captured on first touch (see the <head> script). The
-    // backend resolves it to one label for the dashboard.
-    attribution: (() => { try { return JSON.parse(localStorage.getItem('ais_attr') || '{}'); } catch(e){ return {}; } })()
+    // backend resolves it to one label for the dashboard. `visit` is what
+    // brought them back this time, when that is a different visit.
+    attribution: (() => {
+      let a = {};
+      try { a = JSON.parse(localStorage.getItem('ais_attr') || '{}') || {}; } catch(e){}
+      try { const v = JSON.parse(localStorage.getItem('ais_visit') || 'null'); if (v) a.visit = v; } catch(e){}
+      return a;
+    })()
   };
   // Durable identity for this device: the chat header's "Day N" pill and the
   // journey page read this. Cross-device sync comes with real accounts later.
@@ -2224,6 +2279,8 @@ function collectAttribution(){
       return m ? m.pop() : '';
     } catch(e){ return ''; }
   }
+  // What brought them back this time, when it was not their first visit.
+  try { var v = JSON.parse(localStorage.getItem('ais_visit') || 'null'); if (v) out.visit = v; } catch(e){}
   out.fbp = cookie('_fbp');
   out.fbc = cookie('_fbc');
   /* GA4's client id, so the day-31 charge can be reported to Analytics as the
@@ -2286,6 +2343,24 @@ async function startCheckout(){
       body: JSON.stringify({ plan: selectedPlan, email: D.email || '', userId: chatUserId, attribution: collectAttribution(), consent: consentPayload() })
     });
     const data = await res.json().catch(()=>({}));
+
+    /* One plan per email (12 Nov 2026). Somebody came back to change their
+       programmes and voice, pressed this again, and got a second trial on the
+       same card. If this email already has a live plan the backend says so
+       instead of opening checkout: save what they changed, show them they are
+       in, charge nothing new. No trial events fire, because no trial started. */
+    if (res.ok && data.alreadySubscribed) {
+      try { localStorage.removeItem('ais_pending'); } catch(e){}
+      btn.disabled = false;
+      btn.textContent = label;
+      goTo(11);
+      showSuccess(data.plan === 'annual' ? 'annual subscription' : '30-day free trial');
+      const line = document.getElementById('accessLine');
+      if (line) line.textContent = "You already have a plan with this email, so there's nothing more to pay. Your changes are saved.";
+      registerUser('Paid');
+      return;
+    }
+
     if (!res.ok || !data.checkoutUrl) throw new Error(data.error || ('HTTP ' + res.status));
 
     /* Deliberately after the checkout URL comes back, not on the button press:

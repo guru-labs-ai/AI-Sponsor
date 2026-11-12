@@ -6,12 +6,12 @@
   <!-- Site language: shows this page in the language the visitor chose on the
        homepage or sign-up (?lang= or their saved choice), English otherwise.
        See i18n.js. -->
-  <script src="/i18n.js?v=c6215bfcb0" data-i18n-extra="blogindex"></script>
+  <script src="/i18n.js?v=3297685d5f" data-i18n-extra="blogindex"></script>
 
   <!-- Cookie consent gate. GA4, the Meta pixel and Clarity (below) all load
        through this instead of firing on their own — nothing sets a cookie
        until somebody has actually accepted. See /cookie-consent.js. -->
-  <script src="/cookie-consent.js?v=c6215bfcb0"></script>
+  <script src="/cookie-consent.js?v=3297685d5f"></script>
   <script>AISCookieConsent.init({ clarity: true });</script>
 
   <!-- HYROS Universal Tracking Script -->
@@ -51,6 +51,52 @@
     }catch(e){}
   })();
   </script>
+  <!-- Attribution, THIS visit. ais_attr above is the first visit and never
+       changes. ais_visit is the visit that brought them this time: rewritten
+       whenever they arrive from outside the site, kept while they click
+       around, so a sign-up weeks after the first visit can say what brought
+       them back (Matt asked, 12 Nov 2026). Coming back from Stripe's checkout
+       is not a new visit. Also adds the first page's English title, read from
+       og:title because the language switcher translates <title> but not the
+       meta tag, so the team reads "Blog: What is Debtors Anonymous", not a
+       URL. The source, not the person: no PII. -->
+  <script>
+  (function(){
+    try{
+      var self = location.hostname.replace(/^www\./,'');
+      var refHost = '';
+      try { if (document.referrer) refHost = new URL(document.referrer).hostname.replace(/^www\./,''); } catch(e){}
+      var p = new URLSearchParams(location.search);
+      var fromStripe = /(^|\.)stripe\.com$/.test(refHost) || p.has('payment');
+      var visit = null;
+      if (refHost !== self && !fromStripe) {
+        var src = p.get('utm_source') || '';
+        visit = {
+          utmSource:   src,
+          utmMedium:   p.get('utm_medium')   || '',
+          utmCampaign: p.get('utm_campaign') || '',
+          referrer:    refHost,
+          landing:     location.pathname,
+          at:          new Date().toISOString()
+        };
+        localStorage.setItem('ais_visit', JSON.stringify(visit));
+      }
+      document.addEventListener('DOMContentLoaded', function(){
+        try {
+          var m = document.querySelector('meta[property="og:title"]');
+          var title = m ? String(m.getAttribute('content') || '').slice(0, 120) : '';
+          if (!title) return;
+          var a = JSON.parse(localStorage.getItem('ais_attr') || 'null');
+          if (a && !a.title && a.landing === location.pathname && Date.now() - Date.parse(a.at) < 600000) {
+            a.title = title;
+            localStorage.setItem('ais_attr', JSON.stringify(a));
+          }
+          if (visit) { visit.title = title; localStorage.setItem('ais_visit', JSON.stringify(visit)); }
+        } catch(e){}
+      });
+    }catch(e){}
+  })();
+  </script>
 
   <title>Blog | AI Sponsor</title>
   <meta name="description" content="Straight answers about recovery, sponsorship, and where AI actually helps. Written for people in 12-step programs, not for search engines.">
@@ -76,7 +122,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/blog/blog.css?v=c6215bfcb0">
+  <link rel="stylesheet" href="/blog/blog.css?v=3297685d5f">
   <!-- Microsoft Clarity now loads through cookie-consent.js above, along with
        GA4 and the Meta pixel. Still marketing pages only, deliberately absent
        from ai-sponsor-settings.html (30-day bearer token in the URL) and from

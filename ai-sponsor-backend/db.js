@@ -80,6 +80,11 @@ async function init() {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS utm_medium    TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS utm_campaign  TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS referrer      TEXT;
+    -- The first page they ever saw on the site, in words ("Homepage",
+    -- "Blog: What is Debtors Anonymous..."). First touch, so written once and
+    -- never overwritten. Only exists for people who signed up from 12 Nov 2026:
+    -- before then the browser sent the page but nothing kept it.
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS first_page    TEXT;
     -- Rolling long-term memory. We only ever send Claude the recent window of
     -- turns, so anything older would silently fall out of recall. memory_digest
     -- is a running summary of the durable facts (names, dates, triggers,
@@ -387,6 +392,55 @@ function resolveSource(a) {
   return a.landing ? 'Direct' : 'Unknown';
 }
 
+/* The same answer as resolveSource, said the way a person would say it. The
+   label stays short because the dashboard groups on it; this is for the alert,
+   where Matt reads one sign-up at a time and should not have to ask what
+   "Direct" or "google.com" means (12 Nov 2026: he had to). */
+const SEARCH_ENGINES = new Set(['Google', 'Bing', 'DuckDuckGo']);
+const SOCIAL_SITES = new Set(['Facebook', 'Instagram', 'X/Twitter', 'Reddit', 'LinkedIn', 'YouTube', 'TikTok']);
+const AI_ASSISTANTS = new Set(['ChatGPT', 'Perplexity', 'Claude']);
+function sourcePhrase(a) {
+  const label = resolveSource(a);
+  if (a && String(a.utmSource || '').trim()) return `${label} (a link we tagged)`;
+  if (label === 'Unknown') return 'Unknown (no website visit reached us)';
+  /* A visit that names no source. Typing the address in is one way; the more
+     common one is opening a link inside WhatsApp, a text or an email app,
+     which arrive without saying where they came from. */
+  if (label === 'Direct') return 'No source given: typed in, or a link opened from WhatsApp, a text or an email';
+  if (SEARCH_ENGINES.has(label)) return `${label} search`;
+  if (SOCIAL_SITES.has(label)) return `a link on ${label}`;
+  if (AI_ASSISTANTS.has(label)) return `${label}, a link in one of its answers`;
+  return `a link on ${label}`;
+}
+
+/* Which page somebody landed on, in words. The browser sends the path, and
+   since 12 Nov 2026 the page's English og:title too (og:title because the
+   language switcher translates <title> but leaves the meta tag alone). A blog
+   post without a title, from before then, falls back to its address. */
+const PAGE_NAMES = [
+  [/^\/(index\.html)?$/, 'Homepage'],
+  [/^\/ai-sponsor-registration\.html$/, 'Sign-up page'],
+  [/^\/blog\/?(index\.html)?$/, 'Blog home'],
+  [/^\/meetings\.html$/, 'Meetings page'],
+  [/^\/privacy\.html$/, 'Privacy page'],
+  [/^\/terms\.html$/, 'Terms page'],
+];
+function pageLabel(path, title) {
+  const p = String(path || '').trim();
+  if (!p) return null;
+  for (const [re, name] of PAGE_NAMES) if (re.test(p)) return name;
+  const post = p.match(/^\/blog\/([^/]+)\/?(index\.html)?$/);
+  if (post) {
+    const t = String(title || '').replace(/\s*\|\s*AI Sponsor\s*$/i, '').trim();
+    if (t) return `Blog: ${t.slice(0, 100)}`;
+    let slug = post[1];
+    try { slug = decodeURIComponent(slug); } catch (e) { /* keep it raw */ }
+    slug = slug.replace(/[-_]+/g, ' ').trim();
+    return `Blog: ${slug.charAt(0).toUpperCase()}${slug.slice(1)}`;
+  }
+  return p.slice(0, 120);
+}
+
 // Called from /register (the only place that creates a user row).
 async function upsertUser(u) {
   if (!enabled || !u || !u.userId) return;
@@ -395,7 +449,7 @@ async function upsertUser(u) {
     `INSERT INTO users (user_id, name, email, phone, ghl_contact_id, sponsor_name,
                         sponsor_style, program, stage, access,
                         acquired_from, utm_source, utm_medium, utm_campaign, referrer,
-                        beta_code, beta_expires_at)
+                        beta_code, beta_expires_at, first_page)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,
              NULLIF($16, ''),
              /* Stamped on the very first write too. Until 6 Nov only the
@@ -403,13 +457,15 @@ async function upsertUser(u) {
                 registration was already Beta never got an end date at all
                 (19 people). The code's own length wins, then six months. */
              CASE WHEN $10 = 'Beta'
-                  THEN now() + COALESCE(make_interval(days => $17::int), interval '6 months') END)
+                  THEN now() + COALESCE(make_interval(days => $17::int), interval '6 months') END,
+             $18)
      ON CONFLICT (user_id) DO UPDATE SET
        acquired_from = COALESCE(users.acquired_from, EXCLUDED.acquired_from),
        utm_source    = COALESCE(NULLIF(users.utm_source, ''), EXCLUDED.utm_source),
        utm_medium    = COALESCE(NULLIF(users.utm_medium, ''), EXCLUDED.utm_medium),
        utm_campaign  = COALESCE(NULLIF(users.utm_campaign, ''), EXCLUDED.utm_campaign),
        referrer      = COALESCE(NULLIF(users.referrer, ''), EXCLUDED.referrer),
+       first_page    = COALESCE(NULLIF(users.first_page, ''), EXCLUDED.first_page),
        name = COALESCE(NULLIF(EXCLUDED.name, ''), users.name),
        email = COALESCE(NULLIF(EXCLUDED.email, ''), users.email),
        phone = COALESCE(NULLIF(EXCLUDED.phone, ''), users.phone),
@@ -436,7 +492,8 @@ async function upsertUser(u) {
      (a && a.utmSource) || '', (a && a.utmMedium) || '',
      (a && a.utmCampaign) || '', (a && a.referrer) || '',
      u.betaCode || '',
-     Number.isInteger(u.betaDays) && u.betaDays > 0 ? u.betaDays : null]
+     Number.isInteger(u.betaDays) && u.betaDays > 0 ? u.betaDays : null,
+     (a && pageLabel(a.landing, a.title)) || null]
   );
 }
 
@@ -1734,7 +1791,7 @@ async function getBreakdowns() {
      people, and the paid figure was exactly double the truth. Matt asked for
      paid vs unpaid in the weekly post, so this had to be right before it could
      be published rather than after somebody acted on it. */
-  const [program, stage, access, channel, msgsByDay, source] = await Promise.all([
+  const [program, stage, access, channel, msgsByDay, source, firstPage] = await Promise.all([
     // program is stored comma-joined ("AA, NA") — one person can be in several,
     // so this legitimately sums to more than the number of people.
     pool.query(`
@@ -1791,6 +1848,15 @@ async function getBreakdowns() {
       FROM (SELECT ${PERSON_KEY} AS person, MAX(NULLIF(acquired_from, '')) AS source
             FROM users WHERE true${NOT_EXCLUDED} GROUP BY 1) p
       GROUP BY 1 ORDER BY n DESC, 1`),
+    /* The first page each person saw. Nobody before 12 Nov 2026 has one, and
+       they are left out rather than lumped into an "Unknown" bar that would
+       dwarf the real answer for months. The page says so. */
+    pool.query(`
+      SELECT page AS k, COUNT(*)::int AS n
+      FROM (SELECT ${PERSON_KEY} AS person, MAX(NULLIF(first_page, '')) AS page
+            FROM users WHERE true${NOT_EXCLUDED} GROUP BY 1) p
+      WHERE page IS NOT NULL
+      GROUP BY 1 ORDER BY n DESC, 1`),
   ]);
   const toObj = (rows) => Object.fromEntries(rows.map((r) => [r.k, r.n]));
   return {
@@ -1799,6 +1865,7 @@ async function getBreakdowns() {
     byAccess: toObj(access.rows),
     byChannel: toObj(channel.rows),
     bySource: toObj(source.rows),
+    byFirstPage: toObj(firstPage.rows),
     messagesByDay: toObj(msgsByDay.rows),
   };
 }
@@ -2244,7 +2311,7 @@ module.exports = {
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
   // Exported so the Slack alerts label a signup's source with the SAME rule the
   // dashboard groups on. Two implementations would eventually disagree.
-  resolveSource,
+  resolveSource, sourcePhrase, pageLabel,
   saveProfile, getProfile, appendMessages, getHistory, findPersonId,
   recordEvent, getEvents, hasEvent, recentReactions, ping, inboundSilence, accessExpiringSoon,
   stripeEventProcessed, markStripeEventProcessed,

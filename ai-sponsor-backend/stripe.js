@@ -68,8 +68,25 @@ function attributionMetadata(attribution) {
     ga: attribution.ga,
     referrer: attribution.referrer,
     landing: attribution.landing,
+    // The first page's English title, so the alert can name a blog post.
+    landing_title: attribution.title,
     first_seen: attribution.at,
   };
+  /* The visit they signed up on, when it was not their first (12 Nov 2026:
+     a customer found us on Google and signed up three weeks later, and nothing
+     recorded what brought them back). Flat keys: Stripe metadata is one level. */
+  const visit = attribution.visit && typeof attribution.visit === 'object' ? attribution.visit : null;
+  if (visit) {
+    Object.assign(fields, {
+      visit_utm_source: visit.utmSource,
+      visit_utm_medium: visit.utmMedium,
+      visit_utm_campaign: visit.utmCampaign,
+      visit_referrer: visit.referrer,
+      visit_landing: visit.landing,
+      visit_title: visit.title,
+      visit_at: visit.at,
+    });
+  }
   const out = {};
   Object.entries(fields).forEach(([key, value]) => {
     if (typeof value !== 'string') return;
@@ -327,6 +344,64 @@ async function listSponsorSubscriptions() {
   return subs;
 }
 
+/* ── Is there already a live AI Sponsor plan on this email? ─────────────────
+   12 Nov 2026: a customer went through checkout twice, eleven minutes apart, and
+   ended up with two trials on one card, so they would have paid $10 on 12 Dec
+   for one account. Checkout asks this first and sends somebody who already
+   has a plan straight through instead of opening a second one; the trial
+   alert asks it too, as a backstop.
+
+   - customers.list, not customers.search: search is eventually consistent and
+     can miss a customer created seconds ago, which is exactly the double-tap
+     case. list's email filter is exact and case-sensitive, so the address is
+     tried as typed and lower-cased.
+   - The Stripe account is shared with DRM and other products, so only plans on
+     an AI Sponsor price, or carrying our own plan tag, count. A DRM customer
+     using the same email must never be blocked from AI Sponsor.
+   - A plan already set to end (cancel_at_period_end) does not count: that
+     person chose to leave and is allowed to start again. */
+const LIVE_STATUSES = new Set(['trialing', 'active', 'past_due', 'unpaid']);
+
+function isAiSponsorSubscription(sub) {
+  const tag = sub?.metadata?.plan;
+  if (tag === 'monthly' || tag === 'annual') return true;
+  const sponsorPrices = Object.values(PRICE_IDS).filter(Boolean);
+  return (sub?.items?.data || []).some((item) => sponsorPrices.includes(item?.price?.id));
+}
+
+async function findLiveSubscriptions(email, { excludeId } = {}) {
+  if (!stripe) return [];
+  const typed = String(email || '').trim();
+  if (!typed) return [];
+  const addresses = [...new Set([typed, typed.toLowerCase()])];
+  const seen = new Set();
+  const found = [];
+  for (const address of addresses) {
+    const customers = await stripe.customers.list({ email: address, limit: 10 });
+    for (const customer of customers.data) {
+      if (seen.has(customer.id)) continue;
+      seen.add(customer.id);
+      const subs = await stripe.subscriptions.list({ customer: customer.id, status: 'all', limit: 20 });
+      for (const sub of subs.data) {
+        if (sub.id === excludeId) continue;
+        if (!LIVE_STATUSES.has(sub.status) || sub.cancel_at_period_end) continue;
+        if (!isAiSponsorSubscription(sub)) continue;
+        const priceId = sub.items?.data?.[0]?.price?.id;
+        found.push({
+          id: sub.id,
+          customerId: customer.id,
+          status: sub.status,
+          created: sub.created,
+          trialEnd: sub.trial_end || null,
+          plan: sub.metadata?.plan
+            || (priceId === PRICE_IDS.annual ? 'annual' : priceId === PRICE_IDS.monthly ? 'monthly' : 'unknown'),
+        });
+      }
+    }
+  }
+  return found;
+}
+
 /* ── "Forget me" deletion support ─────────────────────────────────────────
    Two functions, used together by deletion.js's Stripe-confirmation step:
 
@@ -391,5 +466,7 @@ module.exports = {
   constructWebhookEvent,
   handleWebhookEvent,
   listSponsorSubscriptions,
+  findLiveSubscriptions,
+  isAiSponsorSubscription,
   PRICE_IDS,
 };
