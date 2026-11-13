@@ -30,7 +30,7 @@ const src = (f) => fs.readFileSync(path.resolve(__dirname, f), 'utf8');
    what actually runs. Same approach test-reactions.js uses. */
 const server = src('server.js');
 const body = server.slice(server.indexOf('const DAY_MS'), server.indexOf('// Persist a completed exchange'));
-const { buildTimeBlock, describeGap } = new Function(`${body}; return { buildTimeBlock, describeGap };`)();
+const { buildTimeBlock, describeGap, withTimeMarkers, TIME_NOTE_ANYWHERE } = new Function(`${body}; return { buildTimeBlock, describeGap, withTimeMarkers, TIME_NOTE_ANYWHERE };`)();
 
 const NOW = new Date(Date.UTC(2026, 7, 25, 12, 0, 0));           // Tue 25 Aug 2026
 const ago = (days, hours = 0) =>
@@ -129,6 +129,59 @@ const ago = (days, hours = 0) =>
   check('not marked for caching',
     /buildTimeBlock\(lastAt, new Date\(\), userZone, !!toldZone\) \}\);/.test(server) && !/buildTimeBlock\(lastAt[^\n]*cache_control/.test(server), true);
   check('db exposes it', src('db.js').includes('getLastMessageAt,'), true);
+
+  /* 13 Nov 2026. The history went to the model as forty undated turns, so a
+     long-standing member's August, October and November talks read as one
+     night. Three times she had to tell the sponsor it was weeks later, then
+     she asked for everything to be deleted. */
+  group('the history carries its own dates');
+  const db = require('./db');
+  const at = (y, mo, d, h = 20, mi = 0) => new Date(Date.UTC(y, mo, d, h, mi));
+  const msg = (role, content, when) => db.stampTime({ role, content }, when);
+  const hist = [
+    msg('user', 'Hi, checking in', at(2026, 7, 11, 5, 15)),
+    msg('assistant', 'Good to hear from you.', at(2026, 7, 11, 5, 15)),
+    msg('user', 'Still me, a bit later', at(2026, 7, 11, 6, 0)),
+    msg('assistant', 'Go on.', at(2026, 7, 11, 6, 0)),
+    msg('user', "Hey, I'm in a bit of a pickle", at(2026, 9, 15, 1, 36)),
+    msg('assistant', 'Tell me.', at(2026, 9, 15, 1, 36)),
+    msg('user', "I'm feeling sad and a bit depressed", at(2026, 10, 1, 19, 22)),
+    msg('assistant', 'What is the sad about?', at(2026, 10, 1, 19, 22)),
+    msg('user', "It's not the same night", at(2026, 10, 1, 19, 23)),
+  ];
+  const marked = withTimeMarkers(hist, 'America/Los_Angeles');
+  has('the first message in the window carries its date', marked[0].content, '(The app: they wrote this on Monday, 10 August 2026.)');
+  check('a message an hour later gets no note', marked[2].content, 'Still me, a bit later');
+  has('two months later is dated', marked[4].content, 'on Wednesday, 14 October 2026');
+  has('and says how long it was', marked[4].content, '2 months after the message before it');
+  has('two weeks later is dated', marked[6].content, 'about 2 weeks after the message before it');
+  check('a reply in the same sitting gets no note', marked[8].content, "It's not the same night");
+  check("the sponsor's own replies are never marked", marked.filter((m) => m.role === 'assistant').every((m) => !/The app:/.test(m.content)), true);
+  check('the note sits above their words', marked[6].content.split('\n')[1], "I'm feeling sad and a bit depressed");
+  check('the stored history is not changed', hist[4].content, "Hey, I'm in a bit of a pickle");
+  check('same input, same notes, so the cached history stays cached',
+    JSON.stringify(withTimeMarkers(hist, 'America/Los_Angeles')) === JSON.stringify(marked), true);
+  check('a message already carrying a note is not given a second one',
+    (withTimeMarkers([msg('user', marked[4].content, at(2026, 9, 15, 1, 36))])[0].content.match(/The app:/g) || []).length, 1);
+  check('no zone falls back to UTC', withTimeMarkers([msg('user', 'hi', at(2026, 10, 13, 2, 0))], null)[0].content.split('\n')[0], '(The app: they wrote this on Friday, 13 November 2026.)');
+  check('history without times is left exactly as it was', withTimeMarkers([{ role: 'user', content: 'hi' }])[0].content, 'hi');
+
+  group('the time never reaches the API on its own');
+  check('it is on the message', msg('user', 'x', at(2026, 10, 1)).at, '2026-11-01T20:00:00.000Z');
+  check('but not in what gets sent', JSON.stringify(msg('user', 'x', at(2026, 10, 1))), '{"role":"user","content":"x"}');
+  check('a bad time is ignored', JSON.stringify(Object.keys(db.stampTime({ role: 'user', content: 'x' }, 'not a date'))), '["role","content"]');
+  check('an unmarked message is returned untouched', withTimeMarkers(hist, null)[1] === hist[1], true);
+
+  group('the notes are explained, and never echoed');
+  has('the time block explains the notes', buildTimeBlock(at(2026, 10, 1), at(2026, 10, 13)), 'a note from the app at the top of their message');
+  has('and forbids calling an old talk tonight', buildTimeBlock(at(2026, 10, 1), at(2026, 10, 13)), 'Never call an earlier conversation tonight');
+  check('a copied note is taken out of a reply',
+    'Hi Sofia. (The app: they wrote this on Thursday, 13 November 2026.)\nHow are you?'.replace(TIME_NOTE_ANYWHERE, ''), 'Hi Sofia. How are you?');
+  const gsr = server.slice(server.indexOf('async function getSponsorReply'));
+  check('the reply path dates the history before sending', /withCachedHistory\(withTimeMarkers\(updatedHistory\.slice\(-RECENT_TURNS\), userZone\)/.test(gsr), true);
+  check('the reply path strips a copied note', gsr.includes("rawReply = rawReply.replace(TIME_NOTE_ANYWHERE, '')"), true);
+  check('new turns are stamped', (gsr.match(/db\.stampTime\(\{ role: '(user|assistant)'/g) || []).length, 2);
+  check('db reads the time with the history', /SELECT role, content, created_at FROM/.test(src('db.js')), true);
 
   console.log(`\n${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);

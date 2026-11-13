@@ -178,7 +178,9 @@ check('content that is already a block array is not re-wrapped', () => {
 check('the sliding test is computed from the real window, not guessed', () => {
   assert.ok(/const windowSliding = updatedHistory\.length > RECENT_TURNS/.test(src),
     'windowSliding must come from the actual history length against RECENT_TURNS');
-  assert.ok(/withCachedHistory\(updatedHistory\.slice\(-RECENT_TURNS\), windowSliding\)/.test(src),
+  /* The window is dated before it is cached (13 Nov, withTimeMarkers): same
+     slice, same sliding flag, the dates only go on first. */
+  assert.ok(/withCachedHistory\(withTimeMarkers\(updatedHistory\.slice\(-RECENT_TURNS\), userZone\), windowSliding\)/.test(src),
     'the helper is not wired into the real call');
 });
 

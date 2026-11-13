@@ -1488,15 +1488,37 @@ async function getAgedOutMessages(userId, recentKeep, sinceId) {
 }
 
 // Last `limit` turns in chronological order (Claude context cap lives here).
+/* When a message was written, carried on the message itself so the sponsor can
+   be shown where time passed (server.js withTimeMarkers).
+
+   NON-ENUMERABLE ON PURPOSE. History objects go to the Anthropic API exactly as
+   they are, from more than one place, and the API refuses any field it does
+   not know. JSON.stringify skips a non-enumerable property, so nothing that
+   serialises a message can ever send it. A copy made with {...m} drops it too,
+   which only means that one message gets no date, never a failed request.
+
+   Why it was needed (13 Nov): the history arrived as 40 undated turns, so
+   August, October and November read as one night. A long-standing member
+   corrected the sponsor three times ("It's not the same night. It's weeks
+   later") and then asked to have everything deleted. */
+function stampTime(msg, at) {
+  const t = at ? new Date(at) : null;
+  if (msg && t && !Number.isNaN(t.getTime())) {
+    Object.defineProperty(msg, 'at', { value: t.toISOString(), enumerable: false, writable: true, configurable: true });
+  }
+  return msg;
+}
+
 async function getHistory(userId, limit = 40) {
   if (!enabled || !userId) return null;
   const r = await pool.query(
-    `SELECT role, content FROM (
-       SELECT id, role, content FROM messages WHERE user_id = $1 ORDER BY id DESC LIMIT $2
+    `SELECT role, content, created_at FROM (
+       SELECT id, role, content, created_at FROM messages WHERE user_id = $1 ORDER BY id DESC LIMIT $2
      ) t ORDER BY id ASC`,
     [userId, limit]
   );
-  return decryptRows(r.rows);
+  // Same { role, content } shape as before; the time rides along unseen.
+  return decryptRows(r.rows).map((row) => stampTime({ role: row.role, content: row.content }, row.created_at));
 }
 
 /* Every "this meeting did not work" report from the last `days`, across
@@ -2312,7 +2334,7 @@ module.exports = {
   // Exported so the Slack alerts label a signup's source with the SAME rule the
   // dashboard groups on. Two implementations would eventually disagree.
   resolveSource, sourcePhrase, pageLabel,
-  saveProfile, getProfile, appendMessages, getHistory, findPersonId,
+  saveProfile, getProfile, appendMessages, getHistory, stampTime, findPersonId,
   recordEvent, getEvents, hasEvent, recentReactions, ping, inboundSilence, accessExpiringSoon,
   stripeEventProcessed, markStripeEventProcessed,
   clearConversation, getPersonStats,

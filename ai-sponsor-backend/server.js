@@ -185,6 +185,8 @@ The fifteen **Tools** are listening, prioritising, substituting, underscheduling
 
 If they mention **the Twenty Questions**, that is WA's own self-screen, and three or more yes answers points at work addiction. Many WA members are also in UA, DA or BDA. Overworking and underearning live in the same life more often than not.
 
+**Stopping is withdrawal.** When someone in WA, UA, DA, BDA or any process program stops the behaviour (a holiday, a day off, a pause in the pursuit, no deal to chase), what often comes is withdrawal, the same as when a drug clears: flat, sad, restless, guilty, low, an itch to do something, anything. It is not grief over a decision and it is not "what quiet feels like". If they tell you they feel low and they have just stopped working or pursuing, ask whether it feels like withdrawal before you offer any other reading. When they say it is withdrawal, believe them and work it as withdrawal: it passes, the tools are for exactly this, and getting through it without picking the work back up is the recovery.
+
 **ACA (Adult Children of Alcoholics and Dysfunctional Families):** There is no substance in ACA. The addiction is to survival patterns formed in childhood. Recovery is from the effects of growing up in a home that was unsafe, unpredictable, or emotionally absent.
 
 Many ACA members also carry C-PTSD (complex developmental trauma) from years of living in an unpredictable environment. Approach with the care you would give someone carrying invisible wounds.
@@ -261,6 +263,20 @@ you're feeling overwhelmed" is a technique, and people can feel the technique.
 
 And not every message needs one at all. Landing straight on what they said is often
 warmer than acknowledging first.
+
+### When they tell you how they feel, ask before you explain it
+When they name a feeling but not what it is about, ask. Do not hand them a theory
+of their own feeling. If you do offer a reading, offer one, as a question, and
+let them answer it.
+
+When they say no, that no is the answer. It is not a cue to try the next theory,
+and three guesses in a row is the moment people give up on you. Ask what it is,
+then wait.
+
+Once they have named it themselves, use their word and go from there. Do not
+rename it into something of yours ("so it's the pattern loosening"), and do not
+tell them how to hold it ("sit in it") before you have understood it. They know
+their addiction from the inside. You learn it from them.
 
 ### When they lead with something they're ashamed of
 Some people are here precisely because they can't say it to a person yet. One of
@@ -856,6 +872,11 @@ story every time you come back is not a sponsor, it is a stranger.
   memory are not in tension, holding someone's story *is* the trust.
 - If something genuinely isn't there, just ask like a person would: "remind me,
   when did that start?" Never invent a policy about what you can or can't keep.
+- Picking up where you left off is not pretending no time has passed. Your
+  history together can span months. When the app shows a message was written
+  days or weeks after the one before, everything before it was an earlier
+  conversation: call it "last time" or say when it was, never "tonight", and ask
+  where things are now instead of carrying on the old thread.
 
 ---
 
@@ -1406,6 +1427,11 @@ function buildTimeBlock(lastAt, now = new Date(), zone = null, told = false) {
     if (days >= 5) {
       lines.push('There has been a real gap. You can acknowledge it warmly if it fits, without making them explain themselves.');
     }
+    /* The gap line alone was not enough (13 Nov). Forty undated turns of
+       history outweighed one sentence, and the sponsor kept calling a
+       conversation from weeks before "tonight". The history now carries the
+       dates itself (withTimeMarkers), and this says how to read them. */
+    lines.push(`Where time passed between their messages, the history shows it: a note from the app at the top of their message says when they wrote it. ${TIME_NOTE_RULE}`);
   }
 
   /* Where the clock came from. Their own word beats their number: on 29 Oct
@@ -1418,6 +1444,71 @@ function buildTimeBlock(lastAt, now = new Date(), zone = null, told = false) {
     ? `${source} Know whether it is morning, evening or the middle of the night for them, and read "today", "tonight" and "tomorrow" on their clock. Just after midnight, "today" can still mean the day that just ended to them, so check when it matters. Mention the hour only when it matters to what they are saying.`
     : 'You do not know their local time of day, only the date. Do not say morning, afternoon or tonight unless they mention it first.');
   return lines.join('\n');
+}
+
+/* ── Dates inside the history ────────────────────────────────────────────────
+   WHY (13 Nov 2026). The history reached the model as up to forty turns with
+   no dates on them, so a conversation from August, one from October and one
+   from November read as a single sitting. On 15 Oct the sponsor said "we've
+   been circling it for a while tonight" about a talk from two months before;
+   the member asked "Do you have a way of tracking time through the calendar?"
+   On 1 Nov: "It's not the same night. It's weeks later." On 13 Nov, answering
+   her request to delete everything, it still said "tonight" about a chat from
+   twelve days earlier.
+
+   So wherever six hours or more passed before one of THEIR messages, that
+   message is opened with a short dated note from the app, and the first of
+   their messages in the window carries its date. Only their messages: a reply
+   follows the message it answers, so its time is already plain.
+
+   Built from the two message times only, never from "now", so an old message
+   reads the same on every request and the cached history stays cached.
+   Returns a copy; what is stored is never changed. */
+const TIME_NOTE_GAP_MS = 6 * 3600000;
+const TIME_NOTE_RULE = 'Anything above the newest of those notes was an earlier conversation, on the day it says. Never call an earlier conversation tonight, today or earlier on, and never carry an old thread on as if it were still going: say last time, or when it was, and ask where things are now. Never write one of those notes yourself.';
+const TIME_NOTE = /^\s*\(The app: they wrote this[^)]*\)\s*/i;
+const TIME_NOTE_ANYWHERE = /\(The app: they wrote this[^)]*\)\s*/gi;
+
+function gapBetween(ms) {
+  const days = Math.floor(ms / DAY_MS);
+  if (days < 1) return 'a few hours';
+  if (days === 1) return 'a day';
+  if (days < 7) return `${days} days`;
+  if (days < 14) return 'about a week';
+  if (days < 31) return `about ${Math.round(days / 7)} weeks`;
+  if (days < 60) return 'over a month';
+  return `${Math.round(days / 30)} months`;
+}
+
+function withTimeMarkers(messages, zone = null) {
+  if (!Array.isArray(messages) || !messages.length) return messages;
+  let tz = null;
+  if (zone) {
+    try { new Intl.DateTimeFormat('en-GB', { timeZone: zone }); tz = zone; } catch { /* unknown zone: UTC */ }
+  }
+  const dayOf = (iso) => new Date(iso).toLocaleDateString('en-GB', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: tz || 'UTC',
+  });
+  let prevAt = null;
+  let datedFirst = false;
+  return messages.map((m) => {
+    const at = m && m.at;
+    let note = null;
+    if (m && m.role === 'user' && at && typeof m.content === 'string') {
+      if (!datedFirst) {
+        note = prevAt && Date.parse(at) - Date.parse(prevAt) >= TIME_NOTE_GAP_MS
+          ? `(The app: they wrote this on ${dayOf(at)}, ${gapBetween(Date.parse(at) - Date.parse(prevAt))} after the message before it.)`
+          : `(The app: they wrote this on ${dayOf(at)}.)`;
+        datedFirst = true;
+      } else if (prevAt && Date.parse(at) - Date.parse(prevAt) >= TIME_NOTE_GAP_MS) {
+        note = `(The app: they wrote this on ${dayOf(at)}, ${gapBetween(Date.parse(at) - Date.parse(prevAt))} after the message before it.)`;
+      }
+    }
+    if (at) prevAt = at;
+    if (!note) return m;
+    // A message that somehow already carries a note is not given a second one.
+    return { role: m.role, content: `${note}\n${String(m.content).replace(TIME_NOTE, '')}` };
+  });
 }
 
 // Persist a completed exchange: RAM (fast path) + DB (durable), never blocking.
@@ -2020,7 +2111,8 @@ async function getSponsorReply(userId, message, context) {
   const usableHistory =
     context && context.channel === 'whatsapp' ? correctFalseVoiceClaims(history) : history;
 
-  const updatedHistory = [...usableHistory, { role: 'user', content: message }];
+  // Stamped with when it arrived, so the next reply can see the gap (withTimeMarkers).
+  const updatedHistory = [...usableHistory, db.stampTime({ role: 'user', content: message }, new Date())];
 
   /* How long this one should be, and whether it is allowed to end on a
      question. Both decided here so they cannot be talked out of. */
@@ -2087,7 +2179,9 @@ async function getSponsorReply(userId, message, context) {
      the moment caching the conversation stops paying. See withCachedHistory. */
   const windowSliding = updatedHistory.length > RECENT_TURNS;
   // recent window; older turns live in the digest + DB
-  const requestMessages = withLanguageNote(withCachedHistory(updatedHistory.slice(-RECENT_TURNS), windowSliding), replyLanguage);
+  /* Dated first, so the cache marker and the language note land on the
+     message as it will actually be sent. */
+  const requestMessages = withLanguageNote(withCachedHistory(withTimeMarkers(updatedHistory.slice(-RECENT_TURNS), userZone), windowSliding), replyLanguage);
   const response = await client.messages.create({
     model: 'claude-opus-4-8',
     // A list of meetings with links runs long: on 26 Oct nine of them stopped mid-sentence at 1024.
@@ -2100,6 +2194,9 @@ async function getSponsorReply(userId, message, context) {
     .filter((block) => block.type === 'text')
     .map((block) => block.text)
     .join('');
+  /* The dated notes are the app's, never the sponsor's. If one is ever copied
+     into a reply it comes out here, before anything else reads the reply. */
+  rawReply = rawReply.replace(TIME_NOTE_ANYWHERE, '');
 
   /* "That meeting didn't work": the sponsor marks it at the end of its reply.
      Taken out first, before the length rewrite could cut it, and on every
@@ -2318,7 +2415,7 @@ async function getSponsorReply(userId, message, context) {
       .catch((e) => console.error('[DB] clearProfileField failed:', e.message));
   }
 
-  updatedHistory.push({ role: 'assistant', content: replyText });
+  updatedHistory.push(db.stampTime({ role: 'assistant', content: replyText }, new Date()));
   /* Whether each side of this was spoken or typed. The context has known it all
      along in order to steer the reply; it was simply never written down, so
      nothing could tell afterwards. The two directions are independent: somebody
