@@ -65,6 +65,67 @@ module.exports = [
     ],
   },
 
+  /* Coming back after a gap. Added 14 Nov (Mariam: "this timing issue worries
+     me"). Every one of these must never call the earlier talk tonight, today,
+     earlier, yesterday or this same conversation. */
+  {
+    id: 'time_back_3days', pattern: 'time', program: 'DA',
+    profile: base('DA', '3-12 months'), now: NOW,
+    history: [
+      ['user', "I'm going to open the pile of bank letters tonight", 3 * D + 60],
+      ['assistant', "Good. Text someone from DA before you open them and after. Bookend it. Tell me how it went.", 3 * D + 59],
+    ],
+    message: 'hey. rough couple of days',
+    criteria: [
+      { id: 'no_same_sitting', text: 'Does NOT describe the conversation from three days ago as tonight, today, earlier, yesterday or this same conversation.' },
+      { id: 'now_first', text: 'Asks how they are or what made the days rough before anything else.' },
+    ],
+    mustNot: [/\b(earlier tonight|earlier today|a night like this|for a while tonight)\b/i],
+  },
+  {
+    id: 'time_back_2weeks', pattern: 'time', program: 'UA',
+    profile: base('UA, WA', '5+ years'), now: NOW,
+    history: [
+      ['user', "My sponsor says I'm fighting this decision too hard. She's right. I'm handing it over and I'll just keep going until it's clear to stop.", 14 * D + 600],
+      ['assistant', "That's the surrender. Let it be God's problem, and keep going until it's clear to stop. Rest in that tonight.", 14 * D + 599],
+    ],
+    message: "I'm feeling sad and a bit depressed",
+    criteria: [
+      { id: 'no_same_sitting', text: 'Does NOT treat the conversation from two weeks ago as tonight, earlier, or the same night ("after a night like this", "all this tonight").' },
+      { id: 'asks_first', text: 'Asks what the sadness is about, or how it is showing up, before offering any explanation of it.' },
+      { id: 'no_theory', text: 'Does NOT explain the feeling with its own theory (for example rest, letting go, the decision).' },
+    ],
+    mustNot: [/\b(earlier tonight|a night like this|for a while tonight|after tonight)\b/i],
+  },
+  {
+    id: 'time_back_2months', pattern: 'time', program: 'UA',
+    profile: base('UA, ACA', '5+ years'), now: NOW,
+    history: [
+      ['user', "I'm going to post the competition today, the real announcement.", 60 * D],
+      ['assistant', 'Good. Post it today, scared and all. I will ask you about it next time.', 60 * D - 1],
+    ],
+    message: "Hey I'm in a bit of a pickle with the business again. I don't know what to do.",
+    criteria: [
+      { id: 'no_same_sitting', text: 'Does NOT treat the conversation from two months ago as recent or the same night (no "tonight", "earlier", "we have been circling this tonight").' },
+      { id: 'where_now', text: 'Asks where things are now (what happened since, or what the pickle is), instead of carrying on the old thread as if it were current ("post it").' },
+    ],
+    mustNot: [/\b(earlier tonight|for a while tonight|a night like this)\b/i],
+  },
+  {
+    id: 'time_picks_up', pattern: 'time', program: 'DA',
+    profile: base('DA, BDA', '1-5 years'), now: NOW,
+    history: [
+      ['user', 'I keep putting off calling the tax office', 9 * D],
+      ['assistant', 'Bookend it. Text someone before the call and after. Just the one call.', 9 * D - 1],
+    ],
+    message: 'I did the thing we talked about. Called them.',
+    criteria: [
+      { id: 'knows_what', text: 'Knows the thing was the call to the tax office, and acknowledges it.' },
+      { id: 'no_wrong_when', text: 'Does NOT say the earlier talk was yesterday, today or tonight. "Last time" or "last week" is fine.' },
+    ],
+    mustNot: [/\b(you said yesterday|we talked yesterday|earlier today|earlier tonight)\b/i],
+  },
+
   /* ── Misreading what they said ────────────────────────────────────────── */
   {
     id: 'misread_family', pattern: 'misread', program: 'ACA',

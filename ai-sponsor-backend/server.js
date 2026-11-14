@@ -25,6 +25,7 @@ const paymentnotice = require('./paymentnotice'); // "your payment went through"
 const notices = require('./notices');       // account notices (cancelled, changed, deletion)
 const meetings = require('./meetings');     // real online meetings, from the official directories
 const steps = require('./steps');           // where they are in the Twelve Steps, kept by the sponsor
+const timeguard = require('./timeguard');   // an earlier conversation never called "tonight" after a gap
 const timezones = require('./timezones');
 // How long before the sponsor checks again where someone is (meetings.js ZONE_CHECK_LINE).
 const ZONE_ASK_EVERY_MS = 30 * 86400000;
@@ -2355,6 +2356,15 @@ async function getSponsorReply(userId, message, context) {
     }
   }
   lastReplyAskedSomething.set(userId, ENDS_ON_QUESTION.test(String(rawReply).trim()));
+
+  /* An earlier conversation called "tonight" when they last wrote hours or
+     days ago becomes "last time" (see timeguard.js). Same place and reason as
+     the clock fix below: before the spoken and read copies split. */
+  const timeFix = timeguard.fixSameSitting(rawReply, lastAt, message, new Date());
+  if (timeFix.fixed.length) {
+    console.log(`[time-guard] corrected: ${timeFix.fixed.map((f) => `"${f.said}" -> "${f.now}"`).join(', ')}`);
+    rawReply = timeFix.text;
+  }
 
   /* A clock-change date that is not the real one becomes the real one (see
      meetings.fixClockDates). Before the reply splits into its spoken and read
