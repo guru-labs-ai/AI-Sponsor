@@ -138,6 +138,11 @@ const SYSTEM_PROMPT = [
   '- No diagnosis, no medical or legal advice, no treatment recommendations.',
   '- Do not mention methods of self-harm or use, ever, even if they did.',
   '- No therapy jargon, no corporate summary language, no bullet-point voice. This is a note from a person.',
+  /* 14 Nov 2026. A note told a long-standing member "You had to correct my
+     guesses three times before I landed on what you actually meant", and said
+     "tonight" about a talk it would be read about a week later. */
+  '- The note is about them, never about you. Nowhere in note, carried, helped, commitments or nextWeek do you mention your own mistakes, guesses or misreadings, or their correcting you, not even as praise for them. Where they corrected something you said, write only what they actually meant, as if you had understood it from the start. If a conversation went badly, do not dwell on it.',
+  '- The week is over when they read this, sometimes by a week. Never write tonight, today, this evening, right now or "this week". Say "last week", or name the day.',
   '',
   'TONE, which you must choose and return',
   '- "hard": the week held a relapse, a slip, a crisis, a bereavement, or something close to one. Do NOT open with praise and do NOT tally anything. Name what happened plainly, without judgement and without softening it into nothing, and centre the note on the fact that they came back and are still here. If they described being in real danger, the nextWeek line points them at a human being, not a habit.',
@@ -191,6 +196,24 @@ function coerce(raw) {
    people's pages as raw code, starting `{ "note": "` and cut off halfway. The
    same fallback stamped those weeks "steady", so a hard week got the everyday
    WhatsApp wording. A missing note gets retried; a wrong one gets read. */
+/* ── Two things a note must never do (14 Nov 2026) ───────────────────────────
+   Tested on invented weeks with the old wording: 5 of 5 notes for a week where
+   the person had to correct the sponsor said things like "I got some of my
+   guesses wrong, and you called me on it", and 13 of 20 said "this week" to
+   somebody who reads it days later. The prompt now forbids both and mostly
+   gets it; this catches the rest so the note can be written once more.
+   Returns why, or null. Looks at every field the page shows. */
+const OWN_MISTAKE = /\b(?:my|mine)\b[^.!?\n]{0,25}\b(?:guess|guesses|guessing|guessed|mistakes?|misread(?:ing)?)\b|\bI\s+(?:got|had)\s+(?:it|that|some[^.!?\n]{0,20}|a lot[^.!?\n]{0,10})\s+wrong\b|\b(?:correct(?:ed|ing)?|called)\s+me\b|\bme\s+(?:keep\s+)?(?:missing|guessing)\b|\bthan mine\b|\bbefore I (?:could|understood|got it|caught up)\b|\bwhen I had it wrong\b|\bbetter than I (?:did|could)\b/i;
+const NOW_WORDS = /\b(?:tonight|right now|this evening)\b/i;
+function noteSlip(payload) {
+  const fields = [payload.note, payload.carried, payload.milestone, payload.nextWeek,
+    ...(payload.helped || []), ...(payload.commitments || []), ...(payload.themes || [])]
+    .filter(Boolean).join('\n');
+  if (OWN_MISTAKE.test(fields)) return "talks about the sponsor's own guesses or mistakes";
+  if (NOW_WORDS.test(fields)) return 'says tonight or right now to somebody reading it days later';
+  return null;
+}
+
 function parseModelJSON(text) {
   const cleaned = String(text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
   const attempt = (s) => { try { return coerce(JSON.parse(s)); } catch (e) { return null; } };
@@ -416,6 +439,15 @@ async function writeNarrative({ userId, week, stats, sponsorName, theirName, lan
 
     const text = resp.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
     const payload = parseModelJSON(text);
+    /* A note that talks about the sponsor's own guesses, or says "tonight" to
+       somebody reading it days later, is written once more (see noteSlip). The
+       second one is kept whatever it says: a note is still worth more than no
+       note, and the rules in the prompt hold most of the time on their own. */
+    const slip = payload && attemptNo < 2 ? noteSlip(payload) : null;
+    if (slip) {
+      console.warn(`[weekly] note for ${userId} ${slip}; writing it again`);
+      continue;
+    }
     if (payload) return payload;
     console.warn(`[weekly] unusable reply for ${userId} (attempt ${attemptNo} of 2, stop_reason ${resp.stop_reason}, ${text.length} chars)`);
   }
@@ -809,6 +841,6 @@ module.exports = {
   // into something the page renders, so they are the parts worth pinning down.
   _parseModelJSON: parseModelJSON, _coerce: coerce, _quietWeekCard: quietWeekCard,
   _planWeek: planWeek, _insideTheirWindow: insideTheirWindow, _sundaySomewhere: sundaySomewhere,
-  _SYSTEM_PROMPT: SYSTEM_PROMPT, _WEEKLY_MODEL: WEEKLY_MODEL,
+  _SYSTEM_PROMPT: SYSTEM_PROMPT, _WEEKLY_MODEL: WEEKLY_MODEL, _noteSlip: noteSlip,
   WEEKLY_TEMPLATES, WEEKLY_READY_TEMPLATE, WEEKLY_READY_EN,
 };
