@@ -95,7 +95,7 @@ async function listIssues() {
     .filter((s) => s.status === 'complete'
       && typeof s.subject === 'string' && s.subject.startsWith(SUBJECT_PREFIX)
       && Number(s.totalCount) >= MIN_LIST && s.dateScheduled)
-    .map((s) => ({ id: s.id, subject: s.subject, sentAt: Number(s.dateScheduled) }))
+    .map((s) => ({ id: s.id, subject: s.subject, sentAt: Number(s.dateScheduled), listSize: Number(s.totalCount) }))
     .sort((a, b) => b.sentAt - a.sentAt)
     .slice(0, MAX_ISSUES);
 }
@@ -166,6 +166,15 @@ async function compute(now = Date.now()) {
       && m.subject === issue.subject
       && Date.parse(m.dateAdded) >= issue.sentAt - 5 * 60 * 1000
       && Date.parse(m.dateAdded) <= issue.sentAt + SEND_WINDOW_MS);
+
+    /* GHL says this issue went to listSize people. If the export gives back
+       none of its emails, the export failed, not the send: 14 Nov 22:25 UTC
+       the live count came back with every issue at 0 sent while the same code
+       and data gave 41 / 41 / 45 locally. Fail the refresh so the last good
+       numbers stay up and it tries again in RETRY_MS, never publish zeros. */
+    if (!own.length) {
+      throw new Error(`no emails found for "${issue.subject.slice(0, 60)}" (GHL list ${issue.listSize}, export ${emails.length} emails)`);
+    }
 
     // One person, one count: if GHL ever sent somebody two, the further one
     // got (an open on either copy) is theirs.
@@ -259,7 +268,11 @@ function refresh() {
   if (running) return running;
   lastAttempt = Date.now();
   running = compute()
-    .then((data) => { cached = data; })
+    .then((data) => {
+      cached = data;
+      console.log(`[newsletter] counted ${data.issues.length} issue(s): `
+        + data.issues.map((i) => `${i.sentAt.slice(0, 10)} sent ${i.sent} opened ${i.opened} clicked ${i.clicked}`).join(' | '));
+    })
     .catch((e) => console.error('[newsletter] refresh failed:', e.message))
     .finally(() => { running = null; });
   return running;

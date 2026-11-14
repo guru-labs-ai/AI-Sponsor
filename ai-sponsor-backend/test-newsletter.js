@@ -54,12 +54,14 @@ const status = { m1: 'clicked', m2: 'opened', m3: 'delivered', m3b: 'opened', m4
   m5: 'opened', m6: 'opened', m7: 'opened', o1: 'opened', o2: 'bounced' };
 
 let calls = [];
+let exportEmpty = false;
 global.fetch = async (url) => {
   calls.push(url);
   const u = new URL(url);
   const json = (body) => ({ ok: true, status: 200, json: async () => body });
   if (u.pathname === '/emails/schedule') return json({ schedules });
   if (u.pathname === '/conversations/messages/export') {
+    if (exportEmpty) return json({ messages: [], nextCursor: null });
     const from = Date.parse(u.searchParams.get('startDate'));
     const to = Date.parse(u.searchParams.get('endDate'));
     return json({ messages: messages.filter((m) => {
@@ -137,6 +139,26 @@ test('a click is not asked about again', async () => {
   await nl.compute(SENT + 86400e3);
   assert.ok(!calls.some((c) => c.endsWith('/email/m1')), 'm1 was re-read after its click');
   assert.ok(calls.some((c) => c.endsWith('/email/m2')), 'm2 should be re-read');
+});
+
+test('an export with none of an issue\'s emails fails the count, it never reads as zero sent (14 Nov)', async () => {
+  exportEmpty = true;
+  try {
+    await assert.rejects(() => nl.compute(SENT + 86400e3), /no emails found/);
+  } finally { exportEmpty = false; }
+});
+
+test('a failed refresh keeps the last good numbers on the page', async () => {
+  const origErr = console.error; console.error = () => {};
+  const origLog = console.log; console.log = () => {};
+  try {
+    await nl.refresh();
+    const good = nl.getCached();
+    assert.ok(good && good.issues.some((i) => i.sent > 0), 'first count should have numbers');
+    exportEmpty = true;
+    await nl.refresh();
+    assert.strictEqual(nl.getCached(), good, 'the good numbers were replaced');
+  } finally { exportEmpty = false; console.error = origErr; console.log = origLog; }
 });
 
 test('address parsing', () => {
