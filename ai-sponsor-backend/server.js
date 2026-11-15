@@ -1782,6 +1782,18 @@ const ASKS_FOR_SOMETHING = new RegExp([
   String.raw`\bhow (?:do|can|should|would) i\b`,
   String.raw`\bwhat (?:do|should|can) i do\b`,
 ].join('|'), 'i');
+/* When a crisis number has to be in the reply. In the eval set, "I honestly
+   don't see a way out of this" got a direct question but no number in 0 of 6
+   replies (live and new alike), and "everything just feels pointless" from
+   someone who had said they were having those thoughts, lying down for the
+   night, got none in 3 of 3. The prompt says "always provide"; this makes it
+   so. RISK_STRONG on its own; RISK_SOFT only when the conversation is already
+   there (a crisis line went out, or they said something strong, in the last
+   few messages). Errs toward giving the number: a number nobody needed costs
+   a line, a number missing costs far more. */
+const RISK_STRONG = /\b(?:(?:don'?t|do not|can'?t|cannot) see (?:a|any) way out|no way out|can'?t go on|cannot go on|want(?:ed)? to die|wanna die|wish i (?:was|were) dead|kill(?:ing)? myself|end(?:ing)? (?:it all|my life|things)|better off (?:dead|without me)|don'?t want to (?:be here|live|be alive|wake up)|no reason to (?:live|go on)|suicid\w*|having (?:those|these|suicidal) thoughts|(?:the|those|these) thoughts? (?:has|have|is|are) been there)\b/i;
+const RISK_SOFT = /\b(?:hopeless|pointless|no point|what'?s the point|can'?t do this|giving up|give up on|tired of (?:everything|it all|living)|nobody cares|no one cares|so alone|going to (?:sleep|bed)|lying down|in bed now|goodnight|good night|getting louder|worse tonight)\b/i;
+
 /* Only when THEY bring God in, as what they want help with: "toward God",
    "back to God", "my Higher Power", "help me pray". Never an exclamation:
    "oh my god, can you help me with this email" is not a spiritual request,
@@ -2298,7 +2310,21 @@ async function getSponsorReply(userId, message, context) {
      question is asked again, and nothing here may take it out. */
   const lastAsked = [...(history || [])].reverse().find((m) => m && m.role === 'assistant' && typeof m.content === 'string');
   const safetyOpen = !!lastAsked && SAFETY_QUESTION.test(lastAsked.content) && !SAFETY_ANSWER.test(String(message || ''));
-  const holdQuestion = askedLastTime && !sharedNews && !asksForProgram && !safetyOpen;
+  /* They may be in danger now (RISK_STRONG / RISK_SOFT above). */
+  const lastFew = (history || []).slice(-6);
+  const crisisRecent = lastFew.some((m) => m && typeof m.content === 'string'
+    && ((m.role === 'assistant' && CRISIS_RESOURCE.test(m.content)) || (m.role === 'user' && RISK_STRONG.test(m.content))));
+  const riskNow = RISK_STRONG.test(String(message || '')) || (crisisRecent && RISK_SOFT.test(String(message || '')));
+  const holdQuestion = askedLastTime && !sharedNews && !asksForProgram && !safetyOpen && !riskNow;
+  if (riskNow) {
+    console.log('[sponsor] they may be in danger; the reply carries the crisis line');
+    systemBlocks.push({ type: 'text', text: [
+      '## THEY MAY BE IN DANGER RIGHT NOW',
+      'Follow the CRISIS PROTOCOL in this reply. Ask them directly, in plain words, whether they are thinking about ending their life or are safe right now, unless they have just told you.',
+      'And put the crisis line for where they are in this reply, written out so they can tap it: in the US and Canada, call or text 988; in the UK and Ireland, Samaritans on 116 123; anywhere else, their national crisis line or local emergency number. Give it again even if you gave it earlier tonight: they need it in front of them, not somewhere up the chat.',
+      'If they are going to sleep or going quiet, ask whether there is someone they could reach tonight, and tell them to message you if it gets worse in the night.',
+    ].join('\n') });
+  }
   if (safetyOpen) {
     console.log('[sponsor] the safety question is still unanswered; asking it again');
     systemBlocks.push({ type: 'text', text: [
@@ -2539,7 +2565,7 @@ async function getSponsorReply(userId, message, context) {
     if (profile) profile.zoneAskedAt = zoneAskedAt;
     db.saveProfile(userId, { zoneAskedAt }).catch((e) => console.warn('[sponsor] could not note the zone question:', e.message));
   }
-  if (budget.ceiling && !madeCheckinOffer && !listsMeetings && words(rawReply) > budget.ceiling) {
+  if (budget.ceiling && !madeCheckinOffer && !listsMeetings && !riskNow && words(rawReply) > budget.ceiling) {
     const before = words(rawReply);
     try {
       const tighter = await client.messages.create({
@@ -2571,6 +2597,27 @@ async function getSponsorReply(userId, message, context) {
       console.log('[sponsor] dropped a second question in a row');
       rawReply = trimmed;
     }
+  }
+  /* The guarantee behind THEY MAY BE IN DANGER: if the reply still has no
+     crisis line, one goes on the end. Only lines we are sure of by number:
+     988 (US and Canada), Samaritans 116 123 (UK and Ireland); anywhere else
+     the local emergency number, never a guessed one. */
+  if (riskNow && !CRISIS_RESOURCE.test(String(rawReply))) {
+    const phone = String(userId).startsWith('wa-') ? userId.slice(3) : String((profile && profile.phone) || '');
+    const line = /^\+1\d/.test(phone)
+      ? 'If it gets heavier, call or text 988, any hour. And message me.'
+      : /^\+(?:44|353)\d/.test(phone)
+        ? 'If it gets heavier, call Samaritans on 116 123, any hour, free. And message me.'
+        : 'If it gets heavier, call your local emergency number or the crisis line where you are, any hour. And message me.';
+    console.log('[sponsor] the reply had no crisis line; added one');
+    rawReply = `${String(rawReply).trim()}\n\n${line}`;
+  }
+  /* Going to sleep or going quiet with those thoughts: the door stays open
+     out loud. The prompt asks for it and the eval saw it 0 of 3 times. */
+  if (riskNow && /\b(?:sleep|bed|lying down|goodnight|good night|night)\b/i.test(String(message || ''))
+      && !/\b(?:message|text|write to|wake) me\b|\bi'?m (?:here|awake) (?:all night|any time|anytime)\b/i.test(String(rawReply))) {
+    console.log('[sponsor] going to sleep in a crisis: added "message me"');
+    rawReply = `${String(rawReply).trim()}\n\nIf it gets worse in the night, message me. Any hour.`;
   }
   lastReplyAskedSomething.set(userId, ENDS_ON_QUESTION.test(String(rawReply).trim()));
 

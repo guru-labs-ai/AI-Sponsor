@@ -29,8 +29,8 @@ const body = src.slice(
   src.indexOf('const CRISIS_RESOURCE ='),
   src.indexOf('/* ── What they put on your messages')
 );
-const { replyBudget, dropTrailingQuestion, words, SAFETY_QUESTION, SAFETY_ANSWER, ASKS_ABOUT_GOD } = new Function(
-  `${body.replace(/console\.log\([^)]*\);/g, '')}; return { replyBudget, dropTrailingQuestion, words, SAFETY_QUESTION, SAFETY_ANSWER, ASKS_ABOUT_GOD };`
+const { replyBudget, dropTrailingQuestion, words, SAFETY_QUESTION, SAFETY_ANSWER, ASKS_ABOUT_GOD, RISK_STRONG, RISK_SOFT } = new Function(
+  `${body.replace(/console\.log\([^)]*\);/g, '')}; return { replyBudget, dropTrailingQuestion, words, SAFETY_QUESTION, SAFETY_ANSWER, ASKS_ABOUT_GOD, RISK_STRONG, RISK_SOFT };`
 )();
 
 let passed = 0, failed = 0;
@@ -91,6 +91,14 @@ check('the safety question, once asked, stays open until they answer it (21 Oct)
 check('God comes in only when they ask for help toward God themselves, never from an exclamation', () => {
   for (const s of ['I want you to help me find my way back to God.', 'guide me towards God', 'pray with me', 'can you help me with my Higher Power']) assert.ok(ASKS_ABOUT_GOD.test(s), s);
   for (const s of ['oh my god, can you help me with this email', 'God help me I am so tired', 'my godfather is sick', 'thank god that is over']) assert.ok(!ASKS_ABOUT_GOD.test(s), s);
+});
+
+check('a crisis line goes in when they may be in danger, and not otherwise', () => {
+  for (const t of ["I honestly don't see a way out of this", 'I want to die', "I don't want to be here anymore", 'everyone would be better off without me', 'honestly yes, the thought has been there']) assert.ok(RISK_STRONG.test(t), t);
+  for (const t of ['I had a horrible meeting', "I'm so tired of this job", 'the meeting was pointless', 'going to bed now', 'I could die of embarrassment']) assert.ok(!RISK_STRONG.test(t), t);
+  for (const t of ['lying down now. everything just feels pointless', 'going to sleep now', 'so hopeless']) assert.ok(RISK_SOFT.test(t), t);
+  assert.ok(src.includes(`const riskNow = RISK_STRONG.test(String(message || '')) || (crisisRecent && RISK_SOFT.test(String(message || '')));`), 'soft words count only when the conversation is already there');
+  assert.ok(/if \(riskNow && !CRISIS_RESOURCE\.test\(String\(rawReply\)\)\)/.test(src), 'nothing guarantees the line');
 });
 
 check('the very first message is allowed to introduce itself', () => {
@@ -187,8 +195,10 @@ check('an overshoot is actually rewritten, not just noted', () => {
   /* Sep 17: one exception, the reply that offers check-ins. Shortening that one
      can cut the question it is asking, and then nobody can answer it.
      Oct 26: and a reply listing the meetings they asked for, which the rewrite
-     cut from five days to two. */
-  assert.ok(/if \(budget\.ceiling && !madeCheckinOffer && !listsMeetings && words\(rawReply\) > budget\.ceiling\)/.test(src),
+     cut from five days to two.
+     Nov 15: and a reply to someone who may be in danger, which carries the
+     crisis line. */
+  assert.ok(/if \(budget\.ceiling && !madeCheckinOffer && !listsMeetings && !riskNow && words\(rawReply\) > budget\.ceiling\)/.test(src),
     'nothing acts on the ceiling');
   assert.ok(/rawReply = cut;/.test(src), 'the tightened copy is never used');
 });
@@ -220,10 +230,10 @@ check('the question rule is enforced on the way out, not just requested', () => 
 /* 29 Oct: "I moved to germany actually, so im 3 hours behind" got back
    only the time difference, because the question the sponsor wrote was cut.
    Real news in their life is the one place two questions in a row is right. */
-check('news in their life, or the safety question still open, lets the question through, and only those', () => {
+check('news in their life, the safety question still open, or danger now, lets the question through, and only those', () => {
   assert.ok(src.includes('const sharedNews = !!(context && context.sharesNews);'),
     'the reply never hears that they shared news');
-  assert.ok(src.includes('const holdQuestion = askedLastTime && !sharedNews && !asksForProgram && !safetyOpen;'),
+  assert.ok(src.includes('const holdQuestion = askedLastTime && !sharedNews && !asksForProgram && !safetyOpen && !riskNow;'),
     'news does not lift the question rule');
   assert.ok(/if \(holdQuestion\) \{\s*const trimmed = dropTrailingQuestion\(rawReply\)/.test(src),
     'the question is still cut on the way out when they shared news');
