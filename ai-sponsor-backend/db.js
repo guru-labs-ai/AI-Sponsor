@@ -203,6 +203,21 @@ async function init() {
       opened_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
     CREATE INDEX IF NOT EXISTS settings_opens_user_idx ON settings_opens (user_id, opened_at DESC);
+    /* The sponsor texting first (followup.js). One row per person, rewritten
+       every time they write, so a newer message always replaces an older plan.
+       A row, not a timer: a restart or a deploy must not lose a planned
+       message, and must not send one twice. No message text is kept here. */
+    CREATE TABLE IF NOT EXISTS sponsor_followups (
+      user_id      TEXT PRIMARY KEY,
+      last_user_at TIMESTAMPTZ NOT NULL,
+      due_at       TIMESTAMPTZ,
+      closes_at    TIMESTAMPTZ,
+      status       TEXT NOT NULL DEFAULT 'pending',
+      updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+      sent_at      TIMESTAMPTZ,
+      note         TEXT
+    );
+    CREATE INDEX IF NOT EXISTS sponsor_followups_due_idx ON sponsor_followups (status, due_at);
   `);
   /* An append-only record of what people change about their own account.
 
@@ -586,6 +601,8 @@ async function clearConversation(userId) {
      conversation but still knew they were halfway through step four would be
      remembering exactly what they asked it to let go of. */
   await pool.query('DELETE FROM step_events WHERE user_id = $1', [userId]);
+  // A planned first message about the conversation they just wiped would bring it straight back.
+  await pool.query('DELETE FROM sponsor_followups WHERE user_id = $1', [userId]);
   await pool.query(
     `UPDATE users SET memory_digest = NULL, memory_digest_upto = 0,
             step_program = NULL, step_number = NULL, step_part = NULL, step_work = NULL,
@@ -637,6 +654,7 @@ async function purgeUserData(userId) {
     await client.query('DELETE FROM outbound_messages WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM settings_opens WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM step_events WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM sponsor_followups WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM users WHERE user_id = $1', [userId]);
     await client.query('COMMIT');
   } catch (err) {
@@ -1232,6 +1250,72 @@ async function resolveSettingsToken(token) {
 /* Called the moment Meta accepts a send. Idempotent: a retry that produces the
    same message id must not raise or overwrite what a status callback already
    wrote. */
+/* ── The sponsor texting first (followup.js) ──────────────────────────────── */
+/* Every message they send replaces the plan: a newer conversation is what a
+   first message should be about, and a person who is still talking needs no
+   follow-up at all. dueAt null means there is no good moment inside their
+   24-hour window, so nothing is planned. */
+async function planFollowup(userId, lastUserAt, dueAt, closesAt) {
+  if (!enabled || !userId || !lastUserAt) return;
+  await pool.query(
+    `INSERT INTO sponsor_followups (user_id, last_user_at, due_at, closes_at, status, updated_at, sent_at, note)
+     VALUES ($1, $2, $3, $4, $5, now(), NULL, NULL)
+     ON CONFLICT (user_id) DO UPDATE SET last_user_at = EXCLUDED.last_user_at, due_at = EXCLUDED.due_at,
+       closes_at = EXCLUDED.closes_at, status = EXCLUDED.status, updated_at = now(), sent_at = NULL, note = NULL`,
+    [userId, lastUserAt, dueAt || null, closesAt || null, dueAt ? 'pending' : 'none']
+  );
+}
+
+/* Claimed, not just read: two sweeps at once (a deploy overlapping, two
+   triggers) must never both write to the same person. A row left 'writing'
+   by a crash is closed as failed after half an hour rather than retried,
+   because the message may already have gone. */
+async function claimDueFollowups(limit = 3) {
+  if (!enabled) return [];
+  await pool.query(
+    `UPDATE sponsor_followups SET status = 'failed', note = 'stuck while writing', updated_at = now()
+      WHERE status = 'writing' AND updated_at < now() - interval '30 minutes'`
+  );
+  await pool.query(
+    `UPDATE sponsor_followups SET status = 'expired', updated_at = now()
+      WHERE status = 'pending' AND closes_at <= now() + interval '20 minutes'`
+  );
+  const r = await pool.query(
+    `UPDATE sponsor_followups SET status = 'writing', updated_at = now()
+      WHERE user_id IN (
+        SELECT user_id FROM sponsor_followups
+         WHERE status = 'pending' AND due_at <= now() AND closes_at > now() + interval '20 minutes'
+         ORDER BY due_at LIMIT $1 FOR UPDATE SKIP LOCKED)
+      RETURNING user_id, last_user_at, due_at, closes_at`,
+    [limit]
+  );
+  return r.rows;
+}
+
+async function finishFollowup(userId, status, note = null) {
+  if (!enabled || !userId) return;
+  await pool.query(
+    `UPDATE sponsor_followups SET status = $2, note = $3, updated_at = now(),
+            sent_at = CASE WHEN $2 = 'sent' THEN now() ELSE sent_at END
+      WHERE user_id = $1`,
+    [userId, status, note ? String(note).slice(0, 200) : null]
+  );
+}
+
+/* What the sweep checks before writing to anyone. */
+async function followupGuards(userId) {
+  if (!enabled || !userId) return null;
+  const r = await pool.query(
+    `SELECT
+       (SELECT max(created_at) FROM messages WHERE user_id = $1 AND role = 'user') AS last_user_at,
+       (SELECT max(sent_at) FROM outbound_messages WHERE user_id = $1 AND kind = 'followup') AS last_followup_at,
+       (SELECT max(sent_at) FROM outbound_messages WHERE user_id = $1) AS last_outbound_at,
+       EXISTS (SELECT 1 FROM deletion_requests WHERE user_id = $1 AND status IN ('pending','running')) AS deletion_pending`,
+    [userId]
+  );
+  return r.rows[0] || null;
+}
+
 async function recordOutbound(userId, wamid, kind, via) {
   if (!enabled || !userId || !wamid || !kind) return;
   await pool.query(
@@ -2347,6 +2431,7 @@ module.exports = {
   clearProfileField,
   getOrCreateSettingsToken, resolveSettingsToken,
   recordOutbound, applyMessageStatus, noteSettingsOpen,
+  planFollowup, claimDueFollowups, finishFollowup, followupGuards,
   linkSubscription, findByStripeCustomer, getUser, setAccess,
   getMemory, saveMemory, renameInMemory, getAgedOutMessages, redeemBetaCode, getBetaCode, logAdminAccess,
   getWeekMessages, getWeekActivity, saveWeeklySummary, getWeeklySummary,

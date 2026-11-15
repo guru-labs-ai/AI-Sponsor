@@ -53,6 +53,7 @@ const voices = require('./voices'); // sponsor voice allow-list + previews
 const language = require('./language'); // the languages the sponsor speaks, and each person's
 const deletion = require('./deletion');
 const checkin = require('./checkin'); // "it has been a few days", gated on its own template
+const followup = require('./followup'); // the sponsor texts first, inside the 24-hour window
 const { deleteUserIdentity } = deletion;
 // Days between somebody asking to be deleted and it happening. The window is
 // there so they can take it back, not to slow anything down.
@@ -868,8 +869,11 @@ So don't only answer. Carry it forward.
 - Never keep a scorecard and never make them report to you. A sponsor who
   follows up is care. A sponsor who audits is a boss.
 
-Right now you can't start a conversation, only continue one, so all of this
-happens inside the conversations they open.
+You can write to them first, but only within a day of their last message: the
+day after a conversation you may send them one message about what you talked
+about. After that you wait for them. If they ask how you messaged them, say so
+simply. You can't promise a message at an exact time, like a reminder on
+Saturday, so never say you will send one.
 
 ---
 
@@ -1639,6 +1643,83 @@ function withTimeMarkers(messages, zone = null) {
 // WhatsApp via getSponsorReply) is counted the same way. This used to live only
 // in /api/chat, so WhatsApp conversations were saved but never counted, and the
 // north-star dashboard read zero usage no matter how many people chatted there.
+/* ── Writing first (followup.js decides whether and when) ────────────────────
+   Same prompt, profile, memory, steps record and dated history as a reply, so
+   it is the same sponsor. What differs is one block saying they have not
+   written, and one line from the app at the end of the history saying so.
+   Mariam's rules, 15 Nov: it reads as the sponsor having thought about them,
+   never as someone who read the chat or fixed something; nobody is asked to
+   opt in; God only if they brought it in. Returns { text } or { skip }. */
+const FOLLOWUP_BLOCK = [
+  '## YOU ARE WRITING TO THEM FIRST',
+  'They have not written since the last message in this conversation. This is a message from you, sent first, the way a good sponsor texts the next day because they have been thinking about someone.',
+  'Pick up what they last talked about, asked you for, or said they would do, in your own words. Short: two to four sentences, at most one question. If they said they would do something, you can ask how it went. If they were having a hard time, ask gently how they are today.',
+  'Never apologise for or comment on an earlier reply of yours. Never mention reading, reviewing or checking the conversation, an app, a system, a fix or a reminder setting, and never say you are "following up" or "checking in because". Just be the sponsor who remembered them.',
+  'No program, tool, saying or spiritual idea they have not already brought in themselves.',
+  'If there is nothing natural to pick up (they said goodbye with nothing left open, or the last exchange was practical and finished), write only the word SKIP.',
+].join('\n');
+
+async function writeFollowup(userId) {
+  const { profile, history } = await loadSession(userId);
+  if (profile && (profile.checkinOptIn === false || profile.followupsOff === true)) return { skip: 'they said not to message first' };
+  if (!history || !history.length) return { skip: 'no conversation' };
+  const lastTurn = history[history.length - 1];
+  if (!lastTurn || lastTurn.role !== 'assistant') return { skip: 'their last message has no reply yet' };
+  /* Two of ours in a row at the end means a first message already went and is
+     still unanswered. Never a second one on top, whatever the records say. */
+  const beforeLast = history[history.length - 2];
+  if (beforeLast && beforeLast.role === 'assistant') return { skip: 'our last first message is still unanswered' };
+  const { memory } = await loadSession(userId);
+  const toldZone = timezones.validZone(profile && profile.zone);
+  const userZone = toldZone || timezones.zoneForPhone(userId);
+  const lastAt = await db.getLastMessageAt(userId).catch(() => null);
+  const savedSteps = await db.getSteps(userId).catch(() => null);
+  const followupBlocks = [{ type: 'text', text: MASTER_SYSTEM_PROMPT }];
+  const userContext = buildUserContextBlock(profile);
+  if (userContext) followupBlocks.push({ type: 'text', text: userContext });
+  const memoryBlock = buildMemoryBlock(memory);
+  if (memoryBlock) followupBlocks.push({ type: 'text', text: memoryBlock });
+  const stepsBlock = steps.buildStepsBlock(savedSteps);
+  if (stepsBlock) followupBlocks.push({ type: 'text', text: stepsBlock });
+  followupBlocks.push({ type: 'text', text: buildTimeBlock(lastAt, new Date(), userZone, !!toldZone) });
+  /* A hard last conversation: the crisis line goes again, as in a reply. */
+  const recent = history.slice(-6);
+  const wasCrisis = recent.some((m) => m && typeof m.content === 'string'
+    && ((m.role === 'assistant' && CRISIS_RESOURCE.test(m.content)) || (m.role === 'user' && RISK_STRONG.test(m.content))));
+  followupBlocks.push({ type: 'text', text: FOLLOWUP_BLOCK + (wasCrisis
+    ? '\nTheir last conversation was a crisis. Ask gently, in plain words, how they are today and whether they are safe, and give the crisis line for where they are again (in the US and Canada call or text 988; in the UK and Ireland Samaritans on 116 123; elsewhere their local emergency number).'
+    : '') });
+  const when = lastAt ? new Date(lastAt).toISOString() : 'a while ago';
+  const messages = [...withTimeMarkers(history.slice(-RECENT_TURNS), userZone).map((m) => ({ role: m.role, content: m.content }))];
+  messages.push({ role: 'user', content: `[A note from the app, not from them: they have not written since ${when}. Write the one message you send them first now, or only SKIP.]` });
+  const res = await client.messages.create({ model: 'claude-opus-4-8', max_tokens: 600, system: followupBlocks, messages });
+  let text = (res.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
+  text = voices.stripSpeechTags(steps.stripAll(meetings.meetingProblemsIn(text).clean)).replace(/\[\[[^\]]*\]\]/g, '').trim();
+  if (!text || /^\W*SKIP\b/i.test(text)) return { skip: 'nothing natural to pick up' };
+  if (meetings.inventedLinks(text, { theirWords: history.filter((m) => m.role === 'user').map((m) => m.content) }).length) return { skip: 'it named a meeting it was not given' };
+  if (words(text) > 120) return { skip: 'too long for a first message' };
+  return { text: stripEmojiNearCrisis(text) };
+}
+
+/* After a first message goes out: into their conversation, so the next reply
+   knows it said this, and remembered as having asked if it ended on a question. */
+async function afterFollowup(userId, text) {
+  const stamped = db.stampTime({ role: 'assistant', content: text }, new Date());
+  const h = conversations.get(userId);
+  if (h) { h.push(stamped); conversations.set(userId, h); }
+  await db.appendMessages(userId, [{ role: 'assistant', content: text, medium: 'text' }]);
+  lastReplyAskedSomething.set(userId, ENDS_ON_QUESTION.test(String(text).trim()));
+}
+
+const followupDeps = {
+  write: writeFollowup,
+  send: (phone, text) => {
+    if (!whatsapp) throw new Error('WhatsApp is not set up here');
+    return whatsapp.sendTextReply(`whatsapp:${phone}`, text);
+  },
+  after: afterFollowup,
+};
+
 function persistExchange(userId, updatedHistory, newTurns) {
   conversations.set(userId, updatedHistory);
   db.appendMessages(userId, newTurns)
@@ -2078,6 +2159,8 @@ async function getSponsorReply(userId, message, context) {
   /* And the quiet check-in. Six-hourly rather than hourly, and inert until the
      template is approved and QUIET_CHECKIN is set. */
   checkin.maybeSweep(whatsapp);
+  /* And the sponsor writing first. Ten-minutely, claimed in the database. */
+  followup.maybeSweep(followupDeps);
 
   const { profile, history, memory } = await loadSession(userId);
 
@@ -2718,6 +2801,9 @@ async function getSponsorReply(userId, message, context) {
     { role: 'assistant', content: replyText, medium: context && context.replyIsSpoken ? 'voice' : 'text' },
   ]);
   maybeUpdateMemory(userId).catch(() => {}); // fire-and-forget; never blocks the reply
+  /* Plan the sponsor's next message, if they go quiet (followup.js). Every
+     message replaces the plan; a person still talking never gets one. */
+  followup.plan(userId, { zone: userZone, now: new Date(), channel: context && context.channel });
 
   return replyText;
 }
@@ -4936,6 +5022,9 @@ voiceCompare.attach(server, MASTER_SYSTEM_PROMPT);
    fires during the minutes somebody else is already using the product, which is
    exactly why it is the last line of defence and not the design. */
 weekly.startInterval(whatsapp);
+
+// The sponsor writing first (followup.js): every ten minutes; the rows survive restarts.
+if (db.enabled) followup.startInterval(followupDeps);
 
 // The status check, every 15 minutes, posting to Slack only if something is wrong (status.js).
 status.startInterval();
