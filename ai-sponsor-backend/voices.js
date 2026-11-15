@@ -111,7 +111,12 @@ const WRAPPING_TAGS = ['soft', 'slow', 'whisper', 'loud'];
    "long pause" said out loud, in the middle of a sentence, to somebody who
    reached out at 3am. Matched, they are canonicalised to the form that was
    actually verified rather than thrown away. */
-const ANY_DIRECTION = /\[([a-z][a-z -]{0,20})\]|<\/?([a-z][a-z -]{0,20})>/gi;
+/* A closing tag in square brackets, "[/soft]", is not one of ours either. The
+   model started writing them in October (7 stored replies for one member,
+   found 15 Nov), and the old pattern did not see them, so they went to the
+   voice engine as they were and stayed in the saved copy, where the model
+   learned to write more. Matched now, and dropped on both sides. */
+const ANY_DIRECTION = /\[(\/?)([a-z][a-z -]{0,20})\]|<\/?([a-z][a-z -]{0,20})>/gi;
 
 const canonical = (name) => String(name).trim().toLowerCase().replace(/[\s-]+/g, '-');
 
@@ -132,7 +137,8 @@ const tidy = (text) =>
 /* For the voice engine: keep what we have verified, in the form we verified it
    in, and drop anything else. */
 function forSpeech(text) {
-  return tidy(String(text).replace(ANY_DIRECTION, (m, inline, wrapping) => {
+  return tidy(String(text).replace(ANY_DIRECTION, (m, slash, inline, wrapping) => {
+    if (slash) return '';
     const name = inline !== undefined ? inline : wrapping;
     if (!allowed(name)) return '';
     if (inline !== undefined) return `[${canonical(name)}]`;

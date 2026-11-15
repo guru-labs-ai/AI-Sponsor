@@ -979,5 +979,38 @@ check('spring too: US clocks in 2027 go forward on Sunday 14 March, not the 7th'
   fixClock('US clocks spring forward on Sunday 7 March.', at('2027-03-01T12:00:00Z')), 'US clocks spring forward on Sunday 14 March.');
 check('and it says what it changed', meetings.fixClockDates('US fell back to standard time on 2 November.', nov3).fixed, [{ said: '2 November', now: '1 November' }]);
 
+group('the program, the way people actually type it (1 and 4 Nov)');
+check("\"debtor's anonymous\", curly apostrophe, is DA", meetings.programsIn('Looking for a debtor’s anonymous meeting'), ['DA']);
+check("\"business debtor's anonymous\" is BDA and not DA too", meetings.programsIn("business debtor's anonymous meeting"), ['BDA']);
+check("\"overeater's anonymous\" and \"sex & love addicts anonymous\"", [meetings.programsIn("overeater's anonymous"), meetings.programsIn('sex & love addicts anonymous')], [['OA'], ['SLAA']]);
+check('"o a" and "O.A." count inside meeting talk', [
+  meetings.programsIn('any o a meeting on tonight, maybe one for anorexia', { loose: true }),
+  meetings.programsIn('any O.A. meetings?', { loose: true }),
+], [['OA'], ['OA']]);
+check('but ordinary words are not programs', [
+  meetings.programsIn('I have a data meeting', { loose: true }),
+  meetings.programsIn('so a cat', { loose: true }),
+  meetings.programsIn('any o a meeting on tonight', { loose: false }),
+], [[], [], []]);
+
+group('a meeting link the sponsor was never given is caught (4 Nov: three made-up OA links)');
+meetings._setData({ generatedAt: new Date().toISOString(), meetings: [NY_TUESDAY] });
+const invented = (reply, o) => meetings.inventedLinks(reply, o);
+check('a link from our list passes, even with the passcode in the url',
+  invented('Tuesday Visions https://us02web.zoom.us/j/12345678901?pwd=abc passcode: 512788'), []);
+check('the same meeting on another zoom subdomain passes (the meeting number is what counts)',
+  invented('https://zoom.us/j/12345678901.'), []);
+check('a made-up zoom link is caught',
+  invented('OA Recovery from Restricting (open) 7:30pm https://us02web.zoom.us/j/88016322790 passcode: recovery'), ['https://us02web.zoom.us/j/88016322790']);
+check('a link in what it was handed for this reply passes',
+  invented('try https://zoom.us/j/99999999999', { given: '- "X" | https://zoom.us/j/99999999999' }), []);
+check('a link the person sent themselves passes',
+  invented('Is it this one? https://us06web.zoom.us/j/55555555555', { theirWords: ['my group moved to https://us06web.zoom.us/j/55555555555'] }), []);
+check('google meet and teams links are checked too',
+  invented('https://meet.google.com/abc-defg-hij and https://teams.microsoft.com/l/meetup-join/xyz'), ['https://meet.google.com/abc-defg-hij', 'https://teams.microsoft.com/l/meetup-join/xyz']);
+check('official finders and other websites are left alone',
+  invented('Everything is on https://oa.org/find-a-meeting/ and https://debtorsanonymous.org/meetings'), []);
+check('a reply with no links costs nothing', invented('Call your sponsor today.'), []);
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

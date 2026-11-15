@@ -142,5 +142,10 @@ group('a long voice note keeps its play button');
 // endpoint: 108kbps left to itself, 43kbps at this setting.
 check('bit_rate is pinned', voices.forSpeech('x') === 'x' && voicesSrc.includes('bit_rate: 32000'), true);
 
+group('a closing tag in square brackets, "[/soft]", is caught too (15 Nov: 7 stored replies for one member)');
+check('dropped before the voice engine', voices.forSpeech('You kept the home.[/soft] That is new. J.[/pause] Here.'), 'You kept the home. That is new. J. Here.');
+check('and gone from the copy people read', voices.stripSpeechTags('You kept the home.[/soft] That is new. [/breath]Ok.'), 'You kept the home. That is new. Ok.');
+check('the real tags around it still go through', voices.forSpeech('[breath] Hey.[/soft] <soft>slowly</soft>'), '[breath] Hey. <soft>slowly</soft>');
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

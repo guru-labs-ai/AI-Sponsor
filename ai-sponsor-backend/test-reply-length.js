@@ -29,8 +29,8 @@ const body = src.slice(
   src.indexOf('const CRISIS_RESOURCE ='),
   src.indexOf('/* ── What they put on your messages')
 );
-const { replyBudget, dropTrailingQuestion, words } = new Function(
-  `${body.replace(/console\.log\([^)]*\);/g, '')}; return { replyBudget, dropTrailingQuestion, words };`
+const { replyBudget, dropTrailingQuestion, words, SAFETY_QUESTION, SAFETY_ANSWER, ASKS_ABOUT_GOD } = new Function(
+  `${body.replace(/console\.log\([^)]*\);/g, '')}; return { replyBudget, dropTrailingQuestion, words, SAFETY_QUESTION, SAFETY_ANSWER, ASKS_ABOUT_GOD };`
 )();
 
 let passed = 0, failed = 0;
@@ -63,6 +63,34 @@ check('a real question earns room to answer it', () => {
   const plain = replyBudget(say(12), { history: [] });
   const asked = replyBudget('what should I expect from step two?', { history: [] });
   assert.ok(asked.target > plain.target, 'a question should not be answered in eight words');
+});
+
+check('an ask without a question mark is still an ask (15 Nov scan: one-liners to real requests)', () => {
+  const plain = replyBudget('we went for a walk and talked', { history: [] });
+  for (const ask of ['I want you to help me find my way back to God.', 'Need some support sticking to three meals a day',
+    'Pray with me', 'Help me write to my landlord', 'tell me about step 3', 'Can you share something from DA literature']) {
+    const b = replyBudget(ask, { history: [] });
+    assert.ok(b.target > plain.target, `"${ask}" got ${b.target}, same as small talk`);
+  }
+});
+
+check('small talk and feelings stay short, so asking about them is still the reply', () => {
+  for (const s of ['ok thanks', 'I went to the meeting, it was good', 'I feel blank', 'I had a horrible day at work']) {
+    assert.ok(replyBudget(s, { history: [] }).target <= 15, `"${s}" was given room for a speech`);
+  }
+});
+
+check('the safety question, once asked, stays open until they answer it (21 Oct)', () => {
+  assert.ok(SAFETY_QUESTION.test('I want to ask you plainly, because it matters: are you having any thoughts of not wanting to be here?'));
+  assert.ok(SAFETY_QUESTION.test('Are you thinking about ending your life?'));
+  assert.ok(!SAFETY_QUESTION.test('How was the meeting?'));
+  for (const a of ['yeah, I have been having those thoughts', 'no', 'No, nothing like that', "I'm not suicidal, just tired", 'Im safe']) assert.ok(SAFETY_ANSWER.test(a), `"${a}" is an answer`);
+  for (const a of ["my sister makes every decision for me and I can't breathe", 'no one understands me', 'I am so tired of everything']) assert.ok(!SAFETY_ANSWER.test(a), `"${a}" is not an answer`);
+});
+
+check('God comes in only when they ask for help toward God themselves, never from an exclamation', () => {
+  for (const s of ['I want you to help me find my way back to God.', 'guide me towards God', 'pray with me', 'can you help me with my Higher Power']) assert.ok(ASKS_ABOUT_GOD.test(s), s);
+  for (const s of ['oh my god, can you help me with this email', 'God help me I am so tired', 'my godfather is sick', 'thank god that is over']) assert.ok(!ASKS_ABOUT_GOD.test(s), s);
 });
 
 check('the very first message is allowed to introduce itself', () => {
@@ -192,10 +220,10 @@ check('the question rule is enforced on the way out, not just requested', () => 
 /* 29 Oct: "I moved to germany actually, so im 3 hours behind" got back
    only the time difference, because the question the sponsor wrote was cut.
    Real news in their life is the one place two questions in a row is right. */
-check('news in their life lets the question through, and only that', () => {
+check('news in their life, or the safety question still open, lets the question through, and only those', () => {
   assert.ok(src.includes('const sharedNews = !!(context && context.sharesNews);'),
     'the reply never hears that they shared news');
-  assert.ok(src.includes('const holdQuestion = askedLastTime && !sharedNews && !asksForProgram;'),
+  assert.ok(src.includes('const holdQuestion = askedLastTime && !sharedNews && !asksForProgram && !safetyOpen;'),
     'news does not lift the question rule');
   assert.ok(/if \(holdQuestion\) \{\s*const trimmed = dropTrailingQuestion\(rawReply\)/.test(src),
     'the question is still cut on the way out when they shared news');

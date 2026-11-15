@@ -117,17 +117,23 @@ function asksAboutMeetings(text) {
    second program. Short codes count in capitals anywhere, or in any case right
    before "meeting", so "da" or "wa" inside ordinary words never match. */
 const BEFORE_MEETING = '(?=\\s+(meetings?|groups?|zoom))';
+/* The full name as people type it, not only as the fellowship spells it. On
+   1 Nov a member asked for a meeting by the full name with an apostrophe
+   (debtor’s, curly), the name went unrecognised, and with five programs on file the sponsor asked which one
+   (in the replay, 3 of 3) instead of searching DA. Apostrophe straight or
+   curly, possessive or singular. */
+const anon = (word) => `\\b${word}(?:s|['’]s|s['’])?\\s+anonymous\\b`;
 const MENTIONS = {
-  DA: [/\bDA\b/, new RegExp(`(?<!business )\\bdebtors anonymous\\b|\\bda${BEFORE_MEETING}`, 'i')],
-  BDA: [/\bBDA\b/, new RegExp(`\\bbusiness debtors anonymous\\b|\\bbda${BEFORE_MEETING}`, 'i')],
-  WA: [/\bWA\b/, new RegExp(`\\bworkaholics anonymous\\b|\\bwa${BEFORE_MEETING}`, 'i')],
-  UA: [/\bUA\b/, new RegExp(`\\bunderearners anonymous\\b|\\bua${BEFORE_MEETING}`, 'i')],
-  ACA: [/\bACA\b/, new RegExp(`\\badult children of alcoholics\\b|\\baca${BEFORE_MEETING}`, 'i')],
+  DA: [/\bDA\b/, new RegExp(`(?<!business )${anon('debtor')}|\\bda${BEFORE_MEETING}`, 'i')],
+  BDA: [/\bBDA\b/, new RegExp(`\\bbusiness ${anon('debtor').slice(2)}|\\bbda${BEFORE_MEETING}`, 'i')],
+  WA: [/\bWA\b/, new RegExp(`${anon('workaholic')}|\\bwa${BEFORE_MEETING}`, 'i')],
+  UA: [/\bUA\b/, new RegExp(`${anon('underearner')}|\\bua${BEFORE_MEETING}`, 'i')],
+  ACA: [/\bACA\b/, new RegExp(`\\badult child(?:ren)? of alcoholics?\\b|\\baca${BEFORE_MEETING}`, 'i')],
   'Al-Anon': [/\bal-?\s?anon\b/i],
-  AA: [/\bAA\b/, new RegExp(`\\balcoholics anonymous\\b|\\baa${BEFORE_MEETING}`, 'i')],
-  NA: [/\bNA\b/, new RegExp(`\\bnarcotics anonymous\\b|\\bna${BEFORE_MEETING}`, 'i')],
-  OA: [/\bOA\b/, new RegExp(`\\bovereaters anonymous\\b|\\boa${BEFORE_MEETING}`, 'i')],
-  SLAA: [/\bslaa\b/i, /\bsex and love addicts anonymous\b/i],
+  AA: [/\bAA\b/, new RegExp(`${anon('alcoholic')}|\\baa${BEFORE_MEETING}`, 'i')],
+  NA: [/\bNA\b/, new RegExp(`${anon('narcotic')}|\\bna${BEFORE_MEETING}`, 'i')],
+  OA: [/\bOA\b/, new RegExp(`${anon('overeater')}|\\boa${BEFORE_MEETING}`, 'i')],
+  SLAA: [/\bslaa\b/i, new RegExp(`\\bsex (?:and|&) love ${anon('addict').slice(2)}`, 'i')],
 };
 /* Inside a conversation about meetings, people write "Ua?", "Bda?", "how about
    right now for da" and "al-anob" (21 Oct, Matt and Mariam). Short names then
@@ -137,9 +143,16 @@ const LOOSE = {
   DA: /\bda\b/i, BDA: /\bbda\b/i, WA: /\bwa\b/i, UA: /\bua\b/i, ACA: /\baca\b/i,
   'Al-Anon': /\bal[- ]?an[oa][a-z]\b/i, AA: /\baa\b/i, NA: /\bna\b/i, OA: /\boa\b/i, SLAA: /\bslaa\b/i,
 };
+/* Letters said apart, the way voice notes and phone keyboards write them:
+   "o a" for OA (4 Nov). Unrecognised, the sponsor was
+   handed no meetings and made up three OA meetings with Zoom links that did
+   not exist. Same meeting-talk-only rule as LOOSE. */
+const spacedLetters = (letters) => new RegExp(`\\b${letters.split('').join('(?:\\.\\s?|\\s)')}\\.?(?![a-z])`, 'i');
+const SPACED = Object.fromEntries(['DA', 'BDA', 'WA', 'UA', 'ACA', 'AA', 'NA', 'OA', 'SLAA'].map((k) => [k, spacedLetters(k.toLowerCase())]));
 function programsIn(text, { loose = false } = {}) {
   const t = String(text || '');
-  return Object.keys(PROGRAMS).filter((key) => MENTIONS[key].some((re) => re.test(t)) || (loose && LOOSE[key] && LOOSE[key].test(t)));
+  return Object.keys(PROGRAMS).filter((key) => MENTIONS[key].some((re) => re.test(t))
+    || (loose && ((LOOSE[key] && LOOSE[key].test(t)) || (SPACED[key] && SPACED[key].test(t)))));
 }
 function othersIn(text) {
   const t = String(text || '');
@@ -1364,7 +1377,58 @@ function buildMeetingsBlock({ message, programField, userZone, zoneTold = false,
   }
 }
 
+/* ── Meeting links the sponsor was never given ───────────────────────────────
+   4 Nov: a member asked for an OA meeting starting now, the program went
+   unrecognised, and the sponsor got the "ask which program" section with no
+   meetings in it. It answered with three OA meetings anyway, each with a Zoom
+   link and a passcode, and none of them existed. She found out three times.
+   Replayed on the live code it did the same in 3 of 3, although that section
+   ends "Never name a meeting, time, link or passcode that you were not given
+   here." Asking was not enough, so every meeting link in a reply is checked.
+
+   A link is fine when it is in our meetings, in what the sponsor was handed
+   for this reply, or something the person sent themselves. Anything else on a
+   meeting platform is treated as made up. Other websites are left alone: the
+   official finders and fellowship pages are named in the prompt on purpose. */
+const MEETING_LINK = /\bhttps?:\/\/[^\s<>"')\]]*\b(?:zoom\.us|zoom\.com|meet\.google\.com|teams\.microsoft\.com|teams\.live\.com|webex\.com|gotomeeting\.com|gotomeet\.me|freeconferencecall\.com|whereby\.com|meet\.jit\.si|join\.skype\.com)\b[^\s<>"')\]]*/gi;
+const zoomId = (url) => { const m = /\/(?:j|w|s|wc\/join)\/(\d{9,12})/.exec(url) || /[?&]confno=(\d{9,12})/.exec(url); return m ? m[1] : null; };
+const plainLink = (url) => String(url).toLowerCase().replace(/^https?:\/\//, '').replace(/[?#].*$/, '').replace(/[.,;:!?]+$/, '').replace(/\/+$/, '');
+let knownCache = { data: null, ids: null, links: null };
+function knownLinks(data) {
+  if (knownCache.data === data) return knownCache;
+  const ids = new Set(), links = new Set();
+  for (const m of (data && data.meetings) || []) {
+    for (const l of [m.link, m.listed]) {
+      if (!l) continue;
+      links.add(plainLink(l));
+      const id = zoomId(l); if (id) ids.add(id);
+    }
+    if (m.meetingId) ids.add(String(m.meetingId).replace(/\D/g, ''));
+  }
+  knownCache = { data, ids, links };
+  return knownCache;
+}
+function inventedLinks(reply, { given = '', theirWords = [], data = load() } = {}) {
+  const found = String(reply || '').match(MEETING_LINK) || [];
+  if (!found.length) return [];
+  const known = knownLinks(data);
+  const allowedText = [String(given || ''), ...theirWords.map((t) => String(t || ''))].join('\n');
+  const allowedIds = new Set((allowedText.match(/\d{9,12}/g) || []));
+  const allowedLinks = new Set((allowedText.match(MEETING_LINK) || []).map(plainLink));
+  return [...new Set(found.map((u) => u.replace(/[.,;:!?]+$/, '')))].filter((u) => {
+    const id = zoomId(u);
+    if (id) return !(known.ids.has(id) || allowedIds.has(id));
+    const p = plainLink(u);
+    return !(known.links.has(p) || allowedLinks.has(p));
+  });
+}
+/* Last resort when the second draft still carries a made-up link. Dropping
+   only the link would leave a made-up meeting name and time standing, so the
+   whole reply is replaced by one that promises nothing it cannot keep. */
+const NO_MADE_UP_MEETING = "I don't want to send you a meeting link I can't stand behind. Tell me which program you're looking for and I'll search the real list for you.";
+
 module.exports = {
+  inventedLinks, NO_MADE_UP_MEETING,
   plentyCounts, plentyExample,
   buildMeetingsBlock, asksAboutMeetings, programsOf, programsIn, nextStart, starts, describeWhen, instantFor,
   cleanName, weekdaysIn, alreadyGiven, startsIn, timeWindowIn, genderAsked, askIn, datesIn, namedIn, zoneIn,

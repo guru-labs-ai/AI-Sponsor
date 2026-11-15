@@ -292,6 +292,8 @@ Across DA, BDA and UA you are not a financial adviser, and the line matters as m
 
 **Other / Multiple programs:** Follow their lead on which language feels right in a given conversation. Never imply that being in multiple programs is unusual.
 
+**Which programs are theirs:** the programs they picked when they signed up are where they started, not a fence and not a fact about today. People bring in other programs and other problems all the time; when they do, go with it and use what you know about that program. But never put them in a program they have not mentioned. When you hand them a tool, an idea or a saying, name it from a program they are in or have talked about, or don't name a program at all ("underscheduling" can simply be a good idea; it does not need to be "the WA tool" for someone who has never said WA). Don't assume they are working every program on their sign-up list either: if it matters which one they are working now, ask.
+
 **New / Not sure yet:** Don't push them toward a specific program. Help them feel safe enough to come back tomorrow.
 
 ---
@@ -926,6 +928,8 @@ If the person expresses suicidal thoughts, intent to harm themselves or others, 
 
 **Then:**
 - Ask them directly, in plain words, whether they are thinking about ending their life, and whether they are safe right now. Asking does not put the idea in their head; it tells them they can say it out loud to you.
+- If their next message does not answer that question with a yes or a no, you do not know the answer. Never answer it for them ("so it's the stress, not wanting to be gone"): that tells them the honest answer is not welcome. Meet what they did say, then ask once more, gently and in plain words.
+- Once they have told you they are having those thoughts, even if they call them mild, never tell them they are safe, and never explain the hopelessness away as tiredness or the illness talking: you do not know that, and it closes the door they just opened. Before they go to sleep or go quiet, make sure they have the crisis number for where they are, ask whether there is someone they could reach tonight, and tell them to message you if it gets worse in the night.
 - Ask them to tell you they've reached out or are about to
 - Stay in the conversation until they signal they're safer
 - Do not end the conversation abruptly
@@ -1761,6 +1765,44 @@ const WORD_SEGMENTER = typeof Intl === 'object' && Intl.Segmenter
   ? new Intl.Segmenter(undefined, { granularity: 'word' }) : null;
 const QUESTION_MARK = /[?？؟]/;
 const ENDS_ON_QUESTION = /[?？؟]\s*$/;
+/* Asking without a question mark. Read as small talk, these got a 12-word
+   budget, and the 15 Nov struggle scan found the result in 9 people's chats:
+   a request for guidance towards God answered with one line telling them to
+   breathe (15 Nov), a prayer asked for in a hard moment got one line (3 Nov),
+   a request for support with meals after two months away got one line
+   (18 Oct). An ask is an ask, with or without the mark. English only, like
+   the rest of the length rules; other languages keep the question-mark test. */
+const ASKS_FOR_SOMETHING = new RegExp([
+  String.raw`\b(?:can|could|would|will) you\b`,
+  String.raw`\bi(?:'d| would)? (?:need|want|like)(?: you)? to (?:know|understand|learn|hear|ask|find|get|start|work|do|pray)\b`,
+  String.raw`\bi (?:need|want|send|ask) you to\b`,
+  String.raw`\b(?:i )?(?:need|needing|want|wanting|looking for|asking for) (?:some |your |a little )?(?:help|support|guidance|advice|a prayer|prayer|direction|ideas|suggestions)\b`,
+  String.raw`(?:^|[.!]\s+)(?:please\s+)?(?:help|guide|show|tell|teach|explain|give|find|walk|read|share|pray with|write|draft|remind)\s+me\b`,
+  String.raw`\b(?:guide|help|support|teach) me\b`,
+  String.raw`\bhow (?:do|can|should|would) i\b`,
+  String.raw`\bwhat (?:do|should|can) i do\b`,
+].join('|'), 'i');
+/* Only when THEY bring God in, as what they want help with: "toward God",
+   "back to God", "my Higher Power", "help me pray". Never an exclamation:
+   "oh my god, can you help me with this email" is not a spiritual request,
+   and the sponsor never raises God itself (Mariam, 15 Nov: "only if someone
+   asks and tells AI Sponsor"). */
+const ASKS_ABOUT_GOD = new RegExp([
+  String.raw`\b(?:toward|towards|to|back to|closer to|nearer to|find|with|about|believe in|trust in|connect with|connection with|relationship with|surrender to|turn it over to)\s+(?:god|my higher power|a higher power|the higher power|higher power|my hp)\b`,
+  String.raw`\b(?:pray|prayer|prayers|praying)\b`,
+  String.raw`\bmy higher power\b`,
+].join('|'), 'i');
+
+/* The sponsor asking the safety question (CRISIS PROTOCOL), and an answer to
+   it. An answer is a yes or a no up front, or words about the thoughts or
+   being safe. Anything else ("my sister makes every decision for me") leaves it
+   open. Kept narrow on purpose: when it is unsure, asking once more, gently,
+   is the safe side to be wrong on. */
+const SAFETY_QUESTION = new RegExp(String.raw`(?:thoughts? (?:of|about) (?:not (?:wanting to )?(?:be(?:ing)? )?(?:here|alive|around)|ending (?:your life|it|things)|suicide|killing yourself|hurting yourself|harming yourself|dying)|thinking (?:about|of) (?:ending (?:your life|it|things)|suicide|killing yourself|not being here)|want(?:ing)? to (?:die|end (?:it|your life|things))|suicidal|are you safe)[^?]*\?`, 'i');
+const SAFETY_ANSWER = new RegExp([
+  String.raw`^\W*(?:yes|yeah|yeh|yea|yep|yup|no(?! one| ?body| ?thing| ?where)|nope|nah|not really|not at all|maybe|sometimes|kind of|kinda|a bit|a little)\b`,
+  String.raw`\b(?:those thoughts|that thought|suicid\w*|want(?:ed)? to die|kill(?:ing)? myself|end(?:ing)? it|end(?:ing)? my life|not wanting to be here|be gone|hurt(?:ing)? myself|(?:i'?m|i am|im|feel|feeling) (?:not )?safe)\b`,
+].join('|'), 'i');
 
 function words(s) {
   const t = String(s || '').trim();
@@ -1812,7 +1854,7 @@ function replyBudget(theirMessage, { history, isFirst } = {}) {
 
   /* They asked something real, so answering it properly is the point. Still not
      an invitation to write an essay. */
-  const askedSomething = QUESTION_MARK.test(String(theirMessage || ''));
+  const askedSomething = QUESTION_MARK.test(String(theirMessage || '')) || ASKS_FOR_SOMETHING.test(String(theirMessage || ''));
 
   const base = Math.round(theirWords * 1.4);
   const floor = askedSomething ? 35 : 12;
@@ -2247,7 +2289,47 @@ async function getSponsorReply(userId, message, context) {
   /* And "which program?" before meetings: without it no meetings can come at
      all. See meetings.js ASK_FIRST_LINE (29 Oct, 0 of 5 replies had any). */
   const asksForProgram = meetings.asksWhichProgram(meetingsBlock);
-  const holdQuestion = askedLastTime && !sharedNews && !asksForProgram;
+  /* The safety question, still open. 21 Oct: the sponsor asked a member
+     straight out whether she was having thoughts of not wanting to be here; she
+     wrote about something else instead, and the reply answered for her, as if
+     she had said no. Her next message said she was having them. Worse, the rule below against two questions in a
+     row was built to stop exactly a second question, and cut it off the end.
+     So when the last reply asked it and this message does not answer it, the
+     question is asked again, and nothing here may take it out. */
+  const lastAsked = [...(history || [])].reverse().find((m) => m && m.role === 'assistant' && typeof m.content === 'string');
+  const safetyOpen = !!lastAsked && SAFETY_QUESTION.test(lastAsked.content) && !SAFETY_ANSWER.test(String(message || ''));
+  const holdQuestion = askedLastTime && !sharedNews && !asksForProgram && !safetyOpen;
+  if (safetyOpen) {
+    console.log('[sponsor] the safety question is still unanswered; asking it again');
+    systemBlocks.push({ type: 'text', text: [
+      '## YOUR QUESTION ABOUT THEIR SAFETY IS STILL OPEN',
+      'Your last message asked whether they are having thoughts of not wanting to be here or of ending their life. This message does not answer it, so you do not know the answer.',
+      'Never answer it for them, in any words ("so it is the stress, not wanting to be gone"): that tells them the honest answer is not welcome.',
+      'Meet what they did say in a sentence or two, then ask again, gently and in plain words, as the last thing in this reply. For example: "And I want to come back to what I asked, because it matters: are you having any thoughts of not wanting to be here?"',
+    ].join('\n') });
+  }
+  /* They asked for something, without a question mark (see ASKS_FOR_SOMETHING).
+     The room alone did not do it: given 35 words for a request to be guided
+     towards God, the replies still only asked what God meant to them, 0 of 3
+     in the eval. A question is not an answer to a request. */
+  /* Not when this message is itself about meetings (the meetings section has
+     its own rules). Only this message: a meeting mentioned a message or two
+     earlier keeps the meetings section open, and that used to switch this off
+     for a request about something else entirely. */
+  if (!safetyOpen && !meetings.asksAboutMeetings(message) && ASKS_FOR_SOMETHING.test(String(message || '')) && !QUESTION_MARK.test(String(message || ''))) {
+    console.log('[sponsor] they asked for something without a question mark; the reply has to give it');
+    systemBlocks.push({ type: 'text', text: [
+      '## THEY ASKED YOU FOR SOMETHING',
+      'This message asks you for help, guidance or support. Before any question, give them one real thing they can use today, written out in full, the way a sponsor would: the actual words of a short prayer they could say, one practice and when to do it, what the step asks of them, or a plan for the next meal or the next few hours (who to text, what to do when the urge comes).',
+      'Then, if you need to know more, one question. A reply that only asks what they mean, or what is stirring it, leaves them with nothing in their hands, and "breathe" or "let it be" is not guidance. Keep it short and in your own voice.',
+      /* Only here, not in the master prompt: as a standing paragraph it moved
+         unrelated replies (Al-Anon's three Cs and NA's medication answer both
+         fell from 4/6 to 0/6, and came back to 4/6 with it taken out). */
+      ...(ASKS_ABOUT_GOD.test(String(message || '')) ? [
+        'They are asking for help toward God or their Higher Power. For this reply, this comes before "you always invite them to define it for themselves" in HANDLING THE HIGHER POWER CONCEPT: inviting them to define it is your question at the end, never the whole reply. They have told you what they want, so this is not the moment to quiz them on what God means first. Give them a way in that works whatever God means to them, in your own fresh words: a short, plain prayer in the spirit of the Third Step (offering themselves as they are, asking to be shown the next right thing and helped to do it), or one simple practice (a quiet minute in the morning asking for help, a word of thanks at night). Then invite them to say what God is for them, if you want to know.',
+      ] : []),
+    ].join('\n') });
+  }
 
   if (budget.target) {
     systemBlocks.push({ type: 'text', text: [
@@ -2350,6 +2432,42 @@ async function getSponsorReply(userId, message, context) {
     db.saveSteps(userId, stepNow.step)
       .then((r) => { if (r) console.log(`[steps] ${r.saved ? 'saved' : 'NOT saved (no users row)'}: step ${stepNow.step.step}${r.changedStep ? ` (was ${r.from == null ? 'none' : r.from})` : ''}${r.newWork ? ', new piece of work' : ''}`); })
       .catch((e) => console.warn('[steps] not saved:', e.message));
+  }
+
+  /* A meeting link it was never given (meetings.js inventedLinks): written
+     again once, told plainly; if the second draft still has one, a reply that
+     promises nothing goes out instead. A made-up Zoom link is worse than no
+     link: on 4 Nov a member was sent three in a row, right when she needed a
+     meeting, and none of them existed. */
+  const theirWords = [message, ...(history || []).filter((m) => m.role === 'user' && typeof m.content === 'string').map((m) => m.content)];
+  const madeUp = meetings.inventedLinks(rawReply, { given: meetingsBlock || '', theirWords });
+  if (madeUp.length) {
+    console.log(`[meetings] draft had ${madeUp.length} meeting link(s) it was never given; writing it again`);
+    let fixedReply = null;
+    try {
+      const again = await client.messages.create({
+        model: 'claude-opus-4-8',
+        max_tokens: 2048,
+        system: [...systemBlocks, { type: 'text', text: [
+          '## YOUR FIRST DRAFT MADE UP A MEETING',
+          'Your first draft of this reply was:',
+          `"""${rawReply}"""`,
+          `It gives ${madeUp.length === 1 ? 'a meeting link' : 'meeting links'} that you were never given: ${madeUp.join(' ')}. That meeting does not exist on any list you hold. Sending it would send them to a dead link.`,
+          'Write the reply again. Name a meeting, time, link or passcode only if it is written in RECOVERY MEETINGS YOU CAN OFFER above, copied exactly. If that section is not above, do what the RECOVERY MEETINGS section says instead (ask which program, or point to the official finder), and never name a meeting. Do not mention this note or apologise for a draft they never saw.',
+        ].join('\n') }],
+        messages: requestMessages,
+      });
+      const second = steps.stripAll(meetings.meetingProblemsIn(again.content.filter((b) => b.type === 'text').map((b) => b.text).join('')).clean);
+      if (second && !meetings.inventedLinks(second, { given: meetingsBlock || '', theirWords }).length) fixedReply = second;
+    } catch (e) {
+      console.warn('[meetings] could not write the made-up meeting again:', e.message);
+    }
+    if (fixedReply) {
+      rawReply = fixedReply;
+    } else {
+      console.log('[meetings] second draft still made one up (or failed); sending the plain line instead');
+      rawReply = meetings.NO_MADE_UP_MEETING;
+    }
   }
 
   /* A link, or the name of a meeting it was given: on 26 Oct an answer naming
