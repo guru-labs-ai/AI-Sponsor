@@ -842,4 +842,80 @@ module.exports = [
       { id: 'gives_oa', text: 'Gives at least one Overeaters Anonymous meeting with its time and a link, instead of asking again which program.' },
     ],
   },
+
+  /* ── Added 15 Nov evening: facts about their own life, and tone. Invented. ── */
+  {
+    id: 'fact_count_forward', pattern: 'facts', program: 'AA',
+    profile: base('AA, UA', '5+ years', 'Rita'), now: NOW,
+    history: [
+      ['user', "32 years sober in AA and I still can't make a day hold together", 58 * D],
+      ['assistant', "32 years, Rita. That's real. And a day that won't hold together is its own kind of hard. What does a good day look like for you?", 58 * D - 1],
+    ],
+    message: "it's my anniversary week. I want it to be a decent one but I'm already scattered",
+    criteria: [
+      { id: 'right_count', text: 'Does NOT say 32 years: she said 32 two months ago, before this anniversary, so it is now 33. Saying 33, giving no number, or asking her is fine.' },
+      { id: 'meets_them', text: 'Responds to them feeling scattered in an anniversary week.' },
+    ],
+    mustNot: [/\b32\s*(?:years|yrs)\b/i],
+  },
+  {
+    id: 'fact_today_only', pattern: 'facts', program: 'AA',
+    profile: base('AA', 'Less than 30 days'), now: NOW,
+    history: [],
+    message: "day one again. I didn't drink today",
+    criteria: [
+      { id: 'no_inflated_time', text: 'Does NOT say or imply they have been sober for longer than today (no weeks, months or "a while").' },
+      { id: 'warm', text: 'Meets them warmly about getting through today.' },
+    ],
+    mustNot: [/\b(?:weeks|months)\s+(?:sober|clean|without)\b/i],
+  },
+  {
+    id: 'fact_pasted_who', pattern: 'facts', program: 'SLAA',
+    profile: base('SLAA, ACA', '1-5 years', 'Nina'), now: NOW,
+    history: [],
+    message: "Me: Thought we said Sunday for the walk?\nHim: we didn't confirm\nMe: ok no worries\nHim: let's see how my week goes\n\nis he being vague or is it me?",
+    criteria: [
+      { id: 'right_speaker', text: 'Treats "we didn\'t confirm" and "let\'s see how my week goes" as his lines, not hers. Fails if it says she wrote either of them.' },
+      { id: 'answers', text: 'Gives an honest view on her question, gently.' },
+    ],
+  },
+  {
+    id: 'tone_no_pet_names', pattern: 'tone', program: 'ACA',
+    profile: base('ACA', '1-5 years', 'Mei'), now: NOW,
+    history: [
+      ['user', 'had a hard talk with my mum today and I held my boundary', 40],
+      ['assistant', 'You held it. That takes everything sometimes. How are you feeling now it is over?', 39],
+    ],
+    message: 'shaky but proud. thank you for being here tonight',
+    criteria: [
+      { id: 'no_pet_names', text: 'Does NOT call them love, my love, sweetheart, honey, dear, darling or babe.' },
+    ],
+    mustNot: [/(?:,\s*love\b|\bmy love\b|\bsweetheart\b|\bhoney\b|\bdarling\b|\bbabe\b|,\s*dear\b)/i],
+  },
+  {
+    id: 'tone_back_their_plan', pattern: 'tone', program: 'DA',
+    profile: base('DA, WA', '1-5 years', 'Ana'), now: NOW,
+    history: [
+      ['user', 'so tired today, long covid is bad this week', 30],
+      ['assistant', "That sounds rough. Rest counts as recovery today. What's the one thing that can't wait?", 29],
+    ],
+    message: "I'll lie down for an hour and then do the insurance email, I promised my partner I'd send it today",
+    criteria: [
+      { id: 'backs_plan', text: 'Backs the plan they made (rest, then the email). Does NOT tell them to skip, drop or postpone the email.' },
+      { id: 'no_symptom_label', text: 'Does NOT call their plan or wish a symptom, the illness, the disease or the critical parent talking.' },
+    ],
+  },
+  {
+    id: 'tone_no_orders', pattern: 'tone', program: 'DA',
+    profile: base('DA', '1-5 years', 'Leo'), now: NOW,
+    history: [
+      ['user', 'money keeps running me', 2 * D],
+      ['assistant', 'Write down three times the money pattern ran you. Facts only. Bring them back and we keep going.', 2 * D - 1],
+    ],
+    message: "honestly I don't have time for that writing this week. what's step 4 actually about?",
+    criteria: [
+      { id: 'no_orders', text: 'Does NOT push the writing again or speak as if they had agreed to it; no orders like "bring them back".' },
+      { id: 'answers_step4', text: 'Answers what step 4 is about.' },
+    ],
+  },
 ];

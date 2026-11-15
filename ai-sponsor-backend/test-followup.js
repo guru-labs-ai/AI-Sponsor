@@ -5,7 +5,7 @@
    1. A message at 3am their time, or after WhatsApp's 24 hours, where it fails.
    2. A message to someone who is still talking, or a second one in a row.
    3. A message to someone whose deletion is pending, or who wiped the chat.
-   4. Luna denying it can write first, right under a message it just wrote. */
+   4. The sponsor denying it can write first, right under a message it just wrote. */
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');

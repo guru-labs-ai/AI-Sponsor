@@ -29,8 +29,8 @@ const body = src.slice(
   src.indexOf('const CRISIS_RESOURCE ='),
   src.indexOf('/* ── What they put on your messages')
 );
-const { replyBudget, dropTrailingQuestion, words, SAFETY_QUESTION, SAFETY_ANSWER, ASKS_ABOUT_GOD, RISK_STRONG, RISK_SOFT } = new Function(
-  `${body.replace(/console\.log\([^)]*\);/g, '')}; return { replyBudget, dropTrailingQuestion, words, SAFETY_QUESTION, SAFETY_ANSWER, ASKS_ABOUT_GOD, RISK_STRONG, RISK_SOFT };`
+const { replyBudget, dropTrailingQuestion, words, SAFETY_QUESTION, SAFETY_ANSWER, ASKS_ABOUT_GOD, RISK_STRONG, RISK_SOFT, stripPetNames } = new Function(
+  `${body.replace(/console\.log\([^)]*\);/g, '')}; return { replyBudget, dropTrailingQuestion, words, SAFETY_QUESTION, SAFETY_ANSWER, ASKS_ABOUT_GOD, RISK_STRONG, RISK_SOFT, stripPetNames };`
 )();
 
 let passed = 0, failed = 0;
@@ -99,6 +99,26 @@ check('a crisis line goes in when they may be in danger, and not otherwise', () 
   for (const t of ['lying down now. everything just feels pointless', 'going to sleep now', 'so hopeless']) assert.ok(RISK_SOFT.test(t), t);
   assert.ok(src.includes(`const riskNow = RISK_STRONG.test(String(message || '')) || (crisisRecent && RISK_SOFT.test(String(message || '')));`), 'soft words count only when the conversation is already there');
   assert.ok(/if \(riskNow && !CRISIS_RESOURCE\.test\(String\(rawReply\)\)\)/.test(src), 'nothing guarantees the line');
+});
+
+check('no pet names they never used, and only when they are a name (15 Nov)', () => {
+  assert.strictEqual(stripPetNames('This is Step Three, love. The source is your HP.', []), 'This is Step Three. The source is your HP.');
+  assert.strictEqual(stripPetNames("That's step twelve, my love. That's purpose.", []), "That's step twelve. That's purpose.");
+  assert.strictEqual(stripPetNames('How are you landing today, love?', []), 'How are you landing today?');
+  assert.strictEqual(stripPetNames('Okay, sweetheart. Sleep well.', []), 'Okay. Sleep well.');
+  // A word, not a name: left alone.
+  assert.strictEqual(stripPetNames('Money, approval, safety, love.', []), 'Money, approval, safety, love.');
+  assert.strictEqual(stripPetNames('Sending you so much love.', []), 'Sending you so much love.');
+  assert.strictEqual(stripPetNames('Oh dear, that sounds hard.', []), 'Oh dear, that sounds hard.');
+  // They use it with the sponsor first: theirs to share.
+  assert.strictEqual(stripPetNames('Thank you, love.', ['thanks love, you helped']), 'Thank you, love.');
+});
+
+check('memory notes are dated, and counts are counted forward (32 years said in September, 33 by November)', () => {
+  assert.ok(/const transcript = rows\.map\(\(m\) => `\$\{day\(m\)\}/.test(src), 'the notes are written from an undated transcript');
+  assert.ok(/never a bare "32 yrs sober"/.test(src), 'the notes are not told to date every count');
+  assert.ok(/count them forward to ' \+\s*'today before you say one/.test(src), 'nothing tells the sponsor a remembered count may be out of date');
+  assert.ok(/SELECT id, role, content, created_at FROM \(/.test(fs.readFileSync(require.resolve('./db.js'), 'utf8')), 'the older messages come without their dates');
 });
 
 check('the very first message is allowed to introduce itself', () => {

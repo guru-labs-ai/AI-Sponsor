@@ -367,6 +367,24 @@ unless they ask. If they have already done it or said they will, take that and
 move to what they are bringing now. If you think they slid past something, you
 may name it once, lightly, and then let it go.
 
+### Their facts are theirs
+Everything you say about their life comes from what they told you, in their
+words. Never fill in a detail to make a reply land: not a job or a business, a
+person's name, how long something has lasted, how far a commute is, what
+happened at an event, or how a half-finished sentence ends. If a detail matters
+and you don't have it, ask. If it doesn't matter, leave it out.
+
+Numbers move. A count they gave you (days or years sober, their age, how long
+something has gone on) was true on the day they said it. Before you say it,
+count it forward to today from the date they gave. When they tell you it is
+their anniversary, any count they gave you before it has gone up by one: 32
+years said in September is 33 in an anniversary week in November. If you can't
+work it out, ask, and never simply repeat the old number.
+
+When they paste a conversation, work out who wrote each line before you comment
+on it. Never put the other person's words in their mouth, or theirs in the
+other person's.
+
 ### When they've decided, and when they push back
 Decisions about their own life are theirs. Once they tell you they've decided
 (to send the message, to tell their partner, to take or turn down the work),
@@ -382,6 +400,13 @@ wrong, say so in one sentence and drop it. If part of what you said still holds,
 keep that part, say it once, and leave the choice with them. Never say the
 opposite of what you said a moment ago without saying that you've changed your
 mind, and why.
+
+The same goes for their plans for the day. If they've told you what they'll do
+(rest, then send the email; skip the event to save their energy), back the plan
+they made, and don't lay a different one on top. And a worry or a wish of
+theirs is not a symptom: never wave it off as the critical parent, the disease
+or the illness talking. Take it seriously, look at it with them, then leave the
+choice with them.
 
 ### When they lead with something they're ashamed of
 Some people are here precisely because they can't say it to a person yet. One of
@@ -572,6 +597,11 @@ anything they were frightened to tell you. Someone saying the hard thing does
 not need a symbol back, and it reads as though you skimmed it. If you are
 weighing whether a moment is too heavy for one, it is.
 
+### No pet names
+Don't call them love, my love, sweetheart, honey, dear, darling or babe, even
+when you feel close, unless they call you that first. Use their name, or
+nothing. The warmth is in what you say, not in what you call them.
+
 ### VARY THE SHAPE OF YOUR MESSAGES
 
 A beta user's whole conversation was read back and every single reply had the
@@ -610,7 +640,9 @@ When the moment has a next step in it, give them one:
 - Concrete enough to answer yes or no to. "Call one person from the rooms
   before Friday", not "reach out to your support network".
 - Theirs, not yours. Offer it and let them shape it. A sponsor suggests, a boss
-  assigns.
+  assigns. If they turn it down or say they have no time for it, that is the
+  answer: drop it. Don't offer a smaller version of the same thing in the same
+  breath, and never speak as if they had agreed to it.
 - One at a time, never a list.
 - Said, not hinted. "Have you told your sponsor yet?" is a question, not a
   step. Say the step ("text your sponsor today"), then ask your question.
@@ -1071,7 +1103,11 @@ function buildMemoryBlock(memory) {
     'This is what you remember about this person from before the recent messages ' +
     'below — things they told you in past conversations. Treat it as genuinely ' +
     'known: bring it up naturally when it matters, and never tell them you don\'t ' +
-    'remember it.\n\n' +
+    'remember it. Counts in these notes (days or years sober, ages, how long something ' +
+    'has lasted) were true on the date beside them, not today: count them forward to ' +
+    'today before you say one. A count with no date beside it is out of date: never ' +
+    'repeat it as today\'s number. If they tell you it is their anniversary, it has ' +
+    'gone up by one since the note was written. If it matters and you are unsure, ask.\n\n' +
     memory.digest
   );
 }
@@ -1089,7 +1125,10 @@ async function maybeUpdateMemory(userId) {
     if (total <= RECENT_TURNS || rows.length < SUMMARY_BATCH) return;
 
     summarizing.add(userId);
-    const transcript = rows.map((m) => `${m.role === 'user' ? 'Them' : 'You (sponsor)'}: ${m.content}`).join('\n');
+    /* Dated, so a count can be written with the day it was true. A bare
+       "32 yrs sober" was repeated in her anniversary week, when it was 33. */
+    const day = (m) => (m.created_at ? `[${new Date(m.created_at).toISOString().slice(0, 10)}] ` : '');
+    const transcript = rows.map((m) => `${day(m)}${m.role === 'user' ? 'Them' : 'You (sponsor)'}: ${m.content}`).join('\n');
     const prior = current && current.digest ? current.digest : '(nothing yet)';
 
     const resp = await client.messages.create({
@@ -1108,6 +1147,8 @@ async function maybeUpdateMemory(userId) {
           'close calls, milestones, and recurring struggles. Drop small talk and anything ' +
           'ephemeral. Write terse factual notes, not prose. Merge new facts into the old; ' +
           'if something was updated (a new day count, a relapse), reflect the latest. ' +
+          'Write every count with the date it was true, best of all the start date itself: ' +
+          '"sober since Nov 1994 (said 32 yrs on 2026-09-22)", never a bare "32 yrs sober", because a bare count goes stale. ' +
           /* Never its own name. That is a setting the person can change whenever
              they like, and once it is written in here as a fact it outlives the
              change and then contradicts it. Bilal renamed his sponsor and the
@@ -1698,7 +1739,7 @@ async function writeFollowup(userId) {
   if (!text || /^\W*SKIP\b/i.test(text)) return { skip: 'nothing natural to pick up' };
   if (meetings.inventedLinks(text, { theirWords: history.filter((m) => m.role === 'user').map((m) => m.content) }).length) return { skip: 'it named a meeting it was not given' };
   if (words(text) > 120) return { skip: 'too long for a first message' };
-  return { text: stripEmojiNearCrisis(text) };
+  return { text: stripEmojiNearCrisis(stripPetNames(text, history.filter((m) => m.role === 'user').map((m) => m.content))) };
 }
 
 /* After a first message goes out: into their conversation, so the next reply
@@ -1778,6 +1819,34 @@ const CRISIS_RESOURCE = new RegExp([
 ].join('|'), 'i');
 const ANY_EMOJI =
   /\p{Extended_Pictographic}(?:\uFE0F|\uFE0E)?\p{Emoji_Modifier}?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F)?\p{Emoji_Modifier}?)*/gu;
+
+/* ── No pet names ─────────────────────────────────────────────────────────────
+   15 Nov review: one member was called "love" in 17 replies ("This is Step
+   Three, love.") and another "my love" until she asked why. Neither had used a
+   pet name themselves. Once one is in the history the sponsor copies itself, so
+   the prompt rule alone does not hold it, and it is taken out here: only when it
+   is used to address them at the end of a sentence ("..., love." / "..., my
+   love?"), never inside a list ("money, approval, safety, love."), and never if
+   they use that same word to address the sponsor themselves. */
+const PET_NAMES = ['my love', 'love', 'sweetheart', 'sweetie', 'honey', 'darling', 'babe', 'dear'];
+function stripPetNames(text, theirWords = []) {
+  if (typeof text !== 'string' || !text) return text;
+  const theirs = (theirWords || []).map((t) => String(t || '')).join('\n');
+  let out = text;
+  for (const name of PET_NAMES) {
+    const bare = name.replace(/^my /, '');
+    const theyUseIt = new RegExp(`(?:^|[,.!?]\\s*|\\b(?:hi|hey|thanks|thank you|my|oh)\\s+)${bare}(?=\\s*[,.!?)]|\\s*$)`, 'im').test(theirs);
+    if (theyUseIt) continue;
+    const re = new RegExp(`,\\s*${name}(?=\\s*(?:[.!?…]|\\p{Extended_Pictographic}|$))`, 'giu');
+    out = out.replace(re, (m, offset, whole) => {
+      // Inside a list ("money, approval, safety, love.") it is a word, not a name.
+      const sentenceStart = Math.max(whole.lastIndexOf('.', offset - 1), whole.lastIndexOf('!', offset - 1), whole.lastIndexOf('?', offset - 1), whole.lastIndexOf('\n', offset - 1));
+      const commas = (whole.slice(sentenceStart + 1, offset).match(/,/g) || []).length;
+      return commas >= 2 ? m : '';
+    });
+  }
+  return out;
+}
 
 function stripEmojiNearCrisis(text) {
   if (typeof text !== 'string' || !CRISIS_RESOURCE.test(text)) return text;
@@ -2743,6 +2812,9 @@ async function getSponsorReply(userId, message, context) {
 
   // A rewrite above can, rarely, write the step line again. It must never be seen or heard.
   rawReply = steps.stripAll(rawReply);
+  /* A pet name they never used (stripPetNames). Before the voice and the text
+     copies split, so neither says it. */
+  rawReply = stripPetNames(rawReply, theirWords);
   const { wanted: modelWantsVoice, text: markerFree } = stripVoiceMarker(rawReply);
   if (context && modelWantsVoice) context.modelWantsVoice = true;
 

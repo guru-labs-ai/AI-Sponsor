@@ -1562,8 +1562,8 @@ async function getAgedOutMessages(userId, recentKeep, sinceId) {
     'SELECT COUNT(*)::int n FROM messages WHERE user_id = $1', [userId]
   )).rows[0].n;
   const r = await pool.query(
-    `SELECT id, role, content FROM (
-       SELECT id, role, content, ROW_NUMBER() OVER (ORDER BY id DESC) AS rn
+    `SELECT id, role, content, created_at FROM (
+       SELECT id, role, content, created_at, ROW_NUMBER() OVER (ORDER BY id DESC) AS rn
        FROM messages WHERE user_id = $1
      ) t WHERE rn > $2 AND id > $3 ORDER BY id ASC`,
     [userId, recentKeep, sinceId]
