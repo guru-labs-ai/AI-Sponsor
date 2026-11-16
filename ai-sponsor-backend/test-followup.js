@@ -111,6 +111,7 @@ const localH = (zone, d) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 
     assert.ok(!/Right now you can't start a conversation, only continue one/.test(srv), 'the old line would deny the message it just sent');
     assert.ok(/You can write to them first, but only within a day of their last message/.test(srv));
     assert.ok(/our last first message is still unanswered/.test(srv), 'never a second message on top of an unanswered one');
+    assert.ok(/const saved = await db\.getProfile\(userId\)/.test(srv) && /if \(said\(saved\) \|\| said\(profile\)\)/.test(srv), 'a fresh "do not message me first" must be read from the database, not a stale copy');
   });
 
   console.log(`\n${failed ? 'FAILED' : 'All good'}: ${passed} passed, ${failed} failed\n`);

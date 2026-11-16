@@ -1702,7 +1702,12 @@ const FOLLOWUP_BLOCK = [
 
 async function writeFollowup(userId) {
   const { profile, history } = await loadSession(userId);
-  if (profile && (profile.checkinOptIn === false || profile.followupsOff === true)) return { skip: 'they said not to message first' };
+  /* "Please don't message me first" is saved to the database by checkin.noteWish,
+     which cannot reach the copy held in memory here. Read it fresh, so a person
+     who just asked is never written to anyway. */
+  const saved = await db.getProfile(userId).catch(() => null);
+  const said = (p) => p && (p.checkinOptIn === false || p.followupsOff === true);
+  if (said(saved) || said(profile)) return { skip: 'they said not to message first' };
   if (!history || !history.length) return { skip: 'no conversation' };
   const lastTurn = history[history.length - 1];
   if (!lastTurn || lastTurn.role !== 'assistant') return { skip: 'their last message has no reply yet' };
