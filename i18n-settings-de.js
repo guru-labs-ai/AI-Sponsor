@@ -163,3 +163,7 @@ window.AIS_I18N_PATTERNS = (window.AIS_I18N_PATTERNS || []).concat([
   { re: /^On this step since (.+)\.$/, de: function (m) { return 'Bei diesem Schritt seit dem ' + m[1] + '.'; } },
   { re: /^From your sponsor on (.+)\.$/, de: function (m) { return 'Von deinem Sponsor am ' + m[1] + '.'; } }
 ]);
+/* Meetings link in the menu (16 Nov 2026). */
+window.AIS_I18N.de = Object.assign(window.AIS_I18N.de || {}, {
+ "Meetings": "Meetings",
+});

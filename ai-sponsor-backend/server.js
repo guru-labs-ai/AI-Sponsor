@@ -3256,6 +3256,11 @@ app.post('/api/session', (req, res) => {
    21-day freshness is not shown, and a meeting someone reported as not working
    is left out until its listing is updated. Times stay in each meeting's own
    zone; the page works them out in the zone of the phone that opens it. */
+const meetingsLinkFor = (programField) => {
+  const theirs = meetings.programsOf(programField);
+  return meetings.allMeetingsLink(theirs.length ? theirs : Object.keys(meetings.PROGRAMS));
+};
+
 app.get('/api/meetings', async (req, res) => {
   const wanted = [...new Set(String(req.query.p || '').split(',').map((s) => s.trim()))]
     .filter((p) => meetings.PROGRAMS[p]).slice(0, 10);
@@ -3447,6 +3452,10 @@ app.get('/api/sponsor-settings', async (req, res) => {
       days: statsData.daysHere || null,
       hasEmail: !!(userData.email && userData.email.trim()),
     },
+    /* "Meetings" in the dashboard menu (Mariam, 16 Nov): the public page the
+       sponsor links to after its picks, opened at the programs they signed
+       up with, or at every program held when none of theirs is. */
+    meetingsLink: meetingsLinkFor(profileData.program || userData.program || ''),
     // Their own numbers, for the overview. Counts only, never content.
     stats: {
       daysHere: statsData.daysHere || null,
