@@ -50,7 +50,11 @@ db.enabled = true;
 db.getLastMessageAt = async () => LAST;
 db.getOrCreateSettingsToken = async () => 'TESTTOKEN';
 db.getSteps = async () => null;
-db.getMemory = async () => null;
+/* Notes from older conversations, when a scenario has them (scenario.memory:
+   { digest, minutesAgo } = written from messages up to that long before now). */
+let MEMORY = null;
+db.getMemory = async () => MEMORY;
+db.recordEvent = async () => {};
 db.getHistory = async () => null;
 db.getProfile = async () => null;
 db.recentReactions = async () => [];
@@ -71,7 +75,7 @@ const { getSponsorReply, conversations, userProfiles, server } = m.exports.__eva
 const Anthropic = require('@anthropic-ai/sdk');
 const judgeClient = new Anthropic({ apiKey: KEY });
 
-const scenarios = require('./scenarios-da-ua-aca.js').filter((s) => !ONLY || ONLY.split(',').includes(s.id));
+const scenarios = [...require('./scenarios-da-ua-aca.js'), ...require('./scenarios-listening.js')].filter((s) => !ONLY || ONLY.split(',').includes(s.id));
 
 function ago(minutes) {
   if (minutes < 60) return `${minutes} minutes earlier`;
@@ -102,6 +106,7 @@ async function judge(sc, reply) {
   const user = [
     `Their programs: ${sc.profile.program}. Time in recovery: ${sc.profile.stage}.`,
     'Now: Wednesday 18 November 2026, 2:30 pm where they live (New York).',
+    ...(sc.memory ? ['', `Notes the sponsor keeps from older conversations (written ${ago(sc.memory.minutesAgo)}):`, sc.memory.digest] : []),
     '', 'Earlier messages:', history,
     '', `What they wrote now: ${sc.message}`,
     '', `The sponsor's reply:\n"""\n${reply}\n"""`,
@@ -133,20 +138,36 @@ async function judge(sc, reply) {
       const msgs = sc.history.map(([role, text, min]) => stamp({ role, content: text }, new RealDate(now - min * 60000)));
       const lastUser = [...sc.history].reverse().find(([role]) => role === 'user');
       LAST = lastUser ? new RealDate(now - lastUser[2] * 60000) : null;
+      MEMORY = sc.memory ? { digest: sc.memory.digest, upto: 1, uptoAt: new RealDate(now - sc.memory.minutesAgo * 60000).toISOString() } : null;
       const uid = `wa-+1212555${String(1000 + scenarios.indexOf(sc) * 10 + r)}`;
       conversations.set(uid, msgs);
       userProfiles.set(uid, { ...sc.profile, phone: uid.slice(3) });
       let reply;
+      /* What the listening check did on this run, and how long the reply
+         took end to end, so its cost in waiting time is measured too. */
+      const notes = [];
+      const realLog = console.log;
+      console.log = (...a) => { if (/^\[listening\]/.test(String(a[0]))) notes.push(String(a[0])); realLog(...a); };
+      const started = RealDate.now();
       try {
         reply = await getSponsorReply(uid, sc.message, { channel: 'whatsapp', viaVoice: false, replyIsSpoken: false, textOnly: false, replyLanguage: 'en', sharesNews: false });
       } catch (e) { reply = `ERROR ${e.message}`; }
+      const ms = RealDate.now() - started;
+      console.log = realLog;
+      /* The evals spend the live sponsor's API credit. If it runs out, stop at
+         once rather than drain it further: on 16 Nov an eval run used the
+         last of it and every member got "I'm having a moment" for two hours. */
+      if (/credit balance is too low/i.test(String(reply)) || /credit balance is too low/i.test(notes.join(' '))) {
+        console.error('STOPPED: the API account is out of credit. The live sponsor cannot reply until credit is added.');
+        process.exit(2);
+      }
       const checks = [
         ...(sc.must || []).map((re) => ({ id: `must ${re}`, pass: re.test(reply), reason: 'pattern' })),
         ...(sc.mustNot || []).map((re) => ({ id: `mustNot ${re}`, pass: !re.test(reply), reason: 'pattern' })),
       ];
       let verdicts;
       try { verdicts = await judge(sc, reply); } catch (e) { verdicts = sc.criteria.map((c) => ({ id: c.id, pass: null, reason: `judge error: ${e.message}` })); }
-      results.push({ id: sc.id, pattern: sc.pattern, program: sc.program, run: r + 1, reply, verdicts: [...verdicts, ...checks] });
+      results.push({ id: sc.id, pattern: sc.pattern, program: sc.program, run: r + 1, reply, ms, listening: notes, verdicts: [...verdicts, ...checks] });
       const failed = [...verdicts, ...checks].filter((v) => v.pass === false).map((v) => v.id);
       console.log(`${sc.id} #${r + 1}: ${failed.length ? 'FAIL ' + failed.join(', ') : 'pass'}`);
     }

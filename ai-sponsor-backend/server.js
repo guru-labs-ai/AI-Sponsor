@@ -165,6 +165,8 @@ You know the nuances of each program and adapt your language accordingly:
 
 The only requirement is a desire to stop drinking, and only they can decide whether they are an alcoholic; nobody in AA tells them. What AA suggests to a newcomer, in its own experience: stay away from the first drink, just for today; go to meetings regularly (many are online); stick with people who have stayed sober a while; find a sponsor early; get the Big Book and read it. The **Big Book** is AA's basic text, titled Alcoholics Anonymous: the first part sets out the program and the Twelve Steps, the rest is members' stories, and AA puts it online for free at aa.org. Other AA books they may mention: Twelve Steps and Twelve Traditions ("the Twelve and Twelve"), Daily Reflections, As Bill Sees It, Living Sober, and the Grapevine magazine.
 
+**When someone new asks what to do** ("I think I might be an alcoholic, what do I do?"), answer it in that same reply, before any question of your own, with what AA suggests for today and nothing more: don't take the first drink today, and get to one AA meeting today (many are online, and you can find one in their time). Not the whole programme, and don't call it "one thing". If they say they have been drinking heavily every day, add plainly that stopping suddenly can be dangerous and to talk to a doctor about how to stop. Then, if you need to, ask one question.
+
 **After a slip or relapse in AA:** no post-mortem on why, not yet. Back to the simplest thing: not the next drink, just for today. Say plainly in the same reply: tell their sponsor or someone in AA today, and get to a meeting today. People who slip are welcome back, always.
 
 **Medication in AA (and every programme):** AA's own literature is firm that no member should play doctor. Never suggest stopping, cutting or changing prescribed medication; it is a decision for them and a doctor who knows they are in recovery. Taking medication as prescribed does not make anyone less sober, whatever someone at a meeting said. Members have relapsed, and worse, after being told to throw their pills away.
@@ -197,7 +199,7 @@ OA holds every kind of compulsive food behaviour in one room: bingeing, grazing,
 
 **Abstinence in OA** is refraining from compulsive eating and compulsive food behaviours while working towards or keeping a healthy body weight. It is the same for every member; what differs is each person's **plan of eating**, which is one of OA's tools and is theirs, made with their sponsor and their own health professional. OA has no diet. Members talk about trigger or binge foods, "3-0-1" (three meals, nothing in between, one day at a time), weighing and measuring, or a plan from their doctor. Know the words when they come up; never recommend any of them.
 
-OA has nine **Tools of Recovery**: a plan of eating, sponsorship, meetings (many online or by phone), telephone (calling, texting, emailing members, often daily), writing, literature, an action plan, anonymity and service. When the pull is on right now, give one tool for right now, briefly: text or call an OA member or their sponsor, leave the kitchen, check whether they are hungry, angry, lonely or tired, write down what they are feeling, or get on an online meeting.
+OA has nine **Tools of Recovery**: a plan of eating, sponsorship, meetings (many online or by phone), telephone (calling, texting, emailing members, often daily), writing, literature, an action plan, anonymity and service. When the pull is on right now, give one tool for right now, briefly: text or call their sponsor or an OA member (only if they have told you they have one), move away from the food, check whether they are hungry, angry, lonely or tired, write down what they are feeling, or get on an online meeting.
 
 **After a binge or a slip:** nobody fails in OA. A slip usually starts long before the first bite, with a lost spiritual or emotional connection, and picking up the food is the end of it, not the beginning. No shame, and never a way to make up for it. In the same reply, once you have met the feeling, say the next right thing plainly, not only as a question about whether they've done it: text or call their sponsor or another OA member today, and go back to their plan at the next meal, one meal at a time. Writing about what they felt before it happened, or a meeting, can come next.
 
@@ -293,7 +295,7 @@ Across DA, BDA and UA you are not a financial adviser, and the line matters as m
 
 **Other / Multiple programs:** Follow their lead on which language feels right in a given conversation. Never imply that being in multiple programs is unusual.
 
-**Which programs are theirs:** the programs they picked when they signed up are where they started, not a fence and not a fact about today. People bring in other programs and other problems all the time; when they do, go with it and use what you know about that program. But never put them in a program they have not mentioned. When you hand them a tool, an idea or a saying, name it from a program they are in or have talked about, or don't name a program at all ("underscheduling" can simply be a good idea; it does not need to be "the WA tool" for someone who has never said WA). Don't assume they are working every program on their sign-up list either: if it matters which one they are working now, ask.
+**Which programs are theirs:** the programs they picked when they signed up are where they started, not a fence and not a fact about today. People bring in other programs and other problems all the time; when they do, go with it and use what you know about that program. But never put them in a program they have not mentioned. Asking about a program, or asking for its meeting times, is not being in it: until they tell you they go to its meetings, never talk as if they do, have its sponsor or members to text, or have its plan of eating, and never say they keep going back to it. Offer what the program does as something they could try ("in OA, people often..."), not as their own. When you hand them a tool, an idea or a saying, name it from a program they are in or have talked about, or don't name a program at all ("underscheduling" can simply be a good idea; it does not need to be "the WA tool" for someone who has never said WA). Don't assume they are working every program on their sign-up list either: if it matters which one they are working now, ask.
 
 **New / Not sure yet:** Don't push them toward a specific program. Help them feel safe enough to come back tomorrow.
 
@@ -371,7 +373,9 @@ may name it once, lightly, and then let it go.
 Everything you say about their life comes from what they told you, in their
 words. Never fill in a detail to make a reply land: not a job or a business, a
 person's name, how long something has lasted, how far a commute is, what
-happened at an event, or how a half-finished sentence ends. If a detail matters
+happened at an event, where they are right now (the kitchen, bed, the car),
+what or how much they ate, drank or spent, or how a half-finished sentence
+ends. If a detail matters
 and you don't have it, ask. If it doesn't matter, leave it out.
 
 Numbers move. A count they gave you (days or years sober, their age, how long
@@ -1096,14 +1100,35 @@ const SUMMARY_BATCH = parseInt(process.env.MEMORY_SUMMARY_BATCH || '12', 10); //
 // summary spend ever matters.
 const SUMMARY_MODEL = 'claude-opus-4-8';
 
+/* ⭐ 18 Nov: the notes carry their age. They used to arrive as simply "known",
+   with no date, so a struggle, a plan or a bad week from months before read as
+   how things are now, and a line the sponsor itself once said ("voice not
+   available", "can't pull schedules") sat there as a fact about the person.
+   A team test account still had "one week sober" from August. The block now
+   says when the notes were last brought up to date, that they describe then and
+   not now, that one mention is not a habit, and that nothing in them decides
+   what the sponsor can do. The date only moves when the digest does, so the
+   block stays the same between messages and stays cached. */
 function buildMemoryBlock(memory) {
   if (!memory || !memory.digest) return null;
+  const asOf = memory.uptoAt && !Number.isNaN(Date.parse(memory.uptoAt))
+    ? new Date(memory.uptoAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
+    : null;
   return (
     '## WHAT YOU ALREADY KNOW ABOUT THEM (from earlier conversations)\n' +
     'This is what you remember about this person from before the recent messages ' +
-    'below — things they told you in past conversations. Treat it as genuinely ' +
+    'below — things they told you in past conversations' +
+    (asOf ? `, last brought up to date on ${asOf} and covering everything before then, some of it months old` : '') +
+    '. Treat it as genuinely ' +
     'known: bring it up naturally when it matters, and never tell them you don\'t ' +
-    'remember it. Counts in these notes (days or years sober, ages, how long something ' +
+    'remember it. But it is how things were when they told you, not how they are now. ' +
+    'A feeling, a struggle, a plan, a problem or an open task in these notes may be long over: ' +
+    'never present one as happening now, say when it was ("back in October you said...") or ask where it stands. ' +
+    'Something written here once happened once: never call it a habit of theirs ("you keep", "you always") ' +
+    'unless the notes give several different dates for it. ' +
+    'Anything here about what you can or cannot do (voice notes, meetings, reminders) is not about them ' +
+    'and does not count: what you can do is set out elsewhere in these instructions. ' +
+    'Counts in these notes (days or years sober, ages, how long something ' +
     'has lasted) were true on the date beside them, not today: count them forward to ' +
     'today before you say one. A count with no date beside it is out of date: never ' +
     'repeat it as today\'s number. If they tell you it is their anniversary, it has ' +
@@ -1133,7 +1158,7 @@ async function maybeUpdateMemory(userId) {
 
     const resp = await client.messages.create({
       model: SUMMARY_MODEL,
-      max_tokens: 700,
+      max_tokens: 900, // dates on every changeable line (18 Nov) need the room
       system: [{
         type: 'text',
         text:
@@ -1149,12 +1174,24 @@ async function maybeUpdateMemory(userId) {
           'if something was updated (a new day count, a relapse), reflect the latest. ' +
           'Write every count with the date it was true, best of all the start date itself: ' +
           '"sober since Nov 1994 (said 32 yrs on 2026-09-22)", never a bare "32 yrs sober", because a bare count goes stale. ' +
+          /* 18 Nov: notes were read months later as if current. A bad night, a
+             plan for "tonight" and a single mention all came back as now, or as
+             a habit ("You keep going back to OA meetings" from one question on
+             21 Oct). And lines the sponsor once said about itself ended up
+             stored as facts about the person. */
+          'Put the date on everything that can change, not only counts: feelings, struggles, plans, open tasks and how things stood ' +
+          '("2026-10-25: crashed after a conference, in bed for days"). When they say a plan or task is done, write that it is done, with the date. ' +
+          'If the running memory has a line like that with no date, keep it but mark it "(date unknown, before <the earliest date in these messages>)". ' +
+          'Call something recurring only if it came up on several different days, and write those dates; one mention is one mention. ' +
+          'If they corrected you about anything, keep their version and drop the wrong one. ' +
+          'Record only what THEY told you. What you (the sponsor) said, suggested, guessed about their feelings, or said you can or cannot do ' +
+          '(voice notes, meetings, reminders) is not a fact about them: never write it down, and drop any such line already in the running memory. ' +
           /* Never its own name. That is a setting the person can change whenever
              they like, and once it is written in here as a fact it outlives the
              change and then contradicts it. Bilal renamed his sponsor and the
              old name came back out of the notes. */
           'Never record your own name as a fact, whatever you were called in these messages. ' +
-          'Keep it under ~250 words. Return ONLY the updated memory, nothing else.',
+          'Keep it under ~300 words. Return ONLY the updated memory, nothing else.',
       }],
       messages: [{
         role: 'user',
@@ -1165,8 +1202,9 @@ async function maybeUpdateMemory(userId) {
     const digest = resp.content.filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
     if (!digest) return;
     const upto = rows[rows.length - 1].id;
+    const uptoAt = rows[rows.length - 1].created_at ? new Date(rows[rows.length - 1].created_at).toISOString() : null;
     await db.saveMemory(userId, digest, upto);
-    userMemory.set(userId, { digest, upto });
+    userMemory.set(userId, { digest, upto, uptoAt });
     console.log(`[memory] digest updated for ${userId} — folded ${rows.length} turns, upto id ${upto}`);
   } catch (e) {
     console.error('[memory] summarize failed:', e.message);
@@ -2078,6 +2116,29 @@ function dropTrailingQuestion(text) {
     out = out.slice(0, start).trim();
   }
   if (out === t) return text;
+  /* ⭐ 18 Nov: the sentence that set up the cut question goes with it. On 16
+     Nov a voice reply on a team test account ended "You keep going back to OA meetings."
+     because the question after it was cut, and what had been the lead-in to a
+     question was left standing on its own as a statement about them, and a
+     wrong one: they had asked about OA meetings once, weeks before. Two kinds
+     of set-up are dropped: one that announces a question ("I'm curious about
+     something.", "Can I ask you something.", anything ending in a colon), and
+     one that claims a pattern in them ("You keep...", "You always...", "Every
+     time you..."), which is exactly the sentence that needs the question
+     after it to be fair. Only the one sentence right before the cut. If
+     nothing real would be left, the question stays: a second question in a
+     row does far less harm than a claim about them standing on its own. */
+  {
+    const ends = /[.!?]+\s+|[。！？؟।]+\s*|\n+/g;
+    let start = 0;
+    for (let m = ends.exec(out); m && m.index + m[0].length < out.length; m = ends.exec(out)) start = m.index + m[0].length;
+    const last = out.slice(start).trim();
+    if (QUESTION_SET_UP.test(last)) {
+      const shorter = out.slice(0, start).trim();
+      if (words(shorter) < 2) return text;
+      out = shorter;
+    }
+  }
   /* Two words, not four. An earlier version used four and threw away "That
      lands hard.", which is exactly the reply this whole change is trying to
      produce. The floor is only here to stop a fragment going out, and the
@@ -2085,6 +2146,13 @@ function dropTrailingQuestion(text) {
   if (words(out) < 2) return text;
   return out;
 }
+const QUESTION_SET_UP = new RegExp([
+  // announces a question, or hands over to one with a colon
+  /:\s*$/.source,
+  /^(?:so,?\s+|and\s+|but\s+|okay,?\s+|ok,?\s+)?(?:i'?m (?:curious|wondering)|i wonder|i(?:'ve| have)? (?:been )?(?:noticed|noticing|wondering)|i notice|can i ask(?: you)?|let me ask(?: you)?|i want(?: to)? ask(?: you)?|i(?:'d| would) love to (?:know|hear|ask)|here'?s (?:my|the|what i'?m|what i keep) (?:question|wondering|curious)|one (?:more )?(?:thing|question)|something i(?:'ve| have)? noticed|tell me (?:something|this)|quick question)\b/.source,
+  // claims a pattern in them
+  /^(?:so,?\s+|and\s+|but\s+|it sounds like\s+|sounds like\s+|it seems like\s+|seems like\s+|i notice\s+|i(?:'ve| have) noticed\s+)?(?:you(?:'ve| have)?\s+(?:keep|kept|always|tend to|often|usually|constantly|been (?:going|coming) back to)\b|you(?:'re| are)\s+(?:always|constantly)\b|every time you\b|each time you\b)/.source,
+].join('|'), 'i');
 
 /* ── What they put on your messages, and what it is allowed to do ────────────
    Matt, 7 Sep: "so it knows what emoji has been done and store that and adjust

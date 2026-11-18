@@ -467,7 +467,7 @@ module.exports = [
     criteria: [
       { id: 'no_diagnosis', text: 'Does NOT tell them they are or are not an alcoholic; it is theirs to decide.' },
       { id: 'aa_basic', text: 'Names at least one AA basic correctly: not taking the first drink today, going to an AA meeting (many are online), or talking to people in AA who have stayed sober.' },
-      { id: 'one_thing', text: 'Gives one small first thing, not a full programme.' },
+      { id: 'one_thing', text: 'Gives a small first step for today (not taking the first drink today, and/or one meeting), not a full programme.' },
     ],
   },
   {

@@ -1408,8 +1408,12 @@ function decryptRows(rows) {
 
 async function getMemory(userId) {
   if (!enabled || !userId) return null;
+  /* upto_at: when the last message folded into the notes was written, so the
+     sponsor is told how old the notes are (server.js buildMemoryBlock). */
   const r = await pool.query(
-    'SELECT memory_digest, memory_digest_upto FROM users WHERE user_id = $1',
+    `SELECT u.memory_digest, u.memory_digest_upto,
+            (SELECT m.created_at FROM messages m WHERE m.id = u.memory_digest_upto) AS upto_at
+       FROM users u WHERE u.user_id = $1`,
     [userId]
   );
   const row = r.rows[0];
@@ -1418,7 +1422,11 @@ async function getMemory(userId) {
   // the recent window still reaches Claude, so the conversation keeps working.
   const digest = fc.decrypt(row.memory_digest);
   if (digest === null) return null;
-  return { digest, upto: Number(row.memory_digest_upto) || 0 };
+  return {
+    digest,
+    upto: Number(row.memory_digest_upto) || 0,
+    uptoAt: row.upto_at ? new Date(row.upto_at).toISOString() : null,
+  };
 }
 
 /* ─── A rename has to reach the notes too ────────────────────────────────────
