@@ -219,6 +219,24 @@ async function init() {
     );
     CREATE INDEX IF NOT EXISTS sponsor_followups_due_idx ON sponsor_followups (status, due_at);
   `);
+  /* What Claude costs, per day, split by who it was for (spend.js). One row per
+     day + who + what for + model, added to as calls finish. Totals only: no
+     person, no message, nothing that could be read back as a conversation. */
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS ai_spend (
+      day                DATE NOT NULL,
+      source             TEXT NOT NULL,
+      kind               TEXT NOT NULL,
+      model              TEXT NOT NULL,
+      calls              INTEGER NOT NULL DEFAULT 0,
+      input_tokens       BIGINT NOT NULL DEFAULT 0,
+      cache_write_tokens BIGINT NOT NULL DEFAULT 0,
+      cache_read_tokens  BIGINT NOT NULL DEFAULT 0,
+      output_tokens      BIGINT NOT NULL DEFAULT 0,
+      cost_usd           NUMERIC(14,6) NOT NULL DEFAULT 0,
+      PRIMARY KEY (day, source, kind, model)
+    );
+  `);
   /* An append-only record of what people change about their own account.
 
      `profiles` only ever holds the current state, so a rename overwrites the old
@@ -1771,6 +1789,90 @@ if (EXCLUDED.length || EXCLUDED_NAMES.length) {
   console.log(`[db] excluding ${EXCLUDED.length} identifier(s) and ${EXCLUDED_NAMES.length} name(s) from metrics and the reader`);
 }
 
+/* ── What Claude costs, split by who it was for (spend.js) ─────────────────
+
+   SPEND_SOURCES is the whole list. `testing` arrives only through the admin
+   endpoint the test runner reports to; the live server only ever writes
+   `members` or `team`. */
+const SPEND_SOURCES = ['members', 'team', 'testing'];
+
+async function recordSpend(source, row, day) {
+  if (!enabled || !pool) return;
+  if (!SPEND_SOURCES.includes(source)) throw new Error(`unknown spend source ${source}`);
+  const n = (v) => Math.max(0, Math.round(Number(v) || 0));
+  const cost = Math.max(0, Number(row.cost) || 0);
+  await pool.query(
+    `INSERT INTO ai_spend (day, source, kind, model, calls, input_tokens, cache_write_tokens,
+                           cache_read_tokens, output_tokens, cost_usd)
+     VALUES (COALESCE($1::date, (now() AT TIME ZONE 'UTC')::date), $2, $3, $4, $5, $6, $7, $8, $9, $10)
+     ON CONFLICT (day, source, kind, model) DO UPDATE SET
+       calls              = ai_spend.calls + EXCLUDED.calls,
+       input_tokens       = ai_spend.input_tokens + EXCLUDED.input_tokens,
+       cache_write_tokens = ai_spend.cache_write_tokens + EXCLUDED.cache_write_tokens,
+       cache_read_tokens  = ai_spend.cache_read_tokens + EXCLUDED.cache_read_tokens,
+       output_tokens      = ai_spend.output_tokens + EXCLUDED.output_tokens,
+       cost_usd           = ai_spend.cost_usd + EXCLUDED.cost_usd`,
+    [day || null, source, String(row.kind || 'reply').slice(0, 40), String(row.model || 'unknown').slice(0, 80),
+      Math.max(1, n(row.calls)), n(row.input), n(row.cacheWrite), n(row.cacheRead), n(row.output), cost],
+  );
+}
+
+/* Is this user id one of the team's own accounts? The same EXCLUDED_PEOPLE /
+   EXCLUDED_NAMES rule every metric uses, so "team" here is exactly the people
+   the rest of the dashboard already leaves out. Remembered for an hour so a
+   busy conversation is one lookup, not one per reply. An id with no users row
+   yet counts as a member. */
+const teamCache = new Map();
+async function isTeamUser(userId) {
+  if (!enabled || !pool || !userId) return false;
+  const hit = teamCache.get(userId);
+  if (hit && Date.now() - hit.at < 60 * 60 * 1000) return hit.team;
+  const { rows } = await pool.query(
+    `SELECT EXISTS (SELECT 1 FROM users WHERE user_id = $1)                  AS known,
+            EXISTS (SELECT 1 FROM users WHERE user_id = $1${NOT_EXCLUDED})  AS counted`,
+    [userId],
+  );
+  const team = !!(rows[0] && rows[0].known && !rows[0].counted);
+  teamCache.set(userId, { at: Date.now(), team });
+  return team;
+}
+
+/* The last 14 days, for the dashboard. Members' replies and people come from
+   the same tables and the same exclusions as the rest of the page, so a cost
+   per reply here divides like for like. */
+async function getSpend() {
+  if (!enabled || !pool) return null;
+  const [byDay, since, kinds, members] = await Promise.all([
+    pool.query(`
+      SELECT day::text AS day, source, SUM(cost_usd)::float AS cost, SUM(calls)::int AS calls
+      FROM ai_spend WHERE day > (now() AT TIME ZONE 'UTC')::date - 14
+      GROUP BY 1, 2 ORDER BY 1, 2`),
+    pool.query(`SELECT MIN(day)::text AS since FROM ai_spend`),
+    pool.query(`
+      SELECT source, kind, SUM(cost_usd)::float AS cost, SUM(calls)::int AS calls
+      FROM ai_spend WHERE day > (now() AT TIME ZONE 'UTC')::date - 7
+      GROUP BY 1, 2 ORDER BY 3 DESC`),
+    pool.query(`
+      SELECT COUNT(*) FILTER (WHERE m.role = 'assistant')::int AS replies,
+             COUNT(DISTINCT LOWER(COALESCE(NULLIF(u.email, ''), NULLIF(u.phone, ''), u.user_id)))
+               FILTER (WHERE m.role = 'user')::int AS people
+      FROM messages m JOIN users u ON u.user_id = m.user_id
+      WHERE m.created_at >= ((now() AT TIME ZONE 'UTC')::date - 6)::timestamp AT TIME ZONE 'UTC'
+        AND m.created_at >= COALESCE((SELECT MIN(day) FROM ai_spend), now()::date)::timestamp AT TIME ZONE 'UTC'
+        ${NOT_EXCLUDED_U}`),
+  ]);
+  const last7 = { members: 0, team: 0, testing: 0 };
+  kinds.rows.forEach((r) => { if (r.source in last7) last7[r.source] += r.cost; });
+  return {
+    since: since.rows[0] && since.rows[0].since,
+    byDay: byDay.rows,
+    last7,
+    kinds: kinds.rows,
+    memberReplies7d: members.rows[0] ? members.rows[0].replies : 0,
+    memberPeople7d: members.rows[0] ? members.rows[0].people : 0,
+  };
+}
+
 // North-star + usage aggregates for /api/metrics/northstar.
 async function getMetrics() {
   if (!enabled) return null;
@@ -2423,6 +2525,7 @@ module.exports = {
   getLastMessageAt, recentVoiceReplies, meetingReports, meetingChecks, addMeetingCheck, getWeeklyReviewStats,
   getSteps, saveSteps, stepMetrics,
   enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
+  recordSpend, isTeamUser, getSpend, SPEND_SOURCES,
   // Exported so the Slack alerts label a signup's source with the SAME rule the
   // dashboard groups on. Two implementations would eventually disagree.
   resolveSource, sourcePhrase, pageLabel,

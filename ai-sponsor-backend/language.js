@@ -100,10 +100,11 @@ async function readMessage(text, opts = {}) {
   if (!t || !process.env.ANTHROPIC_API_KEY) return null;
   if (!client) {
     const Anthropic = require('@anthropic-ai/sdk');
-    client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 8000, maxRetries: 1 });
+    client = require('./spend').instrument(new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 8000, maxRetries: 1 }), 'language');
   }
   try {
     const res = await client.beta.messages.create({
+      _who: opts.userId,
       model: 'claude-opus-5',
       max_tokens: 220,
       betas: ['server-side-fallback-2026-07-01'],
@@ -257,7 +258,7 @@ async function noteLanguage(db, userId, text, profile, readOpts = {}) {
      wa- row, and deciding from the wa- row alone would see English, see
      nothing to change, and leave the weekly note in German. */
   const [read, known, asked] = await Promise.all([
-    readMessage(text, readOpts), languageOf(db, userId), askedLanguageOf(db, userId, profile),
+    readMessage(text, { ...readOpts, userId }), languageOf(db, userId), askedLanguageOf(db, userId, profile),
   ]);
   const before = { language: known, languageAsked: asked };
   const next = decideLanguage(read, text, before);

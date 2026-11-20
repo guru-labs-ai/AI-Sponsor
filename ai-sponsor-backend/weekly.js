@@ -41,7 +41,8 @@ const copy = require('./notice-copy');     // the nudge, card and templates in s
 const window24 = require('./window24');    // text or template: is their 24-hour window open
 const Anthropic = require('@anthropic-ai/sdk');
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+// Priced and filed with the server's other calls (spend.js); the sink is set in server.js.
+const client = require('./spend').instrument(new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }), 'weekly');
 
 const SITE_URL = process.env.SITE_URL || 'https://getaisponsor.com';
 
@@ -428,6 +429,7 @@ async function writeNarrative({ userId, week, stats, sponsorName, theirName, lan
      thinking and the note; a short note still costs only what it uses. */
   for (let attemptNo = 1; attemptNo <= 2; attemptNo++) {
     const resp = await client.messages.create({
+      _who: userId,
       model: WEEKLY_MODEL,
       max_tokens: 16000,
       system: [{ type: 'text', text: SYSTEM_PROMPT }],

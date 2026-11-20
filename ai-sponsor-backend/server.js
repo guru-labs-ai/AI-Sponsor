@@ -115,7 +115,15 @@ app.use(meetingReviews.PATH, meetingReviews.router);
 // A check saved there counts from the next reply, not in five minutes.
 meetingReviews.setOnChange(() => { meetingReportsCache.at = 0; return meetingReportsCached(); });
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const spend = require('./spend');
+const client = spend.instrument(new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }), 'reply');
+/* Every Claude call this server makes is priced and filed under members or
+   team (spend.js). Test runs replace this sink with their own and report
+   separately, so nothing they spend lands in the members' figure. */
+spend.setSink(async (row) => {
+  const source = row.who && await db.isTeamUser(row.who).catch(() => false) ? 'team' : 'members';
+  await db.recordSpend(source, row);
+});
 
 // ─── In-memory storage (swap for a real DB when ready) ───────────────────────
 const conversations = new Map(); // userId -> [{ role, content }]
@@ -1157,6 +1165,7 @@ async function maybeUpdateMemory(userId) {
     const prior = current && current.digest ? current.digest : '(nothing yet)';
 
     const resp = await client.messages.create({
+      _kind: 'notes', _who: userId,
       model: SUMMARY_MODEL,
       max_tokens: 900, // dates on every changeable line (18 Nov) need the room
       system: [{
@@ -1776,7 +1785,7 @@ async function writeFollowup(userId) {
   const when = lastAt ? new Date(lastAt).toISOString() : 'a while ago';
   const messages = [...withTimeMarkers(history.slice(-RECENT_TURNS), userZone).map((m) => ({ role: m.role, content: m.content }))];
   messages.push({ role: 'user', content: `[A note from the app, not from them: they have not written since ${when}. Write the one message you send them first now, or only SKIP.]` });
-  const res = await client.messages.create({ model: 'claude-opus-4-8', max_tokens: 600, system: followupBlocks, messages });
+  const res = await client.messages.create({ _kind: 'followup', _who: userId, model: 'claude-opus-4-8', max_tokens: 600, system: followupBlocks, messages });
   let text = (res.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
   text = voices.stripSpeechTags(steps.stripAll(meetings.meetingProblemsIn(text).clean)).replace(/\[\[[^\]]*\]\]/g, '').trim();
   if (!text || /^\W*SKIP\b/i.test(text)) return { skip: 'nothing natural to pick up' };
@@ -2635,6 +2644,7 @@ async function getSponsorReply(userId, message, context) {
      message as it will actually be sent. */
   const requestMessages = withLanguageNote(withCachedHistory(withTimeMarkers(updatedHistory.slice(-RECENT_TURNS), userZone), windowSliding), replyLanguage);
   const response = await client.messages.create({
+    _who: userId,
     model: 'claude-opus-4-8',
     // A list of meetings with links runs long: on 26 Oct nine of them stopped mid-sentence at 1024.
     max_tokens: offersMeetings ? 2048 : 1024,
@@ -2697,6 +2707,7 @@ async function getSponsorReply(userId, message, context) {
     let fixedReply = null;
     try {
       const again = await client.messages.create({
+        _who: userId,
         model: 'claude-opus-4-8',
         max_tokens: 2048,
         system: [...systemBlocks, { type: 'text', text: [
@@ -2739,6 +2750,7 @@ async function getSponsorReply(userId, message, context) {
     const theirTomorrow = /so their tomorrow is ([^.]+)\./.exec(meetingsBlock);
     try {
       const again = await client.messages.create({
+        _who: userId,
         model: 'claude-opus-4-8',
         max_tokens: 2048,
         system: [...systemBlocks, { type: 'text', text: [
@@ -2794,6 +2806,7 @@ async function getSponsorReply(userId, message, context) {
     const before = words(rawReply);
     try {
       const tighter = await client.messages.create({
+        _who: userId,
         model: 'claude-opus-4-8',
         max_tokens: 1024,
         system: [{ type: 'text', text: [
@@ -3119,6 +3132,13 @@ app.get('/api/metrics/northstar', async (req, res) => {
     const nsUsers = dbFirst ? usage.registered : contacts.length;
     const nsCumulative = dbFirst ? usage.cumulative_days : cumulativeDays;
 
+    /* What Claude costs, members apart from us (Matt, 20 Nov). Null when the DB
+       is off; the page hides the card then. */
+    const aiCost = await db.getSpend().catch((e) => {
+      console.error('[Metrics] DB spend failed:', e.message);
+      return null;
+    });
+
     const nowSec = Math.floor(Date.now() / 1000);
     const paidNow = subsLiveAt(subs, nowSec);
     const paidPrev = subsLiveAt(subs, nowSec - 7 * 86400);
@@ -3126,6 +3146,7 @@ app.get('/api/metrics/northstar', async (req, res) => {
     const data = {
       generatedAt: new Date().toISOString(),
       source: dbFirst ? 'db' : 'ghl',
+      aiCost,
       weeklyReview,
       // Mariam, 6 Nov: the newsletter's opens, clicks and replies, per issue.
       // Totals only, refreshed in the background every few hours (newsletter.js).
@@ -3289,6 +3310,36 @@ app.get('/api/metrics/northstar', async (req, res) => {
   } catch (err) {
     console.error('[Metrics] northstar failed:', err.message);
     res.status(err.statusCode || 500).json({ error: err.message });
+  }
+});
+
+/* A test run reports what it spent (evals/run-eval.js), so the dashboard can
+   show our testing apart from what members cost. Only `testing` can be filed
+   here: members and team are counted by the live server itself, and nothing
+   sent to this endpoint can move them. Admin key required. */
+app.post('/api/admin/spend', requireAdminKey, async (req, res) => {
+  const { rows, label } = req.body || {};
+  if (!Array.isArray(rows) || !rows.length || rows.length > 50) {
+    return res.status(400).json({ error: 'rows must be a list of 1 to 50 entries' });
+  }
+  const clean = [];
+  for (const r of rows) {
+    const nums = ['calls', 'input', 'cacheWrite', 'cacheRead', 'output', 'cost'].map((k) => Number(r && r[k]));
+    if (nums.some((v) => !Number.isFinite(v) || v < 0) || nums[5] > 1000) {
+      return res.status(400).json({ error: 'every row needs non-negative numbers, and no row over $1000' });
+    }
+    clean.push({ kind: String(r.kind || 'test'), model: String(r.model || 'unknown'),
+      calls: nums[0], input: nums[1], cacheWrite: nums[2], cacheRead: nums[3], output: nums[4], cost: nums[5] });
+  }
+  try {
+    for (const r of clean) await db.recordSpend('testing', r);
+    const total = clean.reduce((a, r) => a + r.cost, 0);
+    console.log(`[spend] test run ${String(label || '').slice(0, 60)} reported $${total.toFixed(2)}`);
+    metricsCache.at = 0;
+    res.json({ ok: true, recorded: clean.length, cost: Number(total.toFixed(4)) });
+  } catch (e) {
+    console.error('[spend] could not file a test run:', e.message);
+    res.status(500).json({ error: 'could not record' });
   }
 });
 
@@ -4524,6 +4575,7 @@ ${profile.whatBroughtYouHere ? `They wrote: "${profile.whatBroughtYouHere}"` : '
     let fullResponse = '';
 
     const stream = await client.messages.create({
+      _who: userId,
       model: 'claude-opus-4-8',
       max_tokens: 512,
       stream: true,
@@ -4610,6 +4662,7 @@ app.post('/api/chat', async (req, res) => {
     let fullResponse = '';
 
     const stream = await client.messages.create({
+      _who: userId,
       model: 'claude-opus-4-8',
       max_tokens: 1024,
       stream: true,

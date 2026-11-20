@@ -74,6 +74,9 @@ const { getSponsorReply, conversations, userProfiles, server } = m.exports.__eva
 
 const Anthropic = require('@anthropic-ai/sdk');
 const judgeClient = new Anthropic({ apiKey: KEY });
+/* Everything this run spends is tallied as testing, never as members, and
+   filed on the dashboard at the end (spend-report.js). */
+const testSpend = require('./spend-report').start(BACKEND, LABEL, judgeClient);
 
 const scenarios = [...require('./scenarios-da-ua-aca.js'), ...require('./scenarios-listening.js')].filter((s) => !ONLY || ONLY.split(',').includes(s.id));
 
@@ -159,6 +162,7 @@ async function judge(sc, reply) {
          last of it and every member got "I'm having a moment" for two hours. */
       if (/credit balance is too low/i.test(String(reply)) || /credit balance is too low/i.test(notes.join(' '))) {
         console.error('STOPPED: the API account is out of credit. The live sponsor cannot reply until credit is added.');
+        await testSpend.finish();
         process.exit(2);
       }
       const checks = [
@@ -190,6 +194,7 @@ async function judge(sc, reply) {
     console.log(`  ${sc.id.padEnd(18)} ${ok}/${rs.length}  ${Object.entries(worst).map(([k, n]) => `${k}x${n}`).join(' ')}`);
   }
   console.log(`  TOTAL scenarios ${all}/${total}, criteria ${crit}/${critTotal}`);
+  await testSpend.finish();
   server.close();
   setTimeout(() => process.exit(0), 500);
-})().catch((e) => { console.error('ERR', e.stack); process.exit(1); });
+})().catch(async (e) => { console.error('ERR', e.stack); await testSpend.finish(); process.exit(1); });

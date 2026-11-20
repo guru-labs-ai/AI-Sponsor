@@ -34,6 +34,8 @@ const weekly = require(path.join(BACKEND, 'weekly.js'));
 
 const Anthropic = require('@anthropic-ai/sdk');
 const judgeClient = new Anthropic({ apiKey: KEY });
+// Tallied as testing and filed on the dashboard at the end (spend-report.js).
+const testSpend = require('./spend-report').start(BACKEND, LABEL, judgeClient);
 
 const t = (pairs) => pairs.map(([role, content]) => ({ role, content }));
 const WEEK = { start: '2026-11-01', end: '2026-11-07' };
@@ -147,5 +149,6 @@ async function judge(sc, payload) {
     for (const x of rs) for (const v of x.verdicts) if (v.pass === false) worst[v.id] = (worst[v.id] || 0) + 1;
     console.log(`  ${sc.id.padEnd(22)} ${rs.filter((x) => x.verdicts.every((v) => v.pass !== false)).length}/${rs.length}  ${Object.entries(worst).map(([k, n]) => `${k}x${n}`).join(' ')}`);
   }
+  await testSpend.finish();
   setTimeout(() => process.exit(0), 300);
-})().catch((e) => { console.error('ERR', e.stack); process.exit(1); });
+})().catch(async (e) => { console.error('ERR', e.stack); await testSpend.finish(); process.exit(1); });
