@@ -4,7 +4,7 @@ window.AIS_I18N = window.AIS_I18N || {};
 window.AIS_I18N.es = Object.assign(window.AIS_I18N.es || {}, {
  "AI Sponsor · Last updated 1 September 2026": "AI Sponsor · Última actualización: 1 de septiembre de 2026 · Esta traducción es orientativa: si difiere de la versión en inglés, prevalece la versión en inglés.",
  "1. Agreement to these terms": "1. Aceptación de estos términos",
- "AI Sponsor is operated by Conscious LLC, incorporated in Wyoming, United States, at 1309 Coffeen Ave, Sheridan, Wyoming 82801.": "AI Sponsor es operado por Conscious LLC, constituida en Wyoming, Estados Unidos, con domicilio en 1309 Coffeen Ave, Sheridan, Wyoming 82801.",
+ "AI Sponsor is operated by Conscious LLC, incorporated in Wyoming, United States, at 1309 Coffeen Ave STE 17170, Sheridan, Wyoming 82801.": "AI Sponsor es operado por Conscious LLC, constituida en Wyoming, Estados Unidos, con domicilio en 1309 Coffeen Ave STE 17170, Sheridan, Wyoming 82801.",
  "2. What AI Sponsor is": "2. Qué es AI Sponsor",
  "An AI-powered support companion delivered over WhatsApp, offering check-ins, encouragement, reflection and conversation for people in recovery.": "Un acompañante de apoyo con inteligencia artificial que funciona por WhatsApp y ofrece seguimiento, ánimo, reflexión y conversación a personas en recuperación.",
  "3. What AI Sponsor is not, and please read this section": "3. Qué no es AI Sponsor (por favor, lee esta sección)",
@@ -77,5 +77,5 @@ window.AIS_I18N_HTML.es = Object.assign(window.AIS_I18N_HTML.es || {}, {
  "<strong>No waiver.</strong> Failure to enforce a provision is not a waiver of it.": "<strong>Sin renuncia.</strong> No hacer valer una disposición no supone renunciar a ella.",
  "<strong>Entire agreement.</strong> These Terms and the Privacy Policy are the whole agreement regarding AI Sponsor.": "<strong>Acuerdo completo.</strong> Estos Términos y la Política de Privacidad constituyen el acuerdo completo sobre AI Sponsor.",
  "<strong>Assignment.</strong> You may not assign these terms. We may, in connection with a merger, acquisition or sale of assets.": "<strong>Cesión.</strong> No puedes ceder estos términos. Nosotros sí podemos, en relación con una fusión, una adquisición o una venta de activos.",
- "Conscious LLC<br> 1309 Coffeen Ave, Sheridan, Wyoming 82801, United States<br> Contact us through <a href=\"/#support\">the contact form on our website</a><br> WhatsApp: +1 307-323-4467": "Conscious LLC<br> 1309 Coffeen Ave, Sheridan, Wyoming 82801, Estados Unidos<br> Contacta con nosotros a través de <a href=\"/#support\">el formulario de contacto de nuestra web</a><br> WhatsApp: +1 307-323-4467"
+ "Conscious LLC<br> 1309 Coffeen Ave STE 17170, Sheridan, Wyoming 82801, United States<br> Contact us through <a href=\"/#support\">the contact form on our website</a><br> WhatsApp: +1 307-323-4467": "Conscious LLC<br> 1309 Coffeen Ave STE 17170, Sheridan, Wyoming 82801, Estados Unidos<br> Contacta con nosotros a través de <a href=\"/#support\">el formulario de contacto de nuestra web</a><br> WhatsApp: +1 307-323-4467"
 });
