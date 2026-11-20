@@ -658,11 +658,18 @@ const REPEAT_AFTER_MS = 12 * 60 * 60 * 1000;
    works, on whatever device happens to be in someone's hand. */
 const SITE_STATUS_LINK = 'https://ai-sponsor-f7de.onrender.com/status/';
 
+/* The latest alert or all-clear, whichever came last. */
+async function lastAlertEvent() {
+  if (!db.enabled) return null;
+  const prior = await db.getEvents(ALERT_USER, 10).catch(() => []);
+  return prior.find((e) => e.event === 'status_alert' || e.event === 'status_recovered') || null;
+}
+
+/* Only while the last thing said was an alert. Once an all-clear has gone out,
+   the same problem coming back is news again and is posted again. */
 async function alreadyToldThem(signature) {
-  if (!db.enabled) return false;
-  const prior = await db.getEvents(ALERT_USER, 5).catch(() => []);
-  const last = prior.find((e) => e.event === 'status_alert');
-  if (!last) return false;
+  const last = await lastAlertEvent();
+  if (!last || last.event !== 'status_alert') return false;
   const sameProblem = last.detail && last.detail.signature === signature;
   const recent = Date.now() - new Date(last.created_at).getTime() < REPEAT_AFTER_MS;
   return sameProblem && recent;
@@ -684,9 +691,64 @@ function holdAmber(overall, signature) {
   return !seenLastRun;
 }
 
-async function checkAndAlert() {
-  const data = await getStatus({ fresh: true });
-  if (data.overall === 'ok') { holdAmber('ok'); return { posted: false, overall: 'ok' }; }
+/* ⭐ BACK TO NORMAL (Matt, 20 Nov: "maybe then a back online message automation
+   would be prudent as well? so that happens in here and i'm not confused").
+   An alert used to be the last word: at 18:29 WhatsApp blipped, was fine by
+   18:31, and the red message sat in the channel with nothing after it, so the
+   only way to know was to ask. Now the first run that finds everything OK
+   after a posted alert says so, as a reply in that alert's thread that also
+   shows in the channel. No pings: it is good news and can wait to be read.
+
+   Only alerts that were actually posted get one (an amber still waiting to be
+   confirmed never reached anybody). An alert posted before this existed has
+   no thread to answer, so it is closed quietly instead of announcing, hours
+   late, the end of something everyone has already moved on from.
+
+   Sent before it is filed, like the alert: a failed send is retried on the
+   next run instead of being marked done. */
+function sinceText(fromIso, toIso) {
+  const mins = Math.max(1, Math.round((new Date(toIso) - new Date(fromIso)) / 60000));
+  if (mins < 90) return `about ${mins} minute${mins === 1 ? '' : 's'}`;
+  const hours = Math.round(mins / 60);
+  return `about ${hours} hour${hours === 1 ? '' : 's'}`;
+}
+
+async function announceRecovery(data) {
+  const last = await lastAlertEvent();
+  if (!last || last.event !== 'status_alert') return null;
+  const d = last.detail || {};
+  const names = Array.isArray(d.names) && d.names.length
+    ? d.names
+    : String(d.signature || '').split('|').map((s) => s.split(':')[0]).filter(Boolean);
+  const announce = !!d.ts;
+  if (announce) {
+    const lines = [
+      '✅ *AI Sponsor: back to normal*',
+      alerts._internals.triage('Info'),
+      '',
+      'Everything is working again. No action needed.',
+      `> ${names.join(', ') || 'The problem'}, reported ${sinceText(last.created_at, data.checkedAt)} ago, is OK now.`,
+      '',
+      `<${SITE_STATUS_LINK}|Open the status page> · checked ${new Date(data.checkedAt).toUTCString()}`,
+    ];
+    const sent = await alerts._internals.sendCustomer(lines, { thread_ts: d.ts, reply_broadcast: true });
+    if (!sent || sent.ok !== true) {
+      throw new Error(`Slack did not accept the all-clear: ${(sent && (sent.error || sent.skipped)) || 'unknown'}`);
+    }
+  }
+  await db.recordEvent(ALERT_USER, 'status_recovered', { signature: d.signature || null, announced: announce }, 'status');
+  return { recovered: names, announced: announce };
+}
+
+async function checkAndAlert(given) {
+  const data = given || await getStatus({ fresh: true });
+  if (data.overall === 'ok') {
+    holdAmber('ok');
+    const recovery = await announceRecovery(data);
+    return recovery
+      ? { posted: recovery.announced, overall: 'ok', backToNormal: recovery.recovered }
+      : { posted: false, overall: 'ok' };
+  }
 
   const bad = data.checks.filter((c) => c.state !== 'ok');
   /* The set of things wrong, not their wording: a detail that carries a
@@ -742,7 +804,10 @@ async function checkAndAlert() {
     throw new Error(`Slack did not accept the alert: ${(sent && (sent.error || sent.skipped)) || 'unknown'}`);
   }
 
-  db.recordEvent(ALERT_USER, 'status_alert', { signature, overall: data.overall }, 'status')
+  /* ts and channel so the all-clear can answer in this alert's thread. */
+  db.recordEvent(ALERT_USER, 'status_alert', {
+    signature, overall: data.overall, names: bad.map((c) => c.name), ts: sent.ts || null, channel: sent.channel || null,
+  }, 'status')
     .catch((e) => console.warn('[status] could not record the alert:', e.message));
 
   return { posted: true, overall: data.overall, problems: bad.length, pinged: broken };
@@ -788,4 +853,4 @@ router.post('/check', async (req, res) => {
   }
 });
 
-module.exports = { router, enabled, setContext, runChecks, getStatus, runAndAlert, startInterval, _internals: { timed, holdAmber } };
+module.exports = { router, enabled, setContext, runChecks, getStatus, runAndAlert, startInterval, _internals: { timed, holdAmber, checkAndAlert, sinceText } };

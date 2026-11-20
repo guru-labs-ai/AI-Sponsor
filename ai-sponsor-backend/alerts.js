@@ -210,7 +210,10 @@ function customerChannel() {
   return process.env.SLACK_CUSTOMER_CHANNEL || CUSTOMER_CHANNEL;
 }
 
-async function send(lines, channelOverride) {
+/* `extra` goes into the Slack call as is: the status check uses it to answer
+   in an alert's thread (thread_ts) and still show in the channel
+   (reply_broadcast). */
+async function send(lines, channelOverride, extra = {}) {
   const token = process.env.SLACK_BOT_TOKEN;
   const channel = channelOverride || opsChannel();
   if (!token) return { ok: false, skipped: 'no SLACK_BOT_TOKEN' };
@@ -222,7 +225,7 @@ async function send(lines, channelOverride) {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json; charset=utf-8',
     },
-    body: JSON.stringify({ channel, text, unfurl_links: false, unfurl_media: false }),
+    body: JSON.stringify({ channel, text, unfurl_links: false, unfurl_media: false, ...extra }),
   });
   const body = await res.json().catch(() => ({}));
   // Slack answers 200 with ok:false for real failures (channel_not_found,
@@ -248,9 +251,9 @@ function safe(build) {
    that channel (most likely the bot was never invited, which Slack reports as
    channel_not_found), the alert falls back to #ai-sponsor-updates with a note
    saying why, so a payment is never lost to a channel setting. */
-async function sendCustomer(lines) {
+async function sendCustomer(lines, extra = {}) {
   try {
-    return await send(lines, customerChannel());
+    return await send(lines, customerChannel(), extra);
   } catch (e) {
     if (customerChannel() === opsChannel()) throw e;
     console.warn('[alerts] command center refused, falling back:', e.message);
