@@ -266,8 +266,10 @@ const ABOUT_PRODUCT = /\bwhat I (?:actually |really )?(?:am|can do|can and can'?
 const GREETING = /^\s*(?:hi|hey|hello)\b/i;
 function withGreeting(note, name) {
   const text = String(note || '').trim();
-  if (!text || GREETING.test(text)) return text;
   const who = String(name || '').trim();
+  // A greeting with no name ("Hey, I haven't heard from you") gets theirs.
+  if (who && /^\s*(?:hi|hey|hello)\s*[,!.]\s*/i.test(text)) return text.replace(/^\s*(?:hi|hey|hello)\s*[,!.]\s*/i, `Hi ${who}, `);
+  if (!text || GREETING.test(text)) return text;
   if (who && text.startsWith(`${who},`)) return `Hi ${text}`;
   const rest = /^I(?:\b|')/.test(text) ? text : text.charAt(0).toLowerCase() + text.slice(1);
   return `Hi ${who || 'there'}, ${rest}`;
@@ -327,8 +329,10 @@ function quietWeekCard({ sponsorName, messages, activeDays, lang = 'en' }) {
     };
   }
   const note = messages === 0
-    ? `We didn't talk this week. That's allowed, and it doesn't undo anything. I'm here when you want me, and there's no catching up to do first.`
-    : `A quiet week between us, just ${messages} message${messages === 1 ? '' : 's'} across ${activeDays} day${activeDays === 1 ? '' : 's'}. That's not a failure and I'm not keeping score. Whenever you want to talk properly, I'm here.`;
+    ? `We didn't talk last week. That's allowed, and it doesn't undo anything. I'm here when you want me, and there's no catching up to do first.`
+    /* No counts (21 Nov): "just 2 messages across 1 day" followed by "I'm not
+       keeping score" was a score, and the summary is the overall feel. */
+    : `Last week was a quiet one between us, and that's okay, it's not a failure. Whenever you want to talk properly, I'm here.`;
   return {
     note,
     themes: [],

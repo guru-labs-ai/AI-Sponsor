@@ -66,7 +66,7 @@ ok('a language with no card at all gets the English check-in, not nothing', w._q
 
 // Thin weeks (1 to 3 messages) are NOT touched by this change.
 const one = w._quietWeekCard({ sponsorName: 'Sam', messages: 1, activeDays: 1 });
-ok('one message is still the old "quiet week between us" card', /1 message\b/.test(one.note) && !/haven't heard/.test(one.note));
+ok('one message is still the thin-week card, not the check-in', /quiet one/.test(one.note) && !/haven't heard/.test(one.note));
 // Nobody who wrote anything is planned as silent: planWeek still skips a week with no readable messages.
 check('planWeek is unchanged: no readable messages is still "skip"', w._planWeek({ messages: 0, readable: 0 }), 'skip');
 

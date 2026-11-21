@@ -171,12 +171,13 @@ check('a silent week is tone quiet', silent.tone, 'quiet');
 check('a silent week invents no themes', silent.themes, []);
 check('a silent week sets no task', silent.nextWeek.includes('No task from me'), true);
 
+/* 21 Nov 2026: the thin-week card no longer counts messages or days. The
+   summary is the overall feel, and "just 2 messages" read as a score. */
 const thin = w._quietWeekCard({ sponsorName: 'Sam', messages: 1, activeDays: 1 });
-check('one message is singular, not "1 messages"', /1 message\b/.test(thin.note), true);
-check('one day is singular', /1 day\b/.test(thin.note), true);
-
+check('a thin week gives no counts', /\d/.test(thin.note), false);
+check('a thin week says it was quiet, last week', /last week was a quiet one/i.test(thin.note), true);
 const two = w._quietWeekCard({ sponsorName: 'Sam', messages: 2, activeDays: 2 });
-check('two messages pluralise', /2 messages across 2 days/.test(two.note), true);
+check('two messages, same card', two.note, thin.note);
 
 /* The quiet card must never congratulate. This is the whole reason it is
    written in code rather than by a model.
