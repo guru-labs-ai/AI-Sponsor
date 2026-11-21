@@ -128,7 +128,7 @@ function prettyRange(startISO, endISO) {
    said you'd do. Not "topics discussed". */
 const SYSTEM_PROMPT = [
   'You are writing a private end-of-week note from a recovery sponsor to the person they support.',
-  'It is shown only to that person, on their own private page. Nobody else ever reads it.',
+  'It is sent only to that person, as a WhatsApp message under the heading "Your week in summary", and kept on their own private page. Nobody else ever reads it.',
   '',
   'Write to them, as their sponsor. Second person, warm, plain, unhurried. Their sponsor has a name and you are writing as that person, not as a system generating a report.',
   '',
@@ -144,6 +144,14 @@ const SYSTEM_PROMPT = [
      "tonight" about a talk it would be read about a week later. */
   '- The note is about them, never about you. Nowhere in note, carried, helped, commitments or nextWeek do you mention your own mistakes, guesses or misreadings, or their correcting you, not even as praise for them. Where they corrected something you said, write only what they actually meant, as if you had understood it from the start. If a conversation went badly, do not dwell on it.',
   '- The week is over when they read this, sometimes by a week. Never write tonight, today, this evening, right now or "this week". Say "last week", or name the day.',
+  /* 21 Nov 2026, Mariam, reading real notes before they went out as messages:
+     one told a member "honest when I asked you plainly whether you wanted to be
+     here, you said yes", its lists called him "his", and it opened with "this
+     note is about you". */
+  '- Every field is written TO them: you and your. Never he, she, his, her or their name about them, in the note or in the lists. "Wrote your first Step One sentence", not "Wrote his first Step One sentence".',
+  '- Never bring back the safety question or their answer to it: whether they want to be here, thoughts of ending their life or of not being around. Not even as praise. If the week held real danger, the hard tone covers it.',
+  '- Open the way a sponsor would open a message. Never with a line about the note itself ("this note is about you", "here is your summary"): the heading already says what it is.',
+  '- No long dashes (— or –) anywhere. Use a comma or a full stop.',
   '',
   'TONE, which you must choose and return',
   '- "hard": the week held a relapse, a slip, a crisis, a bereavement, or something close to one. Do NOT open with praise and do NOT tally anything. Name what happened plainly, without judgement and without softening it into nothing, and centre the note on the fact that they came back and are still here. If they described being in real danger, the nextWeek line points them at a human being, not a habit.',
@@ -168,8 +176,18 @@ const TONES = ['steady', 'hard', 'quiet'];
 /* Trust nothing that comes back. A model that returns eight themes, a string
    where an array belongs, or a tone it invented must not be able to break the
    page or widen what gets shown. */
+/* A long dash reads as AI (Mariam), and the prompt only mostly prevents it.
+   " — " between two thoughts becomes a comma; a bare one too. */
+function noDashes(s) {
+  return s.replace(/\s*[—–]\s*/g, ', ').replace(/,\s*,/g, ',').replace(/,\s*([.!?])/g, '$1');
+}
+
 function coerce(raw) {
-  const str = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+  /* "None" is the model saying null in words (seen 21 Nov as a milestone), and
+     the page would print it under a star. */
+  const EMPTY = /^(?:none|null|n\/?a|nothing|-)\.?$/i;
+  const str = (v, max) => (typeof v === 'string' && v.trim() && !EMPTY.test(v.trim())
+    ? noDashes(v.trim()).slice(0, max) : null);
   const arr = (v, n, max) =>
     (Array.isArray(v) ? v : []).map((x) => str(x, max)).filter(Boolean).slice(0, n);
 
@@ -206,12 +224,23 @@ function coerce(raw) {
    Returns why, or null. Looks at every field the page shows. */
 const OWN_MISTAKE = /\b(?:my|mine)\b[^.!?\n]{0,25}\b(?:guess|guesses|guessing|guessed|mistakes?|misread(?:ing)?)\b|\bI\s+(?:got|had)\s+(?:it|that|some[^.!?\n]{0,20}|a lot[^.!?\n]{0,10})\s+wrong\b|\b(?:correct(?:ed|ing)?|called)\s+me\b|\bme\s+(?:keep\s+)?(?:missing|guessing)\b|\bthan mine\b|\bbefore I (?:could|understood|got it|caught up)\b|\bwhen I had it wrong\b|\bbetter than I (?:did|could)\b/i;
 const NOW_WORDS = /\b(?:tonight|right now|this evening)\b/i;
+/* 21 Nov 2026 (see the prompt): the safety question played back, the person
+   written about as "his", a note that opens by describing itself. Only the
+   lists are checked for he/his, because in the note itself "his" is usually
+   somebody else (a father, a sponsor). */
+const SAFETY_REPLAY = /\b(?:wanted to be here|want(?:ing)? to be here|not wanting to be here|ending your life|end your life|thoughts of (?:ending|not being|dying|suicide))\b|\bsuicid/i;
+const THIRD_PERSON = /\b(?:he|she|his|her|him)\b/i;
+const ABOUT_ITSELF = /^\W*(?:[A-Z][a-z]+,\s*)?(?:this (?:note|summary|message) is|here(?:'s| is) (?:your|the) (?:note|summary))/i;
 function noteSlip(payload) {
   const fields = [payload.note, payload.carried, payload.milestone, payload.nextWeek,
     ...(payload.helped || []), ...(payload.commitments || []), ...(payload.themes || [])]
     .filter(Boolean).join('\n');
   if (OWN_MISTAKE.test(fields)) return "talks about the sponsor's own guesses or mistakes";
   if (NOW_WORDS.test(fields)) return 'says tonight or right now to somebody reading it days later';
+  if (SAFETY_REPLAY.test(fields)) return 'brings back the safety question';
+  const lists = [payload.milestone, ...(payload.helped || []), ...(payload.commitments || [])].filter(Boolean).join('\n');
+  if (THIRD_PERSON.test(lists)) return 'writes about them as he or she';
+  if (ABOUT_ITSELF.test(String(payload.note || ''))) return 'opens by describing the note';
   return null;
 }
 
