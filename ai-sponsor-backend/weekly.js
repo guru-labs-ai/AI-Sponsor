@@ -567,6 +567,109 @@ function trackOutbound(userId, result, via) {
   db.recordOutbound(userId, id, 'weekly', via).catch(() => {});
 }
 
+/* ── The note as a message: wording and routing ────────────────────────────
+   On unless WEEKLY_NOTE_AS_TEXT=off, which puts back the old link message for
+   everybody without a deploy. */
+const NOTE_AS_TEXT = String(process.env.WEEKLY_NOTE_AS_TEXT || 'on').toLowerCase() !== 'off';
+const NOTE_TEMPLATE = 'week_in_summary';            // heading + note
+const NOTE_NEXT_TEMPLATE = 'week_in_summary_next';  // heading + note + one thing for this week
+const CHECKIN_TEMPLATE = 'checking_in_note';        // somebody who did not write at all
+// The code-written cards end on "No task from me", which needs no line of its own.
+const NO_TASK = /^\s*no task from me/i;
+
+function nextLine(payload) {
+  const n = String((payload && payload.nextWeek) || '').trim();
+  return n && !NO_TASK.test(n) ? n : '';
+}
+
+/* Exactly what they read. A bold line first, so it never starts out of
+   context; one greeting (the note's own "Hi <name>,"); short paragraphs. */
+function noteMessage(payload, week) {
+  const note = String((payload && payload.note) || '').trim();
+  if (payload && payload.stats && payload.stats.silent) return `*Checking in*\n\n${note}`;
+  const next = nextLine(payload);
+  return `*Your week in summary, ${prettyRange(week.start, week.end)}*\n\n${note}` +
+    (next ? `\n\n*One thing for this week:* ${next}` : '') +
+    '\n\nReply here any time.';
+}
+
+/* Meta does not deliver marketing templates to US numbers. Read from the
+   number itself; a +1 number we cannot place counts as US, because the old
+   template reaches everybody and the new one might reach nobody. */
+function isUSNumber(phone) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  if (!(digits.startsWith('1') && digits.length === 11)) return false;
+  try {
+    const at = require('./countries').place(digits);
+    return !at.country || at.country === 'United States';
+  } catch { return true; }
+}
+
+async function deliverNoteTemplate(phone, payload, week, theirName) {
+  let metacloud;
+  try { metacloud = require('./metacloud'); } catch { return false; }
+  if (!metacloud.enabled || !metacloud.sendTemplate) return false;
+  // Meta refuses a variable with a line break, a tab or four spaces in a row.
+  const flat = (s) => String(s || '').replace(/[\r\n\t]+/g, ' ').replace(/ {2,}/g, ' ').trim();
+  let name;
+  let params;
+  if (payload.stats && payload.stats.silent) {
+    name = CHECKIN_TEMPLATE;
+    params = [flat(theirName) || 'there'];
+  } else {
+    const note = flat(payload.note);
+    const next = flat(nextLine(payload));
+    if (!note || note.length + next.length > 900) return false;
+    name = next ? NOTE_NEXT_TEMPLATE : NOTE_TEMPLATE;
+    params = next ? [prettyRange(week.start, week.end), note, next] : [prettyRange(week.start, week.end), note];
+  }
+  try {
+    const sent = await metacloud.sendTemplate(`whatsapp:${phone}`, name, params, null, 'en_US');
+    console.log(`[weekly] note delivered via ${name}${sent && sent.messageId ? ' ' + sent.messageId : ''}`);
+    return sent || true;
+  } catch (err) {
+    console.warn(`[weekly] ${name} failed: ${err.message}`);
+    return false;
+  }
+}
+
+/* One-off second messages after somebody's note, set in the Render env so no
+   member's number is ever in this public repo (21 Nov: Dipen's answer about the
+   price, Chris's meetings link). WEEKLY_AFTER is JSON:
+     { "<user id>": { "week": "2026-11-15", "template": "...", "params": [...], "text": "..." } }
+   Sent only for that one week, right after that person's note: as text inside
+   their window, as the template outside it. Kept in their conversation too. */
+function afterFor(userId, week) {
+  let all = {};
+  try { all = JSON.parse(process.env.WEEKLY_AFTER || '{}') || {}; } catch { return null; }
+  const a = all[userId];
+  return a && a.week === week.start && (a.text || a.template) ? a : null;
+}
+
+async function sendAfter(userId, phone, week, insideWindowNow, whatsapp) {
+  const a = afterFor(userId, week);
+  if (!a) return false;
+  await new Promise((r) => setTimeout(r, AFTER_GAP_MS));
+  try {
+    if (insideWindowNow && a.text) {
+      await whatsapp.sendTextReply(`whatsapp:${phone}`, a.text);
+    } else if (a.template) {
+      const metacloud = require('./metacloud');
+      await metacloud.sendTemplate(`whatsapp:${phone}`, a.template, a.params || [], null, 'en_US');
+    } else {
+      return false;
+    }
+    if (a.text) await db.appendMessages(userId, [{ role: 'assistant', content: a.text, medium: 'text' }]).catch(() => {});
+    await db.recordEvent(userId, 'weekly_after_sent', { week: week.start, template: a.template || null }, 'weekly').catch(() => {});
+    console.log(`[weekly] second message sent to ${userId}`);
+    return true;
+  } catch (err) {
+    console.warn(`[weekly] second message to ${userId} failed: ${err.message}`);
+    return false;
+  }
+}
+const AFTER_GAP_MS = parseInt(process.env.WEEKLY_AFTER_GAP_MS || '3000', 10);
+
 async function deliver(userId, payload, week, whatsapp) {
   if (!DELIVER) return { sent: false, reason: 'delivery-disabled' };
   if (!whatsapp || !whatsapp.sendTextReply) return { sent: false, reason: 'no-whatsapp' };
@@ -588,6 +691,49 @@ async function deliver(userId, payload, week, whatsapp) {
   const hi = theirName ? `${theirName}, ` : '';
 
   const lang = language.noticeLanguage(await language.languageOf(db, userId));
+
+  /* ── The note itself is the message (Mariam, 21 Nov 2026) ──────────────────
+     "I just want the direct text message", no link. English only for now: the
+     new templates exist in English, and everybody else keeps the path below.
+     Who gets what:
+       inside their 24-hour window  -> the note as plain text
+       outside it, not a US number  -> the note in an approved template
+       outside it, a US number      -> the old utility template with the page
+                                       link, because Meta files the note
+                                       templates as marketing and does not
+                                       deliver marketing to US numbers at all
+     Anything that does not go falls back to the old template, never to nothing. */
+  if (NOTE_AS_TEXT && lang === 'en') {
+    const text = noteMessage(payload, week);
+    const inside = await window24.insideWindow(db, phone);
+    let sentNote = null;
+    let via = null;
+    if (inside !== false) {
+      try { sentNote = await whatsapp.sendTextReply(`whatsapp:${phone}`, text); via = 'text'; }
+      catch (e) { console.warn(`[weekly] note as text to ${userId} failed: ${e.message}`); }
+    }
+    if (!sentNote && !isUSNumber(phone)) {
+      sentNote = await deliverNoteTemplate(phone, payload, week, theirName);
+      if (sentNote) via = 'note-template';
+    }
+    if (sentNote) {
+      await db.markWeeklyDelivered(userId, week.start, true, null).catch(() => {});
+      trackOutbound(userId, sentNote, via === 'text' ? 'text' : 'template');
+      /* Kept in their conversation, so if they answer the note their sponsor
+         knows what it said. */
+      await db.appendMessages(userId, [{ role: 'assistant', content: text, medium: 'text' }]).catch(() => {});
+      await sendAfter(userId, phone, week, via === 'text', whatsapp);
+      return { sent: true, via };
+    }
+    const sentOld = await deliverTemplate(phone, payload, theirName, token, lang);
+    if (sentOld) {
+      await db.markWeeklyDelivered(userId, week.start, true, null).catch(() => {});
+      trackOutbound(userId, sentOld, 'template');
+      return { sent: true, via: 'template' };
+    }
+    await db.markWeeklyDelivered(userId, week.start, false, 'note-and-template-failed').catch(() => {});
+    return { sent: false, reason: 'note-and-template-failed' };
+  }
 
   /* A silent week: the person has not written since before the week began, so
      they are outside the 24 hour window by definition and a free-text send
@@ -937,5 +1083,6 @@ module.exports = {
   _planWeek: planWeek, _insideTheirWindow: insideTheirWindow, _sundaySomewhere: sundaySomewhere,
   _SYSTEM_PROMPT: SYSTEM_PROMPT, _WEEKLY_MODEL: WEEKLY_MODEL, _noteSlip: noteSlip,
   _withGreeting: withGreeting, _tenureLine: tenureLine,
+  _noteMessage: noteMessage, _isUSNumber: isUSNumber, _afterFor: afterFor,
   WEEKLY_TEMPLATES, WEEKLY_READY_TEMPLATE, WEEKLY_READY_EN,
 };
