@@ -2086,6 +2086,83 @@ async function getBreakdowns() {
   };
 }
 
+/* ─── How much each group uses the sponsor ─────────────────────────────────
+   Matt, 21 Nov: how are the people from the AA WhatsApp group using it? And
+   Mariam: the same for the beta testers and for anyone who pays. The page had
+   who came from where, and how much everybody used it, but never the two
+   together.
+
+   One group per PERSON, decided in this order:
+     1. joined with a group code (AAFOUNDER, NAFOUNDER...): that group, even if
+        they pay later, so each group is followed from the day it arrived. How
+        many of them pay comes back as `paying`.
+     2. otherwise a Paid row anywhere: paying
+     3. otherwise a Beta row: beta
+     4. anything else (Unpaid, or no access saved): other
+   Groups never overlap, so adding them up gives everyone.
+
+   Messages and days come from activity_days, the same record as "this week"
+   on the page, one message per thing they sent. Counts only, never words. */
+async function getUsageByGroup() {
+  if (!enabled) return null;
+  const r = await pool.query(`
+    WITH people AS (
+      SELECT ${PERSON_KEY} AS person,
+             MAX(CASE access WHEN 'Paid' THEN 3 WHEN 'Unpaid' THEN 2 WHEN 'Beta' THEN 1 ELSE 0 END) AS rank,
+             MIN(UPPER(beta_code)) FILTER (WHERE UPPER(beta_code) LIKE '%FOUNDER') AS code,
+             MIN(signup_date) AS first_signup
+        FROM users WHERE true${NOT_EXCLUDED}
+       GROUP BY 1
+    ),
+    grouped AS (
+      SELECT person, first_signup, rank, code,
+             CASE WHEN code IS NOT NULL THEN 'code'
+                  WHEN rank = 3 THEN 'paid'
+                  WHEN rank = 1 THEN 'beta'
+                  ELSE 'other' END AS grp
+        FROM people
+    ),
+    days AS (
+      SELECT ${PERSON_KEY_U} AS person, a.day, SUM(a.messages)::int AS messages
+        FROM activity_days a JOIN users u ON u.user_id = a.user_id
+       WHERE true${NOT_EXCLUDED_U}
+       GROUP BY 1, 2
+    ),
+    per AS (
+      SELECT g.grp, g.code, g.rank, g.first_signup,
+             COUNT(d.day) AS days_used,
+             COUNT(d.day) FILTER (WHERE d.day > now()::date - 7) AS days_7d,
+             COALESCE(SUM(d.messages), 0) AS messages,
+             COALESCE(SUM(d.messages) FILTER (WHERE d.day > now()::date - 7), 0) AS messages_7d
+        FROM grouped g LEFT JOIN days d ON d.person = g.person
+       GROUP BY g.person, g.grp, g.code, g.rank, g.first_signup
+    )
+    SELECT grp, code,
+           COUNT(*)::int                                                         AS people,
+           COUNT(*) FILTER (WHERE first_signup > now() - interval '7 days')::int AS joined_7d,
+           COUNT(*) FILTER (WHERE days_used > 0)::int                            AS wrote,
+           COUNT(*) FILTER (WHERE days_used > 1)::int                            AS came_back,
+           COUNT(*) FILTER (WHERE days_7d > 0)::int                              AS active_7d,
+           COALESCE(SUM(messages_7d), 0)::int                                    AS messages_7d,
+           COALESCE(SUM(messages), 0)::int                                       AS messages,
+           COUNT(*) FILTER (WHERE rank = 3)::int                                 AS paying
+      FROM per
+     GROUP BY grp, code
+     ORDER BY grp, code`);
+  return r.rows.map((x) => ({
+    group: x.grp,
+    code: x.code || null,
+    people: x.people,
+    joined7d: x.joined_7d,
+    wrote: x.wrote,
+    cameBack: x.came_back,
+    active7d: x.active_7d,
+    messages7d: x.messages_7d,
+    messages: x.messages,
+    paying: x.paying,
+  }));
+}
+
 // Look a code up without counting a redemption: what /register uses to record
 // which code somebody joined with and how long it gives. null if unknown.
 async function getBetaCode(code) {
@@ -2524,7 +2601,7 @@ module.exports = {
   listConversations, getFullThread, getWeekOverWeek, getCollected, phonesByPerson,
   getLastMessageAt, recentVoiceReplies, meetingReports, meetingChecks, addMeetingCheck, getWeeklyReviewStats,
   getSteps, saveSteps, stepMetrics,
-  enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns,
+  enabled, init, upsertUser, recordActivity, getMetrics, getBreakdowns, getUsageByGroup,
   recordSpend, isTeamUser, getSpend, SPEND_SOURCES,
   // Exported so the Slack alerts label a signup's source with the SAME rule the
   // dashboard groups on. Two implementations would eventually disagree.

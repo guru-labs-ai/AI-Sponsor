@@ -3034,7 +3034,7 @@ app.get('/api/metrics/northstar', async (req, res) => {
     return res.json(metricsCache.data);
   }
   try {
-    const [contacts, subs, usage, breakdowns, wow, collected, phones, weeklyReview, stepCounts] = await Promise.all([
+    const [contacts, subs, usage, breakdowns, wow, collected, phones, weeklyReview, stepCounts, byGroup] = await Promise.all([
       ghl.listSponsorContacts(),
       stripeModule.listSponsorSubscriptions().catch((e) => {
         console.error('[Metrics] Stripe list failed:', e.message);
@@ -3068,6 +3068,11 @@ app.get('/api/metrics/northstar', async (req, res) => {
       // Working the steps (Mariam, 11 Nov): counts only, see steps.js.
       db.stepMetrics().catch((e) => {
         console.error('[Metrics] DB steps failed:', e.message);
+        return null;
+      }),
+      // Usage per group: a group code (AA...), paying, beta (Matt + Mariam, 21 Nov).
+      db.getUsageByGroup().catch((e) => {
+        console.error('[Metrics] DB usage by group failed:', e.message);
         return null;
       }),
     ]);
@@ -3184,6 +3189,13 @@ app.get('/api/metrics/northstar', async (req, res) => {
             totalMessages: usage.total_messages,
           }
         : null,
+
+      /* The same usage, one row per group of people (db.getUsageByGroup):
+         everyone who joined with a group code such as AAFOUNDER, then paying,
+         then beta, then anyone with no plan saved. Each person is in exactly
+         one group, so the rows add up to the usage above. null when the DB is
+         off; the page hides the card then. */
+      usageByGroup: byGroup,
 
       /* The last 7 days on its own. Everything else here is cumulative, and a
          total that only ever rises cannot answer "was this week any good",
