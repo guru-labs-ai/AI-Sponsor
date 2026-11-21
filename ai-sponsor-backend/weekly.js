@@ -104,6 +104,19 @@ function lastCompletedWeek(now = new Date()) {
   return { start: isoDay(start), end: isoDay(end) };
 }
 
+/* How long they have been with their sponsor, said plainly for the note
+   writer: a first week reads as an introduction (Mariam, 21 Nov). Empty when
+   we do not know, so nothing is guessed. */
+function tenureLine(joined, week) {
+  const at = joined ? new Date(joined) : null;
+  if (!at || Number.isNaN(at.getTime())) return '';
+  const day = isoDay(at);
+  const said = at.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+  if (day >= week.start) return `This was their first week with you: they joined on ${said}.`;
+  const weeks = Math.floor((Date.parse(`${week.end}T00:00:00Z`) - Date.parse(`${day}T00:00:00Z`)) / (7 * 86400000)) + 1;
+  return `They have been with you since ${said}, about ${weeks} weeks.`;
+}
+
 function isoDay(d) {
   return d.toISOString().slice(0, 10);
 }
@@ -153,6 +166,18 @@ const SYSTEM_PROMPT = [
   '- Open the way a sponsor would open a message. Never with a line about the note itself ("this note is about you", "here is your summary"): the heading already says what it is.',
   '- No long dashes (— or –) anywhere. Use a comma or a full stop.',
   '',
+  /* 21 Nov 2026, Mariam: "a summary is more like overall", "not super extreme
+     details", a first week is an introduction, and it is always about them. */
+  'WHAT THE NOTE IS',
+  '- Start with "Hi" and their first name, then a comma (in their language), and go straight on in the same sentence or the next.',
+  '- Then 2 or 3 short sentences with the overall feeling of their week: how it seemed to go for them, and one thing you noticed in them. It is not a recap of the conversation.',
+  '- Leave out the specifics they told you: substances, amounts, names of people, what they wrote down, step answers, quotes. It goes to their phone and can show on a lock screen.',
+  '- Never say what the trouble was about either: not drinking, using, money, debt, food, sex, relationships, their business or their job problems, not the event that set it off. Describe how they met the week, not what happened in it. At most one light everyday touch that gives nothing away, like "a rushed morning".',
+  '- If this was their first week with you, the note is a welcome: say it was your first week together and you are still getting to know each other, then the overall feel in a sentence. No verdict on them yet.',
+  '- If they have been with you longer, you may mention it when it fits ("a few weeks in"), never as praise for showing up.',
+  '- The note is always about them, never about you or the product: not what you can or cannot do, not links, features or how this works.',
+  '- nextWeek is one short, gentle line, just as general: nothing on it that would expose them if someone else read it.',
+  '',
   'TONE, which you must choose and return',
   '- "hard": the week held a relapse, a slip, a crisis, a bereavement, or something close to one. Do NOT open with praise and do NOT tally anything. Name what happened plainly, without judgement and without softening it into nothing, and centre the note on the fact that they came back and are still here. If they described being in real danger, the nextWeek line points them at a human being, not a habit.',
   '- "quiet": they were mostly absent, or it was logistics and small talk. Say that honestly and without disappointment. A quiet week is not a failure and must not be written as one.',
@@ -160,7 +185,7 @@ const SYSTEM_PROMPT = [
   '',
   'RETURN ONLY JSON, no code fence, no commentary, exactly this shape:',
   '{',
-  '  "note": "2 to 4 sentences, the note itself",',
+  '  "note": "Hi <first name>, then 2 or 3 short sentences: the overall feel of their week",',
   '  "themes": ["what the week kept being about", "max 5, max 8 words each"],',
   '  "carried": "one sentence on the thing that came up more than once, or null",',
   '  "helped": ["things that visibly made it better for them", "max 3"],',
@@ -230,7 +255,23 @@ const NOW_WORDS = /\b(?:tonight|right now|this evening)\b/i;
    somebody else (a father, a sponsor). */
 const SAFETY_REPLAY = /\b(?:wanted to be here|want(?:ing)? to be here|not wanting to be here|ending your life|end your life|thoughts of (?:ending|not being|dying|suicide))\b|\bsuicid/i;
 const THIRD_PERSON = /\b(?:he|she|his|her|him)\b/i;
-const ABOUT_ITSELF = /^\W*(?:[A-Z][a-z]+,\s*)?(?:this (?:note|summary|message) is|here(?:'s| is) (?:your|the) (?:note|summary))/i;
+const ABOUT_ITSELF = /^\W*(?:(?:hi|hey|hello)\s+)?(?:[A-Z][a-z]+,\s*)?(?:this (?:note|summary|message) is|here(?:'s| is) (?:your|the) (?:note|summary))/i;
+// The note about the product instead of them (Chris's first notes, 21 Nov).
+const ABOUT_PRODUCT = /\bwhat I (?:actually |really )?(?:am|can do|can and can'?t do|can and cannot do|can'?t do|cannot do)\b|\bwhat this (?:even |actually )?is\b|\bhow this works\b/i;
+
+/* Every summary opens "Hi <name>," (Mariam, 21 Nov). The prompt asks for it;
+   this makes it so in English, including on the cards written in code. Other
+   languages are left to the prompt, since "Hi" in front of German or Spanish
+   would be worse than no greeting. */
+const GREETING = /^\s*(?:hi|hey|hello)\b/i;
+function withGreeting(note, name) {
+  const text = String(note || '').trim();
+  if (!text || GREETING.test(text)) return text;
+  const who = String(name || '').trim();
+  if (who && text.startsWith(`${who},`)) return `Hi ${text}`;
+  const rest = /^I(?:\b|')/.test(text) ? text : text.charAt(0).toLowerCase() + text.slice(1);
+  return `Hi ${who || 'there'}, ${rest}`;
+}
 function noteSlip(payload) {
   const fields = [payload.note, payload.carried, payload.milestone, payload.nextWeek,
     ...(payload.helped || []), ...(payload.commitments || []), ...(payload.themes || [])]
@@ -238,6 +279,7 @@ function noteSlip(payload) {
   if (OWN_MISTAKE.test(fields)) return "talks about the sponsor's own guesses or mistakes";
   if (NOW_WORDS.test(fields)) return 'says tonight or right now to somebody reading it days later';
   if (SAFETY_REPLAY.test(fields)) return 'brings back the safety question';
+  if (ABOUT_PRODUCT.test(fields)) return 'is about the sponsor, not them';
   const lists = [payload.milestone, ...(payload.helped || []), ...(payload.commitments || [])].filter(Boolean).join('\n');
   if (THIRD_PERSON.test(lists)) return 'writes about them as he or she';
   if (ABOUT_ITSELF.test(String(payload.note || ''))) return 'opens by describing the note';
@@ -360,13 +402,27 @@ async function ensureWeeklySummary(userId, opts = {}) {
      any of the sixteen; the card written in code exists in the notice six. */
   const lang = await language.languageOf(db, userId);
 
+  /* When they first arrived, across every row they hold (website and WhatsApp
+     are written separately), so the note can tell a first week from the
+     tenth. A first week is a welcome, not a verdict (Mariam, 21 Nov). */
+  let joined = user.signup_date ? new Date(user.signup_date) : null;
+  try {
+    const ids = typeof db.findAllIdentities === 'function' ? await db.findAllIdentities(userId) : [];
+    for (const id of ids || []) {
+      if (id === userId) continue;
+      const other = await db.getUser(id).catch(() => null);
+      const at = other && other.signup_date ? new Date(other.signup_date) : null;
+      if (at && (!joined || at < joined)) joined = at;
+    }
+  } catch { /* the row we have is enough */ }
+
   let payload;
   if (plan === 'silent') {
     payload = quietWeekCard({ sponsorName, messages: 0, activeDays: 0, lang: language.noticeLanguage(lang) });
   } else if (plan === 'quiet') {
     payload = quietWeekCard({ sponsorName, messages: have, activeDays: stats.activeDays, lang: language.noticeLanguage(lang) });
   } else {
-    payload = await writeNarrative({ userId, week, stats, sponsorName, theirName, lang }).catch((e) => {
+    payload = await writeNarrative({ userId, week, stats, sponsorName, theirName, lang, joined }).catch((e) => {
       console.error('[weekly] model call failed:', e.message);
       return null;
     });
@@ -375,6 +431,8 @@ async function ensureWeeklySummary(userId, opts = {}) {
        again against the same closed window and gets the same chance. */
     if (!payload) return { status: 'failed', reason: 'model', week };
   }
+  // "Hi <name>," on every English note, the code-written cards included.
+  if (language.noticeLanguage(lang) === 'en') payload.note = withGreeting(payload.note, theirName);
 
   /* The count shown on the card is `readable` too, so the number and the note
      can never disagree. Displaying the historical 15 next to a note written
@@ -405,7 +463,7 @@ async function ensureWeeklySummary(userId, opts = {}) {
   return { status: 'created', week, summary: { ...payload, week_start: week.start, week_end: week.end, stats: savedStats } };
 }
 
-async function writeNarrative({ userId, week, stats, sponsorName, theirName, lang = 'en' }) {
+async function writeNarrative({ userId, week, stats, sponsorName, theirName, lang = 'en', joined = null }) {
   const rows = await db.getWeekMessages(userId, week.start, week.end, MAX_ROWS);
   if (!rows || !rows.length) return null;
 
@@ -437,6 +495,7 @@ async function writeNarrative({ userId, week, stats, sponsorName, theirName, lan
     theirName ? `Their name is ${theirName}.` : '',
     `The week you are writing about is ${prettyRange(week.start, week.end)}.`,
     `They talked with you on ${stats.activeDays} of those 7 days.`,
+    tenureLine(joined, week),
     lang !== 'en' && language.LANGUAGE_NAMES[lang]
       ? `They talk to you in ${language.LANGUAGE_NAMES[lang]}. Write every text field of the JSON in ${language.LANGUAGE_NAMES[lang]}. "tone" stays one of the three English words.`
       : '',
@@ -873,5 +932,6 @@ module.exports = {
   _parseModelJSON: parseModelJSON, _coerce: coerce, _quietWeekCard: quietWeekCard,
   _planWeek: planWeek, _insideTheirWindow: insideTheirWindow, _sundaySomewhere: sundaySomewhere,
   _SYSTEM_PROMPT: SYSTEM_PROMPT, _WEEKLY_MODEL: WEEKLY_MODEL, _noteSlip: noteSlip,
+  _withGreeting: withGreeting, _tenureLine: tenureLine,
   WEEKLY_TEMPLATES, WEEKLY_READY_TEMPLATE, WEEKLY_READY_EN,
 };

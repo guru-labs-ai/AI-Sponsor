@@ -37,6 +37,31 @@ clean('a hard week', { note: 'Thursday was hard, and you told someone the same d
 clean('"my" in an ordinary sentence', { note: 'It was good to hear from you, and my door stays open.' });
 clean('"today" is not on the list (it can be the day the note is about)', { nextWeek: 'Pick one day and look at the numbers, even if only for ten minutes.' });
 
+console.log('\n— 21 Nov: what Mariam read in the first real notes');
+caught('the safety question played back', { note: 'You were honest when I asked you plainly whether you wanted to be here, you said yes.' });
+caught('"his" in the milestone', { milestone: 'Wrote his first Step One sentence.' });
+caught('"her" in what helped', { helped: ['calling her sister before the meeting'] });
+caught('a note that describes itself', { note: 'Dipen, this note is about you. You did real work.' });
+caught('a note about the sponsor, not them', { note: 'Hi Chris, last week was mostly you figuring out what I can and can\'t do.' });
+clean('"his" in the note itself is somebody else', { note: 'Hi Sam, your dad called and you picked up when he did.' });
+
+console.log('\n— "Hi <name>," on every English note');
+check('added in front of a note without one', weekly._withGreeting('Last week was a steady one.', 'Dipen'), 'Hi Dipen, last week was a steady one.');
+check('a note that starts with their name gets "Hi"', weekly._withGreeting('Dipen, you sat with something hard.', 'Dipen'), 'Hi Dipen, you sat with something hard.');
+check('a note that already greets is left alone', weekly._withGreeting("Hey Chris, it's Kai.", 'Chris'), "Hey Chris, it's Kai.");
+check('"I" stays a capital', weekly._withGreeting("I'm glad you came back.", 'Sam'), "Hi Sam, I'm glad you came back.");
+check('no name known: "Hi there"', weekly._withGreeting('We didn\'t talk this week.', ''), "Hi there, we didn't talk this week.");
+
+console.log('\n— how long they have been here');
+const wk = { start: '2026-11-15', end: '2026-11-21' };
+check('joined inside the week: a first week', /^This was their first week with you: they joined on Thursday 19 November\.$/.test(weekly._tenureLine('2026-11-19T16:44:00Z', wk)), true);
+check('joined in September: weeks counted', weekly._tenureLine('2026-09-03T10:00:00Z', wk), 'They have been with you since Thursday 3 September, about 12 weeks.');
+check('no date: nothing guessed', weekly._tenureLine(null, wk), '');
+
+console.log('\n— a field that says None is empty');
+check('milestone "None" is not printed', weekly._coerce({ note: 'Hi.', milestone: 'None', tone: 'quiet' }).milestone, null);
+check('long dashes become commas', weekly._coerce({ note: 'quick — a link, a hello.', tone: 'quiet' }).note, 'quick, a link, a hello.');
+
 console.log('\n— wiring');
 const src = require('fs').readFileSync(require('path').join(__dirname, 'weekly.js'), 'utf8');
 check('a slipped note is written once more, never more than twice', /attemptNo < 2 \? noteSlip\(payload\) : null/.test(src), true);
