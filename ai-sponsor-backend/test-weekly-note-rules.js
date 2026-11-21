@@ -58,13 +58,27 @@ check('joined inside the week: a first week', /^This was their first week with y
 check('joined in September: weeks counted', weekly._tenureLine('2026-09-03T10:00:00Z', wk), 'They have been with you since Thursday 3 September, about 12 weeks.');
 check('no date: nothing guessed', weekly._tenureLine(null, wk), '');
 
+console.log('\n— a long-standing member is never called new (Mariam, 21 Nov)');
+check('joined inside the week: new', weekly._isFirstWeek('2026-11-19T16:44:00Z', wk), true);
+check('joined in September: not new', weekly._isFirstWeek('2026-09-03T10:00:00Z', wk), false);
+check('no join date: not new', weekly._isFirstWeek(null, wk), false);
+check('"this was our first week together" is a first-week claim', weekly._claimsFirstWeek({ note: "Hi Sarah, this was our first week together, so we're still getting to know each other." }), true);
+check('"getting to know each other" on its own is one too', weekly._claimsFirstWeek({ note: 'We are still getting to know each other.' }), true);
+check('"your first week back at work" is not', weekly._claimsFirstWeek({ note: 'Hi Sam, it was your first week back at work.' }), false);
+const old = weekly._dropFirstWeekClaim({ note: "Hi Sarah, this was our first week together, so we're still getting to know each other. You kept showing up even when it was hard. That counts." });
+check('the claim is cut and the rest kept', old.note, 'You kept showing up even when it was hard. That counts.');
+check('...and the greeting comes back in code', weekly._withGreeting(old.note, 'Sarah'), 'Hi Sarah, you kept showing up even when it was hard. That counts.');
+const src2 = require('fs').readFileSync(require('path').join(__dirname, 'weekly.js'), 'utf8');
+check('a long-standing member called new is written once more', /!firstWeek && claimsFirstWeek\(payload\)/.test(src2), true);
+check('and if it still says so, the sentence goes', /if \(payload && !firstWeek\) dropFirstWeekClaim\(payload\)/.test(src2), true);
+
 console.log('\n— a field that says None is empty');
 check('milestone "None" is not printed', weekly._coerce({ note: 'Hi.', milestone: 'None', tone: 'quiet' }).milestone, null);
 check('long dashes become commas', weekly._coerce({ note: 'quick — a link, a hello.', tone: 'quiet' }).note, 'quick, a link, a hello.');
 
 console.log('\n— wiring');
 const src = require('fs').readFileSync(require('path').join(__dirname, 'weekly.js'), 'utf8');
-check('a slipped note is written once more, never more than twice', /attemptNo < 2 \? noteSlip\(payload\) : null/.test(src), true);
+check('a slipped note is written once more, never more than twice', /attemptNo < 2\s*\?\s*\(noteSlip\(payload\)/.test(src) && /attemptNo <= 2/.test(src), true);
 check('the prompt forbids both', src.includes('never about you') && src.includes('Never write tonight, today, this evening, right now or "this week"'), true);
 
 console.log(`\n${pass} passed, ${fail} failed`);

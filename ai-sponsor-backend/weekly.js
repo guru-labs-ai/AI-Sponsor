@@ -107,6 +107,28 @@ function lastCompletedWeek(now = new Date()) {
 /* How long they have been with their sponsor, said plainly for the note
    writer: a first week reads as an introduction (Mariam, 21 Nov). Empty when
    we do not know, so nothing is guessed. */
+function isFirstWeek(joined, week) {
+  const at = joined ? new Date(joined) : null;
+  return !!at && !Number.isNaN(at.getTime()) && isoDay(at) >= week.start;
+}
+
+/* Words that only belong in a first week. "Your first week back at work" is
+   not one of them, so only the relationship itself is matched. */
+const FIRST_WEEK_CLAIM = /\b(?:our|this) first week\b|\bfirst week (?:together|with me|with you)\b|\bgetting to know (?:each other|one another)\b|\bfinding our footing\b|\bjust (?:met|started talking)\b|\bwe(?:'ve| have)? only just met\b/i;
+function claimsFirstWeek(payload) {
+  return FIRST_WEEK_CLAIM.test([payload.note, payload.nextWeek, payload.milestone].filter(Boolean).join('\n'));
+}
+function dropFirstWeekClaim(payload) {
+  if (!payload || !payload.note || !FIRST_WEEK_CLAIM.test(payload.note)) return payload;
+  const kept = payload.note.split(/(?<=[.!?])\s+/).filter((s) => !FIRST_WEEK_CLAIM.test(s));
+  /* The greeting usually sits in the sentence that goes; it is put back by
+     withGreeting for English, so only the claim is lost. */
+  if (kept.length) payload.note = kept.join(' ');
+  if (payload.milestone && FIRST_WEEK_CLAIM.test(payload.milestone)) payload.milestone = null;
+  if (payload.nextWeek && FIRST_WEEK_CLAIM.test(payload.nextWeek)) payload.nextWeek = null;
+  return payload;
+}
+
 function tenureLine(joined, week) {
   const at = joined ? new Date(joined) : null;
   if (!at || Number.isNaN(at.getTime())) return '';
@@ -175,6 +197,7 @@ const SYSTEM_PROMPT = [
   '- Never say what the trouble was about either: not drinking, using, money, debt, food, sex, relationships, their business or their job problems, not the event that set it off. Describe how they met the week, not what happened in it. At most one light everyday touch that gives nothing away, like "a rushed morning".',
   '- If this was their first week with you, the note is a welcome: say it was your first week together and you are still getting to know each other, then the overall feel in a sentence. No verdict on them yet.',
   '- If they have been with you longer, you may mention it when it fits ("a few weeks in"), never as praise for showing up.',
+  '- If they were NOT new this week, never call it a first week, never say you are getting to know each other or finding your footing. If you were not told when they joined, they are not new.',
   '- The note is always about them, never about you or the product: not what you can or cannot do, not links, features or how this works.',
   '- nextWeek is one short, gentle line, just as general: nothing on it that would expose them if someone else read it.',
   '',
@@ -519,6 +542,10 @@ async function writeNarrative({ userId, week, stats, sponsorName, theirName, lan
      thinking counts against max_tokens: the log showed stop_reason max_tokens
      with 0 to 656 characters of actual text. 16000 leaves room for the
      thinking and the note; a short note still costs only what it uses. */
+  /* New only when we KNOW they joined inside this week. An unknown date counts
+     as not new: calling somebody who has been here for months "new" is the
+     mistake that must not happen, and a missing welcome costs nothing. */
+  const firstWeek = isFirstWeek(joined, week);
   for (let attemptNo = 1; attemptNo <= 2; attemptNo++) {
     const resp = await client.messages.create({
       _who: userId,
@@ -537,11 +564,17 @@ async function writeNarrative({ userId, week, stats, sponsorName, theirName, lan
        somebody reading it days later, is written once more (see noteSlip). The
        second one is kept whatever it says: a note is still worth more than no
        note, and the rules in the prompt hold most of the time on their own. */
-    const slip = payload && attemptNo < 2 ? noteSlip(payload) : null;
+    const slip = payload && attemptNo < 2
+      ? (noteSlip(payload) || (!firstWeek && claimsFirstWeek(payload) ? 'calls a long-standing member new' : null))
+      : null;
     if (slip) {
       console.warn(`[weekly] note for ${userId} ${slip}; writing it again`);
       continue;
     }
+    /* Mariam, 21 Nov: "if the user is not a new user, never say this is our
+       first week together". If the second note still says it, the sentence
+       goes, rather than the claim. */
+    if (payload && !firstWeek) dropFirstWeekClaim(payload);
     if (payload) return payload;
     console.warn(`[weekly] unusable reply for ${userId} (attempt ${attemptNo} of 2, stop_reason ${resp.stop_reason}, ${text.length} chars)`);
   }
@@ -1084,5 +1117,6 @@ module.exports = {
   _SYSTEM_PROMPT: SYSTEM_PROMPT, _WEEKLY_MODEL: WEEKLY_MODEL, _noteSlip: noteSlip,
   _withGreeting: withGreeting, _tenureLine: tenureLine,
   _noteMessage: noteMessage, _isUSNumber: isUSNumber, _afterFor: afterFor,
+  _isFirstWeek: isFirstWeek, _claimsFirstWeek: claimsFirstWeek, _dropFirstWeekClaim: dropFirstWeekClaim,
   WEEKLY_TEMPLATES, WEEKLY_READY_TEMPLATE, WEEKLY_READY_EN,
 };
