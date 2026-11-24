@@ -152,7 +152,7 @@ ${link}
       `${opener(first)}
 
 ` +
-      'Your subscription is cancelled straight away, so nothing more will be taken from your card. ' +
+      'Your subscription is canceled right away, so nothing more will be taken from your card. ' +
       `We also have your request to delete your account and everything in it, and that will be done on ${when}.
 
 ` +

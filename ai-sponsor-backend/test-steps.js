@@ -49,13 +49,13 @@ check('not a person saying where they are', [
 console.log('— what the sponsor is shown');
 const block = steps.buildStepsBlock({ program: 'DA', step: 4, part: 'the resentment list', work: 'write down three times', workAt: '2026-11-06T10:00:00Z', since: '2026-11-02T09:00:00Z' });
 check('programme, step, since, part, work with its date', [
-  block.includes('Programme: DA'), block.includes('Step 4 of 12, since 2 November.'),
+  block.includes('Program: DA'), block.includes('Step 4 of 12, since 2 November.'),
   block.includes('Where they are in it: the resentment list'),
   block.includes('The last piece of step work you gave them, on 6 November: write down three times'),
 ], [true, true, true, true]);
 check('no open work says so', steps.buildStepsBlock({ program: 'AA', step: 2 }).includes('No piece of step work is open right now.'), true);
 check('nothing saved: no block', [steps.buildStepsBlock(null), steps.buildStepsBlock({ step: null })], [null, null]);
-check('the keeping rules show the exact line to write', steps.KEEPING_BLOCK.includes('[[step: <their programme> | <the step they are on now, 1 to 12>'), true);
+check('the keeping rules show the exact line to write', steps.KEEPING_BLOCK.includes('[[step: <their program> | <the step they are on now, 1 to 12>'), true);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

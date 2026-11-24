@@ -136,7 +136,7 @@ function dayLabel(at) {
 function buildStepsBlock(record) {
   if (!record || !record.step) return null;
   const lines = ['## WHERE THEY ARE IN THE STEPS (your own saved record)'];
-  if (record.program) lines.push(`Programme: ${record.program}`);
+  if (record.program) lines.push(`Program: ${record.program}`);
   const since = dayLabel(record.since);
   lines.push(`Step ${record.step} of 12${since ? `, since ${since}` : ''}.`);
   if (record.part) lines.push(`Where they are in it: ${record.part}`);
@@ -162,7 +162,7 @@ const KEEPING_BLOCK = [
   '## KEEPING YOUR STEP RECORD',
   'You keep a short record of where they are in the steps. When there is one, it is shown to you above as WHERE THEY ARE IN THE STEPS.',
   'You update it yourself by ending your reply with one line in exactly this form:',
-  '[[step: <their programme> | <the step they are on now, 1 to 12> | <where they are in that step, a few words> | <the piece of step work you just gave them, a few words, or none>]]',
+  '[[step: <their program> | <the step they are on now, 1 to 12> | <where they are in that step, a few words> | <the piece of step work you just gave them, a few words, or none>]]',
   'It is taken out before they see it. Write it only in a reply where one of these happens:',
   '- you start a step with them',
   '- you give them a new piece of step work',
@@ -172,7 +172,7 @@ const KEEPING_BLOCK = [
   'Write it in the same reply where it happens, even when that reply also asks them a question. When they tell you which step they are on, that reply carries the line, whatever else you say.',
   'The test: if you left the line out, would the record you are shown next time be wrong or missing something from this reply? Then write it.',
   'They read this record on their own settings page, so write the piece of work the way you would say it to them ("write down three times you..."), never "he" or "they", and never anything they have not told you.',
-  'Never write it in any other reply, and never just to repeat what is already saved. Write the words in the language you are speaking with them. It is only for the Twelve Steps of their programme, never for anything else.',
+  'Never write it in any other reply, and never just to repeat what is already saved. Write the words in the language you are speaking with them. It is only for the Twelve Steps of their program, never for anything else.',
 ].join('\n');
 
 module.exports = { stepsIn, stripAll, parseMarker, stepNumber, toldStep, buildStepsBlock, KEEPING_BLOCK, firstProgram, MARKER };

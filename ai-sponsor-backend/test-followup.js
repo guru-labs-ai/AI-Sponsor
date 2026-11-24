@@ -107,7 +107,7 @@ const localH = (zone, d) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 
 
   await check('it reads as the sponsor thinking of them, and the sponsor no longer says it cannot write first', () => {
     assert.ok(/never as someone who read the chat or fixed something/.test(srv));
-    assert.ok(/Never apologise for or comment on an earlier reply of yours/.test(srv));
+    assert.ok(/Never apologize for or comment on an earlier reply of yours/.test(srv));
     assert.ok(!/Right now you can't start a conversation, only continue one/.test(srv), 'the old line would deny the message it just sent');
     assert.ok(/You can write to them first, but only within a day of their last message/.test(srv));
     assert.ok(/our last first message is still unanswered/.test(srv), 'never a second message on top of an unanswered one');

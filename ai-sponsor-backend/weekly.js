@@ -202,7 +202,7 @@ const SYSTEM_PROMPT = [
   '- nextWeek is one short, gentle line, just as general: nothing on it that would expose them if someone else read it.',
   '',
   'TONE, which you must choose and return',
-  '- "hard": the week held a relapse, a slip, a crisis, a bereavement, or something close to one. Do NOT open with praise and do NOT tally anything. Name what happened plainly, without judgement and without softening it into nothing, and centre the note on the fact that they came back and are still here. If they described being in real danger, the nextWeek line points them at a human being, not a habit.',
+  '- "hard": the week held a relapse, a slip, a crisis, a bereavement, or something close to one. Do NOT open with praise and do NOT tally anything. Name what happened plainly, without judgment and without softening it into nothing, and center the note on the fact that they came back and are still here. If they described being in real danger, the nextWeek line points them at a human being, not a habit.',
   '- "quiet": they were mostly absent, or it was logistics and small talk. Say that honestly and without disappointment. A quiet week is not a failure and must not be written as one.',
   '- "steady": anything else.',
   '',
@@ -528,7 +528,7 @@ async function writeNarrative({ userId, week, stats, sponsorName, theirName, lan
       : '',
     weekEvents.length ? `Account things that happened this week: ${weekEvents.join(', ')}.` : '',
     memory && memory.digest
-      ? `BACKGROUND you already know about them from before this week — context only, do NOT summarise it back to them, the note is about this week:\n${memory.digest}`
+      ? `BACKGROUND you already know about them from before this week — context only, do NOT summarize it back to them, the note is about this week:\n${memory.digest}`
       : '',
   ].filter(Boolean).join('\n');
 
