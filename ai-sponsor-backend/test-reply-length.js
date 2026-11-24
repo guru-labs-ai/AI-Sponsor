@@ -80,6 +80,60 @@ check('small talk and feelings stay short, so asking about them is still the rep
   }
 });
 
+/* 21 Nov review of the first AA group sign-ups. The wording of the first two
+   below is the shape of what was really asked; the rest are invented. */
+check('a question without the question mark is still a question (21 Nov: "what is the meaning of third step prayer" cut to 12 words)', () => {
+  const plain = replyBudget('we went for a walk and talked', { history: [] });
+  const marked = replyBudget('what is the meaning of third step prayer?', { history: [] });
+  for (const q of ['what is the meaning of third step prayer', 'is this free or will it cost money', 'what does step 7 mean',
+    'why do I keep doing this', 'how does a sponsor help with step 4', "what's the difference between AA and NA", 'ok so what happens at step 5',
+    'how long does step 4 take', 'can I do step 1 again', 'Hi. what are the 12 traditions', 'did I do step 3 right',
+    'do I have to pray', 'is there a step 13', 'what if I relapse']) {
+    const b = replyBudget(q, { history: [] });
+    assert.ok(b.target > plain.target, `"${q}" got ${b.target}, same as small talk`);
+    assert.ok(!b.detail, `"${q}" is a question, not a request for depth`);
+  }
+  assert.strictEqual(replyBudget('what is the meaning of third step prayer', { history: [] }).target, marked.target, 'without the mark it gets what the mark would give');
+});
+
+check('small talk, exclamations and a question word mid-sentence are not questions', () => {
+  for (const s of ['how are you', 'hey how are you doing', 'how is your day', "what's up", 'what a day', 'whats up',
+    "I don't know what is happening to me", 'I wonder why I am like this', 'that is how it is', 'was a good day',
+    'Did it!', 'Did it today', 'Do it tomorrow', 'Was there at 7', 'how was your day', 'Do the next right thing']) {
+    assert.ok(replyBudget(s, { history: [] }).target <= 15, `"${s}" was given room for an answer`);
+  }
+});
+
+check('asking for depth gets a full answer, however short the ask (21 Nov: "in depth" asked 3 times, cut 86 -> 14 words)', () => {
+  for (const a of ['in depth please', 'explain in depth', 'Can you explain it in more detail', 'please explain me down below',
+    'tell me more about step 3', 'Explain the third step', 'explain it to me properly', 'I want a longer answer', 'go deeper',
+    'could you elaborate', 'more detail please', 'in-depth', 'ok explain', 'Can you break it down for me']) {
+    const b = replyBudget(a, { history: [] });
+    assert.ok(b.detail, `"${a}" was not read as asking for depth`);
+    assert.ok(b.target >= 150, `"${a}" got only ${b.target} words`);
+    assert.ok(b.ceiling >= 300, `"${a}" would be cut at ${b.ceiling} words`);
+  }
+});
+
+check('depth words in a statement do not ask for a speech', () => {
+  for (const s of ["I can't explain how I feel", 'I want more time with my kids', 'we talked more today', 'I feel a bit more calm',
+    'hard to explain', 'it was deep', 'I need to tell her more often that I love her']) {
+    const b = replyBudget(s, { history: [] });
+    assert.ok(!b.detail, `"${s}" was read as asking for depth`);
+  }
+});
+
+check('a crisis reply is still never shortened or reshaped, even when they ask for detail', () => {
+  const b = replyBudget('explain in depth', { history: [{ role: 'assistant', content: 'Please call or text 988 right now, any hour.' }] });
+  assert.strictEqual(b.exempt, 'crisis');
+});
+
+check('the depth block replaces the short-length block, and the cut keeps the explanation', () => {
+  assert.ok(src.includes("if (budget.detail) {") && src.includes("} else if (budget.target) {"), 'one length block per reply, never both');
+  assert.ok(/budget\.detail\s*\n?\s*\? 'They asked for an explanation in depth/.test(src), 'the editor is told to keep the explanation');
+  assert.ok(src.includes('!safetyOpen && !budget.detail && !meetings.asksAboutMeetings(message) && ASKS_FOR_SOMETHING'), '"give one practice" is not the answer to "explain it"');
+});
+
 check('the safety question, once asked, stays open until they answer it (21 Oct)', () => {
   assert.ok(SAFETY_QUESTION.test('I want to ask you plainly, because it matters: are you having any thoughts of not wanting to be here?'));
   assert.ok(SAFETY_QUESTION.test('Are you thinking about ending your life?'));

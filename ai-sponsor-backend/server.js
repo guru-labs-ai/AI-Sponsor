@@ -1984,6 +1984,50 @@ const ASKS_FOR_SOMETHING = new RegExp([
   String.raw`\bhow (?:do|can|should|would) i\b`,
   String.raw`\bwhat (?:do|should|can) i do\b`,
 ].join('|'), 'i');
+/* A question without the question mark. The 21 Nov review of the first AA
+   group sign-ups: "what is the meaning of third step prayer" had no "?", was
+   read as small talk, and a 59-word answer was cut to 12 words that did not
+   answer it. A sentence that opens with a question word and a verb, or with a
+   verb and "it / this / I / you", is a question, mark or not, and is treated
+   exactly like one with the mark: room to answer, nothing more. Left out on
+   purpose: "how are you" and "what's up" (small talk) and "what a day" (an
+   exclamation), and a question word in the middle of a sentence ("I don't know
+   what is happening to me" is them telling you something). English only. */
+const QUESTION_WITHOUT_MARK = new RegExp(
+  String.raw`(?:^|[.!\n]\s*)(?:(?:and|so|but|ok|okay|also|then|sir|hi|hello|hey|please|pls|plz)[,\s]+)*` +
+  String.raw`(?!how\s+(?:are|r)\s+(?:you|u|things)\b|how(?:'s|s|\s+is|\s+was)\s+(?:it going|your (?:day|night|week|weekend|morning|evening)|you|life)\b|what'?s\s+up\b)` +
+  String.raw`(?:` +
+    String.raw`(?:what|why|how|who|which|where|when)\s+(?:is|are|was|were|does|do|did|can|could|should|would|will|means?|happens?|if)\b` +
+    String.raw`|what'?s\s+(?:the|a|an|this|that|it|step|my)\b` +
+    String.raw`|how\s+(?:long|many|much|often|come)\b` +
+    /* "Did it!", "Do it tomorrow", "Was there at 7" are texts with the "I"
+       left off, so after did / do / was / were / have / has only a person
+       counts as the subject. */
+    String.raw`|(?:is|are|does|can|could|should|will|would)\s+(?:it|this|that|there|i|you|we|they)\b` +
+    String.raw`|(?:do|did|was|were|have|has)\s+(?:i|you|we|they)\b` +
+  String.raw`)`, 'i');
+/* Asking for MORE than a line: an explanation, more detail, to go deeper.
+   Same review: one person asked for an answer "in depth" three times and got
+   one or two lines each time, because a two-word "in depth please" earned a
+   12-word budget, and every longer answer was cut back to it ("reply
+   tightened 86 -> 14 words"). When somebody asks for depth, a short reply IS
+   the failure. These get a full answer's room, and the cut only ever trims a
+   real essay back to that full answer, never to a line. "Explain" counts only
+   as a request ("explain it to me", "can you explain", a sentence that starts
+   with it), never "I can't explain how I feel". English only. */
+const ASKS_FOR_DETAIL = new RegExp([
+  String.raw`\bin[\s-]+(?:depth|details?)\b`,
+  String.raw`\bmore (?:detail|details|detailed|deeply|depth|fully)\b`,
+  String.raw`\b(?:tell|explain|teach|show)(?: (?:me|us|it|that|this))?(?: to me)? (?:a (?:bit|little) |some |much )?more\b`,
+  String.raw`\b(?:elaborate|go deeper|dig deeper|break (?:it|that|this) down|spell (?:it|that|this) out)\b`,
+  String.raw`\b(?:longer|fuller|full|complete|proper|detailed|deeper|whole) (?:answer|reply|explanation|message|version)\b`,
+  String.raw`(?:^|[.!?,\n]\s*)(?:(?:please|pls|plz|ok|okay|now|so|and|sir|then)[,\s]+)*explain\b`,
+  String.raw`\b(?:can|could|would|will) you (?:please |pls |plz )?(?:explain|elaborate)\b`,
+  String.raw`\bexplain (?:it |that |this )?(?:to me|me|more|again|properly|fully|better|clearly)\b`,
+].join('|'), 'i');
+/* How much room an ask for depth gets: about what a sponsor would type out
+   when somebody says "explain it properly", in short WhatsApp paragraphs. */
+const DETAIL_TARGET = 150;
 /* When a crisis number has to be in the reply. In the eval set, "I honestly
    don't see a way out of this" got a direct question but no number in 0 of 6
    replies (live and new alike), and "everything just feels pointless" from
@@ -2066,9 +2110,18 @@ function replyBudget(theirMessage, { history, isFirst } = {}) {
   );
   if (nearCrisis) return { target: null, ceiling: null, theirWords, exempt: 'crisis' };
 
+  const said = String(theirMessage || '');
+
+  /* They asked for an explanation, more detail, or depth (ASKS_FOR_DETAIL).
+     A full answer, whatever length their own message was. */
+  if (ASKS_FOR_DETAIL.test(said)) {
+    const target = Math.max(DETAIL_TARGET, Math.min(220, Math.round(theirWords * 1.4)));
+    return { target, ceiling: Math.round(target * 2.2) + 25, theirWords, detail: true };
+  }
+
   /* They asked something real, so answering it properly is the point. Still not
      an invitation to write an essay. */
-  const askedSomething = QUESTION_MARK.test(String(theirMessage || '')) || ASKS_FOR_SOMETHING.test(String(theirMessage || ''));
+  const askedSomething = QUESTION_MARK.test(said) || ASKS_FOR_SOMETHING.test(said) || QUESTION_WITHOUT_MARK.test(said);
 
   const base = Math.round(theirWords * 1.4);
   const floor = askedSomething ? 35 : 12;
@@ -2576,7 +2629,10 @@ async function getSponsorReply(userId, message, context) {
      its own rules). Only this message: a meeting mentioned a message or two
      earlier keeps the meetings section open, and that used to switch this off
      for a request about something else entirely. */
-  if (!safetyOpen && !meetings.asksAboutMeetings(message) && ASKS_FOR_SOMETHING.test(String(message || '')) && !QUESTION_MARK.test(String(message || ''))) {
+  /* Not when they asked for an explanation or more detail: that has its own
+     block below, and "give them one practice" is the wrong answer to "explain
+     it to me properly". */
+  if (!safetyOpen && !budget.detail && !meetings.asksAboutMeetings(message) && ASKS_FOR_SOMETHING.test(String(message || '')) && !QUESTION_MARK.test(String(message || ''))) {
     console.log('[sponsor] they asked for something without a question mark; the reply has to give it');
     systemBlocks.push({ type: 'text', text: [
       '## THEY ASKED YOU FOR SOMETHING',
@@ -2591,7 +2647,17 @@ async function getSponsorReply(userId, message, context) {
     ].join('\n') });
   }
 
-  if (budget.target) {
+  if (budget.detail) {
+    console.log('[sponsor] they asked for an explanation or more detail; a full answer this time');
+    systemBlocks.push({ type: 'text', text: [
+      '## THEY ASKED YOU TO EXPLAIN, OR TO GO DEEPER',
+      `This message asks for more than a line: an explanation, more detail, or to go deeper. Give them a full answer this time, about ${budget.target} words, in short WhatsApp paragraphs.`,
+      'If they did not say what it is about, it is about what the two of you were just talking about, usually the last thing you said or they asked: explain that. Do not ask them what they mean, and do not tell them nothing came through.',
+      'If you gave them a short answer to this before, this is them telling you it was not enough. Do not repeat it in other words; go further: what it means, why it matters, and how it shows up in a real day.',
+      'Plain, warm words in your own voice, the way a sponsor would explain it face to face. No headings. A numbered list only when it really is a sequence of steps.',
+      ...(offersMeetings ? ['Meetings you list for them do not count toward this: give each one its day, time, name, link and passcode in full.'] : []),
+    ].join('\n') });
+  } else if (budget.target) {
     systemBlocks.push({ type: 'text', text: [
       '## HOW LONG THIS PARTICULAR REPLY SHOULD BE',
       `They just wrote ${budget.theirWords} word${budget.theirWords === 1 ? '' : 's'}. Aim for about ${budget.target} back.`,
@@ -2812,7 +2878,10 @@ async function getSponsorReply(userId, message, context) {
         system: [{ type: 'text', text: [
           'You are editing one message from a sponsor to somebody in recovery, and you are not adding anything to it.',
           `Cut it to about ${budget.target} words. Keep the warmth, keep the one thing it is actually saying, and keep it in the same voice.`,
-          'Drop the explaining, drop any repetition, and drop the part that reads like it was written to be thorough.',
+          /* They asked for the explanation, so the explaining is the part to keep. */
+          budget.detail
+            ? 'They asked for an explanation in depth, so keep the explanation itself whole: cut repetition, padding and anything that does not help them understand.'
+            : 'Drop the explaining, drop any repetition, and drop the part that reads like it was written to be thorough.',
           'Never remove a phone number, a link, or anything they need to act on.',
           'Reply with the shortened message and nothing else. No preamble, no quotes around it, no comment on what you changed.',
         ].join('\n') }],

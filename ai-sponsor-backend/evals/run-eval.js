@@ -78,7 +78,9 @@ const judgeClient = new Anthropic({ apiKey: KEY });
    filed on the dashboard at the end (spend-report.js). */
 const testSpend = require('./spend-report').start(BACKEND, LABEL, judgeClient);
 
-const scenarios = [...require('./scenarios-da-ua-aca.js'), ...require('./scenarios-listening.js')].filter((s) => !ONLY || ONLY.split(',').includes(s.id));
+const scenarios = [...require('./scenarios-da-ua-aca.js'), ...require('./scenarios-listening.js'), ...require('./scenarios-detail.js')].filter((s) => !ONLY || ONLY.split(',').includes(s.id));
+
+const wordCount = (t) => String(t || '').trim().split(/\s+/).filter(Boolean).length;
 
 function ago(minutes) {
   if (minutes < 60) return `${minutes} minutes earlier`;
@@ -150,7 +152,7 @@ async function judge(sc, reply) {
          took end to end, so its cost in waiting time is measured too. */
       const notes = [];
       const realLog = console.log;
-      console.log = (...a) => { if (/^\[listening\]/.test(String(a[0]))) notes.push(String(a[0])); realLog(...a); };
+      console.log = (...a) => { if (/^\[listening\]|^\[sponsor\] (?:reply tightened|they asked)/.test(String(a[0]))) notes.push(String(a[0])); realLog(...a); };
       const started = RealDate.now();
       try {
         reply = await getSponsorReply(uid, sc.message, { channel: 'whatsapp', viaVoice: false, replyIsSpoken: false, textOnly: false, replyLanguage: 'en', sharesNews: false });
@@ -168,10 +170,12 @@ async function judge(sc, reply) {
       const checks = [
         ...(sc.must || []).map((re) => ({ id: `must ${re}`, pass: re.test(reply), reason: 'pattern' })),
         ...(sc.mustNot || []).map((re) => ({ id: `mustNot ${re}`, pass: !re.test(reply), reason: 'pattern' })),
+        ...(sc.minWords ? [{ id: `minWords ${sc.minWords}`, pass: wordCount(reply) >= sc.minWords, reason: `${wordCount(reply)} words` }] : []),
+        ...(sc.maxWords ? [{ id: `maxWords ${sc.maxWords}`, pass: wordCount(reply) <= sc.maxWords, reason: `${wordCount(reply)} words` }] : []),
       ];
       let verdicts;
       try { verdicts = await judge(sc, reply); } catch (e) { verdicts = sc.criteria.map((c) => ({ id: c.id, pass: null, reason: `judge error: ${e.message}` })); }
-      results.push({ id: sc.id, pattern: sc.pattern, program: sc.program, run: r + 1, reply, ms, listening: notes, verdicts: [...verdicts, ...checks] });
+      results.push({ id: sc.id, pattern: sc.pattern, program: sc.program, run: r + 1, reply, words: wordCount(reply), ms, listening: notes, verdicts: [...verdicts, ...checks] });
       const failed = [...verdicts, ...checks].filter((v) => v.pass === false).map((v) => v.id);
       console.log(`${sc.id} #${r + 1}: ${failed.length ? 'FAIL ' + failed.join(', ') : 'pass'}`);
     }
