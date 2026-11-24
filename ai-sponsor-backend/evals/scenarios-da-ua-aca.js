@@ -126,6 +126,43 @@ module.exports = [
     mustNot: [/\b(you said yesterday|we talked yesterday|earlier today|earlier tonight)\b/i],
   },
 
+  /* Midday, after a late-night talk. Added 17 Nov from Matt's 14 Nov roadmap
+     (power-user feedback): old context kept giving "go to bed" advice in the
+     middle of her day, and she stopped using it. NOW is 2:30 pm in New York,
+     where these test numbers live. */
+  {
+    id: 'time_midday_after_night', pattern: 'time', program: 'DA',
+    profile: base('DA', '1-5 years', 'Kim'), now: NOW,
+    history: [
+      ['user', "can't sleep, my head keeps going round the credit card bill", 13 * H + 30],
+      ['assistant', "Put the phone down and go to bed. The bill will still be there in the morning, and you'll look at it with a clearer head.", 13 * H + 29],
+      ['user', 'ok night', 13 * H + 25],
+    ],
+    message: 'Okay I have a free hour now. Can you help me start my spending plan?',
+    criteria: [
+      { id: 'no_bedtime', text: 'Does NOT tell them to go to bed, sleep, rest for the night or wind down. It is 2:30 pm where they live.' },
+      { id: 'no_night_as_now', text: 'Does NOT treat last night\'s talk as happening now (no "tonight", "it\'s late", "this late").' },
+      { id: 'helps_now', text: 'Helps with the spending plan they asked for: one concrete first step, or one focused question that leads straight to one.' },
+    ],
+    mustNot: [/\b(go to bed|get some sleep|head to bed|get some rest tonight|good ?night|it'?s late)\b/i],
+  },
+  {
+    id: 'time_rejected_bedtime', pattern: 'time', program: 'UA',
+    profile: base('UA, ACA', '1-5 years', 'Jess'), now: NOW,
+    history: [
+      ['user', 'my mind is racing again', 2 * D + 30],
+      ['assistant', "Then let's close the day. Go to bed and let tomorrow handle tomorrow.", 2 * D + 29],
+      ['user', 'please stop telling me to go to bed, it was the middle of the day for me', D + 20],
+      ['assistant', "You're right, I'm sorry. No more bedtime advice. What would help right now?", D + 19],
+    ],
+    message: "I'm wiped out after a long work call. What step am I on again?",
+    criteria: [
+      { id: 'no_rejected_advice', text: 'Does NOT suggest going to bed, sleeping or ending the day. They asked it to stop that.' },
+      { id: 'answers_step', text: 'Answers the step question, or asks one short question to find out which step they are on.' },
+    ],
+    mustNot: [/\b(go to bed|get some sleep|head to bed|close the day|good ?night)\b/i],
+  },
+
   /* Added 14 Nov: the three things Mariam asked to fix first. */
   {
     id: 'gap_feeling_first', pattern: 'gap', program: 'UA',
