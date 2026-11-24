@@ -2174,6 +2174,25 @@ async function getBetaCode(code) {
   return r.rows[0] || null;
 }
 
+/* What somebody is on, for the sponsor to answer "is this free?" (see plan.js).
+   Every identity of the same person (a website reg- row and a WhatsApp wa- row
+   are one person), matched the way findAllIdentities matches, in ONE round
+   trip: this runs on every reply, next to the settings link. Raw rows only;
+   plan.js decides what they mean. */
+async function getPlanFacts(userId) {
+  if (!enabled || !userId) return null;
+  const r = await pool.query(
+    `WITH me AS (SELECT COALESCE(TRIM(email), '') AS email, COALESCE(TRIM(phone), '') AS phone FROM users WHERE user_id = $1)
+     SELECT u.access, u.beta_code, u.beta_expires_at, u.stripe_subscription_id, b.days AS code_days
+       FROM users u LEFT JOIN beta_codes b ON b.code = u.beta_code
+      WHERE u.user_id = $1
+         OR EXISTS (SELECT 1 FROM me WHERE (me.email <> '' AND LOWER(u.email) = LOWER(me.email))
+                                        OR (me.phone <> '' AND u.phone = me.phone))`,
+    [userId]
+  );
+  return r.rows;
+}
+
 // Validate a beta code and count the redemption. Returns true only if the code
 // exists and is active. Unknown/killed codes return false.
 async function redeemBetaCode(code) {
@@ -2621,7 +2640,7 @@ module.exports = {
   recordOutbound, applyMessageStatus, noteSettingsOpen,
   planFollowup, claimDueFollowups, finishFollowup, followupGuards,
   linkSubscription, findByStripeCustomer, getUser, setAccess,
-  getMemory, saveMemory, renameInMemory, getAgedOutMessages, redeemBetaCode, getBetaCode, logAdminAccess,
+  getMemory, saveMemory, renameInMemory, getAgedOutMessages, redeemBetaCode, getBetaCode, getPlanFacts, logAdminAccess,
   getWeekMessages, getWeekActivity, saveWeeklySummary, getWeeklySummary,
   listWeeklySummaries, markWeeklyDelivered, usersDueForWeekly, usersQuietForWeekly,
 };

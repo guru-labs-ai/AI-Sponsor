@@ -26,6 +26,7 @@ const notices = require('./notices');       // account notices (cancelled, chang
 const meetings = require('./meetings');     // real online meetings, from the official directories
 const steps = require('./steps');           // where they are in the Twelve Steps, kept by the sponsor
 const spelling = require('./spelling');     // American spelling on English replies (Matt, 21 Nov)
+const plan = require('./plan');             // what they are on (free, founding code, paid), for "is this free?"
 const timeguard = require('./timeguard');   // an earlier conversation never called "tonight" after a gap
 const timezones = require('./timezones');
 // How long before the sponsor checks again where someone is (meetings.js ZONE_CHECK_LINE).
@@ -1538,8 +1539,15 @@ const SPEAKING_DIRECTION = [
    are trying to talk about their week. Returns '' when there is no DB, in which
    case the sponsor simply never knows the link exists. */
 async function buildSettingsBlock(userId) {
-  const token = await db.getOrCreateSettingsToken(userId).catch(() => null);
+  /* Their plan is read alongside the token, not after it, so knowing it adds
+     no wait to the reply. A failed read just leaves the plan out: the sponsor
+     goes back to not knowing, which is where it was before 24 Nov. */
+  const [token, planRows] = await Promise.all([
+    db.getOrCreateSettingsToken(userId).catch(() => null),
+    typeof db.getPlanFacts === 'function' ? db.getPlanFacts(userId).catch(() => null) : null,
+  ]);
   if (!token) return '';
+  const planLink = `${SITE_URL}/ai-sponsor-settings.html?t=${token}#plan`;
   return [
     '## THEIR SETTINGS PAGE',
     `One link covers all of it: ${SITE_URL}/ai-sponsor-settings.html?t=${token}`,
@@ -1549,9 +1557,11 @@ async function buildSettingsBlock(userId) {
     '- deactivate, close their account, delete their data, leave',
     '- speak to a real person, get help with something you cannot help with, report a problem',
     `- look back at their week, see what you and they talked about, how many days they showed up, what they said they would do. That one opens straight onto it: ${SITE_URL}/ai-sponsor-settings.html?t=${token}#week`,
+    `- see their plan, what they pay and when, or stop paying. That one opens straight onto it: ${planLink}`,
     'Hand over the link plainly and warmly, say in one line what they will find there, and let them go do it.',
     'Never paste this link unprompted and never offer it as a suggestion. If they are talking about anything else, it does not exist.',
     'Someone saying they want to start over or delete everything is telling you something, so ask what is behind it if it feels right. But ask it in the SAME message as the link, never instead of the link and never before handing it over. They asked you for something; holding it back until they explain themselves is not care, it is a toll gate.',
+    ...plan.planLines(plan.planOf(planRows), planLink),
   ].join('\n');
 }
 

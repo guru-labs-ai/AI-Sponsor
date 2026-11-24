@@ -54,6 +54,9 @@ db.getSteps = async () => null;
    { digest, minutesAgo } = written from messages up to that long before now). */
 let MEMORY = null;
 db.getMemory = async () => MEMORY;
+/* What they are on (plan.js), when a scenario says (scenario.planRows). */
+let PLAN_ROWS = null;
+db.getPlanFacts = async () => PLAN_ROWS;
 db.recordEvent = async () => {};
 db.getHistory = async () => null;
 db.getProfile = async () => null;
@@ -78,7 +81,7 @@ const judgeClient = new Anthropic({ apiKey: KEY });
    filed on the dashboard at the end (spend-report.js). */
 const testSpend = require('./spend-report').start(BACKEND, LABEL, judgeClient);
 
-const scenarios = [...require('./scenarios-da-ua-aca.js'), ...require('./scenarios-listening.js'), ...require('./scenarios-detail.js')].filter((s) => !ONLY || ONLY.split(',').includes(s.id));
+const scenarios = [...require('./scenarios-da-ua-aca.js'), ...require('./scenarios-listening.js'), ...require('./scenarios-detail.js'), ...require('./scenarios-plan.js')].filter((s) => !ONLY || ONLY.split(',').includes(s.id));
 
 const wordCount = (t) => String(t || '').trim().split(/\s+/).filter(Boolean).length;
 
@@ -143,6 +146,7 @@ async function judge(sc, reply) {
       const msgs = sc.history.map(([role, text, min]) => stamp({ role, content: text }, new RealDate(now - min * 60000)));
       const lastUser = [...sc.history].reverse().find(([role]) => role === 'user');
       LAST = lastUser ? new RealDate(now - lastUser[2] * 60000) : null;
+      PLAN_ROWS = sc.planRows || null;
       MEMORY = sc.memory ? { digest: sc.memory.digest, upto: 1, uptoAt: new RealDate(now - sc.memory.minutesAgo * 60000).toISOString() } : null;
       const uid = `wa-+1212555${String(1000 + scenarios.indexOf(sc) * 10 + r)}`;
       conversations.set(uid, msgs);
