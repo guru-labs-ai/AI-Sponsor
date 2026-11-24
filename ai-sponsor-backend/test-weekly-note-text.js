@@ -56,7 +56,7 @@ const kinds = () => sent.filter((x) => x.kind === 'text' || x.kind === 'template
 (async () => {
   console.log('— what they read');
   check('a written week: heading, note, one thing, reply line', w._noteMessage(written, week),
-    '*Your week in summary, 15 to 21 November*\n\nHi Sam, last week you kept showing up.\n\n*One thing for this week:* Pick one meeting.\n\nReply here any time.');
+    '*Your week in summary, November 15 to 21*\n\nHi Sam, last week you kept showing up.\n\n*One thing for this week:* Pick one meeting.\n\nReply here any time.');
   check('a thin week drops the "No task from me" line', w._noteMessage(thin, week).includes('One thing'), false);
   check('a silent week is a check-in, not a summary', w._noteMessage(silent, week), "*Checking in*\n\nHi Sam, I haven't heard from you in a while.");
   check('no long dash anywhere in the wording', /[—–]/.test(w._noteMessage(written, week) + w._noteMessage(silent, week)), false);
@@ -77,7 +77,7 @@ const kinds = () => sent.filter((x) => x.kind === 'text' || x.kind === 'template
   sent = []; lastWrote = {};
   r = await w.deliver('wa-+995500000003', written, week, whatsapp);
   check('outside, not US, written week: the note template with three values', kinds(), ['template:week_in_summary_next']);
-  check('...the values are the dates, the note and the one thing', sent.find((x) => x.kind === 'template').params, ['15 to 21 November', 'Hi Sam, last week you kept showing up.', 'Pick one meeting.']);
+  check('...the values are the dates, the note and the one thing', sent.find((x) => x.kind === 'template').params, ['November 15 to 21', 'Hi Sam, last week you kept showing up.', 'Pick one meeting.']);
 
   sent = [];
   await w.deliver('wa-+995500000003', thin, week, whatsapp);

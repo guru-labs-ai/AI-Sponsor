@@ -25,6 +25,7 @@ const paymentnotice = require('./paymentnotice'); // "your payment went through"
 const notices = require('./notices');       // account notices (cancelled, changed, deletion)
 const meetings = require('./meetings');     // real online meetings, from the official directories
 const steps = require('./steps');           // where they are in the Twelve Steps, kept by the sponsor
+const spelling = require('./spelling');     // American spelling on English replies (Matt, 21 Nov)
 const timeguard = require('./timeguard');   // an earlier conversation never called "tonight" after a gap
 const timezones = require('./timezones');
 // How long before the sponsor checks again where someone is (meetings.js ZONE_CHECK_LINE).
@@ -1795,7 +1796,10 @@ async function writeFollowup(userId) {
   if (!text || /^\W*SKIP\b/i.test(text)) return { skip: 'nothing natural to pick up' };
   if (meetings.inventedLinks(text, { theirWords: history.filter((m) => m.role === 'user').map((m) => m.content) }).length) return { skip: 'it named a meeting it was not given' };
   if (words(text) > 120) return { skip: 'too long for a first message' };
-  return { text: stripEmojiNearCrisis(stripPetNames(text, history.filter((m) => m.role === 'user').map((m) => m.content))) };
+  const firstText = stripEmojiNearCrisis(stripPetNames(text, history.filter((m) => m.role === 'user').map((m) => m.content)));
+  // American spelling in English, the same last pass as a reply (spelling.js).
+  const followLang = await language.languageOf(db, userId).catch(() => 'en');
+  return { text: spelling.isEnglish(followLang) ? spelling.americanize(firstText) : firstText };
 }
 
 /* After a first message goes out: into their conversation, so the next reply
@@ -2974,6 +2978,11 @@ async function getSponsorReply(userId, message, context) {
   /* A pet name they never used (stripPetNames). Before the voice and the text
      copies split, so neither says it. */
   rawReply = stripPetNames(rawReply, theirWords);
+  /* American spelling (spelling.js). The instructions ask for it, but the model
+     still copies a member's own British word back ("What's the favour?" in 2 of
+     3 runs, 24 Nov). English replies only, and before the voice and text copies
+     split, so what is heard and what is saved agree. */
+  if (spelling.isEnglish(context && context.replyLanguage)) rawReply = spelling.americanize(rawReply);
   const { wanted: modelWantsVoice, text: markerFree } = stripVoiceMarker(rawReply);
   if (context && modelWantsVoice) context.modelWantsVoice = true;
 

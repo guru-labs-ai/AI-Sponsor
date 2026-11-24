@@ -38,6 +38,7 @@ const db = require('./db');
 const tz = require('./timezones');
 const language = require('./language');   // which language the note and nudge are in
 const copy = require('./notice-copy');     // the nudge, card and templates in six other languages
+const spelling = require('./spelling');    // American spelling on English notes
 const window24 = require('./window24');    // text or template: is their 24-hour window open
 const Anthropic = require('@anthropic-ai/sdk');
 
@@ -143,13 +144,24 @@ function isoDay(d) {
   return d.toISOString().slice(0, 10);
 }
 
+/* American order (Mariam, 24 Nov): "November 15 to 21", or "November 29 to
+   December 5" across two months. It is the heading of the summary they get on
+   WhatsApp and a value in its templates. */
 function prettyRange(startISO, endISO) {
-  const opts = { day: 'numeric', month: 'long' };
   const a = new Date(startISO + 'T00:00:00Z');
   const b = new Date(endISO + 'T00:00:00Z');
+  const month = (d) => d.toLocaleDateString('en-US', { month: 'long', timeZone: 'UTC' });
   const sameMonth = a.getUTCMonth() === b.getUTCMonth();
-  const left = a.toLocaleDateString('en-GB', sameMonth ? { day: 'numeric' } : opts);
-  return `${left} to ${b.toLocaleDateString('en-GB', opts)}`;
+  return `${month(a)} ${a.getUTCDate()} to ${sameMonth ? '' : `${month(b)} `}${b.getUTCDate()}`;
+}
+
+function americanizeNote(payload) {
+  for (const k of ['note', 'carried', 'milestone', 'nextWeek']) {
+    if (typeof payload[k] === 'string') payload[k] = spelling.americanize(payload[k]);
+  }
+  for (const k of ['themes', 'helped', 'commitments']) {
+    if (Array.isArray(payload[k])) payload[k] = payload[k].map((x) => spelling.americanize(x));
+  }
 }
 
 /* ── What the model is asked for ────────────────────────────────────────────
@@ -460,6 +472,8 @@ async function ensureWeeklySummary(userId, opts = {}) {
   }
   // "Hi <name>," on every English note, the code-written cards included.
   if (language.noticeLanguage(lang) === 'en') payload.note = withGreeting(payload.note, theirName);
+  // American spelling on English notes, every field they read (spelling.js).
+  if (spelling.isEnglish(lang)) americanizeNote(payload);
 
   /* The count shown on the card is `readable` too, so the number and the note
      can never disagree. Displaying the historical 15 next to a note written
