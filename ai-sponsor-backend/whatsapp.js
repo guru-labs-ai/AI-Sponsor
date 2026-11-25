@@ -49,6 +49,11 @@ const { maskPhone } = require('./logsafe'); // phone numbers in logs: last four 
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+/* What someone gets when their message cannot be answered at all (the model
+   call failed, the API account is out of credit, anything thrown below). */
+const FALLBACK_REPLY = "Sorry, something went wrong on my end and I couldn't answer. " +
+  'Try again in a little while. If you need someone right now, please reach out to someone you trust.';
+
 /* Twilio client for sending outbound messages (replies).
 
    CONSTRUCTED ONLY IF THERE ARE CREDENTIALS. twilio(undefined, undefined)
@@ -1403,11 +1408,13 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
 
     } catch (err) {
       console.error('[WhatsApp] Error processing message:', err.message);
-      // Send a graceful fallback message to the user so they aren't left hanging
+      /* Send a graceful fallback message to the user so they aren't left hanging.
+         Wording from Mariam, 25 Nov 2026, after Matt flagged the old "I'm having
+         a moment, please try again in a few seconds" as not human: it promised
+         seconds during an outage that lasted hours. No time promise, and a way
+         to reach a person if it cannot wait. */
       try {
-        await sendTextReply(fromPhone,
-          "I'm having a moment — please try again in a few seconds. I'm still here with you. 🙏"
-        );
+        await sendTextReply(fromPhone, FALLBACK_REPLY);
       } catch (sendErr) {
         console.error('[WhatsApp] Failed to send fallback message:', sendErr.message);
       }
@@ -1439,6 +1446,7 @@ function clearCapturedNumber(userId) {
 }
 
 module.exports = {
+  FALLBACK_REPLY,
   clearCapturedNumber,
   handleIncomingMessage,
   sendTextReply,

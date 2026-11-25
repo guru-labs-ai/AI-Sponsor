@@ -150,7 +150,7 @@ async function checkAnthropic() {
     action: 'Check ANTHROPIC_API_KEY on Render and that the key still exists in the Anthropic console.',
   });
   if (r.status === 400 && /credit|balance|quota/i.test(err)) return down(`out of credit: ${err}`, {
-    impact: 'The sponsor cannot reply to anyone. Everyone messaging gets the "I am having a moment" fallback.',
+    impact: 'The sponsor cannot reply to anyone. Everyone messaging gets the "Sorry, something went wrong on my end" reply.',
     action: 'Top up the Anthropic account. This is a billing page, not a deploy.',
   });
   if (r.status === 429) return warn(`rate limited: ${err}`);
@@ -161,7 +161,7 @@ async function checkAnthropic() {
    rather than by asking whether the key exists. */
 async function checkOpenAI() {
   if (!process.env.OPENAI_API_KEY) return down('no OPENAI_API_KEY set, voice notes cannot be transcribed', {
-    impact: 'Anyone sending a voice note gets the generic "I am having a moment" reply. Text keeps working, so this looks fine from outside. It is what cost us Sylvia on 1 September.',
+    impact: 'Anyone sending a voice note gets the generic "Sorry, something went wrong on my end" reply. Text keeps working, so this looks fine from outside. It is what cost us Sylvia on 1 September.',
     action: 'Set OPENAI_API_KEY on the Render service. Transcription is the one thing xAI cannot do, so there is no fallback.',
   });
   const { r, body } = await fetchJson('https://api.openai.com/v1/chat/completions', {
@@ -179,7 +179,7 @@ async function checkOpenAI() {
   // The 1 Sep outage, exactly. Worth naming rather than leaving as "429".
   if (code === 'insufficient_quota' || /quota|billing|credit/i.test(err)) {
     return down(`OUT OF CREDIT. Inbound voice notes are failing silently: ${err}`, {
-      impact: 'Anyone sending a voice note gets the generic "I am having a moment" reply and no transcription. Text still works, so nothing looks broken from outside. This is exactly what cost us Sylvia on 1 September.',
+      impact: 'Anyone sending a voice note gets the generic "Sorry, something went wrong on my end" reply and no transcription. Text still works, so nothing looks broken from outside. This is exactly what cost us Sylvia on 1 September.',
       action: 'Top up the OpenAI account (org Guru AI, project Default). Auto-reload is OFF and the card on file has declined before, so check the card too.',
     });
   }

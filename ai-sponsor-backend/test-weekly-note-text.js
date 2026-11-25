@@ -125,6 +125,25 @@ const kinds = () => sent.filter((x) => x.kind === 'text' || x.kind === 'template
   await w.deliver('wa-+995500000003', written, week, whatsapp);
   check('nobody else ever gets a second message', kinds(), ['template:week_in_summary_next']);
 
+  /* Spotted 22 Nov when Matt got "Hi there". deliver() read only the
+     registration row, while the note writer reads the profile first, so anyone
+     whose name is only in their profile was greeted "Hi there". The greeting
+     must use the same name the note writer does. */
+  console.log('\n— the greeting name');
+  const realGetUser = db.getUser, realGetProfile = db.getProfile, realSendIn = language.sendTemplateIn;
+  let greeted = null;
+  language.sendTemplateIn = async (mc, to, name, lang, params) => { greeted = params('en', name)[0]; return { messageId: 'old' }; };
+  db.getUser = async () => ({ name: '' });
+  db.getProfile = async () => ({ name: 'Matt' });
+  sent = []; lastWrote = {};
+  await w.deliver('wa-+14155550123', written, week, whatsapp);
+  check('US, outside the window, name only in the profile: "Hi Matt", not "Hi there"', greeted, 'Matt');
+  db.getProfile = async () => ({});
+  greeted = null;
+  await w.deliver('wa-+14155550123', written, week, whatsapp);
+  check('no name anywhere: still the friendly fallback', greeted, 'there');
+  db.getUser = realGetUser; db.getProfile = realGetProfile; language.sendTemplateIn = realSendIn;
+
   console.log(`\n${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });
