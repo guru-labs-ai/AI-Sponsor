@@ -734,7 +734,12 @@ async function deliver(userId, payload, week, whatsapp) {
   if (!token) return { sent: false, reason: 'no-token' };
 
   const link = `${SITE_URL}/ai-sponsor-settings.html?t=${token}#week`;
-  const theirName = String(user.name || '').trim().split(/\s+/)[0];
+  /* The same name the note writer uses (profile first, then the registration
+     row). This read only users.name, so anyone whose name is saved only in
+     their profile got "Hi there". Spotted when Matt got "Hi there" on 22 Nov;
+     his own name is not saved anywhere yet, so he keeps it until he registers. */
+  const profile = (db.getProfile ? await db.getProfile(userId).catch(() => null) : null) || {};
+  const theirName = String(profile.name || user.name || '').trim().split(/\s+/)[0];
   const hi = theirName ? `${theirName}, ` : '';
 
   const lang = language.noticeLanguage(await language.languageOf(db, userId));
