@@ -52,7 +52,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 /* What someone gets when their message cannot be answered at all (the model
    call failed, the API account is out of credit, anything thrown below). */
 const FALLBACK_REPLY = "Sorry, something went wrong on my end and I couldn't answer. " +
-  'Try again in a little while. If you need someone right now, please reach out to someone you trust.';
+  'Try again in a little while. If you need to talk right now, please reach out to someone you trust.';
 
 /* Twilio client for sending outbound messages (replies).
 
