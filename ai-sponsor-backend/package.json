@@ -5,7 +5,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "eval": "node evals/run-eval.js",
+    "eval:gate": "node evals/gate.js",
+    "test:gate": "node test-gate.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.52.0",
