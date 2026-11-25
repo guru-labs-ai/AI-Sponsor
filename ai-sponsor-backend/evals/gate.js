@@ -29,8 +29,9 @@
    The first gate run has no bar yet. It passes unless a safety or crisis
    scenario fails, and becomes the bar.
 
-   Exit codes: 0 release OK, 1 blocked, 2 could not run (no key, no --yes,
-   out of credit, or the eval itself failed).
+   Exit codes: 0 release OK, 1 blocked, 2 could not run (no key or a key that
+   is not an Anthropic key, no --yes, out of credit, the eval itself failed, or
+   any test could not be graded, in which case nothing is saved).
 
    Cost: one sponsor reply and one grade per scenario (96 today), about a third
    of a default 3-run eval, plus the rechecks. It spends the live sponsor's
@@ -83,8 +84,12 @@ const safeName = (s) => String(s).replace(/[^\w.-]+/g, '-').slice(0, 80);
 function summarize(resultSets) {
   const by = new Map();
   for (const r of resultSets.flat()) {
-    const s = by.get(r.id) || { id: r.id, pattern: r.pattern, runs: 0, passes: 0, failed: {} };
+    const s = by.get(r.id) || { id: r.id, pattern: r.pattern, runs: 0, passes: 0, ungraded: 0, failed: {} };
     s.runs++;
+    /* A run the sponsor could not answer, or the judge could not grade, says
+       nothing about the sponsor: run-eval.js counts it as a pass, the gate
+       refuses to (see notGraded). */
+    if (String(r.reply || '').startsWith('ERROR ') || (r.verdicts || []).some((v) => v.pass === null)) s.ungraded++;
     const failed = (r.verdicts || []).filter((v) => v.pass === false).map((v) => v.id);
     if (!failed.length) s.passes++;
     for (const f of failed) s.failed[f] = (s.failed[f] || 0) + 1;
@@ -103,6 +108,13 @@ function toRecheck(current, last) {
   return current
     .filter((s) => !s.pass && !STRICT.has(s.pattern) && before.has(s.id) && before.get(s.id).pass)
     .map((s) => s.id);
+}
+
+/* Scenarios with at least one run that was not graded. A wrong key or an API
+   error makes every run look like a pass in run-eval.js, so the gate stops
+   instead of saving a bar it cannot trust. */
+function notGraded(current) {
+  return current.filter((s) => s.ungraded > 0).map((s) => s.id);
 }
 
 function decide(current, last, { tolerance = 0 } = {}) {
@@ -161,6 +173,14 @@ function plan(version, runs, recheck, tolerance) {
   console.log(`Spends:     about ${scenarios.length * runs} sponsor replies and ${scenarios.length * runs} grades on the live Anthropic account, plus rechecks`);
 }
 
+function stopIfNotGraded(current, cost) {
+  const missing = notGraded(current);
+  if (!missing.length) return false;
+  console.error(`\nGate stopped: ${missing.length} test(s) could not be graded (the sponsor or the judge hit an error), so the score cannot be trusted: ${missing.slice(0, 10).join(', ')}${missing.length > 10 ? ', ...' : ''}.`);
+  console.error(`Check ANTHROPIC_API_KEY and the credit, then run again. Nothing was saved. Spent about $${cost.toFixed(2)}.`);
+  return true;
+}
+
 async function main() {
   const runs = Math.max(1, +arg('runs', 1));
   const recheck = Math.max(0, +arg('recheck', 2));
@@ -170,6 +190,10 @@ async function main() {
   plan(version, runs, recheck, tolerance);
   if (flag('plan')) return 0;
   if (!process.env.ANTHROPIC_API_KEY) { console.error('\nANTHROPIC_API_KEY is required.'); return 2; }
+  if (!/^sk-ant-/.test(process.env.ANTHROPIC_API_KEY)) {
+    console.error('\nANTHROPIC_API_KEY does not look like an Anthropic key (it starts with sk-ant-). Nothing run.');
+    return 2;
+  }
   if (!flag('yes') && process.env.GATE_YES !== '1') {
     console.error('\nNothing run. This spends live Anthropic credit: add --yes to go ahead.');
     return 2;
@@ -185,6 +209,7 @@ async function main() {
   const sets = [readResults(label)];
   let cost = first.cost;
   let current = summarize(sets);
+  if (stopIfNotGraded(current, cost)) return 2;
 
   const again = recheck > 0 ? toRecheck(current, last) : [];
   if (again.length) {
@@ -195,6 +220,7 @@ async function main() {
     sets.push(readResults(`${label}-recheck`));
     cost += second.cost;
     current = summarize(sets);
+    if (stopIfNotGraded(current, cost)) return 2;
   }
 
   const d = decide(current, last, { tolerance });
@@ -221,7 +247,7 @@ async function main() {
   if (d.ok) fs.writeFileSync(LAST_PASS, JSON.stringify(record, null, 1));
 
   console.log(`\nGATE ${d.ok ? 'PASS: release OK' : 'BLOCKED: do not release'} (${version})`);
-  console.log(`  ${d.passed} of ${d.total} scenarios pass${d.compared ? `; last approved ${d.compared.version}: ${d.compared.then} of ${d.compared.shared} shared, now ${d.compared.now}` : '; no earlier bar, this run sets it'}`);
+  console.log(`  ${d.passed} of ${d.total} scenarios pass${d.compared ? `; last approved ${d.compared.version}: ${d.compared.then} of ${d.compared.shared} shared, now ${d.compared.now}` : d.ok ? '; no earlier bar, this run sets it' : '; no earlier bar, and a blocked run does not set one'}`);
   if (d.newlyFailing.length) console.log(`  Newly failing: ${d.newlyFailing.join(', ')}`);
   if (d.newlyPassing.length) console.log(`  Newly passing: ${d.newlyPassing.join(', ')}`);
   for (const r of d.reasons) console.log(`  Blocked because ${r}`);
@@ -229,7 +255,7 @@ async function main() {
   return d.ok ? 0 : 1;
 }
 
-module.exports = { summarize, decide, toRecheck, STRICT, scenarioFiles };
+module.exports = { summarize, decide, toRecheck, notGraded, STRICT, scenarioFiles };
 
 if (require.main === module) {
   main().then((code) => process.exit(code)).catch((e) => { console.error('Gate error:', e.stack || e.message); process.exit(2); });

@@ -6,7 +6,7 @@
    only one of the two versions ran never move the bar.
 
    Run: node test-gate.js */
-const { summarize, decide, toRecheck, scenarioFiles } = require('./evals/gate');
+const { summarize, decide, toRecheck, notGraded, scenarioFiles } = require('./evals/gate');
 
 let pass = 0, fail = 0;
 function check(name, actual, expected) {
@@ -73,6 +73,15 @@ check('dropping scenarios does not block when the rest still pass', decide(remov
 const now = summarize([[run('a', 'time', ['c1']), run('b', 'listening'), run('c', 'plan', ['c1']), run('s', 'safety', ['c1'])]]);
 check('recheck = newly failing, not strict, not already failing on the bar', toRecheck(now, last), ['a']);
 check('no recheck without a bar', toRecheck(now, null), []);
+
+// runs that could not be graded stop the gate (run-eval.js would count them as passes)
+const errReply = { id: 'e', pattern: 'time', reply: 'ERROR 401 invalid x-api-key', verdicts: [{ id: 'c1', pass: true }] };
+const judgeErr = { id: 'j', pattern: 'time', reply: 'ok', verdicts: [{ id: 'c1', pass: null, reason: 'judge error: 401' }] };
+const graded = { id: 'g', pattern: 'time', reply: 'ok', verdicts: [{ id: 'c1', pass: true }] };
+check('a sponsor ERROR reply counts as not graded', summarize([[errReply]])[0].ungraded, 1);
+check('a judge error counts as not graded', summarize([[judgeErr]])[0].ungraded, 1);
+check('notGraded lists only the ungraded scenarios', notGraded(summarize([[errReply, judgeErr, graded]])), ['e', 'j']);
+check('a clean run has nothing ungraded', notGraded(summarize([[graded]])), []);
 
 // the gate reads the scenario files from run-eval.js
 check('scenario files come from run-eval.js', scenarioFiles().every((f) => /^scenarios-[\w-]+\.js$/.test(f)) && scenarioFiles().length >= 4, true);
