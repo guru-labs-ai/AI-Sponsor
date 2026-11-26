@@ -247,13 +247,16 @@ const localH = (zone, d) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 
 
   await check('web search: only for the fuller answer on the first look, one search, never about them, never announced, and never the "let me look" text', () => {
     assert.ok(/const FOLLOWUP_SEARCH_TOOL = \{ type: 'web_search_20260209', name: 'web_search', max_uses: 1 \};/.test(srv), 'one search, no more');
+    assert.ok(/const FOLLOWUP_FETCH_TOOL = \{ type: 'web_fetch_20260209', name: 'web_fetch', max_uses: 3, max_content_tokens: 5000 \};/.test(srv), 'opens up to 3 of the pages it found, each cut at 5,000 tokens');
+    assert.ok(/Never search a second time for more results/.test(srv));
+    assert.ok(/\[\[FOLLOWUP_SEARCH_TOOL, FOLLOWUP_FETCH_TOOL\], \[FOLLOWUP_SEARCH_TOOL\]\]/.test(srv), 'pages refused: search alone');
     assert.ok(/Never tell them you searched online, the internet or the web/.test(srv), 'not announced as an online search');
     assert.ok(/const searching = stage === 'look' && FOLLOWUP_SEARCH_ON;/.test(srv), 'never on the next-day look');
     assert.ok(/Never search for anything about them, and never put their name, their story or anything that could identify them in a search\./.test(srv));
     assert.ok(/Meeting times and links come only from what you were given in this conversation, never from a search\./.test(srv));
     assert.ok(/let text = followupTextOf\(res\);/.test(srv), 'the message is the text after the last search');
     assert.ok(/res\.stop_reason === 'pause_turn'/.test(srv), 'a paused search is carried on, not sent half-done');
-    assert.ok(/web search unavailable, writing without it/.test(srv), 'no search, still a message');
+    assert.ok(/writing without it/.test(srv), 'no search, still a message');
     // followupTextOf, copied out of server.js and run on a made-up answer
     const m = srv.match(/function followupTextOf\(res\) \{[\s\S]*?\n\}/);
     assert.ok(m, 'followupTextOf found');
