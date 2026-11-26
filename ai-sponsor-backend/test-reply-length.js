@@ -91,7 +91,17 @@ check('a question without the question mark is still a question (21 Nov: "what i
     'do I have to pray', 'is there a step 13', 'what if I relapse']) {
     const b = replyBudget(q, { history: [] });
     assert.ok(b.target > plain.target, `"${q}" got ${b.target}, same as small talk`);
-    assert.ok(!b.detail, `"${q}" is a question, not a request for depth`);
+  }
+  /* 26 Nov (Mariam: "it should feel on the first message already that AI
+     sponsor cares"): a question about the program gets a full answer; other
+     questions keep a question's room. */
+  for (const q of ['what is the meaning of third step prayer', 'what does step 7 mean', 'how does a sponsor help with step 4',
+    "what's the difference between AA and NA", 'ok so what happens at step 5', 'how long does step 4 take', 'can I do step 1 again',
+    'Hi. what are the 12 traditions', 'did I do step 3 right', 'is there a step 13']) {
+    assert.ok(replyBudget(q, { history: [] }).detail, `"${q}" is about the program: a full answer`);
+  }
+  for (const q of ['is this free or will it cost money', 'why do I keep doing this', 'do I have to pray', 'what if I relapse']) {
+    assert.ok(!replyBudget(q, { history: [] }).detail, `"${q}" is a question, not a request for depth`);
   }
   assert.strictEqual(replyBudget('what is the meaning of third step prayer', { history: [] }).target, marked.target, 'without the mark it gets what the mark would give');
 });
@@ -113,6 +123,33 @@ check('asking for depth gets a full answer, however short the ask (21 Nov: "in d
     assert.ok(b.target >= 150, `"${a}" got only ${b.target} words`);
     assert.ok(b.ceiling >= 300, `"${a}" would be cut at ${b.ceiling} words`);
   }
+});
+
+check('26 Nov: a question about their program, a book or an event gets a full answer from the first reply', () => {
+  for (const q of ['what do you think about the book Drop the Rock?', 'Can you share something from DA literature',
+    'what is the big book about?', 'tell me about the promises', 'is the convention in March worth going to?',
+    'whats the difference between AA and NA', 'how do I start step work?', 'what does the seventh step prayer mean']) {
+    const b = replyBudget(q, { history: [] });
+    assert.ok(b.detail && b.about === 'program', `"${q}" was not read as a program question`);
+    assert.ok(b.target >= 150 && b.ceiling >= 300, `"${q}" got ${b.target} / ${b.ceiling}`);
+  }
+  for (const q of ['should I step back from him?', 'can you ca ll me', 'is this free or will it cost money', 'how are you']) {
+    assert.ok(!replyBudget(q, { history: [] }).detail, `"${q}" is not about the program`);
+  }
+  assert.ok(!replyBudget('I read the big book today', { history: [] }).detail, 'a statement about the book is not a question');
+});
+
+check('26 Nov: a worry gets room to be heard, whatever its length', () => {
+  for (const s of ['I am so worried about my son', 'I had a craving today', 'I have a hard time with my mum',
+    'feeling really low', 'I slipped last night', "I can't sleep", 'scared about court tomorrow']) {
+    const b = replyBudget(s, { history: [] });
+    assert.ok(b.worry && b.target >= 110, `"${s}" got ${b.target}`);
+    assert.ok(!b.detail, `"${s}" is a worry, not an ask for an explanation`);
+  }
+  for (const s of ['we went for a walk and talked', 'Did it!', 'how are you', 'was a good day']) {
+    assert.ok(!replyBudget(s, { history: [] }).worry, `"${s}" is not a worry`);
+  }
+  assert.ok(src.includes("Take the room to show you really heard it"), 'the sponsor is told why it has the room');
 });
 
 check('depth words in a statement do not ask for a speech', () => {

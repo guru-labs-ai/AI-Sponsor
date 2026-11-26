@@ -2127,6 +2127,42 @@ const ASKS_FOR_DETAIL = new RegExp([
 /* How much room an ask for depth gets: about what a sponsor would type out
    when somebody says "explain it properly", in short WhatsApp paragraphs. */
 const DETAIL_TARGET = 150;
+
+/* A real answer from the first reply. Mariam, 26 Nov, after a book question
+   of hers got about 75 words back (a 29-second voice note): "it should feel on
+   the first message already that AI sponsor cares for them ... especially if
+   it's about the person's worry or the books ... or the 12 steps". Until then
+   (15-21 Nov) a question about the program got a question's room, about 35 to
+   110 words, and only "explain it" got a full answer. Now:
+   - a question about their program, a step, a tradition, a book or reading,
+     a prayer, or a recovery event gets what "explain it" gets
+   - a worry they share (worried, scared, struggling, a craving, a slip...)
+     gets room to be heard: at least WORRY_TARGET words
+   English only, like the other patterns here. */
+const ABOUT_THE_PROGRAM = new RegExp([
+  String.raw`\b(?:step|steps) ?(?:\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b`,
+  String.raw`\b(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|\d{1,2}(?:st|nd|rd|th)) step\b`,
+  String.raw`\b(?:the|12|twelve) steps\b`,
+  String.raw`\bstep ?work\b`,
+  String.raw`\btraditions?\b`,
+  String.raw`\b(?:big book|basic text|book|books|literature|reading|readings|daily reflections?|just for today|grapevine|twelve and twelve|12 and 12|chapter|pamphlet)\b`,
+  String.raw`\b(?:serenity|third step|3rd step|seventh step|7th step|set ?aside) prayer\b`,
+  String.raw`\bpromises\b`,
+  String.raw`\b(?:convention|retreat|workshop|conference|round-?up)\b`,
+  String.raw`\b(?:alcoholics|narcotics|overeaters|debtors|gamblers|cocaine|crystal meth|sex and love addicts|underearners) anonymous\b`,
+  String.raw`\b(?:al-?anon|alateen|nar-?anon|coda|twelve[- ]step|12[- ]step|sponsorship|fellowship|higher power)\b`,
+].join('|'), 'i');
+/* The fellowships' short names, matched by case so "aa" and "ca" in ordinary
+   words do not count. */
+const PROGRAM_ACRONYM = /\b(?:AA|NA|OA|DA|CA|CMA|GA|SLAA|SAA|ACA|UA|FA|CoDA)\b/;
+const SHARES_A_WORRY = new RegExp([
+  String.raw`\b(?:worried|worry|worrying|worries|anxious|anxiety|scared|afraid|frightened|terrified|panic|panicking|struggling|overwhelmed|stressed|depressed|lonely|ashamed|guilty|hopeless|helpless|craving|cravings|urges?|tempted|relapse|relapsed|slipped|triggered)\b`,
+  String.raw`\b(?:can'?t|cannot) (?:stop|cope|sleep|do this)\b`,
+  String.raw`\b(?:hard|rough|bad|tough) (?:time|day|night|week)\b`,
+  String.raw`\b(?:feel|feeling|felt|so|really) (?:sad|low|down|alone|empty|lost)\b`,
+  String.raw`\b(?:falling apart|breaking down|crying|cried)\b`,
+].join('|'), 'i');
+const WORRY_TARGET = 110;
 /* When a crisis number has to be in the reply. In the eval set, "I honestly
    don't see a way out of this" got a direct question but no number in 0 of 6
    replies (live and new alike), and "everything just feels pointless" from
@@ -2222,14 +2258,24 @@ function replyBudget(theirMessage, { history, isFirst } = {}) {
      an invitation to write an essay. */
   const askedSomething = QUESTION_MARK.test(said) || ASKS_FOR_SOMETHING.test(said) || QUESTION_WITHOUT_MARK.test(said);
 
+  /* A question about their program, a book or an event: a full answer from
+     the first reply (Mariam, 26 Nov; see ABOUT_THE_PROGRAM). */
+  if (askedSomething && (ABOUT_THE_PROGRAM.test(said) || PROGRAM_ACRONYM.test(said))) {
+    const target = Math.max(DETAIL_TARGET, Math.min(220, Math.round(theirWords * 1.4)));
+    return { target, ceiling: Math.round(target * 2.2) + 25, theirWords, detail: true, about: 'program' };
+  }
+
   const base = Math.round(theirWords * 1.4);
   const floor = askedSomething ? 35 : 12;
   const cap = askedSomething ? 110 : 70;
-  const target = Math.max(floor, Math.min(cap, base));
+  let target = Math.max(floor, Math.min(cap, base));
+  /* Something that worries them: room to be heard, not a quick line. */
+  const worry = SHARES_A_WORRY.test(said);
+  if (worry) target = Math.max(target, WORRY_TARGET);
   /* The ceiling is what triggers a rewrite, and it is deliberately loose. This
      is meant to catch an essay, not to police every reply into the same size,
      which would be its own kind of machine. */
-  return { target, ceiling: Math.round(target * 2.2) + 25, theirWords };
+  return { target, ceiling: Math.round(target * 2.2) + 25, theirWords, ...(worry ? { worry: true } : {}) };
 }
 
 /* ── Not two questions in a row ──────────────────────────────────────────────
@@ -2746,7 +2792,15 @@ async function getSponsorReply(userId, message, context) {
     ].join('\n') });
   }
 
-  if (budget.detail) {
+  if (budget.detail && budget.about === 'program') {
+    console.log('[sponsor] they asked about their program, a book or an event; a full answer');
+    systemBlocks.push({ type: 'text', text: [
+      '## THEY ASKED ABOUT THEIR PROGRAM, A BOOK OR AN EVENT',
+      `Answer it properly in this reply, about ${budget.target} words, in short WhatsApp paragraphs: what it is, what it means for them, and how it shows up in a real day. A real answer to what they asked is how they feel that you care.`,
+      'Plain, warm words in your own voice, the way a sponsor would explain it face to face. No headings. A numbered list only when it really is a sequence of steps.',
+      ...(offersMeetings ? ['Meetings you list for them do not count toward this: give each one its day, time, name, link and passcode in full.'] : []),
+    ].join('\n') });
+  } else if (budget.detail) {
     console.log('[sponsor] they asked for an explanation or more detail; a full answer this time');
     systemBlocks.push({ type: 'text', text: [
       '## THEY ASKED YOU TO EXPLAIN, OR TO GO DEEPER',
@@ -2761,7 +2815,9 @@ async function getSponsorReply(userId, message, context) {
       '## HOW LONG THIS PARTICULAR REPLY SHOULD BE',
       `They just wrote ${budget.theirWords} word${budget.theirWords === 1 ? '' : 's'}. Aim for about ${budget.target} back.`,
       'This is not a style note, it is the length of this message. Somebody who texts you a line does not expect three paragraphs, and getting seven times what you wrote is the clearest sign there is that nobody is really there.',
-      'Say the one thing that matters and stop. If it genuinely needs more, take more, but the bar for that is high and it is not most messages.',
+      ...(budget.worry
+        ? ['They told you something that worries or weighs on them. Take the room to show you really heard it: what you make of it, and something real for today. Not a quick line.']
+        : ['Say the one thing that matters and stop. If it genuinely needs more, take more, but the bar for that is high and it is not most messages.']),
       ...(offersMeetings ? ['Meetings you list for them do not count toward this: give each one its day, time, name, link and passcode in full, and keep the words around them short.'] : []),
     ].join('\n') });
   }
@@ -2979,7 +3035,9 @@ async function getSponsorReply(userId, message, context) {
           `Cut it to about ${budget.target} words. Keep the warmth, keep the one thing it is actually saying, and keep it in the same voice.`,
           /* They asked for the explanation, so the explaining is the part to keep. */
           budget.detail
-            ? 'They asked for an explanation in depth, so keep the explanation itself whole: cut repetition, padding and anything that does not help them understand.'
+            ? (budget.about === 'program'
+              ? 'They asked about their program, a book or an event, so keep the answer itself whole: cut repetition, padding and anything that does not help them understand.'
+              : 'They asked for an explanation in depth, so keep the explanation itself whole: cut repetition, padding and anything that does not help them understand.')
             : 'Drop the explaining, drop any repetition, and drop the part that reads like it was written to be thorough.',
           'Never remove a phone number, a link, or anything they need to act on.',
           'Reply with the shortened message and nothing else. No preamble, no quotes around it, no comment on what you changed.',
