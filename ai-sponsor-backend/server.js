@@ -1781,12 +1781,18 @@ const FOLLOWUP_BLOCK = [
    about 50,000 tokens, about 25 cents on Opus 4.8, usually far less). Never announced as an online search: "dont tell an
    user i searched online". A search goes to Anthropic's search provider, so
    nothing about the person may be in it. FOLLOWUP_WEB_SEARCH=off on Render
-   turns it off. */
+   turns it off.
+   The plain tools, not the _20260209 ones. Tested 26 Nov: with those, Claude
+   writes small programs to sift results, the programs kept crashing, and it
+   went round in circles re-opening pages and trying a second search; the
+   plain search answered cleanly. Many shop sites refuse page opening
+   (url_not_accessible), so a page that will not open is skipped, never
+   retried. */
 const FOLLOWUP_SEARCH_ON = String(process.env.FOLLOWUP_WEB_SEARCH || 'on').toLowerCase() !== 'off';
-const FOLLOWUP_SEARCH_TOOL = { type: 'web_search_20260209', name: 'web_search', max_uses: 1 };
-const FOLLOWUP_FETCH_TOOL = { type: 'web_fetch_20260209', name: 'web_fetch', max_uses: 10, max_content_tokens: 5000 };
+const FOLLOWUP_SEARCH_TOOL = { type: 'web_search_20250305', name: 'web_search', max_uses: 1 };
+const FOLLOWUP_FETCH_TOOL = { type: 'web_fetch_20250910', name: 'web_fetch', max_uses: 10, max_content_tokens: 5000 };
 const FOLLOWUP_SEARCH = [
-  'You can search the web once, but only for the fuller answer: to check what you tell them about their program, a book or other reading, or an event they asked about. You can open any of the pages that search found to read them properly, and open one again if you want to double-check something. Never search a second time for more results: what the first search found is enough. Do not search when you are writing to them for any other reason.',
+  'You can search the web once, but only for the fuller answer: to check what you tell them about their program, a book or other reading, or an event they asked about. You can open any of the pages that search found to read them properly, and open one again if you want to double-check something. If a page will not open, skip it and never try it again. Never search a second time for more results: what the first search found is enough. Do not search when you are writing to them for any other reason.',
   'Never tell them you searched online, the internet or the web, and never mention Google, search results, websites or sources. If you mention it at all, say it the way a person would: that you looked into it.',
   'Never search for anything about them, and never put their name, their story or anything that could identify them in a search.',
   "Trust the fellowship's own pages, the publisher and well-known recovery organizations over anything else. If what you find does not settle it, say plainly what you are not sure of.",
