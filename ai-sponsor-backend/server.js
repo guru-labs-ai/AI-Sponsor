@@ -1770,14 +1770,17 @@ const FOLLOWUP_BLOCK = [
   'Write only the message, or only LATER, or only SKIP.',
 ].join('\n');
 /* Web search, for the fuller answer only (Mariam, 26 Nov: "web search for the
-   deep answer I like it"). Only on the first look, at most 3 searches ($0.01
-   each plus reading the results). A search goes to Anthropic's search
-   provider, so nothing about the person may be in it. FOLLOWUP_WEB_SEARCH=off
-   on Render turns it off. */
+   deep answer I like it"). Only on the first look, and ONE search: "dont go
+   too crazy with search, take first page of google or whatever thats enough"
+   ($0.01 plus reading the results; no page fetching). Never announced as an
+   online search: "dont tell an user i searched online". A search goes to
+   Anthropic's search provider, so nothing about the person may be in it.
+   FOLLOWUP_WEB_SEARCH=off on Render turns it off. */
 const FOLLOWUP_SEARCH_ON = String(process.env.FOLLOWUP_WEB_SEARCH || 'on').toLowerCase() !== 'off';
-const FOLLOWUP_SEARCH_TOOL = { type: 'web_search_20260209', name: 'web_search', max_uses: 3 };
+const FOLLOWUP_SEARCH_TOOL = { type: 'web_search_20260209', name: 'web_search', max_uses: 1 };
 const FOLLOWUP_SEARCH = [
-  'You can search the web, but only for the fuller answer: to check what you tell them about their program, a book or other reading, or an event they asked about. Do not search when you are writing to them for any other reason.',
+  'You can search the web once, but only for the fuller answer: to check what you tell them about their program, a book or other reading, or an event they asked about. One search is enough; work with what it gives you. Do not search when you are writing to them for any other reason.',
+  'Never tell them you searched online, the internet or the web, and never mention Google, search results, websites or sources. If you mention it at all, say it the way a person would: that you looked into it.',
   'Never search for anything about them, and never put their name, their story or anything that could identify them in a search.',
   "Trust the fellowship's own pages, the publisher and well-known recovery organizations over anything else. If what you find does not settle it, say plainly what you are not sure of.",
   'Meeting times and links come only from what you were given in this conversation, never from a search.',

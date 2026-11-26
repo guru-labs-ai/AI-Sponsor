@@ -245,8 +245,9 @@ const localH = (zone, d) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 
     assert.ok(/ADD COLUMN IF NOT EXISTS stage TEXT/.test(dbsrc));
   });
 
-  await check('web search: only for the fuller answer on the first look, at most 3, never about them, and never the "let me look" text', () => {
-    assert.ok(/const FOLLOWUP_SEARCH_TOOL = \{ type: 'web_search_20260209', name: 'web_search', max_uses: 3 \};/.test(srv));
+  await check('web search: only for the fuller answer on the first look, one search, never about them, never announced, and never the "let me look" text', () => {
+    assert.ok(/const FOLLOWUP_SEARCH_TOOL = \{ type: 'web_search_20260209', name: 'web_search', max_uses: 1 \};/.test(srv), 'one search, no more');
+    assert.ok(/Never tell them you searched online, the internet or the web/.test(srv), 'not announced as an online search');
     assert.ok(/const searching = stage === 'look' && FOLLOWUP_SEARCH_ON;/.test(srv), 'never on the next-day look');
     assert.ok(/Never search for anything about them, and never put their name, their story or anything that could identify them in a search\./.test(srv));
     assert.ok(/Meeting times and links come only from what you were given in this conversation, never from a search\./.test(srv));
