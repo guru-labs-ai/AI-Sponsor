@@ -1755,53 +1755,62 @@ function withTimeMarkers(messages, zone = null) {
    opt in; God only if they brought it in. Returns { text } or { skip }, or
    { later } when the sponsor decides the natural moment is the next day
    (Mariam, 26 Nov: when depends on what happened; see followup.js). */
+/* The sponsor's instructions (about 20,000 tokens) as one cache entry shared
+   by every reply and every first message, so whoever is answered within the
+   hour after somebody else reads them at about a tenth of the price instead of
+   writing them again (Mariam, 26 Nov: "bring the costs down"). Before, the
+   only marker sat after each person's own blocks, so each person's first
+   message in an hour paid for the whole prefix again. */
+const MASTER_CACHE = { type: 'ephemeral', ttl: '1h' };
+
 const FOLLOWUP_BLOCK = [
   '## YOU ARE WRITING TO THEM FIRST',
   'They have not written since the last message in this conversation. Decide, the way a sponsor who cares about them would on WhatsApp, whether to send them a message first now, the next day, or not at all.',
   'Write to them now when one of these is true:',
   '- They were struggling, low or scared, or said something about themselves that worried you, and then went quiet. Ask gently how they are doing now.',
-  '- They asked about their program, a meeting or event, a book or other reading, and looking back, your answer was thin, vague or missed what they really asked. Come back with a fuller, more useful answer, as someone who kept thinking about their question would, and say in your own words that you were thinking more about it. Only what you actually know: if you are not sure of something, say so. Never say your earlier answer was wrong, thin or incomplete.',
+  '- They asked about their program, a meeting or event, a book or other reading, and looking back, your answer was thin, vague or missed what they really asked. Come back with a fuller, more useful answer, as someone who kept thinking about their question would, and say in your own words that you were thinking more about it. Never say your earlier answer was wrong, thin or incomplete.',
   '- Something was left hanging between you: you gave them options, offered to do something for them, or asked something simple they never answered. Send a short, light nudge about that one thing that makes it easy to answer (name the options again if there were any), and make clear there is no pressure.',
   'Answer only the word LATER when the natural moment is the next day: they told you about something they were going to do or face (a call, a meeting, a hard conversation, a first step), and asking how it went belongs to tomorrow.',
   'Answer only the word SKIP when there is nothing natural to pick up: they said goodbye with nothing left open, or the last exchange was practical and finished.',
+  "Answer only RESEARCH: followed by a short web search when the fuller answer needs facts you are not sure of: a book, its author or publisher, what a step or tradition says in their fellowship's own words, an event. The search is about the subject only, never about them: no name, no story, nothing that could identify them. You will then be given what was found, and you write the message.",
   'The message itself: short, two to four sentences, at most one question. A fuller answer to something they asked can be longer, up to about two hundred words, in short paragraphs with a blank line between them, still with at most one question.',
   'Never apologize for or comment on an earlier reply of yours. Never mention reading, reviewing or checking the conversation, an app, a system, a fix or a reminder setting, and never say you are "following up" or "checking in because". Just be the sponsor who remembered them.',
   'No program, tool, saying or spiritual idea they have not already brought in themselves.',
-  'Put what you send between <message> and </message>: the message itself, or only LATER, or only SKIP. Nothing outside those tags is ever sent, so anything you note for yourself stays outside them.',
-].join('\n');
-/* Web search, for the fuller answer only (Mariam, 26 Nov: "web search for the
-   deep answer I like it"). Only on the first look, and ONE search: "dont go
-   too crazy with search, take first page of google or whatever thats enough".
-   It may open any of the pages that one search found, and open one again to
-   double-check ("you can click on the links on the first page... if you want
-   to double check something, you can click on the same link again"): web
-   fetch only opens addresses already in the conversation, so it cannot
-   wander off. Up to 10 openings, each page cut at 5,000 tokens. Cost: $0.01
-   for the search; opening pages is free apart from reading them (at most
-   about 50,000 tokens, about 25 cents on Opus 4.8, usually far less). Never announced as an online search: "dont tell an
-   user i searched online". A search goes to Anthropic's search provider, so
-   nothing about the person may be in it. FOLLOWUP_WEB_SEARCH=off on Render
-   turns it off.
-   The plain tools, not the _20260209 ones. Tested 26 Nov: with those, Claude
-   writes small programs to sift results, the programs kept crashing, and it
-   went round in circles re-opening pages and trying a second search; the
-   plain search answered cleanly. Many shop sites refuse page opening
-   (url_not_accessible), so a page that will not open is skipped, never
-   retried. */
-const FOLLOWUP_SEARCH_ON = String(process.env.FOLLOWUP_WEB_SEARCH || 'on').toLowerCase() !== 'off';
-const FOLLOWUP_SEARCH_TOOL = { type: 'web_search_20250305', name: 'web_search', max_uses: 1 };
-const FOLLOWUP_FETCH_TOOL = { type: 'web_fetch_20250910', name: 'web_fetch', max_uses: 10, max_content_tokens: 5000 };
-const FOLLOWUP_SEARCH = [
-  'You can search the web once, but only for the fuller answer: to check what you tell them about their program, a book or other reading, or an event they asked about. You can open any of the pages that search found to read them properly, and open one again if you want to double-check something. If a page will not open, skip it and never try it again. Never search a second time for more results: what the first search found is enough. Do not search when you are writing to them for any other reason.',
-  'Never tell them you searched online, the internet or the web, and never mention Google, search results, websites or sources. If you mention it at all, say it the way a person would: that you looked into it.',
-  'Never search for anything about them, and never put their name, their story or anything that could identify them in a search.',
-  "Trust the fellowship's own pages, the publisher and well-known recovery organizations over anything else. If what you find does not settle it, say plainly what you are not sure of.",
-  'Meeting times and links come only from what you were given in this conversation, never from a search.',
-  'Use what you found in your own words, the way a sponsor talks, not as a list of sources.',
+  'Write only the message itself, or only LATER, or only SKIP, or only RESEARCH: and the search.',
 ].join('\n');
 
-/* The message is the text after the last search, never a "let me look that
-   up" written before it. */
+/* Looking things up for the fuller answer (Mariam, 26 Nov: "web search for
+   the deep answer I like it"; "dont go too crazy with search, take first page
+   of google or whatever thats enough"; "dont tell an user i searched online").
+
+   Then "bring the costs down", after a live test cost about 35 cents: the
+   search ran inside the sponsor's own call, so its 20,000-token instructions
+   were read again on every search step, and the steps also wrote notes to
+   itself that leaked into the message. Now it is a separate, small step:
+   - the sponsor decides with no tools at all (so nothing to narrate), and
+     answers RESEARCH: <a search> when it needs facts
+   - researchFor() gets only that search, never their conversation or anything
+     about them, with a five-line brief instead of the sponsor's instructions:
+     one search, and one page opened only if the results do not already answer
+     it (a page that will not open is not retried; shop sites often refuse)
+   - the sponsor then writes the message from what was found, again with no
+     tools, reading its instructions from the shared cache
+   Plain tools, not the _20260209 ones: tested 26 Nov, those make Claude write
+   small programs to sift the results, which kept crashing and went round in
+   circles. FOLLOWUP_WEB_SEARCH=off on Render turns searching off; the sponsor
+   then writes from what it knows. */
+const FOLLOWUP_SEARCH_ON = String(process.env.FOLLOWUP_WEB_SEARCH || 'on').toLowerCase() !== 'off';
+const FOLLOWUP_SEARCH_TOOL = { type: 'web_search_20250305', name: 'web_search', max_uses: 1 };
+const FOLLOWUP_FETCH_TOOL = { type: 'web_fetch_20250910', name: 'web_fetch', max_uses: 1, max_content_tokens: 3000 };
+const RESEARCH_SYSTEM = [
+  'You look things up for a sponsor in a 12-step recovery app. You get one question about a recovery program, a step or tradition, a book or other reading, or an event.',
+  'Search the web once. Open one page from the results only if the results do not already answer the question. If it will not open, do not try again.',
+  "Trust the fellowship's own pages, the publisher and well-known recovery organizations over anything else.",
+  'Reply with three to six short plain notes of facts that answer the question, most reliable first. If the results do not settle something, say so in a note. No links, no greeting, nothing else.',
+].join('\n');
+
+/* The text after the last search step, never a "let me look that up" written
+   before it. */
 function followupTextOf(res) {
   const blocks = (res && res.content) || [];
   let start = 0;
@@ -1811,20 +1820,40 @@ function followupTextOf(res) {
   return blocks.slice(start).filter((b) => b && b.type === 'text').map((b) => b.text).join('').trim();
 }
 
-/* Only what is between <message> and </message> is ever sent. A live test on
-   26 Nov sent, before the real answer, the sponsor talking to itself: "The
-   search ran even though the error came back. I have enough general knowledge
-   of the book to give Sam the fuller answer I promised." No tags, no message:
-   a skipped first message costs nothing, a leaked note to itself costs trust. */
+/* The sponsor's message. It writes with no tools now, so there is no
+   narration to strip; if it ever wraps the message in <message> tags (the
+   26 Nov version asked it to), only what is inside them is taken. */
 function followupMessageOf(res) {
   const all = followupTextOf(res);
   const found = [...all.matchAll(/<message>([\s\S]*?)<\/message>/gi)];
-  if (!found.length) return null;
-  return found[found.length - 1][1].trim();
+  return found.length ? found[found.length - 1][1].trim() : all;
+}
+
+/* One search about the subject, in a small separate call. Returns short notes,
+   or null when nothing could be looked up. */
+async function researchFor(userId, query) {
+  const q = String(query || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+  if (!q) return null;
+  for (const tools of [[FOLLOWUP_SEARCH_TOOL, FOLLOWUP_FETCH_TOOL], [FOLLOWUP_SEARCH_TOOL]]) {
+    const req = { _kind: 'followup', _who: userId, model: 'claude-opus-4-8', max_tokens: 800, system: RESEARCH_SYSTEM, tools, messages: [{ role: 'user', content: q }] };
+    try {
+      let res = await client.messages.create(req);
+      /* A long search can pause the turn: send it back as it is and the
+         server carries on. Twice at most. */
+      for (let i = 0; i < 2 && res && res.stop_reason === 'pause_turn'; i++) {
+        res = await client.messages.create({ ...req, messages: [...req.messages, { role: 'assistant', content: res.content }] });
+      }
+      if (!res || res.stop_reason === 'pause_turn') return null;
+      return followupTextOf(res) || null;
+    } catch (e) {
+      console.warn(`[followup] ${tools.length > 1 ? 'search with a page' : 'search'} unavailable${tools.length > 1 ? ', trying search alone' : ''}:`, e.message);
+    }
+  }
+  return null;
 }
 
 /* The second look, the next day, after the sponsor chose LATER: no waiting again. */
-const FOLLOWUP_NEXT_DAY = 'It is now the next day. Write the message about what they were going to do or face, or only the word SKIP if it no longer fits. LATER is not an option now.';
+const FOLLOWUP_NEXT_DAY = 'It is now the next day. Write the message about what they were going to do or face, or only the word SKIP if it no longer fits. LATER and RESEARCH are not options now.';
 
 async function writeFollowup(userId, { stage = 'look' } = {}) {
   const { profile, history } = await loadSession(userId);
@@ -1846,7 +1875,10 @@ async function writeFollowup(userId, { stage = 'look' } = {}) {
   const userZone = toldZone || timezones.zoneForPhone(userId);
   const lastAt = await db.getLastMessageAt(userId).catch(() => null);
   const savedSteps = await db.getSteps(userId).catch(() => null);
-  const followupBlocks = [{ type: 'text', text: MASTER_SYSTEM_PROMPT }];
+  /* The instructions, read from the cache every reply and first message
+     shares (MASTER_CACHE): about a tenth of the price whenever anyone has
+     been answered in the last hour. */
+  const followupBlocks = [{ type: 'text', text: MASTER_SYSTEM_PROMPT, cache_control: MASTER_CACHE }];
   const userContext = buildUserContextBlock(profile);
   if (userContext) followupBlocks.push({ type: 'text', text: userContext });
   const memoryBlock = buildMemoryBlock(memory);
@@ -1859,44 +1891,28 @@ async function writeFollowup(userId, { stage = 'look' } = {}) {
   const wasCrisis = recent.some((m) => m && typeof m.content === 'string'
     && ((m.role === 'assistant' && CRISIS_RESOURCE.test(m.content)) || (m.role === 'user' && RISK_STRONG.test(m.content))));
   followupBlocks.push({ type: 'text', text: FOLLOWUP_BLOCK + (stage === 'next-day' ? `\n${FOLLOWUP_NEXT_DAY}` : '') + (wasCrisis
-    ? '\nTheir last conversation was a crisis. Write to them now, never LATER or SKIP. Ask gently, in plain words, how they are today and whether they are safe, and give the crisis line for where they are again (in the US and Canada call or text 988; in the UK and Ireland Samaritans on 116 123; elsewhere their local emergency number).'
+    ? '\nTheir last conversation was a crisis. Write to them now, never LATER, SKIP or RESEARCH. Ask gently, in plain words, how they are today and whether they are safe, and give the crisis line for where they are again (in the US and Canada call or text 988; in the UK and Ireland Samaritans on 116 123; elsewhere their local emergency number).'
     : '') });
   const when = lastAt ? new Date(lastAt).toISOString() : 'a while ago';
   const messages = [...withTimeMarkers(history.slice(-RECENT_TURNS), userZone).map((m) => ({ role: m.role, content: m.content }))];
   messages.push({ role: 'user', content: stage === 'next-day'
-    ? `[A note from the app, not from them: they have not written since ${when}. It is the next day. Write the one message you send them first now, or only SKIP, between <message> and </message>.]`
-    : `[A note from the app, not from them: they have not written since ${when}. Write the one message you send them first now, or only LATER, or only SKIP, between <message> and </message>.]` });
-  const searching = stage === 'look' && FOLLOWUP_SEARCH_ON;
-  if (searching) followupBlocks.push({ type: 'text', text: FOLLOWUP_SEARCH });
-  const plain = { _kind: 'followup', _who: userId, model: 'claude-opus-4-8', max_tokens: 600, system: followupBlocks, messages };
-  let res;
-  if (searching) {
-    /* Search and open pages; if opening pages is refused, search alone; if
-       search is refused too (switched off for the account, an outage), the
-       sponsor still writes, from what it knows. */
-    for (const tools of [[FOLLOWUP_SEARCH_TOOL, FOLLOWUP_FETCH_TOOL], [FOLLOWUP_SEARCH_TOOL]]) {
-      const req = { ...plain, max_tokens: 2000, tools };
-      try {
-        res = await client.messages.create(req);
-        /* A long search can pause the turn: send it back as it is and the
-           server carries on. Twice at most. */
-        for (let i = 0; i < 2 && res && res.stop_reason === 'pause_turn'; i++) {
-          res = await client.messages.create({ ...req, messages: [...messages, { role: 'assistant', content: res.content }] });
-        }
-        if (res && res.stop_reason === 'pause_turn') return { skip: 'the search did not finish' };
-        break;
-      } catch (e) {
-        console.warn(`[followup] ${tools.length > 1 ? 'web search with pages' : 'web search'} unavailable, ${tools.length > 1 ? 'trying search alone' : 'writing without it'}:`, e.message);
-        res = null;
-      }
-    }
+    ? `[A note from the app, not from them: they have not written since ${when}. It is the next day. Write the one message you send them first now, or only SKIP.]`
+    : `[A note from the app, not from them: they have not written since ${when}. Write the one message you send them first now, or only LATER, or only SKIP, or only RESEARCH: and a search.]` });
+  const ask = (system, msgs) => client.messages.create({ _kind: 'followup', _who: userId, model: 'claude-opus-4-8', max_tokens: 800, system, messages: msgs });
+  let text = followupMessageOf(await ask(followupBlocks, messages));
+
+  /* It wants facts for a fuller answer: look them up on the side, then write. */
+  const research = text.match(/^\W*RESEARCH\b:?\s*([\s\S]*)$/i);
+  if (research) {
+    const notes = stage === 'look' && FOLLOWUP_SEARCH_ON ? await researchFor(userId, research[1]) : null;
+    const found = notes
+      ? ['## WHAT YOU FOUND WHEN YOU LOOKED INTO IT', notes, 'Use it in your own words, the way a sponsor talks, not as a list of sources. Never tell them you searched online, the internet or the web, and never mention Google, search results, websites or sources; if you mention it at all, say that you looked into it. If something here is unsure, say so plainly. Meeting times and links come only from what you were given in this conversation.']
+      : ['## YOU COULD NOT LOOK IT UP', 'Write the fuller answer from what you know, and say plainly what you are not sure of.'];
+    const writeNow = [...messages.slice(0, -1), { role: 'user', content: `[A note from the app, not from them: they have not written since ${when}. Write the fuller answer you send them first now, or only SKIP.]` }];
+    text = followupMessageOf(await ask([...followupBlocks, { type: 'text', text: found.join('\n') }], writeNow));
+    if (/^\W*(?:RESEARCH|LATER)\b/i.test(text)) return { skip: 'it still wanted to look something up' };
   }
-  if (!res) {
-    const plainBlocks = followupBlocks.filter((b) => b.text !== FOLLOWUP_SEARCH);
-    res = await client.messages.create({ ...plain, system: plainBlocks });
-  }
-  let text = followupMessageOf(res);
-  if (text === null) { console.warn('[followup] no <message> tags in what came back; nothing sent'); return { skip: 'no message tags' }; }
+
   text = voices.stripSpeechTags(steps.stripAll(meetings.meetingProblemsIn(text).clean)).replace(/\[\[[^\]]*\]\]/g, '').trim();
   if (!text || /^\W*SKIP\b/i.test(text)) return { skip: 'nothing natural to pick up' };
   /* Tomorrow is the natural moment: followup.js books one more look then. */
@@ -2567,8 +2583,10 @@ async function getSponsorReply(userId, message, context) {
      purpose, because it exists to overrule the memory digest and the profile
      when somebody has renamed their sponsor. Caching does not reorder it and
      must never be allowed to. */
+  /* Two cache markers: one right after the instructions, shared by everyone
+     (MASTER_CACHE), and the per-person one further down. */
   const systemBlocks = [
-    { type: 'text', text: MASTER_SYSTEM_PROMPT },
+    { type: 'text', text: MASTER_SYSTEM_PROMPT, cache_control: MASTER_CACHE },
   ];
   if (userContext) systemBlocks.push({ type: 'text', text: userContext });
   if (memoryBlock) systemBlocks.push({ type: 'text', text: memoryBlock });

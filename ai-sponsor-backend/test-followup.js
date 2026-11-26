@@ -253,50 +253,41 @@ const localH = (zone, d) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 
     assert.ok(/Something was left hanging between you/.test(srv), 'the light nudge about an open choice');
     assert.ok(/up to about two hundred words, in short paragraphs/.test(srv) && /if \(words\(text\) > 250\) return \{ skip: 'too long for a first message' \};/.test(srv), 'a fuller answer can be longer; past 250 words nothing is sent');
     assert.ok(/if \(\/\^\\W\*LATER\\b\/i\.test\(text\)\) return stage === 'look' \? \{ later: true, zone: userZone \}/.test(srv));
-    assert.ok(/Write to them now, never LATER or SKIP/.test(srv), 'a crisis never waits for tomorrow');
+    assert.ok(/Write to them now, never LATER, SKIP or RESEARCH/.test(srv), 'a crisis never waits for tomorrow');
     assert.ok(/SET status = \$2, note = \$3[\s\S]{0,160}WHERE user_id = \$1 AND status = 'writing'/.test(dbsrc), 'finish only the claimed row');
     assert.ok(/ADD COLUMN IF NOT EXISTS stage TEXT/.test(dbsrc));
   });
 
-  await check('web search: only for the fuller answer on the first look, one search, never about them, never announced, and never the "let me look" text', () => {
+  await check('looking things up: a small separate step with only the search, never about them, never announced; the sponsor writes with no tools', () => {
     assert.ok(/const FOLLOWUP_SEARCH_TOOL = \{ type: 'web_search_20250305', name: 'web_search', max_uses: 1 \};/.test(srv), 'one plain search, no more (the sifting programs of _20260209 crashed in testing)');
-    assert.ok(/const FOLLOWUP_FETCH_TOOL = \{ type: 'web_fetch_20250910', name: 'web_fetch', max_uses: 10, max_content_tokens: 5000 \};/.test(srv), 'opens the pages it found, again to double-check, each cut at 5,000 tokens');
-    assert.ok(/If a page will not open, skip it and never try it again\./.test(srv), 'a refused page is not retried');
-    assert.ok(/open one again if you want to double-check something/.test(srv));
-    assert.ok(/Never search a second time for more results/.test(srv));
-    assert.ok(/\[\[FOLLOWUP_SEARCH_TOOL, FOLLOWUP_FETCH_TOOL\], \[FOLLOWUP_SEARCH_TOOL\]\]/.test(srv), 'pages refused: search alone');
+    assert.ok(/const FOLLOWUP_FETCH_TOOL = \{ type: 'web_fetch_20250910', name: 'web_fetch', max_uses: 1, max_content_tokens: 3000 \};/.test(srv), 'at most one page, cut at 3,000 tokens (costs down, 26 Nov)');
+    assert.ok(/Open one page from the results only if the results do not already answer the question\. If it will not open, do not try again\./.test(srv));
+    assert.ok(/system: RESEARCH_SYSTEM, tools, messages: \[\{ role: 'user', content: q \}\]/.test(srv), 'the research call gets only the search, never their conversation');
+    assert.ok(/The search is about the subject only, never about them: no name, no story, nothing that could identify them\./.test(srv));
     assert.ok(/Never tell them you searched online, the internet or the web/.test(srv), 'not announced as an online search');
-    assert.ok(/const searching = stage === 'look' && FOLLOWUP_SEARCH_ON;/.test(srv), 'never on the next-day look');
-    assert.ok(/Never search for anything about them, and never put their name, their story or anything that could identify them in a search\./.test(srv));
-    assert.ok(/Meeting times and links come only from what you were given in this conversation, never from a search\./.test(srv));
-    assert.ok(/let text = followupMessageOf\(res\);/.test(srv), 'the message is what is between the tags, after the last search');
-    assert.ok(/if \(text === null\) \{[^}]*return \{ skip: 'no message tags' \}; \}/.test(srv), 'no tags, nothing sent');
-    assert.ok(/res\.stop_reason === 'pause_turn'/.test(srv), 'a paused search is carried on, not sent half-done');
-    assert.ok(/writing without it/.test(srv), 'no search, still a message');
-    // followupTextOf, copied out of server.js and run on a made-up answer
+    assert.ok(/Meeting times and links come only from what you were given in this conversation\./.test(srv));
+    assert.ok(/stage === 'look' && FOLLOWUP_SEARCH_ON \? await researchFor\(userId, research\[1\]\) : null/.test(srv), 'never on the next-day look; off switch respected');
+    assert.ok(/const ask = \(system, msgs\) => client\.messages\.create\(\{ _kind: 'followup', _who: userId, model: 'claude-opus-4-8', max_tokens: 800, system, messages: msgs \}\);/.test(srv), 'the sponsor itself writes with no tools, so it has nothing to narrate');
+    assert.ok(/const followupBlocks = \[\{ type: 'text', text: MASTER_SYSTEM_PROMPT, cache_control: MASTER_CACHE \}\];/.test(srv), 'the instructions come from the shared cache');
+    assert.ok(/\{ type: 'text', text: MASTER_SYSTEM_PROMPT, cache_control: MASTER_CACHE \},/.test(srv), 'replies write and read the same shared entry');
+    assert.ok(/res\.stop_reason === 'pause_turn'/.test(srv), 'a paused search is carried on, not used half-done');
+    assert.ok(/\[\[FOLLOWUP_SEARCH_TOOL, FOLLOWUP_FETCH_TOOL\], \[FOLLOWUP_SEARCH_TOOL\]\]/.test(srv), 'page opening refused: search alone');
+    assert.ok(/YOU COULD NOT LOOK IT UP/.test(srv), 'nothing found: the sponsor still writes, from what it knows');
+    assert.ok(/return \{ skip: 'it still wanted to look something up' \}/.test(srv));
+    // followupTextOf and followupMessageOf, copied out of server.js and run
     const m = srv.match(/function followupTextOf\(res\) \{[\s\S]*?\n\}/);
-    assert.ok(m, 'followupTextOf found');
-    const followupTextOf = new Function(`${m[0]}; return followupTextOf;`)();
+    const m2 = srv.match(/function followupMessageOf\(res\) \{[\s\S]*?\n\}/);
+    assert.ok(m && m2, 'both found');
+    const { followupTextOf, followupMessageOf } = new Function(`${m[0]}; ${m2[0]}; return { followupTextOf, followupMessageOf };`)();
     assert.strictEqual(followupTextOf({ content: [
       { type: 'text', text: 'Let me look that up.' },
       { type: 'server_tool_use', name: 'web_search' },
       { type: 'web_search_tool_result', content: [] },
-      { type: 'text', text: 'Hi again, I was thinking more about ' },
-      { type: 'text', text: 'the book you asked about.', citations: [{}] },
-    ] }), 'Hi again, I was thinking more about the book you asked about.');
-    assert.strictEqual(followupTextOf({ content: [{ type: 'text', text: 'SKIP' }] }), 'SKIP');
-    // 26 Nov live test: the sponsor's note to itself must never be sent
-    const m2 = srv.match(/function followupMessageOf\(res\) \{[\s\S]*?\n\}/);
-    assert.ok(m2, 'followupMessageOf found');
-    const followupMessageOf = new Function(`${m[0]}; ${m2[0]}; return followupMessageOf;`)();
-    assert.strictEqual(followupMessageOf({ content: [
-      { type: 'server_tool_use', name: 'web_search' },
-      { type: 'web_search_tool_result', content: { error_code: 'unavailable' } },
-      { type: 'text', text: 'The search ran even though the error came back. I have enough general knowledge.\n\n<message>Been thinking more about your question. ' },
-      { type: 'text', text: 'Here is more.</message>', citations: [{}] },
-    ] }), 'Been thinking more about your question. Here is more.');
-    assert.strictEqual(followupMessageOf({ content: [{ type: 'text', text: 'The search failed, so here is the answer.' }] }), null, 'no tags: nothing');
-    assert.strictEqual(followupMessageOf({ content: [{ type: 'text', text: 'Thinking.\n<message>LATER</message>' }] }), 'LATER');
+      { type: 'text', text: 'Published by Hazelden, ' },
+      { type: 'text', text: 'first edition 1993.', citations: [{}] },
+    ] }), 'Published by Hazelden, first edition 1993.', 'research notes: only what came after the search');
+    assert.strictEqual(followupMessageOf({ content: [{ type: 'text', text: 'Been thinking more about your question.' }] }), 'Been thinking more about your question.');
+    assert.strictEqual(followupMessageOf({ content: [{ type: 'text', text: 'note to self\n<message>LATER</message>' }] }), 'LATER', 'tags, if it ever uses them: only the inside');
   });
 
   console.log(`\n${failed ? 'FAILED' : 'All good'}: ${passed} passed, ${failed} failed\n`);
