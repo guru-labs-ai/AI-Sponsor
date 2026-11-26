@@ -251,6 +251,7 @@ const localH = (zone, d) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 
     assert.ok(/Answer only the word LATER when the natural moment is the next day/.test(srv));
     assert.ok(/your answer was thin, vague or missed what they really asked/.test(srv), 'the fuller answer, a few hours later');
     assert.ok(/Something was left hanging between you/.test(srv), 'the light nudge about an open choice');
+    assert.ok(/up to about two hundred words, in short paragraphs/.test(srv) && /if \(words\(text\) > 250\) return \{ skip: 'too long for a first message' \};/.test(srv), 'a fuller answer can be longer; past 250 words nothing is sent');
     assert.ok(/if \(\/\^\\W\*LATER\\b\/i\.test\(text\)\) return stage === 'look' \? \{ later: true, zone: userZone \}/.test(srv));
     assert.ok(/Write to them now, never LATER or SKIP/.test(srv), 'a crisis never waits for tomorrow');
     assert.ok(/SET status = \$2, note = \$3[\s\S]{0,160}WHERE user_id = \$1 AND status = 'writing'/.test(dbsrc), 'finish only the claimed row');

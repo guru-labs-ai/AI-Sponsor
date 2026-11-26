@@ -1764,7 +1764,7 @@ const FOLLOWUP_BLOCK = [
   '- Something was left hanging between you: you gave them options, offered to do something for them, or asked something simple they never answered. Send a short, light nudge about that one thing that makes it easy to answer (name the options again if there were any), and make clear there is no pressure.',
   'Answer only the word LATER when the natural moment is the next day: they told you about something they were going to do or face (a call, a meeting, a hard conversation, a first step), and asking how it went belongs to tomorrow.',
   'Answer only the word SKIP when there is nothing natural to pick up: they said goodbye with nothing left open, or the last exchange was practical and finished.',
-  'The message itself: short, two to four sentences, at most one question. A fuller answer to something they asked can run to about a hundred words.',
+  'The message itself: short, two to four sentences, at most one question. A fuller answer to something they asked can be longer, up to about two hundred words, in short paragraphs with a blank line between them, still with at most one question.',
   'Never apologize for or comment on an earlier reply of yours. Never mention reading, reviewing or checking the conversation, an app, a system, a fix or a reminder setting, and never say you are "following up" or "checking in because". Just be the sponsor who remembered them.',
   'No program, tool, saying or spiritual idea they have not already brought in themselves.',
   'Write only the message, or only LATER, or only SKIP.',
@@ -1883,7 +1883,10 @@ async function writeFollowup(userId, { stage = 'look' } = {}) {
   /* Tomorrow is the natural moment: followup.js books one more look then. */
   if (/^\W*LATER\b/i.test(text)) return stage === 'look' ? { later: true, zone: userZone } : { skip: 'nothing to say the next day' };
   if (meetings.inventedLinks(text, { theirWords: history.filter((m) => m.role === 'user').map((m) => m.content) }).length) return { skip: 'it named a meeting it was not given' };
-  if (words(text) > 120) return { skip: 'too long for a first message' };
+  /* A fuller answer can run to about 200 words (Mariam, 26 Nov: "the first
+     message also can be bigger with such questions"); past 250 it is not
+     sent at all. */
+  if (words(text) > 250) return { skip: 'too long for a first message' };
   const firstText = stripEmojiNearCrisis(stripPetNames(text, history.filter((m) => m.role === 'user').map((m) => m.content)));
   // American spelling in English, the same last pass as a reply (spelling.js).
   const followLang = await language.languageOf(db, userId).catch(() => 'en');
