@@ -1772,20 +1772,21 @@ const FOLLOWUP_BLOCK = [
 /* Web search, for the fuller answer only (Mariam, 26 Nov: "web search for the
    deep answer I like it"). Only on the first look, and ONE search: "dont go
    too crazy with search, take first page of google or whatever thats enough".
-   It may open the pages that one search found ("of course you can open the
-   links to research but don't go more than first page"): web fetch only
-   opens addresses already in the conversation, so it cannot wander off. Up
-   to 3 pages, each cut at 5,000 tokens. Cost: $0.01 for the search, opening
-   pages is free apart from reading them (at most about 15,000 tokens, about
-   8 cents on Opus 4.8). Never announced as an online search: "dont tell an
+   It may open any of the pages that one search found, and open one again to
+   double-check ("you can click on the links on the first page... if you want
+   to double check something, you can click on the same link again"): web
+   fetch only opens addresses already in the conversation, so it cannot
+   wander off. Up to 10 openings, each page cut at 5,000 tokens. Cost: $0.01
+   for the search; opening pages is free apart from reading them (at most
+   about 50,000 tokens, about 25 cents on Opus 4.8, usually far less). Never announced as an online search: "dont tell an
    user i searched online". A search goes to Anthropic's search provider, so
    nothing about the person may be in it. FOLLOWUP_WEB_SEARCH=off on Render
    turns it off. */
 const FOLLOWUP_SEARCH_ON = String(process.env.FOLLOWUP_WEB_SEARCH || 'on').toLowerCase() !== 'off';
 const FOLLOWUP_SEARCH_TOOL = { type: 'web_search_20260209', name: 'web_search', max_uses: 1 };
-const FOLLOWUP_FETCH_TOOL = { type: 'web_fetch_20260209', name: 'web_fetch', max_uses: 3, max_content_tokens: 5000 };
+const FOLLOWUP_FETCH_TOOL = { type: 'web_fetch_20260209', name: 'web_fetch', max_uses: 10, max_content_tokens: 5000 };
 const FOLLOWUP_SEARCH = [
-  'You can search the web once, but only for the fuller answer: to check what you tell them about their program, a book or other reading, or an event they asked about. You can open the pages that search found to read them properly. Never search a second time for more results: what the first search found is enough. Do not search when you are writing to them for any other reason.',
+  'You can search the web once, but only for the fuller answer: to check what you tell them about their program, a book or other reading, or an event they asked about. You can open any of the pages that search found to read them properly, and open one again if you want to double-check something. Never search a second time for more results: what the first search found is enough. Do not search when you are writing to them for any other reason.',
   'Never tell them you searched online, the internet or the web, and never mention Google, search results, websites or sources. If you mention it at all, say it the way a person would: that you looked into it.',
   'Never search for anything about them, and never put their name, their story or anything that could identify them in a search.',
   "Trust the fellowship's own pages, the publisher and well-known recovery organizations over anything else. If what you find does not settle it, say plainly what you are not sure of.",
