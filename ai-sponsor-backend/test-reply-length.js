@@ -167,7 +167,8 @@ check('a crisis reply is still never shortened or reshaped, even when they ask f
 
 check('the depth block replaces the short-length block, and the cut keeps the explanation', () => {
   assert.ok(src.includes("if (budget.detail) {") && src.includes("} else if (budget.target) {"), 'one length block per reply, never both');
-  assert.ok(/budget\.detail\s*\n?\s*\? 'They asked for an explanation in depth/.test(src), 'the editor is told to keep the explanation');
+  assert.ok(/budget\.detail\s*\n?\s*\? \(budget\.about === 'program'\s*\n?\s*\? 'They asked about their program, a book or an event, so keep the answer itself whole[^']*'\s*\n?\s*: 'They asked for an explanation in depth/.test(src), 'the editor is told to keep the explanation, and a program answer whole');
+  assert.ok(src.includes("if (budget.detail && budget.about === 'program') {") && src.includes("} else if (budget.detail) {"), 'a program question has its own full-answer block');
   assert.ok(src.includes('!safetyOpen && !budget.detail && !meetings.asksAboutMeetings(message) && ASKS_FOR_SOMETHING'), '"give one practice" is not the answer to "explain it"');
 });
 
