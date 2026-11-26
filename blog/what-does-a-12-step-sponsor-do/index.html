@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Site language: shows this article in the language the visitor chose on the
+       homepage or sign-up (?lang= or their saved choice), English otherwise.
+       See i18n.js. -->
+  <script src="/i18n.js?v=4ddc5a8879" data-i18n-extra="blogpost"></script>
+
+  <!-- Cookie consent gate. GA4, the Meta pixel, the OpenAI ads pixel and Clarity
+       all load through this instead of firing on their own: nothing sets a
+       cookie until somebody has actually accepted. See /cookie-consent.js. -->
+  <script src="/cookie-consent.js?v=4ddc5a8879"></script>
+  <script>AISCookieConsent.init({ clarity: true });</script>
+
+  <!-- HYROS Universal Tracking Script -->
+  <script>
+    var head = document.head;
+    var script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = "https://215466.t.hyros.com/v1/lst/universal-script?ph=395a23f1c62bf26a497b91f272b6fc6b27906736d5a140cd7a9e220d722c2456&tag=!ai_sponsor&ref_url=" + encodeURI(document.URL);
+    head.appendChild(script);
+  </script>
+
+  <!-- Attribution: first touch wins. See /blog/index.html for the full note. -->
+  <script>
+  (function(){
+    try{
+      if (localStorage.getItem('ais_attr')) return;
+      var p = new URLSearchParams(location.search);
+      var refHost = '';
+      try {
+        if (document.referrer) refHost = new URL(document.referrer).hostname.replace(/^www\./,'');
+      } catch(e){}
+      if (refHost && refHost === location.hostname.replace(/^www\./,'')) refHost = '';
+      localStorage.setItem('ais_attr', JSON.stringify({
+        utmSource:   p.get('utm_source')   || '',
+        utmMedium:   p.get('utm_medium')   || '',
+        utmCampaign: p.get('utm_campaign') || '',
+        referrer:    refHost,
+        landing:     location.pathname,
+        at:          new Date().toISOString()
+      }));
+    }catch(e){}
+  })();
+  </script>
+  <!-- Attribution, THIS visit. ais_attr above is the first visit and never
+       changes. ais_visit is the visit that brought them this time: rewritten
+       whenever they arrive from outside the site, kept while they click
+       around, so a sign-up weeks after the first visit can say what brought
+       them back (Matt asked, 12 Nov 2026). Coming back from Stripe's checkout
+       is not a new visit. Also adds the first page's English title, read from
+       og:title because the language switcher translates <title> but not the
+       meta tag, so the team reads "Blog: What is Debtors Anonymous", not a
+       URL. The source, not the person: no PII. -->
+  <script>
+  (function(){
+    try{
+      var self = location.hostname.replace(/^www\./,'');
+      var refHost = '';
+      try { if (document.referrer) refHost = new URL(document.referrer).hostname.replace(/^www\./,''); } catch(e){}
+      var p = new URLSearchParams(location.search);
+      var fromStripe = /(^|\.)stripe\.com$/.test(refHost) || p.has('payment');
+      var visit = null;
+      if (refHost !== self && !fromStripe) {
+        var src = p.get('utm_source') || '';
+        visit = {
+          utmSource:   src,
+          utmMedium:   p.get('utm_medium')   || '',
+          utmCampaign: p.get('utm_campaign') || '',
+          referrer:    refHost,
+          landing:     location.pathname,
+          at:          new Date().toISOString()
+        };
+        localStorage.setItem('ais_visit', JSON.stringify(visit));
+      }
+      document.addEventListener('DOMContentLoaded', function(){
+        try {
+          var m = document.querySelector('meta[property="og:title"]');
+          var title = m ? String(m.getAttribute('content') || '').slice(0, 120) : '';
+          if (!title) return;
+          var a = JSON.parse(localStorage.getItem('ais_attr') || 'null');
+          if (a && !a.title && a.landing === location.pathname && Date.now() - Date.parse(a.at) < 600000) {
+            a.title = title;
+            localStorage.setItem('ais_attr', JSON.stringify(a));
+          }
+          if (visit) { visit.title = title; localStorage.setItem('ais_visit', JSON.stringify(visit)); }
+        } catch(e){}
+      });
+    }catch(e){}
+  })();
+  </script>
+  <title>What Does a 12-Step Sponsor Do? | AI Sponsor</title>
+  <meta name="description" content="What a 12-step sponsor does and doesn't do, according to AA, American Addiction Centers, Hazelden Betty Ford and recovery research, plus how to find one.">
+  <link rel="canonical" href="https://getaisponsor.com/blog/what-does-a-12-step-sponsor-do/">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="AI Sponsor">
+  <meta property="og:title" content="What does a 12-step sponsor do? What AA, treatment centers and researchers say">
+  <meta property="og:description" content="What a sponsor does, what they don't do and how to find one, according to AA, American Addiction Centers, Hazelden Betty Ford and recovery researchers.">
+  <meta property="og:url" content="https://getaisponsor.com/blog/what-does-a-12-step-sponsor-do/">
+  <meta property="og:image" content="https://getaisponsor.com/og-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-11-26">
+  <meta property="article:modified_time" content="2026-11-26">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="What does a 12-step sponsor do? What AA, treatment centers and researchers say">
+  <meta name="twitter:description" content="What a sponsor does, what they don't do and how to find one, according to AA, American Addiction Centers, Hazelden Betty Ford and recovery researchers.">
+  <meta name="twitter:image" content="https://getaisponsor.com/og-card.png">
+
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/blog/blog.css?v=4ddc5a8879">
+
+  <!-- A "what the sources say" post: each source gets its own section and a
+       link to its own page, so readers (and search engines) can check us. -->
+  <style>
+    .art { margin: 8px 0 28px; border-radius: 16px; overflow: hidden; background: var(--blue-pale); }
+    .art svg { display: block; width: 100%; height: auto; }
+    .src { font-size: 14px; color: var(--sub); margin-top: -4px; }
+    .checked { font-size: 14px; color: var(--sub); font-style: italic; }
+  </style>
+</head>
+<body>
+
+<nav id="nav">
+  <a href="/" class="nav-logo">AI Sponsor</a>
+  <div class="nav-right">
+    <a href="/blog/" class="nav-link">Blog</a>
+    <a href="/#pricing" class="nav-link">Pricing</a>
+    <a href="/#faq" class="nav-link">FAQ</a>
+    <a href="/ai-sponsor-registration.html" class="nav-cta">Get Started Free</a>
+  </div>
+</nav>
+
+<main class="wrap">
+  <article class="article">
+
+    <div class="breadcrumb">
+      <a href="/">Home</a> &rsaquo; <a href="/blog/">Blog</a> &rsaquo; What a 12-step sponsor does
+    </div>
+
+    <h1>What does a 12-step sponsor do? What AA, treatment centers and researchers say</h1>
+
+    <div class="byline">
+      <span>By the <strong>AI Sponsor team</strong></span>
+      <span class="sep">&bull;</span>
+      <span>Published <time datetime="2026-11-26">November 26, 2026</time></span>
+      <span class="sep">&bull;</span>
+      <span>6 min read</span>
+    </div>
+
+    <div class="answer">
+      <div class="answer-label">The short answer</div>
+      <p>A sponsor is someone in your fellowship who has been in recovery for a while, usually a year or more, and who agrees to take you through the Twelve Steps. You talk one-on-one, often between meetings, and they share what worked for them. They aren't paid, and they aren't a counselor. They're another member who's a little further along.</p>
+    </div>
+
+    <!-- Illustration drawn for this post. No fellowship logos or photos of people. -->
+    <div class="art" role="img" aria-label="Illustration of two people talking, with a speech bubble and a phone between them">
+      <svg viewBox="0 0 640 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="640" height="240" fill="#E8F4FD"/>
+        <circle cx="580" cy="30" r="70" fill="#D6EAF8"/>
+        <circle cx="50" cy="220" r="60" fill="#D6EAF8"/>
+        <g transform="translate(150 70)">
+          <circle cx="0" cy="0" r="30" fill="#0066B3"/>
+          <path d="M-52 120 q0 -78 52 -78 q52 0 52 78 z" fill="#0066B3"/>
+        </g>
+        <g transform="translate(490 82)">
+          <circle cx="0" cy="0" r="26" fill="#D97706"/>
+          <path d="M-46 108 q0 -68 46 -68 q46 0 46 68 z" fill="#D97706"/>
+        </g>
+        <g transform="translate(236 40)">
+          <rect width="168" height="70" rx="18" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+          <path d="M30 70 l-12 22 l30 -22 z" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2" stroke-linejoin="round"/>
+          <rect x="22" y="68" width="34" height="5" fill="#FFFFFF"/>
+          <g stroke="#CBD5E1" stroke-width="5" stroke-linecap="round">
+            <line x1="24" y1="26" x2="144" y2="26"/>
+            <line x1="24" y1="44" x2="110" y2="44"/>
+          </g>
+        </g>
+        <g transform="translate(300 130)">
+          <rect width="44" height="78" rx="9" fill="#FFFFFF" stroke="#0080D4" stroke-width="3"/>
+          <rect x="8" y="12" width="28" height="46" rx="3" fill="#E8F4FD"/>
+          <circle cx="22" cy="67" r="4" fill="#0080D4"/>
+        </g>
+      </svg>
+    </div>
+
+    <p>If you're new to a 12-step program, people will probably tell you to get a sponsor before anyone explains what a sponsor actually does. We read what AA itself, a large US treatment provider, the Hazelden Betty Ford Foundation and recovery researchers have to say about it. They mostly agree, and each one adds something the others leave out.</p>
+
+    <h2>What AA says</h2>
+
+    <p>AA's pamphlet <a href="https://www.aa.org/questions-and-answers-sponsorship" target="_blank" rel="noopener">Questions and Answers on Sponsorship</a> starts with how AA began. Bill W. had been sober for a few months when he badly wanted a drink, so he went looking for another alcoholic to talk to. That's how he met Dr. Bob. Nobody called it sponsorship back then, but that's what it was: one person with some time in recovery, sharing what they'd learned with someone newer.</p>
+
+    <p>According to the pamphlet, sponsor and newcomer meet as equals. A sponsor goes through the Steps with you, introduces you to other members, points you to the literature and is there for you when something comes up that could threaten your sobriety. AA sums up the main benefit simply: you have at least one person who fully understands what you're going through and cares about you.</p>
+
+    <p>The pamphlet is just as direct about the limits. A sponsor doesn't offer professional help, the kind you'd get from a counselor, doctor, lawyer or social worker, although they may help you find it. They shouldn't push their own beliefs on you, religious or otherwise. And a good sponsor doesn't pretend to have every answer.</p>
+
+    <p>AA has no fixed rules about who can sponsor, though it suggests a year or more without a drink. If the relationship isn't working, you can change sponsors. AA also says it's never too late to get one, even if you've been around the program for years.</p>
+
+    <h2>What American Addiction Centers says</h2>
+
+    <p><a href="https://americanaddictioncenters.org/blog/what-is-a-sponsor" target="_blank" rel="noopener">American Addiction Centers</a> runs treatment centers around the US, and its blog describes a sponsor as a mentor and guide. That's usually someone with at least a year in recovery who helps you settle into the program, answers your questions, works the Steps with you and holds you accountable. Your sponsor is also someone you can talk to about things you'd rather not bring up in a meeting.</p>
+
+    <p>AAC is most helpful on the everyday side of being a sponsee. Early on, agree with your sponsor on when it's OK to call and whether they'd rather get a text or an email. Keep calls to a minimum, show up when you've arranged to meet, and do the step work you agreed on in between. AAC also reminds sponsees that a sponsor is a guide, not a therapist, and won't know everything.</p>
+
+    <h2>What Hazelden Betty Ford says</h2>
+
+    <p>The <a href="https://www.hazeldenbettyford.org/articles/understanding-a-twelve-step-recovery-program" target="_blank" rel="noopener">Hazelden Betty Ford Foundation</a> describes AA as peer-based mutual help rather than addiction treatment. Members usually learn to work the Steps with a sponsor, who supports them one-on-one in addition to group meetings. Working the Steps never really ends, Hazelden adds. There's no final "completion" to reach.</p>
+
+    <p>Hazelden's article lists many of the fellowships that adapted AA's Twelve Steps, including Narcotics Anonymous, Al-Anon, Overeaters Anonymous, Debtors Anonymous and Workaholics Anonymous. And according to AAC, the core of the sponsor relationship is the same in every 12-step program. In Overeaters Anonymous, for example, sponsorship is one of the <a href="/blog/what-is-overeaters-anonymous/">nine tools of recovery</a>.</p>
+
+    <h2>What researchers have found</h2>
+
+    <p>The <a href="https://www.recoveryanswers.org/research-post/mounting-evidence-of-the-benefits-of-12-step-sponsors" target="_blank" rel="noopener">Recovery Research Institute</a> publishes plain-language summaries of addiction studies. Its summary of the research on sponsors puts it plainly: with few exceptions, studies agree that having a 12-step sponsor is linked to better recovery from alcohol and other drugs.</p>
+
+    <p>One of those studies, <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5331924/" target="_blank" rel="noopener">published in 2016</a>, followed 302 young adults aged 18 to 24 for a year after they left residential treatment. About two-thirds had a sponsor at some point during that year. The more contact people had with their sponsor, the more involved they were in 12-step groups. People who had a closer bond with their sponsor, meaning they felt liked and were on the same page about what they needed to do, had more days without drinking or using. The researchers point out that this shows a link and doesn't prove the sponsor was the cause.</p>
+
+    <h2>What they agree on</h2>
+
+    <p>All four sources describe a sponsor as a fellow member rather than a professional, and the study suggests the relationship itself makes a difference. AA and AAC are also honest that a sponsor is one person with a life of their own. That's why AAC asks sponsees to keep calls to a minimum, and why AA's pamphlet covers what to do when you can't reach your sponsor.</p>
+
+    <p>For those times, AA's advice is to lean on the whole program, because in AA's view it's the program, not any one person, that keeps you sober. Call or text other members, go to a meeting, phone your local AA office, or read or listen to AA literature on aa.org. The pamphlet also asks sponsors to be open to texting instead of relying only on phone calls, for members who find calls difficult.</p>
+
+    <h2>How to find a sponsor</h2>
+
+    <p>AA describes finding a sponsor as informal. Often you just ask a more experienced member you feel comfortable with. There's an old AA saying, "stick with the winners," which here means looking for someone who seems to be living the program and enjoying their sobriety.</p>
+
+    <p>AAC adds that at the end of many meetings, the leader asks anyone willing to sponsor to raise a hand. If your meeting doesn't do that, let the group know you're looking, or ask someone before or after a meeting. If they say no, try not to take it personally. They may just not have the time. AAC's advice is to keep asking.</p>
+
+    <h2>Where an AI sponsor comes in</h2>
+
+    <p>An AI sponsor isn't a sponsor in the way AA uses the word. It has no recovery of its own, and it doesn't replace a person or a meeting. It's useful in the moments a human sponsor can't cover, like a question at 2 a.m. that you don't want to wake anyone up for, or the weeks before you've found someone to ask.</p>
+
+    <p>You can message it at any hour, talk through what's happening and plan ahead for a hard day. It keeps track of where you are in the Steps, and it can find online meetings and tell you when they start in your time zone. If you already have a sponsor, you can use it alongside them and bring what you talked through to your next call. It isn't a therapist, and it isn't affiliated with AA or any other fellowship. AA's Sixth Tradition says it doesn't endorse outside enterprises, and that includes us.</p>
+
+    <p>If you are in crisis, call or text 988, or text HOME to 741741.</p>
+
+    <p class="checked">We read every source on its own website on November 26, 2026, and linked to each one so you can read it in full.</p>
+
+    <p><em>If you'd like to read more, try <a href="/blog/what-is-an-ai-sponsor/">what an AI sponsor is good at</a>, <a href="/blog/aa-online-convention-and-free-books/">AA's free books on aa.org</a> or <a href="/blog/what-is-debtors-anonymous/">how Debtors Anonymous works</a>.</em></p>
+
+    <div class="article-cta">
+      <h3>Someone to text between calls</h3>
+      <p>A private companion for AA, Al-Anon, NA, OA, DA, UA and more. It knows your program, remembers what you tell it and answers whenever you need it. Use it alongside your sponsor and your meetings. For every subscription sold, we give one away to someone who can't afford it.</p>
+      <a class="btn" href="/ai-sponsor-registration.html">Get your AI sponsor</a>
+    </div>
+
+  </article>
+</main>
+
+<footer>
+  <a href="/" class="footer-logo">AI Sponsor</a>
+  <nav class="footer-nav">
+    <a href="/#how" class="footer-nav-link">How It Works</a>
+    <a href="/#pricing" class="footer-nav-link">Pricing</a>
+    <a href="/#faq" class="footer-nav-link">FAQ</a>
+    <a href="/blog/" class="footer-nav-link">Blog</a>
+    <a href="/ai-sponsor-registration.html" class="footer-nav-link">Get Started</a>
+    <a href="/privacy" class="footer-nav-link">Privacy</a>
+    <a href="/terms" class="footer-nav-link">Terms</a>
+    <a href="#" class="footer-nav-link" onclick="AISCookieConsent.reset({clarity:true});return false;">Cookie preferences</a>
+  </nav>
+  <p class="footer-disclaimer">AI Sponsor is a private product and is not affiliated with, endorsed by, or connected to Alcoholics Anonymous, Narcotics Anonymous, Overeaters Anonymous, Underearners Anonymous, Debtors Anonymous, Adult Children of Alcoholics, or any 12-step program or organization. If you are in crisis, please contact the Crisis Text Line (text HOME to 741741) or call 988.</p>
+</footer>
+<div style="background:#060E1A;text-align:center;padding:16px 24px;border-top:1px solid rgba(255,255,255,.06);">
+  <p style="font-size:12px;color:rgba(255,255,255,.25);">&copy; 2026 Conscious LLC. All rights reserved.</p>
+  <p style="font-size:12px;color:rgba(255,255,255,.25);">AI Sponsor is a service of Conscious LLC.</p>
+</div>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BlogPosting",
+      "@id": "https://getaisponsor.com/blog/what-does-a-12-step-sponsor-do/#post",
+      "headline": "What does a 12-step sponsor do? What AA, treatment centers and researchers say",
+      "description": "What a 12-step sponsor does and doesn't do, according to AA, American Addiction Centers, Hazelden Betty Ford and recovery research, plus how to find one.",
+      "url": "https://getaisponsor.com/blog/what-does-a-12-step-sponsor-do/",
+      "datePublished": "2026-11-26",
+      "dateModified": "2026-11-26",
+      "inLanguage": "en",
+      "author": {
+        "@type": "Organization",
+        "@id": "https://getaisponsor.com/#org",
+        "name": "AI Sponsor",
+        "url": "https://getaisponsor.com/"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "@id": "https://getaisponsor.com/#org",
+        "name": "AI Sponsor",
+        "url": "https://getaisponsor.com/",
+        "logo": "https://getaisponsor.com/logo.png"
+      },
+      "isPartOf": {
+        "@id": "https://getaisponsor.com/blog/#blog",
+        "name": "AI Sponsor Blog",
+        "url": "https://getaisponsor.com/blog/"
+      },
+      "mainEntityOfPage": "https://getaisponsor.com/blog/what-does-a-12-step-sponsor-do/",
+      "image": "https://getaisponsor.com/logo.png",
+      "about": [
+        { "@type": "Thing", "name": "12-step sponsorship" },
+        { "@type": "Organization", "name": "Alcoholics Anonymous", "sameAs": "https://www.aa.org/" }
+      ],
+      "citation": [
+        { "@type": "CreativeWork", "name": "Questions and Answers on Sponsorship (AA pamphlet P-15)", "url": "https://www.aa.org/questions-and-answers-sponsorship" },
+        { "@type": "CreativeWork", "name": "12 Questions About the 12-Steps: What is a Sponsor?", "url": "https://americanaddictioncenters.org/blog/what-is-a-sponsor" },
+        { "@type": "CreativeWork", "name": "7 Common Questions about Twelve Step Recovery Programs", "url": "https://www.hazeldenbettyford.org/articles/understanding-a-twelve-step-recovery-program" },
+        { "@type": "CreativeWork", "name": "Mounting Evidence of the Benefits of 12-step Sponsors", "url": "https://www.recoveryanswers.org/research-post/mounting-evidence-of-the-benefits-of-12-step-sponsors" },
+        { "@type": "ScholarlyArticle", "name": "Recovery benefits of the therapeutic alliance among 12-step mutual-help organization attendees and their sponsors", "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5331924/" }
+      ]
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "AI Sponsor", "item": "https://getaisponsor.com/" },
+        { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://getaisponsor.com/blog/" },
+        { "@type": "ListItem", "position": 3, "name": "What a 12-step sponsor does", "item": "https://getaisponsor.com/blog/what-does-a-12-step-sponsor-do/" }
+      ]
+    }
+  ]
+}
+</script>
+
+</body>
+</html>

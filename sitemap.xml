@@ -14,7 +14,7 @@
   </url>
   <url>
     <loc>https://getaisponsor.com/blog/</loc>
-    <lastmod>2026-11-11</lastmod>
+    <lastmod>2026-11-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -57,6 +57,12 @@
   <url>
     <loc>https://getaisponsor.com/blog/aa-online-convention-and-free-books/</loc>
     <lastmod>2026-11-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://getaisponsor.com/blog/what-does-a-12-step-sponsor-do/</loc>
+    <lastmod>2026-11-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
