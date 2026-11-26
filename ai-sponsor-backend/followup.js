@@ -32,11 +32,36 @@
 
    A row, not a timer (db.sponsor_followups): restarts and deploys kill timers,
    and the row survives them. SPONSOR_FOLLOWUPS=off on Render stops all of it.
+
+   A test list (Mariam, 26 Nov: "lets just test it on my number as if I would
+   be a user"). While SPONSOR_FOLLOWUPS=off, SPONSOR_FOLLOWUPS_ONLY can name a
+   few WhatsApp numbers (comma-separated, e.g. +15550001111,+447700900000) and only those
+   people get first messages, by exactly the same rules as everyone would.
+   Nobody else is planned for or written to. It is a separate variable on
+   purpose: older code ignores it and stays off, so setting it can never turn
+   this on for everyone. SPONSOR_FOLLOWUPS=on means everyone and the list is
+   not needed.
 ──────────────────────────────────────────────────────────────────────────── */
 const db = require('./db');
 const timezones = require('./timezones');
 
-const ON = String(process.env.SPONSOR_FOLLOWUPS || 'on').toLowerCase() !== 'off';
+function readList(value) {
+  return new Set(String(value || '').split(',')
+    .map((n) => n.replace(/[^\d+]/g, ''))
+    .filter((n) => /\d{6,}/.test(n))
+    .map((n) => (n.startsWith('+') ? n : `+${n}`)));
+}
+/* Whether this person may get first messages at all. Pure, for the tests. */
+function allowedBy(userId, switchValue, onlyValue) {
+  const id = String(userId || '');
+  if (!id.startsWith('wa-')) return false;
+  if (String(switchValue || 'on').toLowerCase() !== 'off') return true;
+  return readList(onlyValue).has(id.slice(3));
+}
+const EVERYONE = String(process.env.SPONSOR_FOLLOWUPS || 'on').toLowerCase() !== 'off';
+const ONLY = readList(process.env.SPONSOR_FOLLOWUPS_ONLY);
+const ON = EVERYONE || ONLY.size > 0;
+const allowed = (userId) => allowedBy(userId, process.env.SPONSOR_FOLLOWUPS, process.env.SPONSOR_FOLLOWUPS_ONLY);
 const EARLIEST_H = 8;       // after their last message (12 left people who write around 9am with no slot at all)
 const LATEST_H = 23;        // the window closes at 24; an hour of slack
 const DAY_START = 9;        // their local time
@@ -62,7 +87,7 @@ function pickDueTime(lastUserAt, zone) {
 /* Called after every WhatsApp reply. Fire and forget: planning must never hold
    up or break a reply. */
 function plan(userId, { zone = null, now = new Date(), channel = 'whatsapp' } = {}) {
-  if (!ON || !db.enabled || channel !== 'whatsapp' || !String(userId).startsWith('wa-')) return Promise.resolve();
+  if (!ON || !db.enabled || channel !== 'whatsapp' || !allowed(userId)) return Promise.resolve();
   const due = pickDueTime(now, zone);
   const closes = new Date(now.getTime() + 24 * H);
   return db.planFollowup(userId, now, due, closes)
@@ -94,6 +119,8 @@ async function runSweep(deps, { limit = 3, now = new Date() } = {}) {
   for (const row of rows) {
     const userId = row.user_id;
     try {
+      /* Rows left from before a switch-off, or anyone not on the test list. */
+      if (!allowed(userId)) { out.skipped++; await db.finishFollowup(userId, 'skipped', 'not on the test list'); continue; }
       const v = verdict(row, await db.followupGuards(userId), now);
       if (v !== 'write') { out.skipped++; await db.finishFollowup(userId, 'skipped', v); continue; }
       const w = await deps.write(userId);
@@ -136,6 +163,6 @@ function startInterval(deps) {
 }
 
 module.exports = {
-  enabled: ON, plan, pickDueTime, verdict, runSweep, maybeSweep, startInterval,
+  enabled: ON, everyone: EVERYONE, allowedBy, plan, pickDueTime, verdict, runSweep, maybeSweep, startInterval,
   EARLIEST_H, LATEST_H, DAY_START, DAY_END, MIN_DAYS_BETWEEN, QUIET_AFTER_OTHER_H,
 };

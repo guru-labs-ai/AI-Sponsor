@@ -114,6 +114,24 @@ const localH = (zone, d) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 
     assert.ok(/const saved = await db\.getProfile\(userId\)/.test(srv) && /if \(said\(saved\) \|\| said\(profile\)\)/.test(srv), 'a fresh "do not message me first" must be read from the database, not a stale copy');
   });
 
+  await check('switched off with a test list: only the numbers on it, nobody else', () => {
+    const a = followup.allowedBy;
+    const list = '+15550001111, 447700900000';
+    assert.strictEqual(a('wa-+15550001111', 'off', list), true);
+    assert.strictEqual(a('wa-+447700900000', 'off', list), true, 'a number written without + still counts');
+    assert.strictEqual(a('wa-+15550002222', 'off', list), false, 'someone not on the list');
+    assert.strictEqual(a('wa-+15550001111', 'off', ''), false, 'off with no list is off for everyone');
+    assert.strictEqual(a('wa-+15550001111', 'OFF', undefined), false);
+    assert.strictEqual(a('reg-abc', 'off', list), false, 'only WhatsApp people');
+  });
+
+  await check('switched on: everyone on WhatsApp, the list does not narrow it', () => {
+    const a = followup.allowedBy;
+    assert.strictEqual(a('wa-+15550002222', 'on', '+15550001111'), true);
+    assert.strictEqual(a('wa-+15550002222', undefined, ''), true, 'unset means on, as before');
+    assert.strictEqual(a('reg-abc', 'on', ''), false);
+  });
+
   console.log(`\n${failed ? 'FAILED' : 'All good'}: ${passed} passed, ${failed} failed\n`);
   process.exit(failed ? 1 : 0);
 })();
