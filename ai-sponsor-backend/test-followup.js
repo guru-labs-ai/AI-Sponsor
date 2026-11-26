@@ -228,6 +228,18 @@ const localH = (zone, d) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 
     assert.strictEqual(a('reg-abc', 'off', list), false, 'only WhatsApp people');
   });
 
+  await check('the test list skips the 3-day wait; nobody else does', () => {
+    const t = followup.onTestListBy;
+    assert.strictEqual(t('wa-+15550001111', 'off', '+15550001111'), true);
+    assert.strictEqual(t('wa-+15550002222', 'off', '+15550001111'), false, 'not on the list');
+    assert.strictEqual(t('wa-+15550001111', 'on', '+15550001111'), false, 'switched on: 3 days for everyone');
+    const r = { user_id: 'wa-+15550001111', last_user_at: new Date(Date.UTC(2026, 10, 16, 22, 0)) };
+    const g = { last_user_at: r.last_user_at, last_followup_at: new Date(Date.UTC(2026, 10, 16, 12, 0)), last_outbound_at: null, deletion_pending: false };
+    const at = new Date(Date.UTC(2026, 10, 17, 10, 0));
+    assert.strictEqual(followup.verdict(r, g, at), 'too-soon-after-the-last-one');
+    assert.strictEqual(followup.verdict(r, g, at, { minDays: 0 }), 'write');
+  });
+
   await check('switched on: everyone on WhatsApp, the list does not narrow it', () => {
     const a = followup.allowedBy;
     assert.strictEqual(a('wa-+15550002222', 'on', '+15550001111'), true);

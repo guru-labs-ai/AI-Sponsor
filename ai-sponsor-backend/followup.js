@@ -72,6 +72,15 @@ const EVERYONE = String(process.env.SPONSOR_FOLLOWUPS || 'on').toLowerCase() !==
 const ONLY = readList(process.env.SPONSOR_FOLLOWUPS_ONLY);
 const ON = EVERYONE || ONLY.size > 0;
 const allowed = (userId) => allowedBy(userId, process.env.SPONSOR_FOLLOWUPS, process.env.SPONSOR_FOLLOWUPS_ONLY);
+/* Numbers on the test list while the switch is off skip the 3-day wait
+   between first messages, so each situation can be tried the same day
+   (Mariam, 26 Nov: "lift yes"). Everyone else, and everyone once the switch
+   is on, keeps the 3 days. */
+function onTestListBy(userId, switchValue, onlyValue) {
+  if (String(switchValue || 'on').toLowerCase() !== 'off') return false;
+  return readList(onlyValue).has(String(userId || '').replace(/^wa-/, ''));
+}
+const onTestList = (userId) => onTestListBy(userId, process.env.SPONSOR_FOLLOWUPS, process.env.SPONSOR_FOLLOWUPS_ONLY);
 
 const LOOK_AFTER_H = 3;     // the one look: "several hours later", if they have gone quiet
 const NEXT_DAY_H = 16;      // "how did it go?" belongs to the next day
@@ -160,13 +169,13 @@ function plan(userId, { zone = null, now = new Date(), channel = 'whatsapp' } = 
 
 /* Whether to write to this person now, given what the database says. Pure, so
    it can be tested without a database. */
-function verdict(row, guards, now = new Date()) {
+function verdict(row, guards, now = new Date(), { minDays = MIN_DAYS_BETWEEN } = {}) {
   if (!guards) return 'no-data';
   if (guards.deletion_pending) return 'deletion-pending';
   const lastUser = guards.last_user_at ? new Date(guards.last_user_at).getTime() : 0;
   if (lastUser > new Date(row.last_user_at).getTime() + 1000) return 'they-wrote-since';
   if (now.getTime() - lastUser > LATEST_H * H + 30 * 60 * 1000) return 'window-closing';
-  if (guards.last_followup_at && now.getTime() - new Date(guards.last_followup_at).getTime() < MIN_DAYS_BETWEEN * 24 * H) return 'too-soon-after-the-last-one';
+  if (minDays > 0 && guards.last_followup_at && now.getTime() - new Date(guards.last_followup_at).getTime() < minDays * 24 * H) return 'too-soon-after-the-last-one';
   if (guards.last_outbound_at && now.getTime() - new Date(guards.last_outbound_at).getTime() < QUIET_AFTER_OTHER_H * H) return 'we-sent-something-else-recently';
   return 'write';
 }
@@ -188,7 +197,8 @@ async function runSweep(deps, { limit = 3, now = new Date() } = {}) {
       if (!allowed(userId)) { out.skipped++; await db.finishFollowup(userId, 'skipped', 'not on the test list'); continue; }
       /* They are writing right now: their reply plans the next one. */
       if (beingAnswered(userId)) { out.skipped++; await db.finishFollowup(userId, 'skipped', 'they are writing'); continue; }
-      const v = verdict(row, await db.followupGuards(userId), now);
+      const spacing = { minDays: onTestList(userId) ? 0 : MIN_DAYS_BETWEEN };
+      const v = verdict(row, await db.followupGuards(userId), now, spacing);
       if (v !== 'write') { out.skipped++; await db.finishFollowup(userId, 'skipped', v); continue; }
       const stage = row.stage === 'next-day' ? 'next-day' : 'look';
       const w = await deps.write(userId, { stage });
@@ -200,7 +210,7 @@ async function runSweep(deps, { limit = 3, now = new Date() } = {}) {
       }
       if (!w || !w.text) { out.skipped++; await db.finishFollowup(userId, 'skipped', (w && w.skip) || 'nothing written'); continue; }
       /* Writing takes seconds. Look again right before sending. */
-      if (beingAnswered(userId) || verdict(row, await db.followupGuards(userId), now) === 'they-wrote-since') {
+      if (beingAnswered(userId) || verdict(row, await db.followupGuards(userId), now, spacing) === 'they-wrote-since') {
         out.skipped++; await db.finishFollowup(userId, 'skipped', 'they wrote while it was being written'); continue;
       }
       const result = await deps.send(userId.slice(3), w.text);
@@ -241,6 +251,6 @@ function startInterval(deps) {
 }
 
 module.exports = {
-  enabled: ON, everyone: EVERYONE, allowedBy, startAnswering, doneAnswering, beingAnswered, plan, pickDueTime, pickNextDay, verdict, runSweep, maybeSweep, startInterval,
+  enabled: ON, everyone: EVERYONE, allowedBy, onTestListBy, startAnswering, doneAnswering, beingAnswered, plan, pickDueTime, pickNextDay, verdict, runSweep, maybeSweep, startInterval,
   LOOK_AFTER_H, NEXT_DAY_H, LATEST_H, DAY_START, DAY_END, MIN_DAYS_BETWEEN, QUIET_AFTER_OTHER_H,
 };
