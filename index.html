@@ -10,12 +10,12 @@
        falls back to English rather than to a blank. English is the default;
        it only changes on a ?lang= link or when someone picks a language on
        the switcher. English visitors get the switcher and nothing else. -->
-  <script src="i18n.js?v=13863d97ce"></script>
+  <script src="i18n.js?v=99964c8d95"></script>
 
   <!-- Cookie consent gate. GA4, the Meta pixel and Clarity (below) all load
        through this instead of firing on their own — nothing sets a cookie
        until somebody has actually accepted. See cookie-consent.js. -->
-  <script src="/cookie-consent.js?v=13863d97ce"></script>
+  <script src="/cookie-consent.js?v=99964c8d95"></script>
   <script>AISCookieConsent.init({ clarity: true });</script>
 
   <!-- HYROS Universal Tracking Script -->
@@ -422,6 +422,10 @@
       color: var(--navy); margin-bottom: 6px;
     }
     .prog-desc { font-size: 13px; color: var(--sub); line-height: 1.55; }
+    .prog-more { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 600; color: var(--blue); text-decoration: none; }
+    .prog-more:hover { text-decoration: underline; }
+    .faq-more { text-align: center; max-width: 600px; margin: 28px auto 0; font-size: 15px; line-height: 1.6; color: var(--sub); }
+    .faq-more a { color: var(--blue); }
 
     /* ── B1G1 ── */
     .b1g1 { background: var(--navy); text-align: center; padding-top: 8px; }
@@ -1026,6 +1030,7 @@
         <span class="prog-icon">💳</span>
         <div class="prog-name">Debtors Anonymous (DA)</div>
         <div class="prog-desc">Money stress can quietly take over your whole life. DA is for people whose relationship with debt has become something they can't manage on their own, and who are ready to change that.</div>
+        <a class="prog-more" href="/blog/what-is-debtors-anonymous/">Read more about DA</a>
       </div>
       <div class="prog-card reveal reveal-delay-2">
         <span class="prog-icon">📊</span>
@@ -1036,11 +1041,13 @@
         <span class="prog-icon">📉</span>
         <div class="prog-name">Underearners Anonymous (UA)</div>
         <div class="prog-desc">For people who keep earning less than they need or want, not because of lack of talent, but because of patterns that run deeper. UA is for anyone ready to understand why, and to change it.</div>
+        <a class="prog-more" href="/blog/what-is-underearners-anonymous/">Read more about UA</a>
       </div>
       <div class="prog-card reveal reveal-delay-1">
         <span class="prog-icon">🍷</span>
         <div class="prog-name">Alcoholics Anonymous (AA)</div>
         <div class="prog-desc">If alcohol has taken more from you than you ever meant to give, you're in the right place. Over 2 million people, in 180 countries, all walking the same road.</div>
+        <a class="prog-more" href="/blog/aa-online-convention-and-free-books/">Read more about AA</a>
       </div>
       <div class="prog-card reveal reveal-delay-2">
         <span class="prog-icon">👨‍👩‍👧</span>
@@ -1056,6 +1063,7 @@
         <span class="prog-icon">🍽️</span>
         <div class="prog-name">Overeaters Anonymous (OA)</div>
         <div class="prog-desc">When food has stopped being about hunger and started being about something else. Pain, comfort, escape. OA is for anyone who recognizes that feeling and wants a way through it.</div>
+        <a class="prog-more" href="/blog/what-is-overeaters-anonymous/">Read more about OA</a>
       </div>
       <div class="prog-card reveal reveal-delay-2">
         <span class="prog-icon">🎰</span>
@@ -1066,6 +1074,7 @@
         <span class="prog-icon">🧒</span>
         <div class="prog-name">Adult Children of Alcoholics (ACA)</div>
         <div class="prog-desc">Growing up around addiction or dysfunction leaves marks that don't just go away. ACA is for adults still carrying what they grew up with and who are ready to put some of it down.</div>
+        <a class="prog-more" href="/blog/aca-convention-talks-and-study-groups/">Read more about ACA</a>
       </div>
       <div class="prog-card reveal reveal-delay-1">
         <span class="prog-icon">💔</span>
@@ -1232,6 +1241,7 @@
         <p class="faq-a">On WhatsApp, the same way you'd text a friend. When you finish signing up you get a link that opens the chat, and from then on they're a message away at any hour. Send a voice note instead of typing and they'll reply with one, in the voice you picked for them.</p>
       </details>
     </div>
+    <p class="faq-more">New to all this? Our blog explains <a href="/blog/what-does-a-12-step-sponsor-do/">what a 12-step sponsor does</a> and <a href="/blog/what-is-an-ai-sponsor/">what an AI sponsor is good at</a>.</p>
   </div>
 </section>
 

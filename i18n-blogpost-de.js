@@ -51,3 +51,9 @@ window.AIS_I18N_HTML.de = Object.assign(window.AIS_I18N_HTML.de || {}, {
  "<strong>You are not ready to be known.</strong> Small towns, professional licenses, a family who does not know yet.": "<strong>Du bist noch nicht bereit, erkannt zu werden.</strong> Kleine Orte, Berufszulassungen, eine Familie, die es noch nicht weiß.",
  "So use it as a bridge to people, not a way around them. The test is simple: <strong>does this make you more likely to talk to a person, or less?</strong>": "Nutze sie also als Brücke zu Menschen, nicht als Weg an ihnen vorbei. Der Test ist einfach: <strong>Macht dich das eher bereit, mit einem Menschen zu sprechen, oder weniger?</strong>"
 });
+
+/* What is an AI sponsor: the read-more line (26 Nov 2026). */
+window.AIS_I18N_HTML = window.AIS_I18N_HTML || {};
+window.AIS_I18N_HTML.de = Object.assign(window.AIS_I18N_HTML.de || {}, {
+ "<em>If you'd like to read more, try <a href=\"/blog/what-does-a-12-step-sponsor-do/\">what a 12-step sponsor does</a>, <a href=\"/blog/what-is-underearners-anonymous/\">how Underearners Anonymous works</a> or <a href=\"/blog/what-is-debtors-anonymous/\">how Debtors Anonymous works</a>.</em>": "<em>Wenn du mehr lesen möchtest: <a href=\"/blog/what-does-a-12-step-sponsor-do/\">was ein 12-Schritte-Sponsor tut</a>, <a href=\"/blog/what-is-underearners-anonymous/\">wie Underearners Anonymous funktioniert</a> oder <a href=\"/blog/what-is-debtors-anonymous/\">wie Debtors Anonymous funktioniert</a> (auf Englisch).</em>"
+});

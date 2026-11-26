@@ -500,3 +500,16 @@ window.AIS_I18N.es = Object.assign(window.AIS_I18N.es || {}, {
 window.AIS_I18N.es = Object.assign(window.AIS_I18N.es || {}, {
  "Your code is already filled in. Tap Unlock for free access. You will not be asked for a card.": "Tu código ya está puesto. Toca «Desbloquear» para tener acceso gratis. No se te pedirá ninguna tarjeta."
 });
+
+/* Homepage links to the blog: program cards + the line under the FAQ (26 Nov 2026). */
+window.AIS_I18N.es = Object.assign(window.AIS_I18N.es || {}, {
+ "Read more about DA": "Más sobre DA",
+ "Read more about UA": "Más sobre UA",
+ "Read more about AA": "Más sobre AA",
+ "Read more about OA": "Más sobre OA",
+ "Read more about ACA": "Más sobre ACA"
+});
+window.AIS_I18N_HTML = window.AIS_I18N_HTML || {};
+window.AIS_I18N_HTML.es = Object.assign(window.AIS_I18N_HTML.es || {}, {
+ "New to all this? Our blog explains <a href=\"/blog/what-does-a-12-step-sponsor-do/\">what a 12-step sponsor does</a> and <a href=\"/blog/what-is-an-ai-sponsor/\">what an AI sponsor is good at</a>.": "¿Eres nuevo en esto? Nuestro blog explica <a href=\"/blog/what-does-a-12-step-sponsor-do/\">qué hace un padrino de 12 pasos</a> y <a href=\"/blog/what-is-an-ai-sponsor/\">en qué ayuda un padrino de IA</a> (en inglés)."
+});
