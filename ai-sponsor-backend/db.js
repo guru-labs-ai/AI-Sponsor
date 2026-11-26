@@ -218,6 +218,9 @@ async function init() {
       note         TEXT
     );
     CREATE INDEX IF NOT EXISTS sponsor_followups_due_idx ON sponsor_followups (status, due_at);
+    /* 'look' (about 3 hours after they go quiet) or 'next-day' (the sponsor
+       decided the message belongs to the next day). followup.js. */
+    ALTER TABLE sponsor_followups ADD COLUMN IF NOT EXISTS stage TEXT;
   `);
   /* What Claude costs, per day, split by who it was for (spend.js). One row per
      day + who + what for + model, added to as calls finish. Totals only: no
@@ -1276,10 +1279,11 @@ async function resolveSettingsToken(token) {
 async function planFollowup(userId, lastUserAt, dueAt, closesAt) {
   if (!enabled || !userId || !lastUserAt) return;
   await pool.query(
-    `INSERT INTO sponsor_followups (user_id, last_user_at, due_at, closes_at, status, updated_at, sent_at, note)
-     VALUES ($1, $2, $3, $4, $5, now(), NULL, NULL)
+    `INSERT INTO sponsor_followups (user_id, last_user_at, due_at, closes_at, status, updated_at, sent_at, note, stage)
+     VALUES ($1, $2, $3, $4, $5, now(), NULL, NULL, 'look')
      ON CONFLICT (user_id) DO UPDATE SET last_user_at = EXCLUDED.last_user_at, due_at = EXCLUDED.due_at,
-       closes_at = EXCLUDED.closes_at, status = EXCLUDED.status, updated_at = now(), sent_at = NULL, note = NULL`,
+       closes_at = EXCLUDED.closes_at, status = EXCLUDED.status, updated_at = now(), sent_at = NULL, note = NULL,
+       stage = 'look'`,
     [userId, lastUserAt, dueAt || null, closesAt || null, dueAt ? 'pending' : 'none']
   );
 }
@@ -1304,18 +1308,32 @@ async function claimDueFollowups(limit = 3) {
         SELECT user_id FROM sponsor_followups
          WHERE status = 'pending' AND due_at <= now() AND closes_at > now() + interval '20 minutes'
          ORDER BY due_at LIMIT $1 FOR UPDATE SKIP LOCKED)
-      RETURNING user_id, last_user_at, due_at, closes_at`,
+      RETURNING user_id, last_user_at, due_at, closes_at, stage`,
     [limit]
   );
   return r.rows;
 }
 
+/* The sponsor decided the message belongs to the next day: back in the queue
+   for one more look then. Only a row this sweep is holding, so a message they
+   sent in the meantime (which rewrote the row) is never overwritten. */
+async function rescheduleFollowup(userId, dueAt) {
+  if (!enabled || !userId || !dueAt) return;
+  await pool.query(
+    `UPDATE sponsor_followups SET status = 'pending', due_at = $2, stage = 'next-day', updated_at = now()
+      WHERE user_id = $1 AND status = 'writing'`,
+    [userId, dueAt]
+  );
+}
+
+/* Only the row the sweep claimed: if they wrote meanwhile, their message has
+   already rewritten it as a fresh plan, and that plan must stand. */
 async function finishFollowup(userId, status, note = null) {
   if (!enabled || !userId) return;
   await pool.query(
     `UPDATE sponsor_followups SET status = $2, note = $3, updated_at = now(),
             sent_at = CASE WHEN $2 = 'sent' THEN now() ELSE sent_at END
-      WHERE user_id = $1`,
+      WHERE user_id = $1 AND status = 'writing'`,
     [userId, status, note ? String(note).slice(0, 200) : null]
   );
 }
@@ -2638,7 +2656,7 @@ module.exports = {
   clearProfileField,
   getOrCreateSettingsToken, resolveSettingsToken,
   recordOutbound, applyMessageStatus, noteSettingsOpen,
-  planFollowup, claimDueFollowups, finishFollowup, followupGuards,
+  planFollowup, claimDueFollowups, rescheduleFollowup, finishFollowup, followupGuards,
   linkSubscription, findByStripeCustomer, getUser, setAccess,
   getMemory, saveMemory, renameInMemory, getAgedOutMessages, redeemBetaCode, getBetaCode, getPlanFacts, logAdminAccess,
   getWeekMessages, getWeekActivity, saveWeeklySummary, getWeeklySummary,

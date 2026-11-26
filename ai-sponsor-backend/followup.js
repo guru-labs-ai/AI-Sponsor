@@ -11,10 +11,20 @@
    included, with no template and no category. Outside those 24 hours only an
    approved template can go, and Meta files an unrequested "checking in" as
    MARKETING, which US numbers never receive (checkin.js has the history). So
-   this lives entirely inside the window: never earlier than 8 hours after
-   their last message (a morning chat gets an evening message, an evening chat
-   the next morning), never later than 23, and only between 9am and 9pm where
-   they are. A moment that does not fit is simply no message.
+   this lives entirely inside the window: never later than 23 hours after their
+   last message, and only between 9am and 9pm where they are. A moment that
+   does not fit is simply no message.
+
+   When depends on what happened (Mariam, 26 Nov, after testing it on herself:
+   "it needs to be logical"). A human sponsor writes a few hours later when
+   someone was struggling and went quiet, or when they asked about the program,
+   a meeting or a book and the answer was not enough ("Hi again, I was thinking
+   more about..."), or when something was left hanging, like the flights app
+   she uses that came back that evening with "this one or that one? no
+   pressure". And the next day when the person was going to do something and
+   the question is how it went. So there is one look, about 3 hours after they
+   go quiet (inside their day): the sponsor decides to write now, to wait for
+   the next day (one more look then), or to say nothing.
 
    The restraint, which is most of this file:
    - one per quiet spell: their next message replaces the plan, and a person
@@ -63,19 +73,8 @@ const ONLY = readList(process.env.SPONSOR_FOLLOWUPS_ONLY);
 const ON = EVERYONE || ONLY.size > 0;
 const allowed = (userId) => allowedBy(userId, process.env.SPONSOR_FOLLOWUPS, process.env.SPONSOR_FOLLOWUPS_ONLY);
 
-/* Test speed (Mariam, 26 Nov: "just message me first already"). Only for the
-   numbers on the test list, only while the switch is off: with
-   SPONSOR_FOLLOWUPS_TEST_MINUTES=N the message is planned N minutes after
-   their last one, at any hour, instead of 8+ hours later inside their day.
-   Everyone else, and everyone once the switch is on, keeps the real timing. */
-function quickMinutes(userId, switchValue, onlyValue, minutesValue) {
-  const n = Number(minutesValue);
-  if (!(n > 0) || String(switchValue || 'on').toLowerCase() !== 'off') return 0;
-  return readList(onlyValue).has(String(userId || '').replace(/^wa-/, '')) ? Math.min(n, 60) : 0;
-}
-const quick = (userId) => quickMinutes(userId, process.env.SPONSOR_FOLLOWUPS, process.env.SPONSOR_FOLLOWUPS_ONLY, process.env.SPONSOR_FOLLOWUPS_TEST_MINUTES);
-const TESTING = !EVERYONE && ONLY.size > 0 && Number(process.env.SPONSOR_FOLLOWUPS_TEST_MINUTES) > 0;
-const EARLIEST_H = 8;       // after their last message (12 left people who write around 9am with no slot at all)
+const LOOK_AFTER_H = 3;     // the one look: "several hours later", if they have gone quiet
+const NEXT_DAY_H = 16;      // "how did it go?" belongs to the next day
 const LATEST_H = 23;        // the window closes at 24; an hour of slack
 const DAY_START = 9;        // their local time
 const DAY_END = 21;
@@ -84,15 +83,37 @@ const QUIET_AFTER_OTHER_H = 6;
 const STEP_MS = 15 * 60 * 1000;
 const H = 3600 * 1000;
 
-/* The first moment at least 8 hours after their last message that falls in
-   their day, or null if there is none before the window closes. */
+const inTheirDay = (zone, t) => {
+  const hour = timezones.localHour(zone || 'UTC', new Date(t));
+  return hour !== null && hour >= DAY_START && hour < DAY_END;
+};
+
+/* The look: the first moment at least 3 hours after their last message that
+   falls in their day, or null if there is none before the window closes. An
+   evening message waits for the morning. */
 function pickDueTime(lastUserAt, zone) {
   const last = new Date(lastUserAt).getTime();
   if (!Number.isFinite(last)) return null;
-  const z = zone || 'UTC';
-  for (let t = last + EARLIEST_H * H; t <= last + LATEST_H * H; t += STEP_MS) {
-    const hour = timezones.localHour(z, new Date(t));
-    if (hour !== null && hour >= DAY_START && hour < DAY_END) return new Date(t);
+  for (let t = last + LOOK_AFTER_H * H; t <= last + LATEST_H * H; t += STEP_MS) {
+    if (inTheirDay(zone, t)) return new Date(t);
+  }
+  return null;
+}
+
+/* When the sponsor decided the message belongs to the next day: the first
+   moment in their day at least 16 hours after their last message. Somebody who
+   wrote in the morning has no such moment before the window closes, so they
+   get the latest one there is (that evening). At least an hour from now. */
+function pickNextDay(lastUserAt, zone, now = new Date()) {
+  const last = new Date(lastUserAt).getTime();
+  if (!Number.isFinite(last)) return null;
+  const end = last + LATEST_H * H;
+  const notBefore = now.getTime() + H;
+  for (let t = Math.max(last + NEXT_DAY_H * H, notBefore); t <= end; t += STEP_MS) {
+    if (inTheirDay(zone, t)) return new Date(t);
+  }
+  for (let t = Math.min(last + NEXT_DAY_H * H, end); t >= notBefore; t -= STEP_MS) {
+    if (inTheirDay(zone, t)) return new Date(t);
   }
   return null;
 }
@@ -131,8 +152,7 @@ function beingAnswered(userId, nowMs = Date.now()) {
    up or break a reply. */
 function plan(userId, { zone = null, now = new Date(), channel = 'whatsapp' } = {}) {
   if (!ON || !db.enabled || channel !== 'whatsapp' || !allowed(userId)) return Promise.resolve();
-  const mins = quick(userId);
-  const due = mins ? new Date(now.getTime() + mins * 60 * 1000) : pickDueTime(now, zone);
+  const due = pickDueTime(now, zone);
   const closes = new Date(now.getTime() + 24 * H);
   return db.planFollowup(userId, now, due, closes)
     .catch((e) => console.warn('[followup] could not plan:', e.message));
@@ -152,14 +172,15 @@ function verdict(row, guards, now = new Date()) {
 }
 
 /* deps (from server.js, so this file never needs the prompt or the model):
-     write(userId)      -> { text } | { skip: reason }
+     write(userId, { stage }) -> { text } | { skip: reason } | { later: true, zone }
+       stage 'look' (3 hours on) may answer later; 'next-day' only text or skip
      send(phone, text)  -> the send result ({ messageId } on Meta)
      after(userId, text, result) -> saves it into their conversation */
 async function runSweep(deps, { limit = 3, now = new Date() } = {}) {
   if (!ON) return { ok: false, reason: 'followups-off' };
   if (!db.enabled) return { ok: false, reason: 'no-db' };
   const rows = await db.claimDueFollowups(limit).catch((e) => { console.error('[followup] claim failed:', e.message); return []; });
-  const out = { claimed: rows.length, sent: 0, skipped: 0, failed: 0 };
+  const out = { claimed: rows.length, sent: 0, later: 0, skipped: 0, failed: 0 };
   for (const row of rows) {
     const userId = row.user_id;
     try {
@@ -169,7 +190,14 @@ async function runSweep(deps, { limit = 3, now = new Date() } = {}) {
       if (beingAnswered(userId)) { out.skipped++; await db.finishFollowup(userId, 'skipped', 'they are writing'); continue; }
       const v = verdict(row, await db.followupGuards(userId), now);
       if (v !== 'write') { out.skipped++; await db.finishFollowup(userId, 'skipped', v); continue; }
-      const w = await deps.write(userId);
+      const stage = row.stage === 'next-day' ? 'next-day' : 'look';
+      const w = await deps.write(userId, { stage });
+      if (w && w.later) {
+        /* The next day is the natural moment: one more look then. Only once. */
+        const next = stage === 'look' ? pickNextDay(row.last_user_at, w.zone, now) : null;
+        if (next) { out.later++; await db.rescheduleFollowup(userId, next); continue; }
+        out.skipped++; await db.finishFollowup(userId, 'skipped', stage === 'look' ? 'no next-day moment in the window' : 'nothing to say the next day'); continue;
+      }
       if (!w || !w.text) { out.skipped++; await db.finishFollowup(userId, 'skipped', (w && w.skip) || 'nothing written'); continue; }
       /* Writing takes seconds. Look again right before sending. */
       if (beingAnswered(userId) || verdict(row, await db.followupGuards(userId), now) === 'they-wrote-since') {
@@ -190,14 +218,14 @@ async function runSweep(deps, { limit = 3, now = new Date() } = {}) {
       console.warn(`[followup] ${outside ? 'window closed' : 'failed'}: ${e.message}`);
     }
   }
-  if (out.claimed) console.log(`[followup] sweep: ${out.sent} sent, ${out.skipped} skipped, ${out.failed} failed`);
+  if (out.claimed) console.log(`[followup] sweep: ${out.sent} sent, ${out.later} moved to the next day, ${out.skipped} skipped, ${out.failed} failed`);
   return { ok: true, ...out };
 }
 
 /* Run every ten minutes from an interval and on ordinary traffic; the claim in
    the database makes overlapping runs harmless. */
 let lastRun = 0;
-const EVERY_MS = (TESTING ? 1 : 10) * 60 * 1000; // every minute only while a quick test is set
+const EVERY_MS = 10 * 60 * 1000;
 function maybeSweep(deps) {
   if (!ON || !db.enabled) return;
   const now = Date.now();
@@ -213,6 +241,6 @@ function startInterval(deps) {
 }
 
 module.exports = {
-  enabled: ON, everyone: EVERYONE, allowedBy, quickMinutes, startAnswering, doneAnswering, beingAnswered, plan, pickDueTime, verdict, runSweep, maybeSweep, startInterval,
-  EARLIEST_H, LATEST_H, DAY_START, DAY_END, MIN_DAYS_BETWEEN, QUIET_AFTER_OTHER_H,
+  enabled: ON, everyone: EVERYONE, allowedBy, startAnswering, doneAnswering, beingAnswered, plan, pickDueTime, pickNextDay, verdict, runSweep, maybeSweep, startInterval,
+  LOOK_AFTER_H, NEXT_DAY_H, LATEST_H, DAY_START, DAY_END, MIN_DAYS_BETWEEN, QUIET_AFTER_OTHER_H,
 };

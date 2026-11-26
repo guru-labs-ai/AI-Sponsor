@@ -20,25 +20,47 @@ const H = 3600e3;
 const localH = (zone, d) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: zone, hour: 'numeric', hour12: false }).format(d)) % 24;
 
 (async () => {
-  await check('due at least 8 hours later, inside their day, inside the 24-hour window, at every hour they might write', () => {
+  await check('the look: at least 3 hours later, inside their day, inside the 24-hour window, at every hour they might write', () => {
     for (const zone of ['Europe/London', 'America/New_York', 'Asia/Hong_Kong', 'America/Los_Angeles']) {
       for (let h = 0; h < 24; h++) {
         const last = new Date(Date.UTC(2026, 10, 16, h, 7));
         const due = followup.pickDueTime(last, zone);
         assert.ok(due, `${zone} ${h}:07 UTC has no slot`);
         const gap = (due - last) / H;
-        assert.ok(gap >= 8 && gap <= 23, `${zone} ${h}:07 UTC -> ${gap}h`);
+        assert.ok(gap >= 3 && gap <= 23, `${zone} ${h}:07 UTC -> ${gap}h`);
         const lh = localH(zone, due);
         assert.ok(lh >= 9 && lh < 21, `${zone} due at ${lh}:00 local`);
       }
     }
   });
 
-  await check('an evening message gets one the next morning, a morning message the same evening', () => {
-    // London, 22:00 -> +8h is 6am, so 9am next day.
+  await check('the look comes about 3 hours later; an evening message waits for the morning', () => {
+    // London, 22:00 -> +3h is 1am, so 9am next day.
     assert.strictEqual(followup.pickDueTime(new Date(Date.UTC(2026, 10, 16, 22, 0)), 'Europe/London').toISOString(), '2026-11-17T09:00:00.000Z');
-    // London, 09:50 -> 17:50 the same day (with 12 hours this person had no slot at all).
-    assert.strictEqual(followup.pickDueTime(new Date(Date.UTC(2026, 10, 16, 9, 50)), 'Europe/London').toISOString(), '2026-11-16T17:50:00.000Z');
+    // London, 09:50 -> 12:50 the same day.
+    assert.strictEqual(followup.pickDueTime(new Date(Date.UTC(2026, 10, 16, 9, 50)), 'Europe/London').toISOString(), '2026-11-16T12:50:00.000Z');
+  });
+
+  await check('the next day: 16+ hours after their last message, else the latest moment the window allows', () => {
+    const nd = (lastH, nowH, zone = 'Europe/London') => {
+      const r = followup.pickNextDay(new Date(Date.UTC(2026, 10, 16, lastH, 0)), zone, new Date(Date.UTC(2026, 10, 16, nowH, 0)));
+      return r && r.toISOString();
+    };
+    assert.strictEqual(nd(20, 23), '2026-11-17T12:00:00.000Z', 'evening chat: around midday next day');
+    assert.strictEqual(nd(14, 17), '2026-11-17T09:00:00.000Z', 'afternoon chat: the next morning');
+    assert.strictEqual(nd(9, 12), '2026-11-16T20:45:00.000Z', 'morning chat: no next-day moment inside 23 hours, so that evening');
+    for (const zone of ['Europe/London', 'America/New_York', 'Asia/Tbilisi']) {
+      for (let h = 0; h < 24; h++) {
+        const last = new Date(Date.UTC(2026, 10, 16, h, 0));
+        const now = followup.pickDueTime(last, zone);
+        const due = followup.pickNextDay(last, zone, now);
+        if (!due) continue;
+        assert.ok(due - now >= H, `${zone} ${h}:00: at least an hour after the look`);
+        assert.ok(due - last <= 23 * H, `${zone} ${h}:00: inside the window`);
+        const lh = localH(zone, due);
+        assert.ok(lh >= 9 && lh < 21, `${zone} ${h}:00: due at ${lh}:00 local`);
+      }
+    }
   });
 
   await check('only WhatsApp people are planned for, and only on WhatsApp', async () => {
@@ -89,6 +111,32 @@ const localH = (zone, d) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 
       assert.deepStrictEqual(after, [['wa-+447700900000', 'How did the call with the bank go?']]);
       assert.deepStrictEqual(outbound, [['wa-+447700900000', 'wamid.TEST', 'followup']]);
       assert.deepStrictEqual(finished.map((f) => f[1]), ['sent', 'skipped', 'expired']);
+    } finally { Object.assign(db, saved); }
+  });
+
+  await check('LATER: the look books one more look the next day; the next-day look never waits again', async () => {
+    const saved = { ...db };
+    const finished = [], moved = [], sent = [], stages = [];
+    Object.assign(db, {
+      enabled: true,
+      claimDueFollowups: async () => [{ ...row, stage: 'look' }, { ...row, user_id: 'wa-+447700900001', stage: 'next-day' }],
+      followupGuards: async () => quiet,
+      finishFollowup: async (u, s, n) => { finished.push([u, s, n]); },
+      rescheduleFollowup: async (u, due) => { moved.push([u, new Date(due).toISOString()]); },
+      recordOutbound: async () => {},
+    });
+    try {
+      const r = await followup.runSweep({
+        write: async (u, o) => { stages.push([u, o.stage]); return { later: true, zone: 'Europe/London' }; },
+        send: async (p, t) => { sent.push([p, t]); return { messageId: 'wamid.TEST' }; },
+        after: async () => {},
+      }, { now });
+      assert.deepStrictEqual(stages, [['wa-+447700900000', 'look'], ['wa-+447700900001', 'next-day']]);
+      assert.deepStrictEqual([r.sent, r.later, r.skipped], [0, 1, 1]);
+      // last message 22:00 London: the next day's moment is 14:00, 16 hours on
+      assert.deepStrictEqual(moved, [['wa-+447700900000', '2026-11-17T14:00:00.000Z']]);
+      assert.deepStrictEqual(finished, [['wa-+447700900001', 'skipped', 'nothing to say the next day']]);
+      assert.strictEqual(sent.length, 0);
     } finally { Object.assign(db, saved); }
   });
 
@@ -187,13 +235,14 @@ const localH = (zone, d) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 
     assert.strictEqual(a('reg-abc', 'on', ''), false);
   });
 
-  await check('quick test timing: only for the test list, only while switched off', () => {
-    const q = followup.quickMinutes;
-    assert.strictEqual(q('wa-+15550001111', 'off', '+15550001111', '5'), 5);
-    assert.strictEqual(q('wa-+15550002222', 'off', '+15550001111', '5'), 0, 'not on the list: real timing');
-    assert.strictEqual(q('wa-+15550001111', 'on', '+15550001111', '5'), 0, 'switched on: real timing for everyone');
-    assert.strictEqual(q('wa-+15550001111', 'off', '+15550001111', ''), 0, 'not set: real timing');
-    assert.strictEqual(q('wa-+15550001111', 'off', '+15550001111', '999'), 60, 'never more than an hour');
+  await check('the sponsor decides now, later or never; a fresh plan is never overwritten by an old sweep', () => {
+    assert.ok(/Answer only the word LATER when the natural moment is the next day/.test(srv));
+    assert.ok(/your answer was thin, vague or missed what they really asked/.test(srv), 'the fuller answer, a few hours later');
+    assert.ok(/Something was left hanging between you/.test(srv), 'the light nudge about an open choice');
+    assert.ok(/if \(\/\^\\W\*LATER\\b\/i\.test\(text\)\) return stage === 'look' \? \{ later: true, zone: userZone \}/.test(srv));
+    assert.ok(/Write to them now, never LATER or SKIP/.test(srv), 'a crisis never waits for tomorrow');
+    assert.ok(/SET status = \$2, note = \$3[\s\S]{0,160}WHERE user_id = \$1 AND status = 'writing'/.test(dbsrc), 'finish only the claimed row');
+    assert.ok(/ADD COLUMN IF NOT EXISTS stage TEXT/.test(dbsrc));
   });
 
   console.log(`\n${failed ? 'FAILED' : 'All good'}: ${passed} passed, ${failed} failed\n`);

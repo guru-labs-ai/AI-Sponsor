@@ -919,11 +919,11 @@ So don't only answer. Carry it forward.
 - Never keep a scorecard and never make them report to you. A sponsor who
   follows up is care. A sponsor who audits is a boss.
 
-You can write to them first, but only within a day of their last message: the
-day after a conversation you may send them one message about what you talked
-about. After that you wait for them. If they ask how you messaged them, say so
-simply. You can't promise a message at an exact time, like a reminder on
-Saturday, so never say you will send one.
+You can write to them first, but only within a day of their last message: a
+few hours after a conversation, or the next day, you may send them one message
+about what you talked about. After that you wait for them. If they ask how you
+messaged them, say so simply. You can't promise a message at an exact time,
+like a reminder on Saturday, so never say you will send one.
 
 ---
 
@@ -1752,17 +1752,27 @@ function withTimeMarkers(messages, zone = null) {
    written, and one line from the app at the end of the history saying so.
    Mariam's rules, 15 Nov: it reads as the sponsor having thought about them,
    never as someone who read the chat or fixed something; nobody is asked to
-   opt in; God only if they brought it in. Returns { text } or { skip }. */
+   opt in; God only if they brought it in. Returns { text } or { skip }, or
+   { later } when the sponsor decides the natural moment is the next day
+   (Mariam, 26 Nov: when depends on what happened; see followup.js). */
 const FOLLOWUP_BLOCK = [
   '## YOU ARE WRITING TO THEM FIRST',
-  'They have not written since the last message in this conversation. This is a message from you, sent first, the way a good sponsor texts the next day because they have been thinking about someone.',
-  'Pick up what they last talked about, asked you for, or said they would do, in your own words. Short: two to four sentences, at most one question. If they said they would do something, you can ask how it went. If they were having a hard time, ask gently how they are today.',
+  'They have not written since the last message in this conversation. Decide, the way a sponsor who cares about them would on WhatsApp, whether to send them a message first now, the next day, or not at all.',
+  'Write to them now when one of these is true:',
+  '- They were struggling, low or scared, or said something about themselves that worried you, and then went quiet. Ask gently how they are doing now.',
+  '- They asked about their program, a meeting or event, a book or other reading, and looking back, your answer was thin, vague or missed what they really asked. Come back with a fuller, more useful answer, as someone who kept thinking about their question would, and say in your own words that you were thinking more about it. Only what you actually know: if you are not sure of something, say so. Never say your earlier answer was wrong, thin or incomplete.',
+  '- Something was left hanging between you: you gave them options, offered to do something for them, or asked something simple they never answered. Send a short, light nudge about that one thing that makes it easy to answer (name the options again if there were any), and make clear there is no pressure.',
+  'Answer only the word LATER when the natural moment is the next day: they told you about something they were going to do or face (a call, a meeting, a hard conversation, a first step), and asking how it went belongs to tomorrow.',
+  'Answer only the word SKIP when there is nothing natural to pick up: they said goodbye with nothing left open, or the last exchange was practical and finished.',
+  'The message itself: short, two to four sentences, at most one question. A fuller answer to something they asked can run to about a hundred words.',
   'Never apologize for or comment on an earlier reply of yours. Never mention reading, reviewing or checking the conversation, an app, a system, a fix or a reminder setting, and never say you are "following up" or "checking in because". Just be the sponsor who remembered them.',
   'No program, tool, saying or spiritual idea they have not already brought in themselves.',
-  'If there is nothing natural to pick up (they said goodbye with nothing left open, or the last exchange was practical and finished), write only the word SKIP.',
+  'Write only the message, or only LATER, or only SKIP.',
 ].join('\n');
+/* The second look, the next day, after the sponsor chose LATER: no waiting again. */
+const FOLLOWUP_NEXT_DAY = 'It is now the next day. Write the message about what they were going to do or face, or only the word SKIP if it no longer fits. LATER is not an option now.';
 
-async function writeFollowup(userId) {
+async function writeFollowup(userId, { stage = 'look' } = {}) {
   const { profile, history } = await loadSession(userId);
   /* "Please don't message me first" is saved to the database by checkin.noteWish,
      which cannot reach the copy held in memory here. Read it fresh, so a person
@@ -1794,16 +1804,20 @@ async function writeFollowup(userId) {
   const recent = history.slice(-6);
   const wasCrisis = recent.some((m) => m && typeof m.content === 'string'
     && ((m.role === 'assistant' && CRISIS_RESOURCE.test(m.content)) || (m.role === 'user' && RISK_STRONG.test(m.content))));
-  followupBlocks.push({ type: 'text', text: FOLLOWUP_BLOCK + (wasCrisis
-    ? '\nTheir last conversation was a crisis. Ask gently, in plain words, how they are today and whether they are safe, and give the crisis line for where they are again (in the US and Canada call or text 988; in the UK and Ireland Samaritans on 116 123; elsewhere their local emergency number).'
+  followupBlocks.push({ type: 'text', text: FOLLOWUP_BLOCK + (stage === 'next-day' ? `\n${FOLLOWUP_NEXT_DAY}` : '') + (wasCrisis
+    ? '\nTheir last conversation was a crisis. Write to them now, never LATER or SKIP. Ask gently, in plain words, how they are today and whether they are safe, and give the crisis line for where they are again (in the US and Canada call or text 988; in the UK and Ireland Samaritans on 116 123; elsewhere their local emergency number).'
     : '') });
   const when = lastAt ? new Date(lastAt).toISOString() : 'a while ago';
   const messages = [...withTimeMarkers(history.slice(-RECENT_TURNS), userZone).map((m) => ({ role: m.role, content: m.content }))];
-  messages.push({ role: 'user', content: `[A note from the app, not from them: they have not written since ${when}. Write the one message you send them first now, or only SKIP.]` });
+  messages.push({ role: 'user', content: stage === 'next-day'
+    ? `[A note from the app, not from them: they have not written since ${when}. It is the next day. Write the one message you send them first now, or only SKIP.]`
+    : `[A note from the app, not from them: they have not written since ${when}. Write the one message you send them first now, or only LATER, or only SKIP.]` });
   const res = await client.messages.create({ _kind: 'followup', _who: userId, model: 'claude-opus-4-8', max_tokens: 600, system: followupBlocks, messages });
   let text = (res.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
   text = voices.stripSpeechTags(steps.stripAll(meetings.meetingProblemsIn(text).clean)).replace(/\[\[[^\]]*\]\]/g, '').trim();
   if (!text || /^\W*SKIP\b/i.test(text)) return { skip: 'nothing natural to pick up' };
+  /* Tomorrow is the natural moment: followup.js books one more look then. */
+  if (/^\W*LATER\b/i.test(text)) return stage === 'look' ? { later: true, zone: userZone } : { skip: 'nothing to say the next day' };
   if (meetings.inventedLinks(text, { theirWords: history.filter((m) => m.role === 'user').map((m) => m.content) }).length) return { skip: 'it named a meeting it was not given' };
   if (words(text) > 120) return { skip: 'too long for a first message' };
   const firstText = stripEmojiNearCrisis(stripPetNames(text, history.filter((m) => m.role === 'user').map((m) => m.content)));
