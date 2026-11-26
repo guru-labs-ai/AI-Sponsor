@@ -245,6 +245,28 @@ const localH = (zone, d) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 
     assert.ok(/ADD COLUMN IF NOT EXISTS stage TEXT/.test(dbsrc));
   });
 
+  await check('web search: only for the fuller answer on the first look, at most 3, never about them, and never the "let me look" text', () => {
+    assert.ok(/const FOLLOWUP_SEARCH_TOOL = \{ type: 'web_search_20260209', name: 'web_search', max_uses: 3 \};/.test(srv));
+    assert.ok(/const searching = stage === 'look' && FOLLOWUP_SEARCH_ON;/.test(srv), 'never on the next-day look');
+    assert.ok(/Never search for anything about them, and never put their name, their story or anything that could identify them in a search\./.test(srv));
+    assert.ok(/Meeting times and links come only from what you were given in this conversation, never from a search\./.test(srv));
+    assert.ok(/let text = followupTextOf\(res\);/.test(srv), 'the message is the text after the last search');
+    assert.ok(/res\.stop_reason === 'pause_turn'/.test(srv), 'a paused search is carried on, not sent half-done');
+    assert.ok(/web search unavailable, writing without it/.test(srv), 'no search, still a message');
+    // followupTextOf, copied out of server.js and run on a made-up answer
+    const m = srv.match(/function followupTextOf\(res\) \{[\s\S]*?\n\}/);
+    assert.ok(m, 'followupTextOf found');
+    const followupTextOf = new Function(`${m[0]}; return followupTextOf;`)();
+    assert.strictEqual(followupTextOf({ content: [
+      { type: 'text', text: 'Let me look that up.' },
+      { type: 'server_tool_use', name: 'web_search' },
+      { type: 'web_search_tool_result', content: [] },
+      { type: 'text', text: 'Hi again, I was thinking more about ' },
+      { type: 'text', text: 'the book you asked about.', citations: [{}] },
+    ] }), 'Hi again, I was thinking more about the book you asked about.');
+    assert.strictEqual(followupTextOf({ content: [{ type: 'text', text: 'SKIP' }] }), 'SKIP');
+  });
+
   console.log(`\n${failed ? 'FAILED' : 'All good'}: ${passed} passed, ${failed} failed\n`);
   process.exit(failed ? 1 : 0);
 })();

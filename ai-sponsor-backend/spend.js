@@ -67,6 +67,15 @@ function tokensOf(usage) {
   };
 }
 
+/* Web search is billed per search on top of tokens: $10 per 1,000 searches
+   (Anthropic pricing page, read 26 Nov 2026). Only the sponsor's fuller
+   answers search (server.js writeFollowup). */
+const SEARCH_DOLLARS = 0.01;
+function searchesOf(usage) {
+  const s = usage && usage.server_tool_use;
+  return (s && Number(s.web_search_requests)) || 0;
+}
+
 function costOf(model, usage) {
   const p = priceOf(model);
   if (!p) return null;
@@ -77,7 +86,7 @@ function costOf(model, usage) {
     t.write1h * p.input * 2 +
     t.cacheRead * p.input * p.read +
     t.output * p.output;
-  return dollars / 1e6;
+  return dollars / 1e6 + searchesOf(usage) * SEARCH_DOLLARS;
 }
 
 let sink = null;
@@ -176,4 +185,4 @@ function instrument(client, defaultKind) {
   return client;
 }
 
-module.exports = { PRICES, priceOf, tokensOf, costOf, setSink, track, instrument, watchStream };
+module.exports = { PRICES, SEARCH_DOLLARS, priceOf, tokensOf, searchesOf, costOf, setSink, track, instrument, watchStream };

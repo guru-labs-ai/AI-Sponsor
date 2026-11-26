@@ -22,6 +22,12 @@ const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} is not ${b}`);
     near(spend.costOf('claude-opus-4-8', usage), (1000 * 5 + 2000 * 10 + 3000 * 0.5 + 500 * 25) / 1e6);
   });
 
+  await t('a web search adds $0.01 on top of the tokens ($10 per 1,000)', () => {
+    near(spend.costOf('claude-opus-4-8', { input_tokens: 1000, output_tokens: 100, server_tool_use: { web_search_requests: 3 } }),
+      (1000 * 5 + 100 * 25) / 1e6 + 0.03);
+    near(spend.costOf('claude-opus-4-8', { input_tokens: 1000, server_tool_use: {} }), 1000 * 5 / 1e6);
+  });
+
   await t('a cache write with no lifetime breakdown is billed as the 5-minute kind', () => {
     near(spend.costOf('claude-opus-4-8', { cache_creation_input_tokens: 1000 }), 1000 * 5 * 1.25 / 1e6);
   });

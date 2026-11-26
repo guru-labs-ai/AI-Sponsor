@@ -1769,6 +1769,32 @@ const FOLLOWUP_BLOCK = [
   'No program, tool, saying or spiritual idea they have not already brought in themselves.',
   'Write only the message, or only LATER, or only SKIP.',
 ].join('\n');
+/* Web search, for the fuller answer only (Mariam, 26 Nov: "web search for the
+   deep answer I like it"). Only on the first look, at most 3 searches ($0.01
+   each plus reading the results). A search goes to Anthropic's search
+   provider, so nothing about the person may be in it. FOLLOWUP_WEB_SEARCH=off
+   on Render turns it off. */
+const FOLLOWUP_SEARCH_ON = String(process.env.FOLLOWUP_WEB_SEARCH || 'on').toLowerCase() !== 'off';
+const FOLLOWUP_SEARCH_TOOL = { type: 'web_search_20260209', name: 'web_search', max_uses: 3 };
+const FOLLOWUP_SEARCH = [
+  'You can search the web, but only for the fuller answer: to check what you tell them about their program, a book or other reading, or an event they asked about. Do not search when you are writing to them for any other reason.',
+  'Never search for anything about them, and never put their name, their story or anything that could identify them in a search.',
+  "Trust the fellowship's own pages, the publisher and well-known recovery organizations over anything else. If what you find does not settle it, say plainly what you are not sure of.",
+  'Meeting times and links come only from what you were given in this conversation, never from a search.',
+  'Use what you found in your own words, the way a sponsor talks, not as a list of sources.',
+].join('\n');
+
+/* The message is the text after the last search, never a "let me look that
+   up" written before it. */
+function followupTextOf(res) {
+  const blocks = (res && res.content) || [];
+  let start = 0;
+  blocks.forEach((b, i) => {
+    if (b && (b.type === 'server_tool_use' || /_tool_result$/.test(String(b.type || '')))) start = i + 1;
+  });
+  return blocks.slice(start).filter((b) => b && b.type === 'text').map((b) => b.text).join('').trim();
+}
+
 /* The second look, the next day, after the sponsor chose LATER: no waiting again. */
 const FOLLOWUP_NEXT_DAY = 'It is now the next day. Write the message about what they were going to do or face, or only the word SKIP if it no longer fits. LATER is not an option now.';
 
@@ -1812,8 +1838,32 @@ async function writeFollowup(userId, { stage = 'look' } = {}) {
   messages.push({ role: 'user', content: stage === 'next-day'
     ? `[A note from the app, not from them: they have not written since ${when}. It is the next day. Write the one message you send them first now, or only SKIP.]`
     : `[A note from the app, not from them: they have not written since ${when}. Write the one message you send them first now, or only LATER, or only SKIP.]` });
-  const res = await client.messages.create({ _kind: 'followup', _who: userId, model: 'claude-opus-4-8', max_tokens: 600, system: followupBlocks, messages });
-  let text = (res.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
+  const searching = stage === 'look' && FOLLOWUP_SEARCH_ON;
+  if (searching) followupBlocks.push({ type: 'text', text: FOLLOWUP_SEARCH });
+  const plain = { _kind: 'followup', _who: userId, model: 'claude-opus-4-8', max_tokens: 600, system: followupBlocks, messages };
+  let res;
+  if (searching) {
+    const req = { ...plain, max_tokens: 2000, tools: [FOLLOWUP_SEARCH_TOOL] };
+    try {
+      res = await client.messages.create(req);
+      /* A long search can pause the turn: send it back as it is and the server
+         carries on. Twice at most. */
+      for (let i = 0; i < 2 && res && res.stop_reason === 'pause_turn'; i++) {
+        res = await client.messages.create({ ...req, messages: [...messages, { role: 'assistant', content: res.content }] });
+      }
+      if (res && res.stop_reason === 'pause_turn') return { skip: 'the search did not finish' };
+    } catch (e) {
+      /* Search refused (switched off for the account, an outage): the sponsor
+         still writes, from what it knows. */
+      console.warn('[followup] web search unavailable, writing without it:', e.message);
+      res = null;
+    }
+  }
+  if (!res) {
+    const plainBlocks = followupBlocks.filter((b) => b.text !== FOLLOWUP_SEARCH);
+    res = await client.messages.create({ ...plain, system: plainBlocks });
+  }
+  let text = followupTextOf(res);
   text = voices.stripSpeechTags(steps.stripAll(meetings.meetingProblemsIn(text).clean)).replace(/\[\[[^\]]*\]\]/g, '').trim();
   if (!text || /^\W*SKIP\b/i.test(text)) return { skip: 'nothing natural to pick up' };
   /* Tomorrow is the natural moment: followup.js books one more look then. */
