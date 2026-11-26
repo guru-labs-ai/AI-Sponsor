@@ -92,6 +92,61 @@ const localH = (zone, d) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 
     } finally { Object.assign(db, saved); }
   });
 
+  /* Mariam's test, 26 Nov: a first message went out two seconds before the
+     reply to the voice note she had just sent. */
+  await check('never on top of a reply still being written: skipped before writing, and again right before sending', async () => {
+    const saved = { ...db };
+    const finished = [], sent = [];
+    Object.assign(db, {
+      enabled: true,
+      claimDueFollowups: async () => [row],
+      followupGuards: async () => quiet,
+      finishFollowup: async (u, s, n) => { finished.push([u, s, n]); },
+      recordOutbound: async () => {},
+    });
+    const deps = (onWrite) => ({
+      write: async (u) => { if (onWrite) onWrite(u); return { text: 'How did the call with the bank go?' }; },
+      send: async (phone, text) => { sent.push([phone, text]); return { messageId: 'wamid.TEST' }; },
+      after: async () => {},
+    });
+    try {
+      followup.startAnswering(row.user_id);
+      const r1 = await followup.runSweep(deps(), { now });
+      assert.deepStrictEqual([r1.sent, r1.skipped], [0, 1], 'their message is still being answered');
+      assert.strictEqual(finished[0][2], 'they are writing');
+      followup.doneAnswering(row.user_id);
+      assert.strictEqual(followup.beingAnswered(row.user_id), false);
+
+      const r2 = await followup.runSweep(deps((u) => followup.startAnswering(u)), { now });
+      assert.deepStrictEqual([r2.sent, r2.skipped], [0, 1], 'they wrote while it was being written');
+      assert.strictEqual(finished[1][2], 'they wrote while it was being written');
+      followup.doneAnswering(row.user_id);
+
+      const r3 = await followup.runSweep(deps(), { now });
+      assert.strictEqual(r3.sent, 1, 'once the reply is out, it sends as before');
+      assert.strictEqual(sent.length, 1);
+    } finally { Object.assign(db, saved); followup.doneAnswering(row.user_id); }
+  });
+
+  await check('two quick messages: still marked until both are answered; a stuck mark lapses after ten minutes', () => {
+    const u = 'wa-+15550003333';
+    followup.startAnswering(u); followup.startAnswering(u);
+    followup.doneAnswering(u);
+    assert.strictEqual(followup.beingAnswered(u), true, 'the second is still being answered');
+    followup.doneAnswering(u);
+    assert.strictEqual(followup.beingAnswered(u), false);
+    followup.startAnswering(u);
+    assert.strictEqual(followup.beingAnswered(u, Date.now() + 11 * 60 * 1000), false);
+  });
+
+  await check('WhatsApp marks the person the moment a message arrives and clears it when done', () => {
+    const wa = fs.readFileSync(path.join(__dirname, 'whatsapp.js'), 'utf8');
+    const start = wa.indexOf('if (!isReaction) followup.startAnswering(answeringId);');
+    const iife = wa.indexOf('(async () => {', start);
+    assert.ok(start > 0 && iife > start, 'marked before the reply work starts');
+    assert.ok(/\} finally \{\s*if \(!isReaction\) followup\.doneAnswering\(answeringId\);\s*\}\s*\}\)\(\);/.test(wa), 'cleared however it ends');
+  });
+
   const dbsrc = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
   const srv = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
   await check('the plan is a row that survives restarts, and is wiped with the person or their conversation', () => {

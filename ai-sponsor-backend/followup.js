@@ -97,6 +97,36 @@ function pickDueTime(lastUserAt, zone) {
   return null;
 }
 
+/* Somebody being answered right now. Mariam's test, 26 Nov: her first message
+   was due the same second she sent a voice note, and went out two seconds before
+   the reply to it. The check "have they written since?" reads saved messages,
+   and a new message is saved only together with its reply, so for the twenty
+   seconds the reply takes the database cannot see it. This can: whatsapp.js
+   marks the person the moment a message arrives and clears it when the reply is
+   out (or failed). Counted, because two quick messages overlap. One server, so
+   memory is enough; ten minutes at most, so a crash never blocks anyone. */
+const answering = new Map(); // userId -> { count, since }
+const ANSWERING_MAX_MS = 10 * 60 * 1000;
+function startAnswering(userId) {
+  const id = String(userId || '');
+  if (!id) return;
+  const cur = answering.get(id);
+  answering.set(id, { count: (cur ? cur.count : 0) + 1, since: Date.now() });
+}
+function doneAnswering(userId) {
+  const id = String(userId || '');
+  const cur = answering.get(id);
+  if (!cur) return;
+  if (cur.count <= 1) answering.delete(id); else answering.set(id, { count: cur.count - 1, since: cur.since });
+}
+function beingAnswered(userId, nowMs = Date.now()) {
+  const id = String(userId || '');
+  const cur = answering.get(id);
+  if (!cur) return false;
+  if (nowMs - cur.since > ANSWERING_MAX_MS) { answering.delete(id); return false; }
+  return true;
+}
+
 /* Called after every WhatsApp reply. Fire and forget: planning must never hold
    up or break a reply. */
 function plan(userId, { zone = null, now = new Date(), channel = 'whatsapp' } = {}) {
@@ -135,10 +165,16 @@ async function runSweep(deps, { limit = 3, now = new Date() } = {}) {
     try {
       /* Rows left from before a switch-off, or anyone not on the test list. */
       if (!allowed(userId)) { out.skipped++; await db.finishFollowup(userId, 'skipped', 'not on the test list'); continue; }
+      /* They are writing right now: their reply plans the next one. */
+      if (beingAnswered(userId)) { out.skipped++; await db.finishFollowup(userId, 'skipped', 'they are writing'); continue; }
       const v = verdict(row, await db.followupGuards(userId), now);
       if (v !== 'write') { out.skipped++; await db.finishFollowup(userId, 'skipped', v); continue; }
       const w = await deps.write(userId);
       if (!w || !w.text) { out.skipped++; await db.finishFollowup(userId, 'skipped', (w && w.skip) || 'nothing written'); continue; }
+      /* Writing takes seconds. Look again right before sending. */
+      if (beingAnswered(userId) || verdict(row, await db.followupGuards(userId), now) === 'they-wrote-since') {
+        out.skipped++; await db.finishFollowup(userId, 'skipped', 'they wrote while it was being written'); continue;
+      }
       const result = await deps.send(userId.slice(3), w.text);
       if (result && result.messageId && db.recordOutbound) {
         await db.recordOutbound(userId, result.messageId, 'followup', 'text').catch(() => {});
@@ -177,6 +213,6 @@ function startInterval(deps) {
 }
 
 module.exports = {
-  enabled: ON, everyone: EVERYONE, allowedBy, quickMinutes, plan, pickDueTime, verdict, runSweep, maybeSweep, startInterval,
+  enabled: ON, everyone: EVERYONE, allowedBy, quickMinutes, startAnswering, doneAnswering, beingAnswered, plan, pickDueTime, verdict, runSweep, maybeSweep, startInterval,
   EARLIEST_H, LATEST_H, DAY_START, DAY_END, MIN_DAYS_BETWEEN, QUIET_AFTER_OTHER_H,
 };

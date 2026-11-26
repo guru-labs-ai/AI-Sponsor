@@ -46,6 +46,7 @@ const language = require('./language'); // what language a message is in, and wh
 const timezones = require('./timezones'); // where they live, when they tell us
 const metacloud = require('./metacloud'); // voice notes straight to Meta; inert unless configured
 const { maskPhone } = require('./logsafe'); // phone numbers in logs: last four digits only
+const followup = require('./followup'); // the sponsor texting first: told who is being answered right now
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -1015,6 +1016,11 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
   const emptyTwiML = '<Response></Response>';
 
   // ── 4. Process asynchronously (don't await — return TwiML first) ──────────
+  /* Marked from the first moment until the reply is out, so the sponsor never
+     sends a first message on top of a reply it is still writing (followup.js).
+     Not for a reaction, which is not a message and gets no reply. */
+  const answeringId = waUserId(fromPhone);
+  if (!isReaction) followup.startAnswering(answeringId);
   (async () => {
     try {
       let userMessageText;
@@ -1418,6 +1424,8 @@ async function handleIncomingMessage(req, getSponsorReply, expressApp) {
       } catch (sendErr) {
         console.error('[WhatsApp] Failed to send fallback message:', sendErr.message);
       }
+    } finally {
+      if (!isReaction) followup.doneAnswering(answeringId);
     }
   })();
 
