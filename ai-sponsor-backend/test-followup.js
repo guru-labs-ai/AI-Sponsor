@@ -268,7 +268,8 @@ const localH = (zone, d) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 
     assert.ok(/const searching = stage === 'look' && FOLLOWUP_SEARCH_ON;/.test(srv), 'never on the next-day look');
     assert.ok(/Never search for anything about them, and never put their name, their story or anything that could identify them in a search\./.test(srv));
     assert.ok(/Meeting times and links come only from what you were given in this conversation, never from a search\./.test(srv));
-    assert.ok(/let text = followupTextOf\(res\);/.test(srv), 'the message is the text after the last search');
+    assert.ok(/let text = followupMessageOf\(res\);/.test(srv), 'the message is what is between the tags, after the last search');
+    assert.ok(/if \(text === null\) \{[^}]*return \{ skip: 'no message tags' \}; \}/.test(srv), 'no tags, nothing sent');
     assert.ok(/res\.stop_reason === 'pause_turn'/.test(srv), 'a paused search is carried on, not sent half-done');
     assert.ok(/writing without it/.test(srv), 'no search, still a message');
     // followupTextOf, copied out of server.js and run on a made-up answer
@@ -283,6 +284,18 @@ const localH = (zone, d) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 
       { type: 'text', text: 'the book you asked about.', citations: [{}] },
     ] }), 'Hi again, I was thinking more about the book you asked about.');
     assert.strictEqual(followupTextOf({ content: [{ type: 'text', text: 'SKIP' }] }), 'SKIP');
+    // 26 Nov live test: the sponsor's note to itself must never be sent
+    const m2 = srv.match(/function followupMessageOf\(res\) \{[\s\S]*?\n\}/);
+    assert.ok(m2, 'followupMessageOf found');
+    const followupMessageOf = new Function(`${m[0]}; ${m2[0]}; return followupMessageOf;`)();
+    assert.strictEqual(followupMessageOf({ content: [
+      { type: 'server_tool_use', name: 'web_search' },
+      { type: 'web_search_tool_result', content: { error_code: 'unavailable' } },
+      { type: 'text', text: 'The search ran even though the error came back. I have enough general knowledge.\n\n<message>Been thinking more about your question. ' },
+      { type: 'text', text: 'Here is more.</message>', citations: [{}] },
+    ] }), 'Been thinking more about your question. Here is more.');
+    assert.strictEqual(followupMessageOf({ content: [{ type: 'text', text: 'The search failed, so here is the answer.' }] }), null, 'no tags: nothing');
+    assert.strictEqual(followupMessageOf({ content: [{ type: 'text', text: 'Thinking.\n<message>LATER</message>' }] }), 'LATER');
   });
 
   console.log(`\n${failed ? 'FAILED' : 'All good'}: ${passed} passed, ${failed} failed\n`);

@@ -1767,7 +1767,7 @@ const FOLLOWUP_BLOCK = [
   'The message itself: short, two to four sentences, at most one question. A fuller answer to something they asked can be longer, up to about two hundred words, in short paragraphs with a blank line between them, still with at most one question.',
   'Never apologize for or comment on an earlier reply of yours. Never mention reading, reviewing or checking the conversation, an app, a system, a fix or a reminder setting, and never say you are "following up" or "checking in because". Just be the sponsor who remembered them.',
   'No program, tool, saying or spiritual idea they have not already brought in themselves.',
-  'Write only the message, or only LATER, or only SKIP.',
+  'Put what you send between <message> and </message>: the message itself, or only LATER, or only SKIP. Nothing outside those tags is ever sent, so anything you note for yourself stays outside them.',
 ].join('\n');
 /* Web search, for the fuller answer only (Mariam, 26 Nov: "web search for the
    deep answer I like it"). Only on the first look, and ONE search: "dont go
@@ -1803,6 +1803,18 @@ function followupTextOf(res) {
     if (b && (b.type === 'server_tool_use' || /_tool_result$/.test(String(b.type || '')))) start = i + 1;
   });
   return blocks.slice(start).filter((b) => b && b.type === 'text').map((b) => b.text).join('').trim();
+}
+
+/* Only what is between <message> and </message> is ever sent. A live test on
+   26 Nov sent, before the real answer, the sponsor talking to itself: "The
+   search ran even though the error came back. I have enough general knowledge
+   of the book to give Sam the fuller answer I promised." No tags, no message:
+   a skipped first message costs nothing, a leaked note to itself costs trust. */
+function followupMessageOf(res) {
+  const all = followupTextOf(res);
+  const found = [...all.matchAll(/<message>([\s\S]*?)<\/message>/gi)];
+  if (!found.length) return null;
+  return found[found.length - 1][1].trim();
 }
 
 /* The second look, the next day, after the sponsor chose LATER: no waiting again. */
@@ -1846,8 +1858,8 @@ async function writeFollowup(userId, { stage = 'look' } = {}) {
   const when = lastAt ? new Date(lastAt).toISOString() : 'a while ago';
   const messages = [...withTimeMarkers(history.slice(-RECENT_TURNS), userZone).map((m) => ({ role: m.role, content: m.content }))];
   messages.push({ role: 'user', content: stage === 'next-day'
-    ? `[A note from the app, not from them: they have not written since ${when}. It is the next day. Write the one message you send them first now, or only SKIP.]`
-    : `[A note from the app, not from them: they have not written since ${when}. Write the one message you send them first now, or only LATER, or only SKIP.]` });
+    ? `[A note from the app, not from them: they have not written since ${when}. It is the next day. Write the one message you send them first now, or only SKIP, between <message> and </message>.]`
+    : `[A note from the app, not from them: they have not written since ${when}. Write the one message you send them first now, or only LATER, or only SKIP, between <message> and </message>.]` });
   const searching = stage === 'look' && FOLLOWUP_SEARCH_ON;
   if (searching) followupBlocks.push({ type: 'text', text: FOLLOWUP_SEARCH });
   const plain = { _kind: 'followup', _who: userId, model: 'claude-opus-4-8', max_tokens: 600, system: followupBlocks, messages };
@@ -1877,7 +1889,8 @@ async function writeFollowup(userId, { stage = 'look' } = {}) {
     const plainBlocks = followupBlocks.filter((b) => b.text !== FOLLOWUP_SEARCH);
     res = await client.messages.create({ ...plain, system: plainBlocks });
   }
-  let text = followupTextOf(res);
+  let text = followupMessageOf(res);
+  if (text === null) { console.warn('[followup] no <message> tags in what came back; nothing sent'); return { skip: 'no message tags' }; }
   text = voices.stripSpeechTags(steps.stripAll(meetings.meetingProblemsIn(text).clean)).replace(/\[\[[^\]]*\]\]/g, '').trim();
   if (!text || /^\W*SKIP\b/i.test(text)) return { skip: 'nothing natural to pick up' };
   /* Tomorrow is the natural moment: followup.js books one more look then. */
