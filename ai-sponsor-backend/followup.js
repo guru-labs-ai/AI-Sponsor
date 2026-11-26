@@ -62,6 +62,19 @@ const EVERYONE = String(process.env.SPONSOR_FOLLOWUPS || 'on').toLowerCase() !==
 const ONLY = readList(process.env.SPONSOR_FOLLOWUPS_ONLY);
 const ON = EVERYONE || ONLY.size > 0;
 const allowed = (userId) => allowedBy(userId, process.env.SPONSOR_FOLLOWUPS, process.env.SPONSOR_FOLLOWUPS_ONLY);
+
+/* Test speed (Mariam, 26 Nov: "just message me first already"). Only for the
+   numbers on the test list, only while the switch is off: with
+   SPONSOR_FOLLOWUPS_TEST_MINUTES=N the message is planned N minutes after
+   their last one, at any hour, instead of 8+ hours later inside their day.
+   Everyone else, and everyone once the switch is on, keeps the real timing. */
+function quickMinutes(userId, switchValue, onlyValue, minutesValue) {
+  const n = Number(minutesValue);
+  if (!(n > 0) || String(switchValue || 'on').toLowerCase() !== 'off') return 0;
+  return readList(onlyValue).has(String(userId || '').replace(/^wa-/, '')) ? Math.min(n, 60) : 0;
+}
+const quick = (userId) => quickMinutes(userId, process.env.SPONSOR_FOLLOWUPS, process.env.SPONSOR_FOLLOWUPS_ONLY, process.env.SPONSOR_FOLLOWUPS_TEST_MINUTES);
+const TESTING = !EVERYONE && ONLY.size > 0 && Number(process.env.SPONSOR_FOLLOWUPS_TEST_MINUTES) > 0;
 const EARLIEST_H = 8;       // after their last message (12 left people who write around 9am with no slot at all)
 const LATEST_H = 23;        // the window closes at 24; an hour of slack
 const DAY_START = 9;        // their local time
@@ -88,7 +101,8 @@ function pickDueTime(lastUserAt, zone) {
    up or break a reply. */
 function plan(userId, { zone = null, now = new Date(), channel = 'whatsapp' } = {}) {
   if (!ON || !db.enabled || channel !== 'whatsapp' || !allowed(userId)) return Promise.resolve();
-  const due = pickDueTime(now, zone);
+  const mins = quick(userId);
+  const due = mins ? new Date(now.getTime() + mins * 60 * 1000) : pickDueTime(now, zone);
   const closes = new Date(now.getTime() + 24 * H);
   return db.planFollowup(userId, now, due, closes)
     .catch((e) => console.warn('[followup] could not plan:', e.message));
@@ -147,7 +161,7 @@ async function runSweep(deps, { limit = 3, now = new Date() } = {}) {
 /* Run every ten minutes from an interval and on ordinary traffic; the claim in
    the database makes overlapping runs harmless. */
 let lastRun = 0;
-const EVERY_MS = 10 * 60 * 1000;
+const EVERY_MS = (TESTING ? 1 : 10) * 60 * 1000; // every minute only while a quick test is set
 function maybeSweep(deps) {
   if (!ON || !db.enabled) return;
   const now = Date.now();
@@ -163,6 +177,6 @@ function startInterval(deps) {
 }
 
 module.exports = {
-  enabled: ON, everyone: EVERYONE, allowedBy, plan, pickDueTime, verdict, runSweep, maybeSweep, startInterval,
+  enabled: ON, everyone: EVERYONE, allowedBy, quickMinutes, plan, pickDueTime, verdict, runSweep, maybeSweep, startInterval,
   EARLIEST_H, LATEST_H, DAY_START, DAY_END, MIN_DAYS_BETWEEN, QUIET_AFTER_OTHER_H,
 };

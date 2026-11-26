@@ -132,6 +132,15 @@ const localH = (zone, d) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 
     assert.strictEqual(a('reg-abc', 'on', ''), false);
   });
 
+  await check('quick test timing: only for the test list, only while switched off', () => {
+    const q = followup.quickMinutes;
+    assert.strictEqual(q('wa-+15550001111', 'off', '+15550001111', '5'), 5);
+    assert.strictEqual(q('wa-+15550002222', 'off', '+15550001111', '5'), 0, 'not on the list: real timing');
+    assert.strictEqual(q('wa-+15550001111', 'on', '+15550001111', '5'), 0, 'switched on: real timing for everyone');
+    assert.strictEqual(q('wa-+15550001111', 'off', '+15550001111', ''), 0, 'not set: real timing');
+    assert.strictEqual(q('wa-+15550001111', 'off', '+15550001111', '999'), 60, 'never more than an hour');
+  });
+
   console.log(`\n${failed ? 'FAILED' : 'All good'}: ${passed} passed, ${failed} failed\n`);
   process.exit(failed ? 1 : 0);
 })();
