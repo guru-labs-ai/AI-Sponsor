@@ -258,6 +258,30 @@ const localH = (zone, d) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 
     assert.ok(/ADD COLUMN IF NOT EXISTS stage TEXT/.test(dbsrc));
   });
 
+  await check('27 Nov: a first message never voices doubt about its own answer', () => {
+    assert.ok(/Never tell them you are not certain, want to be straight with them, or cannot say something with confidence\./.test(srv));
+    assert.ok(/If you are not sure enough to give them something real, answer only SKIP\./.test(srv));
+    assert.ok(!/say plainly what you are not sure of/.test(srv) && !/If something here is unsure, say so plainly/.test(srv), 'the old "say what you are not sure of" lines are gone');
+    assert.ok(/if \(VOICES_DOUBT\.test\(text\)\) \{[^}]*return \{ skip: 'it voiced doubt about its answer' \}; \}/.test(srv), 'the code backstop');
+    const m = srv.match(/const VOICES_DOUBT = new RegExp\(\[[\s\S]*?\]\.join\('\|'\), 'i'\);/);
+    assert.ok(m, 'VOICES_DOUBT found');
+    const VOICES_DOUBT = new Function(`${m[0]}; return VOICES_DOUBT;`)();
+    for (const bad of [
+      "I want to be straight with you, I'm not certain enough about the exact titles to list a stack of them with confidence.",
+      "I'm not sure about the exact publisher.",
+      "I can't say for sure which edition it is.",
+      "I don't want to guess and give you the wrong name.",
+      'Maybe double-check that yourself before you buy it.',
+    ]) assert.ok(VOICES_DOUBT.test(bad), `not caught: ${bad}`);
+    for (const fine of [
+      "Been thinking about your Drop the Rock question. It's a Hazelden book by Bill P., Todd W. and Sara S.",
+      "I'm not sure how today went for you, so I wanted to ask.",
+      'How did the call with your brother go?',
+      'You can walk into that meeting tomorrow with confidence.',
+      "You don't have to be sure about step three yet. Most people aren't.",
+    ]) assert.ok(!VOICES_DOUBT.test(fine), `wrongly caught: ${fine}`);
+  });
+
   await check('looking things up: a small separate step with only the search, never about them, never announced; the sponsor writes with no tools', () => {
     assert.ok(/const FOLLOWUP_SEARCH_TOOL = \{ type: 'web_search_20250305', name: 'web_search', max_uses: 1 \};/.test(srv), 'one plain search, no more (the sifting programs of _20260209 crashed in testing)');
     assert.ok(/const FOLLOWUP_FETCH_TOOL = \{ type: 'web_fetch_20250910', name: 'web_fetch', max_uses: 1, max_content_tokens: 3000 \};/.test(srv), 'at most one page, cut at 3,000 tokens (costs down, 26 Nov)');

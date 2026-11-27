@@ -1768,7 +1768,7 @@ const FOLLOWUP_BLOCK = [
   'They have not written since the last message in this conversation. Decide, the way a sponsor who cares about them would on WhatsApp, whether to send them a message first now, the next day, or not at all.',
   'Write to them now when one of these is true:',
   '- They were struggling, low or scared, or said something about themselves that worried you, and then went quiet. Ask gently how they are doing now.',
-  '- They asked about their program, a meeting or event, a book or other reading, and looking back, your answer was thin, vague or missed what they really asked. Come back with a fuller, more useful answer, as someone who kept thinking about their question would, and say in your own words that you were thinking more about it. Never say your earlier answer was wrong, thin or incomplete.',
+  '- They asked about their program, a meeting or event, a book or other reading, and looking back, your answer was thin, vague or missed what they really asked. Come back with a fuller, more useful answer, as someone who kept thinking about their question would, and say in your own words that you were thinking more about it. Never say your earlier answer was wrong, thin or incomplete. Say only what you are sure of, and say it with confidence: leave out anything you are not sure of rather than telling them so. Never tell them you are not certain, want to be straight with them, or cannot say something with confidence. If you are not sure enough to give them something real, answer only SKIP.',
   '- Something was left hanging between you: you gave them options, offered to do something for them, or asked something simple they never answered. Send a short, light nudge about that one thing that makes it easy to answer (name the options again if there were any), and make clear there is no pressure.',
   'Answer only the word LATER when the natural moment is the next day: they told you about something they were going to do or face (a call, a meeting, a hard conversation, a first step), and asking how it went belongs to tomorrow.',
   'Answer only the word SKIP when there is nothing natural to pick up: they said goodbye with nothing left open, or the last exchange was practical and finished.',
@@ -1852,6 +1852,18 @@ async function researchFor(userId, query) {
   return null;
 }
 
+/* Doubt about its own answer, said out loud. Narrow on purpose: "I'm not sure
+   how today went for you" is a caring question, not doubt about facts. */
+const VOICES_DOUBT = new RegExp([
+  String.raw`\bwant to be (?:straight|honest|upfront) with you\b`,
+  String.raw`\bnot (?:certain|sure|confident) enough\b`,
+  String.raw`\b(?:say|list|tell you|answer|recommend|name)\b[^.?!]*\bwith (?:any |real |full )?confidence\b`,
+  String.raw`\b(?:can'?t|cannot|couldn'?t) (?:say|list|tell you|confirm|vouch)\b[^.?!]*\b(?:for sure|for certain|with certainty|exactly)\b`,
+  String.raw`\bi(?:'m| am) not (?:certain|sure|confident) (?:about|of|which|what|whether|if) (?:the |that |its |their |this )?(?:exact|title|titles|author|authors|publisher|date|dates|name|names|book|books|detail|details|facts?)\b`,
+  String.raw`\bdon'?t want to (?:guess|give you (?:the )?wrong|get (?:it|this|that) wrong|mislead)\b`,
+  String.raw`\b(?:double[- ]check|verify) (?:that|this|it) (?:yourself|before)\b`,
+].join('|'), 'i');
+
 /* The second look, the next day, after the sponsor chose LATER: no waiting again. */
 const FOLLOWUP_NEXT_DAY = 'It is now the next day. Write the message about what they were going to do or face, or only the word SKIP if it no longer fits. LATER and RESEARCH are not options now.';
 
@@ -1906,8 +1918,8 @@ async function writeFollowup(userId, { stage = 'look' } = {}) {
   if (research) {
     const notes = stage === 'look' && FOLLOWUP_SEARCH_ON ? await researchFor(userId, research[1]) : null;
     const found = notes
-      ? ['## WHAT YOU FOUND WHEN YOU LOOKED INTO IT', notes, 'Use it in your own words, the way a sponsor talks, not as a list of sources. Never tell them you searched online, the internet or the web, and never mention Google, search results, websites or sources; if you mention it at all, say that you looked into it. If something here is unsure, say so plainly. Meeting times and links come only from what you were given in this conversation.']
-      : ['## YOU COULD NOT LOOK IT UP', 'Write the fuller answer from what you know, and say plainly what you are not sure of.'];
+      ? ['## WHAT YOU FOUND WHEN YOU LOOKED INTO IT', notes, 'Use it in your own words, the way a sponsor talks, not as a list of sources. Never tell them you searched online, the internet or the web, and never mention Google, search results, websites or sources; if you mention it at all, say that you looked into it. Use only what these notes make clear, said with confidence, and leave out anything they leave unsure; never tell them you are unsure or not certain. If they do not give you enough for a confident, useful answer, answer only SKIP. Meeting times and links come only from what you were given in this conversation.']
+      : ['## YOU COULD NOT LOOK IT UP', 'Write the fuller answer only if you know enough to give it with confidence, leaving out anything you are not sure of. Otherwise answer only SKIP.'];
     const writeNow = [...messages.slice(0, -1), { role: 'user', content: `[A note from the app, not from them: they have not written since ${when}. Write the fuller answer you send them first now, or only SKIP.]` }];
     text = followupMessageOf(await ask([...followupBlocks, { type: 'text', text: found.join('\n') }], writeNow));
     if (/^\W*(?:RESEARCH|LATER)\b/i.test(text)) return { skip: 'it still wanted to look something up' };
@@ -1918,6 +1930,11 @@ async function writeFollowup(userId, { stage = 'look' } = {}) {
   /* Tomorrow is the natural moment: followup.js books one more look then. */
   if (/^\W*LATER\b/i.test(text)) return stage === 'look' ? { later: true, zone: userZone } : { skip: 'nothing to say the next day' };
   if (meetings.inventedLinks(text, { theirWords: history.filter((m) => m.role === 'user').map((m) => m.content) }).length) return { skip: 'it named a meeting it was not given' };
+  /* A first message the sponsor chose to send has to sound sure (Mariam, 27 Nov,
+     after her test got "I want to be straight with you, I'm not certain enough
+     about the exact titles to list a stack of them with confidence"). The
+     instructions say to leave unsure parts out; this catches it if they do not. */
+  if (VOICES_DOUBT.test(text)) { console.warn('[followup] it voiced doubt about its own answer; nothing sent'); return { skip: 'it voiced doubt about its answer' }; }
   /* A fuller answer can run to about 200 words (Mariam, 26 Nov: "the first
      message also can be bigger with such questions"); past 250 it is not
      sent at all. */
